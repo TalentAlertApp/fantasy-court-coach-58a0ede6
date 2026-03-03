@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search } from "lucide-react";
+import { getTeamLogo } from "@/lib/nba-teams";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -65,7 +66,10 @@ export default function PlayerPickerDialog({
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-heading font-semibold uppercase truncate">{p.core.name}</p>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
+                     {getTeamLogo(p.core.team) && (
+                       <img src={getTeamLogo(p.core.team)} alt={p.core.team} className="w-4 h-4 flex-shrink-0 opacity-60" />
+                     )}
+                     <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
                     <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-sm">
                       {p.core.fc_bc}
                     </Badge>
