@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { TeamProvider } from "@/contexts/TeamContext";
 import AppLayout from "@/components/layout/AppLayout";
 import RosterPage from "@/pages/RosterPage";
 import PlayersPage from "@/pages/PlayersPage";
@@ -17,22 +18,24 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<RosterPage />} />
-            <Route path="/roster" element={<RosterPage />} />
-            <Route path="/players" element={<PlayersPage />} />
-            <Route path="/transactions" element={<TransactionsPage />} />
-            <Route path="/schedule" element={<SchedulePage />} />
-            <Route path="/stats" element={<StatsPage />} />
-            <Route path="/ai" element={<AIHubPage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <TeamProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<RosterPage />} />
+              <Route path="/roster" element={<RosterPage />} />
+              <Route path="/players" element={<PlayersPage />} />
+              <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/schedule" element={<SchedulePage />} />
+              <Route path="/stats" element={<StatsPage />} />
+              <Route path="/ai" element={<AIHubPage />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TeamProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

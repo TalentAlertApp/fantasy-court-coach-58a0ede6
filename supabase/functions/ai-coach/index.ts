@@ -1,6 +1,7 @@
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { resolveTeam } from "../_shared/resolve-team.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY_NBA")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -59,10 +60,12 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "injury-monitor": `Return JSON: { "items": [{ "player_id": number, "status": "OUT"|"Q"|"DTD"|"ACTIVE"|"UNKNOWN", "headline": string|null, "impact": "low"|"medium"|"high", "recommended_move": { "action": "hold"|"bench"|"drop"|"swap", "replacement_targets": [{ "player_id": number, "why": string[], "confidence": number(0-1) }] }, "risk_flags": string[] }], "notes": string[] }`,
 };
 
-async function fetchContext(sb: ReturnType<typeof createClient>) {
+async function fetchContext(sb: ReturnType<typeof createClient>, teamId?: string) {
   const [playersRes, rosterRes, scheduleRes] = await Promise.all([
     sb.from("players").select("*").order("fp_pg5", { ascending: false }).limit(200),
-    sb.from("roster").select("*"),
+    teamId
+      ? sb.from("roster").select("*").eq("team_id", teamId)
+      : sb.from("roster").select("*"),
     sb.from("schedule_games").select("*").order("gw").order("day").limit(50),
   ]);
   return {
@@ -202,7 +205,8 @@ Deno.serve(async (req) => {
     console.log(`[ai-coach] action=${action} timestamp=${new Date().toISOString()}`);
 
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const ctx = await fetchContext(sb);
+    const { team_id, team_name } = await resolveTeam(req, sb);
+    const ctx = await fetchContext(sb, team_id);
 
     const rosterPlayerIds = new Set(ctx.roster.map((r: any) => r.player_id));
     const rosterSlots = ctx.roster.map((r: any) => ({

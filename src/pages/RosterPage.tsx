@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
+import { useTeam } from "@/contexts/TeamContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveRoster } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -22,6 +23,7 @@ type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
 export default function RosterPage() {
   const queryClient = useQueryClient();
+  const { selectedTeamId } = useTeam();
   const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 500 });
 
@@ -56,7 +58,8 @@ export default function RosterPage() {
   }, [roster?.captain_id, captainId]);
 
   const saveMutation = useMutation({
-    mutationFn: saveRoster,
+    mutationFn: (body: Parameters<typeof saveRoster>[0]) =>
+      saveRoster(body, selectedTeamId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       toast({ title: "Lineup saved!" });

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { useTeam } from "@/contexts/TeamContext";
 import { simulateTransactions, commitTransaction, autoPickRoster } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import KpiTiles from "@/components/KpiTiles";
@@ -13,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TransactionsPage() {
   const queryClient = useQueryClient();
+  const { selectedTeamId } = useTeam();
   const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 500 });
 
@@ -27,31 +29,33 @@ export default function TransactionsPage() {
   const availablePlayers = allPlayers.filter((p) => !rosterIds.has(p.core.id));
 
   const simulateMutation = useMutation({
-    mutationFn: simulateTransactions,
+    mutationFn: (body: Parameters<typeof simulateTransactions>[0]) =>
+      simulateTransactions(body, selectedTeamId ?? undefined),
     onSuccess: (data) => setSimResult(data),
     onError: (err) => toast({ title: "Simulation failed", description: err.message, variant: "destructive" }),
   });
 
   const commitMutation = useMutation({
-    mutationFn: commitTransaction,
+    mutationFn: (body: Parameters<typeof commitTransaction>[0]) =>
+      commitTransaction(body, selectedTeamId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       toast({ title: "Transaction committed!" });
-      setSimResult(null);
-      setDropId("");
-      setAddId("");
+      setSimResult(null); setDropId(""); setAddId("");
     },
     onError: (err) => toast({ title: "Commit failed", description: err.message, variant: "destructive" }),
   });
 
   const autoPickMutation = useMutation({
-    mutationFn: autoPickRoster,
+    mutationFn: (body: Parameters<typeof autoPickRoster>[0]) =>
+      autoPickRoster(body, selectedTeamId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       toast({ title: "Auto-pick applied!" });
     },
     onError: (err) => toast({ title: "Auto-pick failed", description: err.message, variant: "destructive" }),
   });
+
 
   const handleSimulate = () => {
     if (!roster || !dropId || !addId) return;
