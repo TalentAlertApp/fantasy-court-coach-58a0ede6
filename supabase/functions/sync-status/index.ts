@@ -48,11 +48,19 @@ serve(async (req: Request) => {
     const isStale = !lastSuccessAt ||
       (Date.now() - new Date(lastSuccessAt).getTime()) > 2 * 60 * 60 * 1000;
 
+    const durationMs = (latest?.started_at && latest?.finished_at)
+      ? new Date(latest.finished_at).getTime() - new Date(latest.started_at).getTime()
+      : null;
+
     return okResponse({
       last_success_at: lastSuccessAt,
       last_type: latest?.type ?? null,
       counts: latest?.details?.counts ?? {},
       is_stale: isStale,
+      source: latest?.details?.source ?? null,
+      duration_ms: durationMs,
+      error_count: (latest?.details?.errors ?? []).length,
+      errors: latest?.details?.errors ?? [],
     });
   } catch (e) {
     console.error("[sync-status] Error:", e);
