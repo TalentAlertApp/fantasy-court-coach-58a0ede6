@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { ArrowLeftRight, GripVertical } from "lucide-react";
+import { getTeamLogo } from "@/lib/nba-teams";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -22,6 +23,8 @@ interface PlayerRowProps {
 
 export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
+  const teamLogo = getTeamLogo(core.team);
+
   return (
     <TableRow
       onClick={onClick}
@@ -36,6 +39,9 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
         <div className="flex items-center gap-2">
           {draggable && (
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing flex-shrink-0" />
+          )}
+          {teamLogo && (
+            <img src={teamLogo} alt={core.team} className="w-5 h-5 flex-shrink-0 opacity-60" />
           )}
           {core.photo ? (
             <img src={core.photo} alt={core.name} className="w-7 h-7 rounded-sm object-cover bg-muted" />

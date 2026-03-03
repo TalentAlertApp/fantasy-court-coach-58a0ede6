@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchPlayerDetail, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, Loader2 } from "lucide-react";
+import { getTeamLogo } from "@/lib/nba-teams";
 
 interface PlayerModalProps {
   playerId: number | null;
@@ -40,9 +41,21 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
 
   if (!open) return null;
 
+  const teamLogo = data ? getTeamLogo(data.player.core.team) : undefined;
+
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); } }}>
-      <DialogContent className="max-w-lg rounded-sm">
+      <DialogContent className="max-w-lg rounded-sm overflow-hidden">
+        {/* Team logo watermark in dialog */}
+        {teamLogo && (
+          <img
+            src={teamLogo}
+            alt=""
+            aria-hidden="true"
+            className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none"
+          />
+        )}
+
         <DialogHeader>
           <DialogTitle className="font-heading">{isLoading ? "Loading…" : data?.player?.core?.name ?? "Player"}</DialogTitle>
         </DialogHeader>
@@ -64,7 +77,10 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
               )}
               <div>
                 <p className="font-heading font-bold uppercase">{data.player.core.name}</p>
-                <p className="text-sm text-muted-foreground">{data.player.core.team} · #{data.player.core.jersey} · {data.player.core.pos}</p>
+                <div className="flex items-center gap-1.5">
+                  {teamLogo && <img src={teamLogo} alt={data.player.core.team} className="w-4 h-4" />}
+                  <p className="text-sm text-muted-foreground">{data.player.core.team} · #{data.player.core.jersey} · {data.player.core.pos}</p>
+                </div>
                 <div className="flex gap-2 mt-1">
                   <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-sm">
                     {data.player.core.fc_bc}

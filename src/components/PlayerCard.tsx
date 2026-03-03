@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { ArrowLeftRight, GripVertical } from "lucide-react";
+import { getTeamLogo } from "@/lib/nba-teams";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -21,6 +22,7 @@ interface PlayerCardProps {
 export default function PlayerCard({ player, isCaptain, onClick, onSwap, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: PlayerCardProps) {
   const { core, last5, computed } = player;
   const accentColor = core.fc_bc === "FC" ? "bg-destructive" : "bg-primary";
+  const teamLogo = getTeamLogo(core.team);
 
   return (
     <div
@@ -30,8 +32,18 @@ export default function PlayerCard({ player, isCaptain, onClick, onSwap, draggab
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className="bg-card border rounded-sm cursor-pointer hover:border-accent transition-colors relative min-w-[130px] group"
+      className="bg-card border rounded-sm cursor-pointer hover:border-accent transition-all relative min-w-[130px] group overflow-hidden"
     >
+      {/* Team logo watermark — scales up on hover */}
+      {teamLogo && (
+        <img
+          src={teamLogo}
+          alt=""
+          aria-hidden="true"
+          className="absolute -bottom-2 -right-2 w-16 h-16 opacity-[0.06] group-hover:opacity-[0.18] group-hover:scale-125 transition-all duration-300 pointer-events-none select-none"
+        />
+      )}
+
       {/* Team color accent strip */}
       <div className={`h-1 ${accentColor} rounded-t-sm`} />
 
@@ -56,7 +68,7 @@ export default function PlayerCard({ player, isCaptain, onClick, onSwap, draggab
         </button>
       )}
 
-      <div className="p-2.5">
+      <div className="p-2.5 relative z-[1]">
         <div className="flex items-center gap-2 mb-1.5">
           {core.photo ? (
             <img src={core.photo} alt={core.name} className="w-9 h-9 rounded-sm object-cover bg-muted" />
