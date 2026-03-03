@@ -15,6 +15,11 @@ import {
   TransactionsCommitResponseSchema,
   ScheduleResponseSchema,
   ScheduleImpactResponseSchema,
+  AISuggestTransfersResponseSchema,
+  AIPickCaptainResponseSchema,
+  AIExplainPlayerResponseSchema,
+  AIAnalyzeRosterResponseSchema,
+  AIInjuryMonitorResponseSchema,
 } from "@/lib/contracts";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -137,4 +142,45 @@ export async function fetchScheduleImpact(params?: { gw?: number; day?: number }
   if (params?.day) qs.set("day", String(params.day));
   const path = `schedule-impact${qs.toString() ? `?${qs}` : ""}`;
   return unwrap(await apiFetch(path, ScheduleImpactResponseSchema));
+}
+
+/** POST /ai-coach (suggest-transfers) */
+export async function aiSuggestTransfers(body: {
+  gw: number; day: number; max_cost: number; objective: "maximize_fp5" | "maximize_value5" | "maximize_stocks5";
+}) {
+  return unwrap(await apiFetch("ai-coach", AISuggestTransfersResponseSchema, {
+    method: "POST", body: JSON.stringify({ action: "suggest-transfers", ...body }),
+  }));
+}
+
+/** POST /ai-coach (pick-captain) */
+export async function aiPickCaptain(body: { gw: number; day: number }) {
+  return unwrap(await apiFetch("ai-coach", AIPickCaptainResponseSchema, {
+    method: "POST", body: JSON.stringify({ action: "pick-captain", ...body }),
+  }));
+}
+
+/** POST /ai-coach (explain-player) */
+export async function aiExplainPlayer(body: { player_id: number }) {
+  return unwrap(await apiFetch("ai-coach", AIExplainPlayerResponseSchema, {
+    method: "POST", body: JSON.stringify({ action: "explain-player", ...body }),
+  }));
+}
+
+/** POST /ai-coach (analyze-roster) */
+export async function aiAnalyzeRoster(body: {
+  gw: number; day: number; focus: "lineup" | "waiver" | "trade" | "balanced";
+}) {
+  return unwrap(await apiFetch("ai-coach", AIAnalyzeRosterResponseSchema, {
+    method: "POST", body: JSON.stringify({ action: "analyze-roster", ...body }),
+  }));
+}
+
+/** POST /ai-coach (injury-monitor) */
+export async function aiInjuryMonitor(body: {
+  player_ids: number[]; include_replacements: boolean; max_salary: number | null;
+}) {
+  return unwrap(await apiFetch("ai-coach", AIInjuryMonitorResponseSchema, {
+    method: "POST", body: JSON.stringify({ action: "injury-monitor", ...body }),
+  }));
 }
