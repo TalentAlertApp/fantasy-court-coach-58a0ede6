@@ -16,7 +16,6 @@ serve(async (req: Request) => {
     const runId = url.searchParams.get("run_id");
 
     if (runId) {
-      // Get specific run
       const { data, error } = await sb
         .from("sync_runs")
         .select("*")
@@ -29,8 +28,10 @@ serve(async (req: Request) => {
         status: data.status,
         started_at: data.started_at,
         finished_at: data.finished_at,
+        step: data.details?.step ?? null,
         counts: data.details?.counts ?? {},
         errors: data.details?.errors ?? [],
+        source: data.details?.source ?? "nba",
       });
     }
 
@@ -45,7 +46,7 @@ serve(async (req: Request) => {
 
     const lastSuccessAt = latest?.finished_at ?? null;
     const isStale = !lastSuccessAt ||
-      (Date.now() - new Date(lastSuccessAt).getTime()) > 2 * 60 * 60 * 1000; // 2 hours
+      (Date.now() - new Date(lastSuccessAt).getTime()) > 2 * 60 * 60 * 1000;
 
     return okResponse({
       last_success_at: lastSuccessAt,
