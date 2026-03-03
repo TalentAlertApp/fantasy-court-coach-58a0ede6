@@ -14,7 +14,295 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      player_last_game: {
+        Row: {
+          a_pts: number
+          ast: number
+          blk: number
+          fp: number
+          game_date: string | null
+          h_pts: number
+          home_away: string | null
+          id: string
+          mp: number
+          nba_game_url: string | null
+          opp: string | null
+          player_id: number
+          pts: number
+          reb: number
+          result: string | null
+          stl: number
+          updated_at: string
+        }
+        Insert: {
+          a_pts?: number
+          ast?: number
+          blk?: number
+          fp?: number
+          game_date?: string | null
+          h_pts?: number
+          home_away?: string | null
+          id?: string
+          mp?: number
+          nba_game_url?: string | null
+          opp?: string | null
+          player_id: number
+          pts?: number
+          reb?: number
+          result?: string | null
+          stl?: number
+          updated_at?: string
+        }
+        Update: {
+          a_pts?: number
+          ast?: number
+          blk?: number
+          fp?: number
+          game_date?: string | null
+          h_pts?: number
+          home_away?: string | null
+          id?: string
+          mp?: number
+          nba_game_url?: string | null
+          opp?: string | null
+          player_id?: number
+          pts?: number
+          reb?: number
+          result?: string | null
+          stl?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_last_game_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      players: {
+        Row: {
+          age: number
+          ast: number
+          ast5: number
+          blk: number
+          blk5: number
+          college: string | null
+          dob: string | null
+          exp: number
+          fc_bc: string
+          fp_pg_t: number
+          fp_pg5: number
+          gp: number
+          height: string | null
+          id: number
+          injury: string | null
+          jersey: number
+          mpg: number
+          mpg5: number
+          name: string
+          note: string | null
+          photo: string | null
+          pos: string | null
+          pts: number
+          pts5: number
+          reb: number
+          reb5: number
+          salary: number
+          stl: number
+          stl5: number
+          team: string
+          updated_at: string
+          value_t: number
+          value5: number
+          weight: number
+        }
+        Insert: {
+          age?: number
+          ast?: number
+          ast5?: number
+          blk?: number
+          blk5?: number
+          college?: string | null
+          dob?: string | null
+          exp?: number
+          fc_bc: string
+          fp_pg_t?: number
+          fp_pg5?: number
+          gp?: number
+          height?: string | null
+          id: number
+          injury?: string | null
+          jersey?: number
+          mpg?: number
+          mpg5?: number
+          name: string
+          note?: string | null
+          photo?: string | null
+          pos?: string | null
+          pts?: number
+          pts5?: number
+          reb?: number
+          reb5?: number
+          salary?: number
+          stl?: number
+          stl5?: number
+          team: string
+          updated_at?: string
+          value_t?: number
+          value5?: number
+          weight?: number
+        }
+        Update: {
+          age?: number
+          ast?: number
+          ast5?: number
+          blk?: number
+          blk5?: number
+          college?: string | null
+          dob?: string | null
+          exp?: number
+          fc_bc?: string
+          fp_pg_t?: number
+          fp_pg5?: number
+          gp?: number
+          height?: string | null
+          id?: number
+          injury?: string | null
+          jersey?: number
+          mpg?: number
+          mpg5?: number
+          name?: string
+          note?: string | null
+          photo?: string | null
+          pos?: string | null
+          pts?: number
+          pts5?: number
+          reb?: number
+          reb5?: number
+          salary?: number
+          stl?: number
+          stl5?: number
+          team?: string
+          updated_at?: string
+          value_t?: number
+          value5?: number
+          weight?: number
+        }
+        Relationships: []
+      }
+      roster: {
+        Row: {
+          created_at: string
+          day: number
+          gw: number
+          id: string
+          is_captain: boolean
+          player_id: number
+          slot: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day?: number
+          gw?: number
+          id?: string
+          is_captain?: boolean
+          player_id: number
+          slot: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day?: number
+          gw?: number
+          id?: string
+          is_captain?: boolean
+          player_id?: number
+          slot?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roster_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schedule_games: {
+        Row: {
+          away_pts: number
+          away_team: string
+          day: number
+          game_id: string
+          gw: number
+          home_pts: number
+          home_team: string
+          nba_game_url: string | null
+          status: string
+          tipoff_utc: string | null
+        }
+        Insert: {
+          away_pts?: number
+          away_team: string
+          day?: number
+          game_id: string
+          gw?: number
+          home_pts?: number
+          home_team: string
+          nba_game_url?: string | null
+          status?: string
+          tipoff_utc?: string | null
+        }
+        Update: {
+          away_pts?: number
+          away_team?: string
+          day?: number
+          game_id?: string
+          gw?: number
+          home_pts?: number
+          home_team?: string
+          nba_game_url?: string | null
+          status?: string
+          tipoff_utc?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          cost_points: number
+          created_at: string
+          id: string
+          notes: string | null
+          player_in_id: number
+          player_out_id: number
+          type: string
+        }
+        Insert: {
+          cost_points?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          player_in_id?: number
+          player_out_id?: number
+          type: string
+        }
+        Update: {
+          cost_points?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          player_in_id?: number
+          player_out_id?: number
+          type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

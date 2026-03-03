@@ -2,3 +2,36 @@ project_id = "jtewuekavaujgnynmpaq"
 
 [functions.health]
 verify_jwt = false
+
+[functions.players-list]
+verify_jwt = false
+
+[functions.player-detail]
+verify_jwt = false
+
+[functions.last-game]
+verify_jwt = false
+
+[functions.roster-current]
+verify_jwt = false
+
+[functions.roster-save]
+verify_jwt = false
+
+[functions.roster-auto-pick]
+verify_jwt = false
+
+[functions.transactions-simulate]
+verify_jwt = false
+
+[functions.transactions-commit]
+verify_jwt = false
+
+[functions.schedule]
+verify_jwt = false
+
+[functions.schedule-impact]
+verify_jwt = false
+
+[functions.sync-sheet]
+verify_jwt = false
