@@ -1,166 +1,100 @@
 
 
-## Plan: Full UI Implementation (Prompt 2)
+## Plan: Full AI Coach (Prompt 3)
 
-This builds 6 pages, 12+ reusable components, a deterministic lineup optimizer, and an NBA-themed design system — all consuming the existing edge functions via Zod-validated fetchers in `src/lib/api.ts`.
-
-**No API contracts, edge functions, or Zod schemas will be changed.**
+Implements 5 AI endpoints via a single `ai-coach` edge function, wires the AI Hub UI, and adds "Explain" to PlayerModal. Uses `OPENAI_API_KEY_NBA` (already configured) with `gpt-4.1-mini` and OpenAI's built-in web search tool.
 
 ---
 
-### 1. Theme & Design System
+### 1. Add Zod Schemas for 2 New AI Endpoints
 
-**`src/index.css`** — Update CSS variables to NBA brand colors:
-- `--nba-blue: 216 78% 31%` (#17408B)
-- `--nba-red: 351 95% 40%` (#C9082A)  
-- `--nba-yellow: 43 97% 57%` (#FDB927)
-- Primary → NBA Blue, Destructive → NBA Red, add `--nba-yellow` for action buttons
+**`src/lib/contracts.ts`** — append schemas for:
 
-**`tailwind.config.ts`** — Add `nba-blue`, `nba-red`, `nba-yellow` to the color palette so components can use `bg-nba-yellow`, `text-nba-red`, etc.
+- **`AIAnalyzeRosterBodySchema`**: `{ gw, day, focus: "lineup"|"waiver"|"trade"|"balanced" }`
+- **`AIAnalyzeRosterPayloadSchema`**: `{ summary_bullets[], strengths[], weaknesses[], quick_wins[{title, why[], risk_flags[], confidence}], recommended_actions[{type, note}], notes[] }`
+- **`AIAnalyzeRosterResponseSchema`**: envelope wrapper
 
----
-
-### 2. Layout & Routing
-
-**`src/components/layout/AppLayout.tsx`** — Global shell:
-- Blue header bar with "NBA Fantasy Manager" title
-- Top navigation tabs: Home, Edit Line-up, Stats, Transactions, Schedule, AI Hub, More
-- Uses `NavLink` from react-router-dom for active state
-- Content area renders `<Outlet />`
-
-**`src/App.tsx`** — Add routes wrapped in `AppLayout`:
-- `/` and `/roster` → RosterPage
-- `/players` → PlayersPage
-- `/transactions` → TransactionsPage
-- `/schedule` → SchedulePage
-- `/stats` → StatsPage
-- `/ai` → AIHubPage (shell placeholder)
-
-**Pages to create** (6 files in `src/pages/`):
-- `RosterPage.tsx`, `PlayersPage.tsx`, `TransactionsPage.tsx`, `SchedulePage.tsx`, `StatsPage.tsx`, `AIHubPage.tsx`
+- **`AIInjuryMonitorBodySchema`**: `{ player_ids: number[], include_replacements: boolean, max_salary: number|null }`
+- **`AIInjuryMonitorPayloadSchema`**: `{ items[{player_id, status, headline, impact, recommended_move:{action, replacement_targets[]}, risk_flags[]}], notes[] }`
+- **`AIInjuryMonitorResponseSchema`**: envelope wrapper
 
 ---
 
-### 3. React Query Hooks
+### 2. Single Edge Function: `ai-coach`
 
-**`src/hooks/usePlayersQuery.ts`** — wraps `fetchPlayers()` with `useQuery`, accepts filter/sort params  
-**`src/hooks/useRosterQuery.ts`** — wraps `fetchRosterCurrent()` with `useQuery`  
-**`src/hooks/useScheduleQuery.ts`** — wraps `fetchSchedule()` with `useQuery`
+**`supabase/functions/ai-coach/index.ts`** — handles all 5 AI actions via `action` field in request body.
 
-All hooks use TanStack React Query for caching, loading states, and error handling.
+Pattern:
+1. Parse `action` from body (`suggest-transfers`, `pick-captain`, `explain-player`, `analyze-roster`, `injury-monitor`)
+2. Fetch internal context: call the Supabase `players` table + `roster` table + `schedule_games` table directly using service role key
+3. Build system prompt from `docs/AI_SYSTEM_PROMPT.md` content (embedded as string constant in the function)
+4. Build developer message with the specific endpoint's JSON schema description and the internal data payload
+5. Call OpenAI Responses API (`https://api.openai.com/v1/responses`):
+   - model: `gpt-4.1-mini`
+   - tools: `[{ type: "web_search_preview" }]` for real-time NBA data
+   - instructions: system prompt
+   - input: developer message + user context
+6. Parse AI output as JSON
+7. Validate against the appropriate Zod-like schema (manual validation in Deno since we can't import from `src/`)
+8. If invalid: retry ONCE with corrective instruction
+9. If still invalid: return `{ ok: false, error: { code: "AI_SCHEMA_INVALID", ... } }`
+10. Return envelope response
 
----
-
-### 4. Reusable Components
-
-All in `src/components/`:
-
-| Component | Purpose |
-|---|---|
-| `PlayerRow.tsx` | Table row: photo, name, team, FC/BC badge, salary, FP5, Value5, last game FP. Click opens PlayerModal. |
-| `PlayerCard.tsx` | Card for court view: photo, name, team, FC/BC badge, salary, FP5, Value5. Captain star indicator. |
-| `FiltersPanel.tsx` | Left sidebar: FC/BC toggle, sort dropdown (salary/fp5/value5/stocks5/delta_fp), search input, max salary slider. |
-| `RosterCourtView.tsx` | Visual 5+5 court layout with PlayerCards in starter/bench sections. |
-| `RosterListView.tsx` | Table layout of roster with columns: Player, FC/BC, Salary, FP5, Delta FP, Stocks5. |
-| `PlayerModal.tsx` | Dialog showing PlayerCore, last game stats, FP breakdown (`PTS + REB + 2*AST + 3*STL + 3*BLK`), History tab, Schedule tab. Fetches via `fetchPlayerDetail(id)`. |
-| `ScheduleList.tsx` | List of games with teams, tipoff, status, score. Prev/Next buttons for gw/day. |
-| `TransactionsTable.tsx` | Simulate flow UI: before/after comparison, delta display, commit button. |
-| `BottomActionBar.tsx` | Fixed bottom bar: captain dropdown, Play button, gamedays remaining. |
-| `KpiTiles.tsx` | Header tiles: GW, Day, Deadline, Money Remaining, Free Transfers. |
-| `ChartsPanel.tsx` | 4 recharts: Starters vs Bench FP5, FP vs FP5 delta, Stocks impact, Salary vs Value5 scatter. |
-| `OptimizeDialog.tsx` | Lineup optimizer modal: shows suggested swaps, delta FP5, Apply button. |
+**`supabase/config.toml`** — add `[functions.ai-coach]` with `verify_jwt = false`
 
 ---
 
-### 5. Roster Page (`/roster`)
+### 3. Client API Fetchers
 
-- Fetches `roster-current` + `players-list`
-- Resolves player IDs from roster to full player objects
-- **KpiTiles** header: GW, Day, Deadline, Bank Remaining, Free Transfers
-- Toggle between **CourtView** and **ListView**
-- **BottomActionBar**: captain selector (starters only), Play button
-- "Optimize Lineup" button opens **OptimizeDialog**
-- Save calls `POST /roster-save`
-- Toast errors for constraint violations (salary cap, FC/BC minimums)
+**`src/lib/api.ts`** — add 5 new functions:
 
----
+- `aiSuggestTransfers(body)` → POST `ai-coach` with `action: "suggest-transfers"`
+- `aiPickCaptain(body)` → POST `ai-coach` with `action: "pick-captain"`
+- `aiExplainPlayer(body)` → POST `ai-coach` with `action: "explain-player"`
+- `aiAnalyzeRoster(body)` → POST `ai-coach` with `action: "analyze-roster"`
+- `aiInjuryMonitor(body)` → POST `ai-coach` with `action: "injury-monitor"`
 
-### 6. Lineup Optimizer (Deterministic)
-
-**`src/lib/optimizer.ts`** — Pure function, no AI:
-- Input: all players (roster + available), current roster, constraints
-- Goal: maximize total FP5 of starters
-- Enforce: salary cap, FC min (2), BC min (2)
-- Algorithm: greedy swap — for each bench player, check if swapping with any starter increases total FP5 while maintaining constraints
-- Output: list of suggested swaps with delta FP5
-- "Apply" calls `POST /roster-save` with the new lineup
+All validate responses with corresponding Zod schemas from contracts.ts.
 
 ---
 
-### 7. Players / Waiver Wire Page (`/players`)
+### 4. AI Hub Page (`/ai`)
 
-- Fetches `players-list` with filter params
-- **FiltersPanel** on left: FC/BC filter, sort dropdown, search, max salary
-- Main content split into **FRONT COURT** (red header) and **BACK COURT** (blue header) sections
-- Each section renders **PlayerRow** components
-- **Waiver Mode** toggle: filters out roster players, sorts by value5 desc, limits to top 25
-- "Add" button on each row calls `POST /transactions-simulate` and shows result
+**`src/pages/AIHubPage.tsx`** — replace shell with 5 interactive panels:
 
----
+1. **Analyze My Roster** — button triggers `aiAnalyzeRoster`, renders summary bullets, strengths/weaknesses, quick wins with confidence badges, recommended actions
+2. **Best Captain Today** — button triggers `aiPickCaptain`, shows captain recommendation + alternatives, "Apply Captain" button → calls `saveRoster`
+3. **Suggest 3 Transfers** — button triggers `aiSuggestTransfers`, shows move cards with add/drop, reason bullets, deltas, risk flags. "Simulate" → "Commit" flow via transactions endpoints
+4. **Scan Injuries** — button triggers `aiInjuryMonitor` with roster player IDs, shows status badges (OUT/Q/DTD/ACTIVE), impact level, replacement suggestions
+5. **Explain Player** — search/select input, triggers `aiExplainPlayer`, shows summary, scoring factors, trend flags, recommendation
 
-### 8. Transactions Page (`/transactions`)
+Each panel shows loading state, error handling, and renders confidence scores + risk flags.
 
-- Header tiles: Deadline, Free Transfers, Cost, Money Remaining
-- Buttons: Auto Pick, Reset, Wildcard (disabled), All-Star (disabled)
-- Auto Pick calls `POST /roster-auto-pick`
-- Simulate flow: select drop → select add → call `POST /transactions-simulate`
-- Display before/after totals, delta FP5, delta Stocks5, validation flags
-- If valid, enable Commit button → `POST /transactions-commit`
+**Apply flows (no auto-commit):**
+- Captain → "Apply Captain" button → `saveRoster` with updated `captain_id`
+- Transfers → "Simulate" → `simulateTransactions` → "Commit" → `commitTransaction`
+- Lineup swaps → "Apply Lineup" → `saveRoster`
 
 ---
 
-### 9. Schedule Page (`/schedule`)
+### 5. PlayerModal "Explain" Tab
 
-- Fetches `schedule` with gw/day params
-- Prev/Next navigation buttons
-- **ScheduleList**: game cards with teams, tipoff time, status, score
-- Empty state: friendly placeholder message
-
----
-
-### 10. Stats Hub (`/stats`)
-
-- Fetches roster + players data
-- **ChartsPanel** with 4 recharts charts:
-  1. Bar chart: Starters FP5 total vs Bench FP5 total
-  2. Bar chart: per-player FP vs FP5 delta
-  3. Bar chart: Stocks impact (STL+BLK weighted 3x)
-  4. Scatter chart: Salary vs Value5
-- All charts handle missing/small datasets gracefully
+**`src/components/PlayerModal.tsx`** — add an "AI Explain" tab:
+- Button "Ask AI" triggers `aiExplainPlayer({ player_id })`
+- Shows summary, scoring factors, trend flags, recommendation badge
+- Loading spinner while AI responds
 
 ---
 
-### 11. AI Hub Page (`/ai`) — Shell Only
+### 6. Implementation Order
 
-- Placeholder page with "Coming in Prompt 3" message
-- Three card stubs: Suggest Transfers, Pick Captain, Explain Player
+1. Add 2 new Zod schemas to `contracts.ts`
+2. Create `ai-coach` edge function with all 5 action handlers
+3. Add to `config.toml`
+4. Add 5 client fetchers to `api.ts`
+5. Rewrite `AIHubPage.tsx` with interactive panels
+6. Add "AI Explain" tab to `PlayerModal.tsx`
+7. Deploy and test
 
----
-
-### Implementation Order
-
-1. Theme/colors update (`index.css`, `tailwind.config.ts`)
-2. AppLayout + routing (`App.tsx`, `AppLayout.tsx`)
-3. React Query hooks (3 files)
-4. Core components: PlayerCard, PlayerRow, KpiTiles, BottomActionBar, FiltersPanel
-5. RosterPage with CourtView + ListView
-6. Optimizer logic + OptimizeDialog
-7. PlayerModal
-8. PlayersPage with Waiver Mode
-9. TransactionsPage
-10. SchedulePage
-11. StatsPage with ChartsPanel
-12. AIHubPage shell
-
-~25 new files total. No existing API code modified.
+~4 files modified, 1 new file created.
 
