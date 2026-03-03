@@ -2,97 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 216 78% 15%;
+    --background: 218 29% 96%;
+    --foreground: 214 70% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 216 78% 15%;
+    --card-foreground: 214 70% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 216 78% 15%;
+    --popover-foreground: 214 70% 14%;
 
-    --primary: 216 78% 31%;
+    --primary: 220 65% 33%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 216 20% 95%;
-    --secondary-foreground: 216 78% 31%;
+    --secondary: 218 20% 90%;
+    --secondary-foreground: 220 65% 33%;
 
-    --muted: 216 20% 95%;
-    --muted-foreground: 216 15% 47%;
+    --muted: 218 20% 92%;
+    --muted-foreground: 218 15% 47%;
 
-    --accent: 216 20% 95%;
-    --accent-foreground: 216 78% 31%;
+    --accent: 43 100% 59%;
+    --accent-foreground: 214 70% 14%;
 
-    --destructive: 351 95% 40%;
+    --destructive: 351 85% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 20% 88%;
-    --input: 216 20% 88%;
-    --ring: 216 78% 31%;
+    --border: 218 20% 85%;
+    --input: 218 20% 85%;
+    --ring: 220 65% 33%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
-    --nba-blue: 216 78% 31%;
-    --nba-red: 351 95% 40%;
-    --nba-yellow: 43 97% 57%;
+    --nba-blue: 220 65% 33%;
+    --nba-red: 351 85% 42%;
+    --nba-yellow: 43 100% 59%;
+    --nba-navy: 214 70% 14%;
 
-    --sidebar-background: 216 78% 15%;
+    --sidebar-background: 214 70% 14%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 43 97% 57%;
-    --sidebar-primary-foreground: 216 78% 15%;
-    --sidebar-accent: 216 78% 22%;
+    --sidebar-primary: 43 100% 59%;
+    --sidebar-primary-foreground: 214 70% 14%;
+    --sidebar-accent: 214 70% 20%;
     --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 216 78% 22%;
-    --sidebar-ring: 43 97% 57%;
-  }
-
-  .dark {
-    --background: 216 78% 8%;
-    --foreground: 0 0% 95%;
-
-    --card: 216 78% 12%;
-    --card-foreground: 0 0% 95%;
-
-    --popover: 216 78% 12%;
-    --popover-foreground: 0 0% 95%;
-
-    --primary: 43 97% 57%;
-    --primary-foreground: 216 78% 15%;
-
-    --secondary: 216 40% 18%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 216 40% 18%;
-    --muted-foreground: 216 15% 65%;
-
-    --accent: 216 40% 18%;
-    --accent-foreground: 0 0% 95%;
-
-    --destructive: 351 95% 40%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 216 40% 22%;
-    --input: 216 40% 22%;
-    --ring: 43 97% 57%;
-
-    --nba-blue: 216 78% 31%;
-    --nba-red: 351 95% 40%;
-    --nba-yellow: 43 97% 57%;
-
-    --sidebar-background: 216 78% 8%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 43 97% 57%;
-    --sidebar-primary-foreground: 216 78% 15%;
-    --sidebar-accent: 216 78% 15%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 216 78% 15%;
-    --sidebar-ring: 43 97% 57%;
+    --sidebar-border: 214 70% 20%;
+    --sidebar-ring: 43 100% 59%;
   }
 }
 
@@ -103,5 +57,25 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Barlow Condensed", "Oswald", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+  }
+}
+
+@layer components {
+  .section-bar {
+    @apply bg-muted px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b;
+    font-family: "Barlow Condensed", "Oswald", sans-serif;
+  }
+
+  .drag-over {
+    @apply ring-2 ring-accent ring-offset-1;
   }
 }

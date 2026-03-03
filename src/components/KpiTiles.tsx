@@ -1,5 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
-
 interface KpiTilesProps {
   gw: number;
   day: number;
@@ -10,22 +8,20 @@ interface KpiTilesProps {
 
 export default function KpiTiles({ gw, day, deadline, bankRemaining, freeTransfers }: KpiTilesProps) {
   const tiles = [
-    { label: "Gameweek", value: `GW ${gw}` },
-    { label: "Day", value: `Day ${day}` },
-    { label: "Deadline", value: deadline ? new Date(deadline).toLocaleDateString() : "—" },
-    { label: "Bank", value: `$${bankRemaining.toFixed(1)}` },
-    { label: "Free Transfers", value: String(freeTransfers) },
+    { label: "Gameweek", value: `GW ${gw}`, accent: false },
+    { label: "Day", value: `Day ${day}`, accent: false },
+    { label: "Deadline", value: deadline ? new Date(deadline).toLocaleDateString() : "—", accent: false },
+    { label: "Bank", value: `$${bankRemaining.toFixed(1)}`, accent: bankRemaining > 0 },
+    { label: "Free Transfers", value: String(freeTransfers), accent: true },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-      {tiles.map(({ label, value }) => (
-        <Card key={label} className="bg-card">
-          <CardContent className="p-3 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide">{label}</p>
-            <p className="text-lg font-bold">{value}</p>
-          </CardContent>
-        </Card>
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-0 border border-border rounded-sm overflow-hidden">
+      {tiles.map(({ label, value, accent }) => (
+        <div key={label} className="bg-card border-r last:border-r-0 px-3 py-2.5 text-center">
+          <p className="text-[10px] font-heading font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className={`text-lg font-heading font-bold ${accent ? "text-primary" : ""}`}>{value}</p>
+        </div>
       ))}
     </div>
   );

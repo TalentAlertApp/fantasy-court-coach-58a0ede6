@@ -26,13 +26,13 @@ export default function StatsPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Stats Hub</h2>
+      <h2 className="text-xl font-heading font-bold">Stats Hub</h2>
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64" />)}</div>
+        <div className="grid grid-cols-2 gap-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64" />)}</div>
       ) : starters.length === 0 && bench.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-lg">No roster data</p>
-          <p className="text-sm">Set up your roster first to see stats</p>
+          <p className="text-lg font-heading uppercase">No Roster Data</p>
+          <p className="text-sm font-body">Set up your roster first to see stats</p>
         </div>
       ) : (
         <ChartsPanel starters={starters} bench={bench} allRoster={[...starters, ...bench]} />

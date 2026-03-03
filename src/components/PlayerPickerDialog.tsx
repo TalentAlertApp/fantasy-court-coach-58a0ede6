@@ -34,9 +34,9 @@ export default function PlayerPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setSearch(""); }}>
-      <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-md max-h-[80vh] flex flex-col rounded-sm">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="font-heading">{title}</DialogTitle>
         </DialogHeader>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -44,41 +44,41 @@ export default function PlayerPickerDialog({
             placeholder="Search player or team..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
+            className="pl-8 rounded-sm"
           />
         </div>
         <ScrollArea className="flex-1 min-h-0 max-h-[55vh]">
-          <div className="space-y-0.5">
+          <div className="space-y-0">
             {available.map((p) => (
               <button
                 key={p.core.id}
                 onClick={() => { onSelect(p); onOpenChange(false); setSearch(""); }}
-                className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-accent/60 transition-colors text-left group"
+                className="w-full flex items-center gap-3 px-2 py-2 border-b hover:bg-muted transition-colors text-left group"
               >
                 {p.core.photo ? (
-                  <img src={p.core.photo} alt={p.core.name} className="w-10 h-10 rounded-full object-cover bg-muted" />
+                  <img src={p.core.photo} alt={p.core.name} className="w-9 h-9 rounded-sm object-cover bg-muted" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                  <div className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
                     {p.core.name.substring(0, 2).toUpperCase()}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{p.core.name}</p>
+                  <p className="text-sm font-heading font-semibold uppercase truncate">{p.core.name}</p>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-muted-foreground font-medium">{p.core.team}</span>
-                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] px-1 py-0 h-4">
+                    <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
+                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-sm">
                       {p.core.fc_bc}
                     </Badge>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-mono font-medium">${p.core.salary}</p>
-                  <p className="text-xs text-muted-foreground">FP5: {p.last5.fp5.toFixed(1)}</p>
+                  <p className="text-sm font-mono font-semibold">${p.core.salary}</p>
+                  <p className="text-[10px] text-muted-foreground">FP5: {p.last5.fp5.toFixed(1)}</p>
                 </div>
               </button>
             ))}
             {available.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-6">No players found</p>
+              <p className="text-sm text-muted-foreground text-center py-6 font-body">No players found</p>
             )}
           </div>
         </ScrollArea>

@@ -134,11 +134,45 @@ export default function RosterPage() {
 
     saveMutation.mutate({
       gw: roster.gw, day: roster.day,
-      starters: newStarters,
-      bench: newBench,
+      starters: newStarters, bench: newBench,
       captain_id: captainId === swapPlayerId ? newPlayer.core.id : captainId,
     });
     setSwapPlayerId(null);
+  };
+
+  /** Drag & drop swap between two roster players */
+  const handleDnDSwap = (fromId: number, toId: number) => {
+    if (!roster) return;
+    const newStarters = [...(roster.starters ?? [])];
+    const newBench = [...(roster.bench ?? [])];
+
+    const fromStarterIdx = newStarters.indexOf(fromId);
+    const fromBenchIdx = newBench.indexOf(fromId);
+    const toStarterIdx = newStarters.indexOf(toId);
+    const toBenchIdx = newBench.indexOf(toId);
+
+    // Find where each player is and swap them
+    if (fromStarterIdx >= 0 && toStarterIdx >= 0) {
+      newStarters[fromStarterIdx] = toId;
+      newStarters[toStarterIdx] = fromId;
+    } else if (fromBenchIdx >= 0 && toBenchIdx >= 0) {
+      newBench[fromBenchIdx] = toId;
+      newBench[toBenchIdx] = fromId;
+    } else if (fromStarterIdx >= 0 && toBenchIdx >= 0) {
+      newStarters[fromStarterIdx] = toId;
+      newBench[toBenchIdx] = fromId;
+    } else if (fromBenchIdx >= 0 && toStarterIdx >= 0) {
+      newBench[fromBenchIdx] = toId;
+      newStarters[toStarterIdx] = fromId;
+    }
+
+    const newCaptain = captainId === fromId ? toId : captainId === toId ? fromId : captainId;
+
+    saveMutation.mutate({
+      gw: roster.gw, day: roster.day,
+      starters: newStarters, bench: newBench,
+      captain_id: newCaptain,
+    });
   };
 
   const isLoading = rosterLoading || playersLoading;
@@ -146,8 +180,8 @@ export default function RosterPage() {
   return (
     <div className="space-y-4 pb-20">
       <div className="flex items-center gap-2">
-        <h2 className="text-lg font-bold">{teamName}</h2>
-        <span className="text-sm text-muted-foreground">— Roster</span>
+        <h2 className="text-xl font-heading font-bold">{teamName}</h2>
+        <span className="text-sm text-muted-foreground font-body">— Roster</span>
       </div>
 
       {isLoading ? (
@@ -168,8 +202,8 @@ export default function RosterPage() {
 
           <div className="flex items-center justify-between">
             <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "court" | "list")}>
-              <ToggleGroupItem value="court"><LayoutGrid className="h-4 w-4 mr-1" />Court</ToggleGroupItem>
-              <ToggleGroupItem value="list"><List className="h-4 w-4 mr-1" />List</ToggleGroupItem>
+              <ToggleGroupItem value="court" className="font-heading text-xs uppercase"><LayoutGrid className="h-4 w-4 mr-1" />Court</ToggleGroupItem>
+              <ToggleGroupItem value="list" className="font-heading text-xs uppercase"><List className="h-4 w-4 mr-1" />List</ToggleGroupItem>
             </ToggleGroup>
             <Button onClick={handleOptimize} variant="outline" size="sm">
               <Zap className="h-4 w-4 mr-1" />Optimize
@@ -177,9 +211,9 @@ export default function RosterPage() {
           </div>
 
           {viewMode === "court" ? (
-            <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} />
+            <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
           ) : (
-            <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} />
+            <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
           )}
 
           {starters.length > 0 && (

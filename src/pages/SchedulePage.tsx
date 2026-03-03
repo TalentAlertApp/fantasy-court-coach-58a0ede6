@@ -15,9 +15,10 @@ export default function SchedulePage() {
   const handleNext = () => setDay(day + 1);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-4">
+      <h2 className="text-xl font-heading font-bold">Schedule</h2>
       {isLoading ? (
-        <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)}</div>
+        <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
       ) : (
         <ScheduleList
           games={data?.games ?? []}
