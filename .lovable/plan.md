@@ -1,33 +1,17 @@
 
 
-## Plan: Fix Team Logo Matching + Add Logos to PlayerPickerDialog
+## Fix: nba-sync `.catch()` not a function
 
-### Problem
-`core.team` contains city/short names (e.g., "Dallas", "Houston", "LA Lakers", "Golden State") but `getTeamLogo()` matches by 3-letter tricode (e.g., "DAL", "HOU", "LAL"). No logos ever match.
+### Root Cause
+Supabase JS v2 query builder returns a `PromiseLike` (thenable) but lacks `.catch()`. Two locations use `.catch(() => {})`:
+- Line 49: `updateStep` helper
+- Line 96: error handler fallback
 
-### Fix 1: Add fuzzy name lookup to `src/lib/nba-teams.ts`
+### Fix
+Replace `.catch(() => {})` with wrapping in a try/catch, or use `.then(null, () => {})` which works on thenables.
 
-Add a new function `getTeamLogoByName(name: string)` that matches against partial/short team names. Build a mapping of common short names to tricodes:
-
-```
-"Atlanta" → ATL, "Boston" → BOS, "Brooklyn" → BKN, "Charlotte" → CHA,
-"Chicago" → CHI, "Cleveland" → CLE, "Dallas" → DAL, "Denver" → DEN,
-"Detroit" → DET, "Golden State" → GSW, "Houston" → HOU, "Indiana" → IND,
-"LA Clippers" → LAC, "LA Lakers" → LAL, "Memphis" → MEM, "Miami" → MIA,
-"Milwaukee" → MIL, "Minnesota" → MIN, "New Orleans" → NOP,
-"New York" → NYK, "Oklahoma" → OKC, "Orlando" → ORL,
-"Philadelphia" → PHI, "Phoenix" → PHX, "Portland" → POR,
-"Sacramento" → SAC, "San Antonio" → SAS, "Toronto" → TOR,
-"Utah" → UTA, "Washington" → WAS
-```
-
-Update `getTeamLogo(teamStr)` to try tricode match first, then fall back to name match. This fixes all existing call sites without changing them.
-
-### Fix 2: Add logos to `PlayerPickerDialog.tsx`
-
-Import `getTeamLogo` and add a small team logo icon (w-5 h-5) next to the team name in each player row, same pattern as `PlayerRow.tsx`.
-
-### Files Modified (2)
-- `src/lib/nba-teams.ts` — add name-to-tricode map, update `getTeamLogo` to support both tricodes and city names
-- `src/components/PlayerPickerDialog.tsx` — import `getTeamLogo`, add logo icon next to team name
+### Files Modified (1)
+- `supabase/functions/nba-sync/index.ts`
+  - Line 49: Change `.eq("id", runId).catch(() => {})` to `.eq("id", runId).then(null, () => {})`
+  - Line 96: Same fix
 
