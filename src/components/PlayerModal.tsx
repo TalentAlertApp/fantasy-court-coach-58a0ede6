@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { fetchPlayerDetail } from "@/lib/api";
+import { fetchPlayerDetail, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Bot, Loader2 } from "lucide-react";
 
 interface PlayerModalProps {
   playerId: number | null;
@@ -18,10 +21,27 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     enabled: open && playerId !== null,
   });
 
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleExplain = async () => {
+    if (!playerId) return;
+    setAiLoading(true);
+    setAiResult(null);
+    try {
+      const res = await aiExplainPlayer({ player_id: playerId });
+      setAiResult(res);
+    } catch {
+      setAiResult(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (!open) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isLoading ? "Loading…" : data?.player?.core?.name ?? "Player"}</DialogTitle>
@@ -79,6 +99,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 <TabsTrigger value="stats">Stats</TabsTrigger>
                 <TabsTrigger value="history">History</TabsTrigger>
                 <TabsTrigger value="schedule">Schedule</TabsTrigger>
+                <TabsTrigger value="ai">AI Explain</TabsTrigger>
               </TabsList>
               <TabsContent value="stats">
                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -137,6 +158,47 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     ))}
                   </div>
                 )}
+              </TabsContent>
+              <TabsContent value="ai">
+                <div className="space-y-3">
+                  <Button size="sm" onClick={handleExplain} disabled={aiLoading} className="w-full">
+                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
+                    {aiLoading ? "Analyzing..." : "Ask AI"}
+                  </Button>
+                  {aiLoading && <Skeleton className="h-20 w-full" />}
+                  {aiResult && (
+                    <div className="space-y-2 text-sm">
+                      <p className="font-medium">{aiResult.summary}</p>
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Scoring Factors</p>
+                        {aiResult.why_it_scores.map((f: any, i: number) => (
+                          <div key={i} className="flex items-center gap-2 text-xs mb-1">
+                            <Badge variant="outline">{f.factor}</Badge>
+                            <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"}>{f.impact}</Badge>
+                            <span>{f.note}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {aiResult.trend_flags.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Trends</p>
+                          {aiResult.trend_flags.map((t: any, i: number) => (
+                            <div key={i} className="text-xs flex gap-1 items-center mb-1">
+                              <Badge variant="outline">{t.type}</Badge>
+                              <span>{t.detail}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Badge variant={aiResult.recommendation.action === "add" ? "default" : aiResult.recommendation.action === "drop" ? "destructive" : "secondary"}>
+                          {aiResult.recommendation.action.toUpperCase()}
+                        </Badge>
+                        <span className="text-xs">{aiResult.recommendation.rationale}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

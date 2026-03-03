@@ -578,6 +578,86 @@ export const AIExplainPlayerPayloadSchema = z
 
 export const AIExplainPlayerResponseSchema = EnvelopeSchema(AIExplainPlayerPayloadSchema);
 
+/** POST /api/v1/ai/analyze-roster */
+export const AIAnalyzeRosterBodySchema = z
+  .object({
+    gw: IntSchema,
+    day: IntSchema,
+    focus: z.enum(["lineup", "waiver", "trade", "balanced"]),
+  })
+  .strict();
+
+export const AIAnalyzeRosterPayloadSchema = z
+  .object({
+    summary_bullets: z.array(z.string()).min(1).max(5),
+    strengths: z.array(z.string()),
+    weaknesses: z.array(z.string()),
+    quick_wins: z.array(
+      z
+        .object({
+          title: z.string(),
+          why: z.array(z.string()),
+          risk_flags: z.array(z.string()),
+          confidence: z.number().min(0).max(1),
+        })
+        .strict()
+    ),
+    recommended_actions: z.array(
+      z
+        .object({
+          type: z.enum(["PICK_CAPTAIN", "SUGGEST_TRANSFERS", "OPTIMIZE_LINEUP"]),
+          note: z.string(),
+        })
+        .strict()
+    ),
+    notes: z.array(z.string()),
+  })
+  .strict();
+
+export const AIAnalyzeRosterResponseSchema = EnvelopeSchema(AIAnalyzeRosterPayloadSchema);
+
+/** POST /api/v1/ai/injury-monitor */
+export const AIInjuryMonitorBodySchema = z
+  .object({
+    player_ids: z.array(IntSchema),
+    include_replacements: z.boolean(),
+    max_salary: NumSchema.nullable(),
+  })
+  .strict();
+
+export const AIInjuryMonitorPayloadSchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          player_id: IntSchema,
+          status: z.enum(["OUT", "Q", "DTD", "ACTIVE", "UNKNOWN"]),
+          headline: z.string().nullable(),
+          impact: z.enum(["low", "medium", "high"]),
+          recommended_move: z
+            .object({
+              action: z.enum(["hold", "bench", "drop", "swap"]),
+              replacement_targets: z.array(
+                z
+                  .object({
+                    player_id: IntSchema,
+                    why: z.array(z.string()),
+                    confidence: z.number().min(0).max(1),
+                  })
+                  .strict()
+              ),
+            })
+            .strict(),
+          risk_flags: z.array(z.string()),
+        })
+        .strict()
+    ),
+    notes: z.array(z.string()),
+  })
+  .strict();
+
+export const AIInjuryMonitorResponseSchema = EnvelopeSchema(AIInjuryMonitorPayloadSchema);
+
 /** ---------- optional: runtime helpers ---------- */
 export function assertOk<T extends z.ZodTypeAny>(
   schema: z.ZodTypeAny,
