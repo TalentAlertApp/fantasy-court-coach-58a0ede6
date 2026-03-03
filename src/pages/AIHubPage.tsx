@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input";
 
 export default function AIHubPage() {
   const { toast } = useToast();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, teams } = useTeam();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery();
 
@@ -187,9 +187,12 @@ export default function AIHubPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-8">
-      <div className="text-center py-6">
+      <div className="flex items-center gap-2 mb-2">
+        <h2 className="text-lg font-bold">{teams.find((t: any) => t.id === selectedTeamId)?.name ?? "My Team"}</h2>
+        <span className="text-sm text-muted-foreground">— AI Coach</span>
+      </div>
+      <div className="text-center py-4">
         <Bot className="h-10 w-10 mx-auto mb-3 text-primary" />
-        <h2 className="text-2xl font-bold mb-1">AI Coach Hub</h2>
         <p className="text-sm text-muted-foreground">Powered by GPT-4.1 Mini with real-time NBA search</p>
       </div>
 

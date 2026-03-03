@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
+import { ArrowLeftRight } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -8,17 +9,27 @@ interface PlayerCardProps {
   player: PlayerListItem;
   isCaptain?: boolean;
   onClick?: () => void;
+  onSwap?: () => void;
 }
 
-export default function PlayerCard({ player, isCaptain, onClick }: PlayerCardProps) {
+export default function PlayerCard({ player, isCaptain, onClick, onSwap }: PlayerCardProps) {
   const { core, last5, computed } = player;
   return (
     <div
       onClick={onClick}
-      className="bg-card border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow relative min-w-[140px]"
+      className="bg-card border rounded-lg p-3 cursor-pointer hover:shadow-md transition-shadow relative min-w-[140px] group"
     >
       {isCaptain && (
         <span className="absolute -top-2 -right-2 text-lg" title="Captain">⭐</span>
+      )}
+      {onSwap && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSwap(); }}
+          className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-primary text-primary-foreground rounded-full p-1 hover:bg-primary/80 z-10"
+          title="Swap player"
+        >
+          <ArrowLeftRight className="h-3 w-3" />
+        </button>
       )}
       <div className="flex items-center gap-2 mb-2">
         {core.photo ? (

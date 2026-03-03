@@ -13,6 +13,7 @@ import RosterListView from "@/components/RosterListView";
 import BottomActionBar from "@/components/BottomActionBar";
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
+import PlayerPickerDialog from "@/components/PlayerPickerDialog";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +24,7 @@ type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
 export default function RosterPage() {
   const queryClient = useQueryClient();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, teams } = useTeam();
   const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 500 });
 
@@ -32,11 +33,13 @@ export default function RosterPage() {
   const [optimizeOpen, setOptimizeOpen] = useState(false);
   const [optimizerResult, setOptimizerResult] = useState<OptimizerResult | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [swapPlayerId, setSwapPlayerId] = useState<number | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
+  const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "My Team";
 
-  // Resolve player IDs to full objects
   const resolvePlayer = useCallback(
     (id: number) => allPlayers.find((p) => p.core.id === id),
     [allPlayers]
@@ -52,7 +55,11 @@ export default function RosterPage() {
     [roster?.bench, resolvePlayer]
   );
 
-  // Set initial captain
+  const rosterIds = useMemo(() => new Set([
+    ...(roster?.starters ?? []),
+    ...(roster?.bench ?? []),
+  ].filter((id) => id > 0)), [roster?.starters, roster?.bench]);
+
   useMemo(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
   }, [roster?.captain_id, captainId]);
@@ -76,8 +83,7 @@ export default function RosterPage() {
       return;
     }
     saveMutation.mutate({
-      gw: roster.gw,
-      day: roster.day,
+      gw: roster.gw, day: roster.day,
       starters: starters.map((p) => p.core.id),
       bench: bench.map((p) => p.core.id),
       captain_id: captainId || starters[0]?.core.id || 0,
@@ -90,8 +96,7 @@ export default function RosterPage() {
       fc_bc: p.core.fc_bc, salary: p.core.salary, fp5: p.last5.fp5,
     });
     const result = optimizeLineup(
-      starters.map(toOpt),
-      bench.map(toOpt),
+      starters.map(toOpt), bench.map(toOpt),
       roster?.constraints ?? { salary_cap: 100, starter_fc_min: 2, starter_bc_min: 2 }
     );
     setOptimizerResult(result);
@@ -109,10 +114,42 @@ export default function RosterPage() {
     setOptimizeOpen(false);
   };
 
+  const handleSwapRequest = (playerId: number) => {
+    setSwapPlayerId(playerId);
+    setPickerOpen(true);
+  };
+
+  const handleSwapSelect = (newPlayer: PlayerListItem) => {
+    if (!roster || swapPlayerId === null) return;
+    const starterIdx = (roster.starters ?? []).indexOf(swapPlayerId);
+    const benchIdx = (roster.bench ?? []).indexOf(swapPlayerId);
+    const newStarters = [...(roster.starters ?? [])];
+    const newBench = [...(roster.bench ?? [])];
+
+    if (starterIdx >= 0) {
+      newStarters[starterIdx] = newPlayer.core.id;
+    } else if (benchIdx >= 0) {
+      newBench[benchIdx] = newPlayer.core.id;
+    }
+
+    saveMutation.mutate({
+      gw: roster.gw, day: roster.day,
+      starters: newStarters,
+      bench: newBench,
+      captain_id: captainId === swapPlayerId ? newPlayer.core.id : captainId,
+    });
+    setSwapPlayerId(null);
+  };
+
   const isLoading = rosterLoading || playersLoading;
 
   return (
     <div className="space-y-4 pb-20">
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-bold">{teamName}</h2>
+        <span className="text-sm text-muted-foreground">— Roster</span>
+      </div>
+
       {isLoading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-5 gap-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
@@ -122,8 +159,7 @@ export default function RosterPage() {
         <>
           {roster && (
             <KpiTiles
-              gw={roster.gw}
-              day={roster.day}
+              gw={roster.gw} day={roster.day}
               deadline={roster.deadline_utc}
               bankRemaining={roster.bank_remaining}
               freeTransfers={roster.free_transfers_remaining}
@@ -141,9 +177,9 @@ export default function RosterPage() {
           </div>
 
           {viewMode === "court" ? (
-            <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} />
+            <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} />
           ) : (
-            <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} />
+            <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} />
           )}
 
           {starters.length > 0 && (
@@ -156,18 +192,15 @@ export default function RosterPage() {
             />
           )}
 
-          <OptimizeDialog
-            open={optimizeOpen}
-            onOpenChange={setOptimizeOpen}
-            result={optimizerResult}
-            onApply={handleApplyOptimization}
-            applying={saveMutation.isPending}
-          />
-
-          <PlayerModal
-            playerId={selectedPlayerId}
-            open={selectedPlayerId !== null}
-            onOpenChange={(open) => !open && setSelectedPlayerId(null)}
+          <OptimizeDialog open={optimizeOpen} onOpenChange={setOptimizeOpen} result={optimizerResult} onApply={handleApplyOptimization} applying={saveMutation.isPending} />
+          <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
+          <PlayerPickerDialog
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            allPlayers={allPlayers}
+            rosterIds={rosterIds}
+            onSelect={handleSwapSelect}
+            title={`Swap Player`}
           />
         </>
       )}

@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function TransactionsPage() {
   const queryClient = useQueryClient();
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, teams } = useTeam();
   const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 500 });
 
@@ -75,8 +75,14 @@ export default function TransactionsPage() {
 
   const isLoading = rosterLoading || playersLoading;
 
+  const teamName = teams.find((t: any) => t.id === selectedTeamId)?.name ?? "My Team";
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <h2 className="text-lg font-bold">{teamName}</h2>
+        <span className="text-sm text-muted-foreground">— Transactions</span>
+      </div>
       {isLoading ? (
         <Skeleton className="h-64" />
       ) : (

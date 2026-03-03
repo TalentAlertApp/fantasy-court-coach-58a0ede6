@@ -9,9 +9,10 @@ interface RosterListViewProps {
   starters: PlayerListItem[];
   bench: PlayerListItem[];
   onPlayerClick: (id: number) => void;
+  onSwap?: (playerId: number) => void;
 }
 
-export default function RosterListView({ starters, bench, onPlayerClick }: RosterListViewProps) {
+export default function RosterListView({ starters, bench, onPlayerClick, onSwap }: RosterListViewProps) {
   const header = (
     <TableHeader>
       <TableRow>
@@ -21,6 +22,7 @@ export default function RosterListView({ starters, bench, onPlayerClick }: Roste
         <TableHead className="text-right">FP5</TableHead>
         <TableHead className="text-right">Value5</TableHead>
         <TableHead className="text-right">Last FP</TableHead>
+        <TableHead className="text-right w-10"></TableHead>
       </TableRow>
     </TableHeader>
   );
@@ -32,7 +34,12 @@ export default function RosterListView({ starters, bench, onPlayerClick }: Roste
         <Table>{header}
           <TableBody>
             {starters.map((p) => (
-              <PlayerRow key={p.core.id} player={p} onClick={() => onPlayerClick(p.core.id)} />
+              <PlayerRow
+                key={p.core.id}
+                player={p}
+                onClick={() => onPlayerClick(p.core.id)}
+                onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+              />
             ))}
           </TableBody>
         </Table>
@@ -42,7 +49,12 @@ export default function RosterListView({ starters, bench, onPlayerClick }: Roste
         <Table>{header}
           <TableBody>
             {bench.map((p) => (
-              <PlayerRow key={p.core.id} player={p} onClick={() => onPlayerClick(p.core.id)} />
+              <PlayerRow
+                key={p.core.id}
+                player={p}
+                onClick={() => onPlayerClick(p.core.id)}
+                onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+              />
             ))}
           </TableBody>
         </Table>
