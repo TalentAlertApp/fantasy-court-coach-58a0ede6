@@ -3,7 +3,8 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, GripVertical } from "lucide-react";
+import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -12,29 +13,45 @@ interface PlayerRowProps {
   onClick?: () => void;
   onSwap?: () => void;
   actionButton?: React.ReactNode;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   return (
-    <TableRow onClick={onClick} className="cursor-pointer hover:bg-accent/50">
+    <TableRow
+      onClick={onClick}
+      className="cursor-pointer hover:bg-muted/50 group"
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+      onDragEnd={onDragEnd}
+    >
       <TableCell>
         <div className="flex items-center gap-2">
+          {draggable && (
+            <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing flex-shrink-0" />
+          )}
           {core.photo ? (
-            <img src={core.photo} alt={core.name} className="w-8 h-8 rounded-full object-cover bg-muted" />
+            <img src={core.photo} alt={core.name} className="w-7 h-7 rounded-sm object-cover bg-muted" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+            <div className="w-7 h-7 rounded-sm bg-muted flex items-center justify-center text-[9px] font-heading font-bold text-muted-foreground">
               {core.name.substring(0, 2).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-sm font-medium">{core.name}</p>
-            <p className="text-xs text-muted-foreground">{core.team}</p>
+            <p className="text-sm font-heading font-semibold uppercase leading-tight">{core.name}</p>
+            <p className="text-[10px] text-muted-foreground">{core.team}</p>
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[10px]">
+        <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-sm">
           {core.fc_bc}
         </Badge>
       </TableCell>

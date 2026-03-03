@@ -2,6 +2,7 @@ import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
+import React, { useState } from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -10,9 +11,34 @@ interface RosterListViewProps {
   bench: PlayerListItem[];
   onPlayerClick: (id: number) => void;
   onSwap?: (playerId: number) => void;
+  onDnDSwap?: (fromId: number, toId: number) => void;
 }
 
-export default function RosterListView({ starters, bench, onPlayerClick, onSwap }: RosterListViewProps) {
+export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap }: RosterListViewProps) {
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, playerId: number) => {
+    e.dataTransfer.setData("text/plain", String(playerId));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, playerId: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverId(playerId);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: number) => {
+    e.preventDefault();
+    setDragOverId(null);
+    const sourceId = Number(e.dataTransfer.getData("text/plain"));
+    if (sourceId && sourceId !== targetId && onDnDSwap) {
+      onDnDSwap(sourceId, targetId);
+    }
+  };
+
+  const handleDragEnd = () => setDragOverId(null);
+
   const header = (
     <TableHeader>
       <TableRow>
@@ -27,36 +53,32 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap 
     </TableHeader>
   );
 
+  const renderRow = (p: PlayerListItem) => (
+    <PlayerRow
+      key={p.core.id}
+      player={p}
+      onClick={() => onPlayerClick(p.core.id)}
+      onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+      draggable
+      onDragStart={(e) => handleDragStart(e, p.core.id)}
+      onDragOver={(e) => handleDragOver(e, p.core.id)}
+      onDrop={(e) => handleDrop(e, p.core.id)}
+      onDragEnd={handleDragEnd}
+    />
+  );
+
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-nba-red mb-2">Starting 5</h3>
+        <div className="section-bar mb-1 rounded-sm">STARTING 5</div>
         <Table>{header}
-          <TableBody>
-            {starters.map((p) => (
-              <PlayerRow
-                key={p.core.id}
-                player={p}
-                onClick={() => onPlayerClick(p.core.id)}
-                onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
-              />
-            ))}
-          </TableBody>
+          <TableBody>{starters.map(renderRow)}</TableBody>
         </Table>
       </div>
       <div>
-        <h3 className="text-sm font-bold uppercase tracking-wide text-primary mb-2">Bench</h3>
+        <div className="section-bar mb-1 rounded-sm">BENCH</div>
         <Table>{header}
-          <TableBody>
-            {bench.map((p) => (
-              <PlayerRow
-                key={p.core.id}
-                player={p}
-                onClick={() => onPlayerClick(p.core.id)}
-                onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
-              />
-            ))}
-          </TableBody>
+          <TableBody>{bench.map(renderRow)}</TableBody>
         </Table>
       </div>
     </div>

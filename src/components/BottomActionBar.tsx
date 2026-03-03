@@ -15,12 +15,12 @@ interface BottomActionBarProps {
 
 export default function BottomActionBar({ starters, captainId, onCaptainChange, onSave, saving }: BottomActionBarProps) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-card border-t shadow-lg z-50">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-nba-navy z-50 border-t border-primary/30">
+      <div className="container mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">Captain:</span>
+          <span className="text-xs font-heading font-bold uppercase tracking-wider text-white/70">Captain:</span>
           <Select value={String(captainId)} onValueChange={(v) => onCaptainChange(Number(v))}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-[200px] h-8 bg-white/10 border-white/20 text-white text-sm rounded-sm">
               <SelectValue placeholder="Select captain" />
             </SelectTrigger>
             <SelectContent>
@@ -32,7 +32,7 @@ export default function BottomActionBar({ starters, captainId, onCaptainChange, 
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={onSave} disabled={saving} className="bg-nba-yellow text-foreground hover:bg-nba-yellow/90 font-bold">
+        <Button onClick={onSave} disabled={saving}>
           {saving ? "Saving…" : "💾 Save Lineup"}
         </Button>
       </div>

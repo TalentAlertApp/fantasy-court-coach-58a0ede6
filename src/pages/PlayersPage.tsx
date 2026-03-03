@@ -72,9 +72,11 @@ export default function PlayersPage() {
     });
   };
 
-  const renderSection = (title: string, players: PlayerListItem[], headerClass: string) => (
+  const renderSection = (title: string, players: PlayerListItem[], isFC: boolean) => (
     <div>
-      <h3 className={`text-sm font-bold uppercase tracking-wide mb-2 ${headerClass}`}>{title} ({players.length})</h3>
+      <div className={`section-bar mb-1 rounded-sm ${isFC ? "!bg-destructive/10 !text-destructive" : "!bg-primary/10 !text-primary"}`}>
+        {title} ({players.length})
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -107,25 +109,25 @@ export default function PlayersPage() {
 
   return (
     <div className="flex gap-4">
-      <div className="w-64 flex-shrink-0">
+      <div className="w-56 flex-shrink-0">
         <FiltersPanel
           fcBc={fcBc} onFcBcChange={setFcBc}
           sort={sort} onSortChange={setSort}
           search={search} onSearchChange={setSearch}
           maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary}
         />
-        <div className="mt-4 flex items-center gap-2 p-4 bg-card border rounded-lg">
+        <div className="mt-3 flex items-center gap-2 p-3 bg-card border rounded-sm">
           <Switch checked={waiverMode} onCheckedChange={setWaiverMode} />
-          <Label className="text-sm">Waiver Mode</Label>
+          <Label className="text-xs font-heading uppercase">Waiver Mode</Label>
         </div>
       </div>
-      <div className="flex-1 space-y-6">
+      <div className="flex-1 space-y-4">
         {isLoading ? (
           <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
         ) : (
           <>
-            {(fcBc === "ALL" || fcBc === "FC") && renderSection("Front Court", fcPlayers, "text-nba-red")}
-            {(fcBc === "ALL" || fcBc === "BC") && renderSection("Back Court", bcPlayers, "text-primary")}
+            {(fcBc === "ALL" || fcBc === "FC") && renderSection("Front Court", fcPlayers, true)}
+            {(fcBc === "ALL" || fcBc === "BC") && renderSection("Back Court", bcPlayers, false)}
           </>
         )}
       </div>

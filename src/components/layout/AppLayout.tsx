@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot, MoreHorizontal } from "lucide-react";
+import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 
 const navItems = [
@@ -15,28 +15,28 @@ const navItems = [
 export default function AppLayout() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="bg-primary text-primary-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold tracking-tight">🏀 NBA Fantasy Manager</h1>
+      {/* Header — deep navy */}
+      <header className="bg-nba-navy text-white">
+        <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
+          <h1 className="text-xl font-heading font-bold tracking-widest">🏀 NBA FANTASY MANAGER</h1>
           <TeamSwitcher />
         </div>
       </header>
 
-      {/* Navigation */}
-      <nav className="bg-primary/95 border-b border-primary/80 sticky top-0 z-40">
+      {/* Navigation — white bar with yellow active indicator */}
+      <nav className="bg-card border-b sticky top-0 z-40">
         <div className="container mx-auto px-4">
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
             {navItems.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
                 to={to}
                 end={end}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                  `flex items-center gap-1.5 px-3 py-2.5 text-sm font-heading font-semibold uppercase tracking-wide whitespace-nowrap transition-colors border-b-[3px] ${
                     isActive
-                      ? "border-nba-yellow text-nba-yellow"
-                      : "border-transparent text-primary-foreground/70 hover:text-primary-foreground hover:border-primary-foreground/30"
+                      ? "border-accent text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
                   }`
                 }
               >
@@ -44,10 +44,6 @@ export default function AppLayout() {
                 {label}
               </NavLink>
             ))}
-            <button className="flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium text-primary-foreground/50 cursor-not-allowed">
-              <MoreHorizontal className="h-4 w-4" />
-              More
-            </button>
           </div>
         </div>
       </nav>

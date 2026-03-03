@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   ScatterChart, Scatter, CartesianGrid,
@@ -36,64 +35,59 @@ export default function ChartsPanel({ starters, bench, allRoster }: ChartsPanelP
     value5: p.computed.value5,
   }));
 
+  const chartCard = (title: string, children: React.ReactNode) => (
+    <div className="bg-card border rounded-sm overflow-hidden">
+      <div className="section-bar">{title}</div>
+      <div className="p-3">{children}</div>
+    </div>
+  );
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <Card>
-        <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">Starters vs Bench FP5</CardTitle></CardHeader>
-        <CardContent className="p-4 pt-0">
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={[{ name: "Starters", fp5: starterFp5 }, { name: "Bench", fp5: benchFp5 }]}>
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="fp5" fill="hsl(216, 78%, 31%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {chartCard("Starters vs Bench FP5", (
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={[{ name: "Starters", fp5: starterFp5 }, { name: "Bench", fp5: benchFp5 }]}>
+            <XAxis dataKey="name" tick={{ fontSize: 11, fontFamily: "Barlow Condensed" }} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Bar dataKey="fp5" fill="hsl(220, 65%, 33%)" radius={[2, 2, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ))}
 
-      <Card>
-        <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">FP vs FP5 Delta</CardTitle></CardHeader>
-        <CardContent className="p-4 pt-0">
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={fpDelta}>
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="delta" fill="hsl(43, 97%, 57%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {chartCard("FP vs FP5 Delta", (
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={fpDelta}>
+            <XAxis dataKey="name" tick={{ fontSize: 9, fontFamily: "Barlow Condensed" }} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Bar dataKey="delta" fill="hsl(43, 100%, 59%)" radius={[2, 2, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ))}
 
-      <Card>
-        <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">Stocks Impact (STL+BLK ×3)</CardTitle></CardHeader>
-        <CardContent className="p-4 pt-0">
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={stocksData}>
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="stocks" fill="hsl(351, 95%, 40%)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {chartCard("Stocks Impact (STL+BLK ×3)", (
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={stocksData}>
+            <XAxis dataKey="name" tick={{ fontSize: 9, fontFamily: "Barlow Condensed" }} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip />
+            <Bar dataKey="stocks" fill="hsl(351, 85%, 42%)" radius={[2, 2, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      ))}
 
-      <Card>
-        <CardHeader className="p-4 pb-2"><CardTitle className="text-sm">Salary vs Value5</CardTitle></CardHeader>
-        <CardContent className="p-4 pt-0">
-          <ResponsiveContainer width="100%" height={200}>
-            <ScatterChart>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="salary" name="Salary" tick={{ fontSize: 12 }} />
-              <YAxis dataKey="value5" name="Value5" tick={{ fontSize: 12 }} />
-              <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-              <Scatter data={scatterData} fill="hsl(216, 78%, 31%)" />
-            </ScatterChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {chartCard("Salary vs Value5", (
+        <ResponsiveContainer width="100%" height={200}>
+          <ScatterChart>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="salary" name="Salary" tick={{ fontSize: 11 }} />
+            <YAxis dataKey="value5" name="Value5" tick={{ fontSize: 11 }} />
+            <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+            <Scatter data={scatterData} fill="hsl(220, 65%, 33%)" />
+          </ScatterChart>
+        </ResponsiveContainer>
+      ))}
     </div>
   );
 }
