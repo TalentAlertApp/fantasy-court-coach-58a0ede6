@@ -46,7 +46,7 @@ serve(async (req: Request) => {
       if (runId) {
         await sb.from("sync_runs").update({
           details: { season, step, counts, errors, source },
-        }).eq("id", runId).catch(() => {});
+        }).eq("id", runId).then(null, () => {});
       }
     };
 
@@ -93,7 +93,7 @@ serve(async (req: Request) => {
         status: "FAILED",
         finished_at: new Date().toISOString(),
         details: { error: e instanceof Error ? e.message : String(e), step: "FAILED" },
-      }).eq("id", runId).catch(() => {});
+      }).eq("id", runId).then(null, () => {});
     }
     const code = e instanceof NbaBlockedError ? "NBA_BLOCKED" : "SYNC_ERROR";
     return errorResponse(code, e instanceof Error ? e.message : "Unknown error", null, 500);
