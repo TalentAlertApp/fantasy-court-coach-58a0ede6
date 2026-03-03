@@ -38,34 +38,58 @@ export async function nbaFetch(
     url.searchParams.set(k, v);
   }
 
+  const REQUEST_TIMEOUT_MS = 12000;
+  const MAX_ATTEMPTS = 2;
+
   let lastError: Error | null = null;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     if (attempt > 0) {
       // exponential backoff
       await sleep(1000 * Math.pow(2, attempt));
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
     try {
-      const res = await fetch(url.toString(), { headers: HEADERS });
+      const res = await fetch(url.toString(), {
+        headers: HEADERS,
+        signal: controller.signal,
+      });
+
       if (res.status === 403) {
         throw new NbaBlockedError(
           `NBA API returned 403 for ${endpoint}. The server may be blocking automated requests.`
         );
       }
+
       if (res.status === 429) {
-        lastError = new Error("Rate limited (429)");
+        lastError = new NbaBlockedError(`NBA API rate limited (429) for ${endpoint}`);
         continue;
       }
+
       if (!res.ok) {
         lastError = new Error(`NBA API ${res.status}: ${await res.text()}`);
         continue;
       }
+
       const json = await res.json();
       return parseNbaResponse(json);
     } catch (e) {
       if (e instanceof NbaBlockedError) throw e;
+
+      // Timeout/abort -> treat as blocked/unavailable so caller can fall back to Sheet.
+      if (e instanceof DOMException && e.name === "AbortError") {
+        throw new NbaBlockedError(`NBA API timeout after ${REQUEST_TIMEOUT_MS}ms for ${endpoint}`);
+      }
+
       lastError = e instanceof Error ? e : new Error(String(e));
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
+
+  if (lastError instanceof NbaBlockedError) throw lastError;
   throw lastError ?? new Error("nbaFetch failed");
 }
 
