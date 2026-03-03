@@ -9,12 +9,12 @@ interface RosterCourtViewProps {
   bench: PlayerListItem[];
   captainId: number;
   onPlayerClick: (id: number) => void;
+  onSwap?: (playerId: number) => void;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap }: RosterCourtViewProps) {
   return (
     <div className="space-y-6">
-      {/* Starters */}
       <div>
         <h3 className="text-sm font-bold uppercase tracking-wide text-nba-red mb-3">Starting 5</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -24,6 +24,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
               player={p}
               isCaptain={p.core.id === captainId}
               onClick={() => onPlayerClick(p.core.id)}
+              onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
             />
           ))}
           {starters.length === 0 && Array.from({ length: 5 }).map((_, i) => (
@@ -34,7 +35,6 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         </div>
       </div>
 
-      {/* Bench */}
       <div>
         <h3 className="text-sm font-bold uppercase tracking-wide text-primary mb-3">Bench</h3>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -43,6 +43,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
               key={p.core.id}
               player={p}
               onClick={() => onPlayerClick(p.core.id)}
+              onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
             />
           ))}
           {bench.length === 0 && Array.from({ length: 5 }).map((_, i) => (
