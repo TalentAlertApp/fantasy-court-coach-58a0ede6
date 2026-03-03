@@ -213,20 +213,6 @@ export const ScheduleGameSchema = z
 export const HealthPayloadSchema = z
   .object({
     data_source_mode: z.enum(["sheet", "supabase"]),
-    sheet: z
-      .object({
-        spreadsheet_id: z.string(),
-        gid: z.string(),
-        last_seen_timestamp_cells: z
-          .object({
-            players_ts_cell: z.literal("AU1"),
-            last_game_ts_cell: z.literal("AX1"),
-          })
-          .strict(),
-        players_last_updated_text: z.string().nullable(),
-        last_game_last_updated_text: z.string().nullable(),
-      })
-      .strict(),
     server_time_utc: IsoDateTimeSchema,
     scoring_rules: ScoringRulesSchema,
   })

@@ -24,20 +24,6 @@ const ScoringRulesSchema = z
 const HealthPayloadSchema = z
   .object({
     data_source_mode: z.enum(["sheet", "supabase"]),
-    sheet: z
-      .object({
-        spreadsheet_id: z.string(),
-        gid: z.string(),
-        last_seen_timestamp_cells: z
-          .object({
-            players_ts_cell: z.literal("AU1"),
-            last_game_ts_cell: z.literal("AX1"),
-          })
-          .strict(),
-        players_last_updated_text: z.string().nullable(),
-        last_game_last_updated_text: z.string().nullable(),
-      })
-      .strict(),
     server_time_utc: IsoDateTimeSchema,
     scoring_rules: ScoringRulesSchema,
   })
@@ -64,22 +50,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const spreadsheetId = Deno.env.get("GOOGLE_SHEET_ID") ?? "NOT_SET";
-
     const payload = {
       ok: true as const,
       data: {
         data_source_mode: "sheet" as const,
-        sheet: {
-          spreadsheet_id: spreadsheetId,
-          gid: "0",
-          last_seen_timestamp_cells: {
-            players_ts_cell: "AU1" as const,
-            last_game_ts_cell: "AX1" as const,
-          },
-          players_last_updated_text: null,
-          last_game_last_updated_text: null,
-        },
         server_time_utc: new Date().toISOString(),
         scoring_rules: {
           pts: 1 as const,
