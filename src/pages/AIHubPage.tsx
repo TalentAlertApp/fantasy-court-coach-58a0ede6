@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, ArrowLeftRight, Star, HelpCircle, Activity, Shield, Loader2, AlertTriangle } from "lucide-react";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { useTeam } from "@/contexts/TeamContext";
 import {
   aiAnalyzeRoster,
   aiPickCaptain,
@@ -21,6 +22,7 @@ import { Input } from "@/components/ui/input";
 
 export default function AIHubPage() {
   const { toast } = useToast();
+  const { selectedTeamId } = useTeam();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery();
 
@@ -58,7 +60,7 @@ export default function AIHubPage() {
     setAnalyzeLoading(true);
     setAnalyzeResult(null);
     try {
-      const res = await aiAnalyzeRoster({ gw, day, focus: "balanced" });
+      const res = await aiAnalyzeRoster({ gw, day, focus: "balanced" }, selectedTeamId ?? undefined);
       setAnalyzeResult(res);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -71,7 +73,7 @@ export default function AIHubPage() {
     setCaptainLoading(true);
     setCaptainResult(null);
     try {
-      const res = await aiPickCaptain({ gw, day });
+      const res = await aiPickCaptain({ gw, day }, selectedTeamId ?? undefined);
       setCaptainResult(res);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -90,7 +92,7 @@ export default function AIHubPage() {
         starters: rosterData.roster.starters,
         bench: rosterData.roster.bench,
         captain_id: captainResult.captain_id,
-      });
+      }, selectedTeamId ?? undefined);
       toast({ title: "Captain applied!" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -104,7 +106,7 @@ export default function AIHubPage() {
     setTransfersResult(null);
     setSimResults({});
     try {
-      const res = await aiSuggestTransfers({ gw, day, max_cost: rosterData?.roster?.bank_remaining ?? 100, objective: "maximize_fp5" });
+      const res = await aiSuggestTransfers({ gw, day, max_cost: rosterData?.roster?.bank_remaining ?? 100, objective: "maximize_fp5" }, selectedTeamId ?? undefined);
       setTransfersResult(res);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -116,7 +118,7 @@ export default function AIHubPage() {
   const handleSimulate = async (idx: number, move: any) => {
     setSimulatingIdx(idx);
     try {
-      const res = await simulateTransactions({ gw, day, adds: [move.add], drops: [move.drop] });
+      const res = await simulateTransactions({ gw, day, adds: [move.add], drops: [move.drop] }, selectedTeamId ?? undefined);
       setSimResults((prev) => ({ ...prev, [idx]: res }));
     } catch (e: any) {
       toast({ title: "Sim Error", description: e.message, variant: "destructive" });
@@ -128,7 +130,7 @@ export default function AIHubPage() {
   const handleCommit = async (idx: number, move: any) => {
     setCommittingIdx(idx);
     try {
-      await commitTransaction({ gw, day, adds: [move.add], drops: [move.drop] });
+      await commitTransaction({ gw, day, adds: [move.add], drops: [move.drop] }, selectedTeamId ?? undefined);
       toast({ title: "Transfer committed!" });
     } catch (e: any) {
       toast({ title: "Commit Error", description: e.message, variant: "destructive" });
@@ -144,7 +146,7 @@ export default function AIHubPage() {
       const rosterPlayerIds = rosterData?.roster
         ? [...rosterData.roster.starters, ...rosterData.roster.bench]
         : [];
-      const res = await aiInjuryMonitor({ player_ids: rosterPlayerIds, include_replacements: true, max_salary: rosterData?.roster?.bank_remaining ?? null });
+      const res = await aiInjuryMonitor({ player_ids: rosterPlayerIds, include_replacements: true, max_salary: rosterData?.roster?.bank_remaining ?? null }, selectedTeamId ?? undefined);
       setInjuryResult(res);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
@@ -165,7 +167,7 @@ export default function AIHubPage() {
     setExplainLoading(true);
     setExplainResult(null);
     try {
-      const res = await aiExplainPlayer({ player_id: player.core.id });
+      const res = await aiExplainPlayer({ player_id: player.core.id }, selectedTeamId ?? undefined);
       setExplainResult(res);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });

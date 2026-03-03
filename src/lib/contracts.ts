@@ -189,6 +189,8 @@ export const RosterSnapshotSchema = z
     free_transfers_remaining: IntSchema,
     constraints: RosterConstraintsSchema,
     updated_at: NullableIsoDateTimeSchema,
+    team_id: z.string().uuid().optional(),
+    team_name: z.string().optional(),
   })
   .strict();
 
@@ -657,6 +659,42 @@ export const AIInjuryMonitorPayloadSchema = z
   .strict();
 
 export const AIInjuryMonitorResponseSchema = EnvelopeSchema(AIInjuryMonitorPayloadSchema);
+
+/** ---------- Teams ---------- */
+
+export const TeamSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string(),
+    description: z.string().nullable(),
+    created_at: IsoDateTimeSchema,
+    updated_at: IsoDateTimeSchema,
+  })
+  .strict();
+
+export const TeamListPayloadSchema = z
+  .object({
+    items: z.array(TeamSchema),
+    default_team_id: z.string().uuid(),
+  })
+  .strict();
+
+export const TeamListResponseSchema = EnvelopeSchema(TeamListPayloadSchema);
+
+export const TeamCreateBodySchema = z
+  .object({
+    name: z.string().min(1),
+    description: z.string().nullable().optional(),
+  })
+  .strict();
+
+export const TeamCreatePayloadSchema = z
+  .object({
+    team: TeamSchema,
+  })
+  .strict();
+
+export const TeamCreateResponseSchema = EnvelopeSchema(TeamCreatePayloadSchema);
 
 /** ---------- optional: runtime helpers ---------- */
 export function assertOk<T extends z.ZodTypeAny>(

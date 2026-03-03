@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot, MoreHorizontal } from "lucide-react";
+import TeamSwitcher from "@/components/TeamSwitcher";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -16,8 +17,9 @@ export default function AppLayout() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="bg-primary text-primary-foreground shadow-lg">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-xl font-bold tracking-tight">🏀 NBA Fantasy Manager</h1>
+          <TeamSwitcher />
         </div>
       </header>
 

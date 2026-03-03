@@ -202,6 +202,7 @@ export type Database = {
           is_captain: boolean
           player_id: number
           slot: string
+          team_id: string
           updated_at: string
         }
         Insert: {
@@ -212,6 +213,7 @@ export type Database = {
           is_captain?: boolean
           player_id: number
           slot: string
+          team_id: string
           updated_at?: string
         }
         Update: {
@@ -222,6 +224,7 @@ export type Database = {
           is_captain?: boolean
           player_id?: number
           slot?: string
+          team_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -230,6 +233,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roster_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -273,6 +283,65 @@ export type Database = {
         }
         Relationships: []
       }
+      team_settings: {
+        Row: {
+          created_at: string
+          salary_cap: number | null
+          starter_bc_min: number | null
+          starter_fc_min: number | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          salary_cap?: number | null
+          starter_bc_min?: number | null
+          starter_fc_min?: number | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          salary_cap?: number | null
+          starter_bc_min?: number | null
+          starter_fc_min?: number | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_settings_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: true
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           cost_points: number
@@ -281,6 +350,7 @@ export type Database = {
           notes: string | null
           player_in_id: number
           player_out_id: number
+          team_id: string
           type: string
         }
         Insert: {
@@ -290,6 +360,7 @@ export type Database = {
           notes?: string | null
           player_in_id?: number
           player_out_id?: number
+          team_id: string
           type: string
         }
         Update: {
@@ -299,9 +370,18 @@ export type Database = {
           notes?: string | null
           player_in_id?: number
           player_out_id?: number
+          team_id?: string
           type?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transactions_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
