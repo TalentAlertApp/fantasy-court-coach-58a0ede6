@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.teams]
 verify_jwt = false
+
+[functions.nba-sync]
+verify_jwt = false
+
+[functions.sync-status]
+verify_jwt = false

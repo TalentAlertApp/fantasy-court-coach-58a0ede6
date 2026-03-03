@@ -696,6 +696,28 @@ export const TeamCreatePayloadSchema = z
 
 export const TeamCreateResponseSchema = EnvelopeSchema(TeamCreatePayloadSchema);
 
+/** ---------- Sync endpoints ---------- */
+
+export const SyncRunPayloadSchema = z
+  .object({
+    run_id: z.string().uuid().nullable(),
+    status: z.string(),
+    counts: z.record(z.number()).optional(),
+    errors: z.array(z.string()).optional(),
+  });
+
+export const SyncRunResponseSchema = EnvelopeSchema(SyncRunPayloadSchema);
+
+export const SyncStatusPayloadSchema = z
+  .object({
+    last_success_at: z.string().nullable(),
+    last_type: z.string().nullable(),
+    counts: z.record(z.number()),
+    is_stale: z.boolean(),
+  });
+
+export const SyncStatusResponseSchema = EnvelopeSchema(SyncStatusPayloadSchema);
+
 /** ---------- optional: runtime helpers ---------- */
 export function assertOk<T extends z.ZodTypeAny>(
   schema: z.ZodTypeAny,
