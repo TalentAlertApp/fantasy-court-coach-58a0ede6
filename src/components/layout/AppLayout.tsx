@@ -1,12 +1,13 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot, RefreshCcw } from "lucide-react";
+import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { triggerSync, fetchSyncStatus } from "@/lib/api";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import SyncStatusCard from "@/components/layout/SyncStatusCard";
+import SplitSyncButton from "@/components/layout/SplitSyncButton";
 
 const navItems = [
   { to: "/", label: "Home", icon: Home, end: true },
@@ -18,31 +19,7 @@ const navItems = [
   { to: "/ai", label: "AI Hub", icon: Bot },
 ];
 
-function formatTimeAgo(iso: string | null): string {
-  if (!iso) return "Never";
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
-}
-
-const STEP_LABELS: Record<string, string> = {
-  STARTING: "Starting…",
-  FETCHING_PERGAME: "Fetching player stats…",
-  FETCHING_GAME_LOGS: "Fetching game logs…",
-  UPSERTING_PLAYERS: "Saving players…",
-  COMPUTING_VALUES: "Computing values…",
-  UPSERTING_GAME_LOGS: "Saving game logs…",
-  FETCHING_LAST_GAME: "Fetching last games…",
-  FETCHING_TEAM_SCORES: "Fetching scores…",
-  UPSERTING_GAMES: "Saving games…",
-  UPSERTING_LAST_GAMES: "Saving last games…",
-  SHEET_FALLBACK: "Using Google Sheet…",
-  DONE: "Done!",
-};
+/** Check if now is past 6:00 AM Lisbon time and we haven't synced today */
 
 /** Check if now is past 6:00 AM Lisbon time and we haven't synced today */
 function shouldAutoSync(): boolean {
@@ -77,26 +54,7 @@ export default function AppLayout() {
     staleTime: 30_000,
   });
 
-  // Sync mutation
-  const syncMutation = useMutation({
-    mutationFn: () => triggerSync({ type: "FULL", force: false }),
-    onSuccess: (data) => {
-      const players = data.counts?.players ?? 0;
-      const lastGames = data.counts?.last_games ?? 0;
-      toast.success(`Synced: ${players} players, ${lastGames} last games`);
-      setSyncStep(null);
-      stopPolling();
-      queryClient.invalidateQueries({ queryKey: ["players"] });
-      queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-      queryClient.invalidateQueries({ queryKey: ["last-game"] });
-      queryClient.invalidateQueries({ queryKey: ["sync-status"] });
-    },
-    onError: (err: any) => {
-      toast.error(`Sync failed: ${err?.message ?? "Unknown error"}`);
-      setSyncStep(null);
-      stopPolling();
-    },
-  });
+  const [isSyncingFlag, setIsSyncingFlag] = useState(false);
 
   const stopPolling = useCallback(() => {
     if (pollRef.current) {
@@ -104,6 +62,13 @@ export default function AppLayout() {
       pollRef.current = null;
     }
   }, []);
+
+  const invalidateAll = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["players"] });
+    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+    queryClient.invalidateQueries({ queryKey: ["last-game"] });
+    queryClient.invalidateQueries({ queryKey: ["sync-status"] });
+  }, [queryClient]);
 
   const startPolling = useCallback((runId: string) => {
     stopPolling();
@@ -114,40 +79,42 @@ export default function AppLayout() {
         setSyncStep(step);
         if (status.status === "SUCCESS" || status.status === "PARTIAL" || status.status === "FAILED") {
           stopPolling();
-          // The mutation onSuccess/onError handles the rest
+          const counts = (status as any).counts ?? {};
+          toast.success(`Synced: ${counts.players ?? 0} players, ${counts.last_games ?? 0} last games`);
+          setSyncStep(null);
+          setIsSyncingFlag(false);
+          invalidateAll();
         }
       } catch {
         // ignore polling errors
       }
     }, 2000);
-  }, [stopPolling]);
+  }, [stopPolling, invalidateAll]);
 
-  const handleSync = useCallback(async () => {
-    if (syncMutation.isPending) return;
+  const handleSync = useCallback(async (type: "FULL" | "LAST_GAME" = "LAST_GAME") => {
+    if (isSyncingFlag) return;
+    setIsSyncingFlag(true);
     setSyncStep("STARTING");
     try {
-      const result = await triggerSync({ type: "FULL", force: false });
-      // If we got a run_id but it's still running, poll for progress
+      const result = await triggerSync({ type, force: false });
       if (result.run_id && result.status === "RUNNING") {
         startPolling(result.run_id);
       } else {
-        // Already finished (fast sync)
         const players = result.counts?.players ?? 0;
         const lastGames = result.counts?.last_games ?? 0;
         toast.success(`Synced: ${players} players, ${lastGames} last games`);
         setSyncStep(null);
-        queryClient.invalidateQueries({ queryKey: ["players"] });
-        queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-        queryClient.invalidateQueries({ queryKey: ["last-game"] });
-        queryClient.invalidateQueries({ queryKey: ["sync-status"] });
+        setIsSyncingFlag(false);
+        invalidateAll();
       }
     } catch (err: any) {
       toast.error(`Sync failed: ${err?.message ?? "Unknown error"}`);
       setSyncStep(null);
+      setIsSyncingFlag(false);
     }
-  }, [syncMutation.isPending, startPolling, queryClient]);
+  }, [isSyncingFlag, startPolling, invalidateAll]);
 
-  const isSyncing = syncStep !== null && syncStep !== "DONE";
+  const isSyncing = isSyncingFlag;
 
   // Daily 6AM Lisbon auto-refresh
   useEffect(() => {
@@ -178,15 +145,17 @@ export default function AppLayout() {
 
           {/* Sync controls */}
           <div className="flex items-center gap-3">
-            {/* Last sync label */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-white/70">
-              <span>Sync: {formatTimeAgo(syncStatus?.last_success_at ?? null)}</span>
-              {syncStatus?.is_stale && (
-                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 uppercase font-bold">
-                  Stale
-                </Badge>
-              )}
-            </div>
+            {/* Sync Status Card */}
+            <SyncStatusCard
+              lastSuccessAt={syncStatus?.last_success_at ?? null}
+              source={syncStatus?.source}
+              durationMs={syncStatus?.duration_ms}
+              playerCount={syncStatus?.counts?.players ?? 0}
+              errorCount={syncStatus?.error_count ?? 0}
+              errors={syncStatus?.errors ?? []}
+              isStale={syncStatus?.is_stale ?? false}
+              lastType={syncStatus?.last_type ?? null}
+            />
 
             {/* Auto-refresh toggle — daily 6AM */}
             <div className="hidden md:flex items-center gap-1.5">
@@ -198,22 +167,13 @@ export default function AppLayout() {
               />
             </div>
 
-            {/* Sync button + step indicator */}
-            <div className="flex flex-col items-center">
-              <button
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="flex items-center gap-1.5 bg-accent text-accent-foreground px-3 py-1.5 rounded text-xs font-heading font-bold uppercase tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                <RefreshCcw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
-                {isSyncing ? "Syncing…" : "Sync"}
-              </button>
-              {isSyncing && syncStep && (
-                <span className="text-[10px] text-white/60 mt-0.5 whitespace-nowrap">
-                  {STEP_LABELS[syncStep] ?? syncStep}
-                </span>
-              )}
-            </div>
+            {/* Split Sync Button */}
+            <SplitSyncButton
+              isSyncing={isSyncing}
+              syncStep={syncStep}
+              onQuickSync={() => handleSync("LAST_GAME")}
+              onFullSync={() => handleSync("FULL")}
+            />
 
             <TeamSwitcher />
           </div>
