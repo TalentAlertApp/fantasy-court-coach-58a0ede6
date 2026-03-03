@@ -38,7 +38,7 @@ export async function nbaFetch(
     url.searchParams.set(k, v);
   }
 
-  const REQUEST_TIMEOUT_MS = 12000;
+  const REQUEST_TIMEOUT_MS = 25000;
   const MAX_ATTEMPTS = 2;
 
   let lastError: Error | null = null;
