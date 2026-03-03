@@ -3,6 +3,7 @@ import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getTeamLogo } from "@/lib/nba-teams";
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
@@ -37,14 +38,20 @@ export default function ScheduleList({ games, gw, day, onPrev, onNext }: Schedul
           {games.map((g, i) => (
             <div key={g.game_id} className={`bg-card flex items-center justify-between px-4 py-3 ${i < games.length - 1 ? "border-b" : ""}`}>
               <div className="flex items-center gap-4 flex-1">
-                <div className="text-right min-w-[70px]">
-                  <p className="font-heading font-bold text-sm uppercase">{g.away_team}</p>
-                  {g.status === "FINAL" && <p className="text-lg font-mono font-bold">{g.away_pts}</p>}
+                <div className="flex items-center gap-2 text-right min-w-[90px] justify-end">
+                  {getTeamLogo(g.away_team) && <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-5 h-5" />}
+                  <div>
+                    <p className="font-heading font-bold text-sm uppercase">{g.away_team}</p>
+                    {g.status === "FINAL" && <p className="text-lg font-mono font-bold">{g.away_pts}</p>}
+                  </div>
                 </div>
                 <span className="text-muted-foreground text-xs font-heading">@</span>
-                <div className="min-w-[70px]">
-                  <p className="font-heading font-bold text-sm uppercase">{g.home_team}</p>
-                  {g.status === "FINAL" && <p className="text-lg font-mono font-bold">{g.home_pts}</p>}
+                <div className="flex items-center gap-2 min-w-[90px]">
+                  {getTeamLogo(g.home_team) && <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-5 h-5" />}
+                  <div>
+                    <p className="font-heading font-bold text-sm uppercase">{g.home_team}</p>
+                    {g.status === "FINAL" && <p className="text-lg font-mono font-bold">{g.home_pts}</p>}
+                  </div>
                 </div>
               </div>
               <div className="text-right flex items-center gap-2">
