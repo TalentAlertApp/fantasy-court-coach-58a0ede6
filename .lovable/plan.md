@@ -1,14 +1,14 @@
 
 
-## Plan: Update `docs/API_CONTRACTS.md` with Full Contract Spec
+## Plan: Add `docs/AI_SYSTEM_PROMPT.md`
 
 ### Single change
 
-Replace the placeholder content in `docs/API_CONTRACTS.md` with the complete contract specification the user just provided. This covers all 6 sections: Core Principles, Global Rules, Shared Data Types, Endpoint Contracts, AI Endpoints, and Definition of Done.
+Create `docs/AI_SYSTEM_PROMPT.md` with the full immutable system prompt the user provided. This file will be the source of truth for all AI endpoint behavior (used by the edge functions for `/ai/suggest-transfers`, `/ai/pick-captain`, `/ai/explain-player`).
 
-No other files need to change -- the Zod schemas in `src/lib/contracts.ts`, the health edge function, and the client fetcher are already implemented and aligned with this spec.
+No other files change. The prompt will be consumed by AI edge functions when they are implemented — they will read this content and pass it as the `system` message to `gpt-4.1-mini`.
 
-### Notable detail from the spec
+### File
 
-The AI endpoints section specifies using `OPENAI_API_KEY_NBA` (already configured as a secret) with model `gpt-4.1-mini` and web search enabled -- not the Lovable AI gateway. This will be relevant when implementing those endpoints later.
+- **`docs/AI_SYSTEM_PROMPT.md`** — verbatim content as provided, covering: Role, Non-negotiable Rules, Tools, Constraints, Endpoint-specific Output, Style, Missing Data handling, Safety.
 
