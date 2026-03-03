@@ -714,6 +714,14 @@ export const SyncStatusPayloadSchema = z
     last_type: z.string().nullable(),
     counts: z.record(z.number()),
     is_stale: z.boolean(),
+    // Fields present when querying a specific run_id
+    run_id: z.string().uuid().optional(),
+    status: z.string().optional(),
+    started_at: z.string().optional(),
+    finished_at: z.string().nullable().optional(),
+    step: z.string().nullable().optional(),
+    errors: z.array(z.string()).optional(),
+    source: z.string().optional(),
   });
 
 export const SyncStatusResponseSchema = EnvelopeSchema(SyncStatusPayloadSchema);
