@@ -114,7 +114,6 @@ async function callOpenAI(
       model: "gpt-4.1-mini",
       instructions: SYSTEM_PROMPT,
       input: [{ role: "developer", content: devMessage }],
-      tools: [{ type: "web_search_preview" }],
       text: { format: { type: "json_object" } },
     }),
   });
