@@ -38,12 +38,34 @@ export const NBA_TEAMS: NbaTeam[] = [
   { id: "1610612764", name: "Washington Wizards",     tricode: "WAS", logo: "https://cdn.nba.com/logos/nba/1610612764/global/L/logo.svg" },
 ];
 
+const NAME_TO_TRICODE: Record<string, string> = {
+  "atlanta": "ATL", "boston": "BOS", "brooklyn": "BKN", "charlotte": "CHA",
+  "chicago": "CHI", "cleveland": "CLE", "dallas": "DAL", "denver": "DEN",
+  "detroit": "DET", "golden state": "GSW", "houston": "HOU", "indiana": "IND",
+  "la clippers": "LAC", "la lakers": "LAL", "los angeles lakers": "LAL",
+  "los angeles clippers": "LAC", "memphis": "MEM", "miami": "MIA",
+  "milwaukee": "MIL", "minnesota": "MIN", "new orleans": "NOP",
+  "new york": "NYK", "oklahoma": "OKC", "oklahoma city": "OKC",
+  "orlando": "ORL", "philadelphia": "PHI", "phoenix": "PHX",
+  "portland": "POR", "sacramento": "SAC", "san antonio": "SAS",
+  "toronto": "TOR", "utah": "UTA", "washington": "WAS",
+};
+
 /** Look up a team by tricode (e.g. "LAL") — case-insensitive */
 export function getTeamByTricode(tricode: string): NbaTeam | undefined {
   return NBA_TEAMS.find((t) => t.tricode.toUpperCase() === tricode.toUpperCase());
 }
 
-/** Get team logo URL by tricode */
-export function getTeamLogo(tricode: string): string | undefined {
-  return getTeamByTricode(tricode)?.logo;
+/** Get team logo URL by tricode or city/short name (e.g. "LAL", "Dallas", "LA Lakers") */
+export function getTeamLogo(teamStr: string): string | undefined {
+  // Try tricode first
+  const byTricode = getTeamByTricode(teamStr);
+  if (byTricode) return byTricode.logo;
+  // Try name lookup
+  const tricode = NAME_TO_TRICODE[teamStr.toLowerCase()];
+  if (tricode) return getTeamByTricode(tricode)?.logo;
+  // Try partial match against full team names
+  const lower = teamStr.toLowerCase();
+  const match = NBA_TEAMS.find((t) => t.name.toLowerCase().includes(lower));
+  return match?.logo;
 }
