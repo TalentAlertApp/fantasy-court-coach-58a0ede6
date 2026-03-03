@@ -96,16 +96,34 @@ export default function AppLayout() {
     setIsSyncingFlag(true);
     setSyncStep("STARTING");
     try {
-      const result = await triggerSync({ type, force: false });
-      if (result.run_id && result.status === "RUNNING") {
-        startPolling(result.run_id);
-      } else {
-        const players = result.counts?.players ?? 0;
-        const lastGames = result.counts?.last_games ?? 0;
-        toast.success(`Synced: ${players} players, ${lastGames} last games`);
+      if (type === "FULL") {
+        // Chain two sequential calls: PERGAME_LAST5 then LAST_GAME
+        setSyncStep("FETCHING_PERGAME");
+        const result1 = await triggerSync({ type: "PERGAME_LAST5", force: false });
+        const players = result1.counts?.players ?? 0;
+        toast.success(`Phase 1 done: ${players} players updated`);
+
+        setSyncStep("FETCHING_LAST_GAME");
+        const result2 = await triggerSync({ type: "LAST_GAME", force: false });
+        const lastGames = result2.counts?.last_games ?? 0;
+        const games = result2.counts?.games ?? 0;
+        toast.success(`Phase 2 done: ${lastGames} last games, ${games} games`);
+
         setSyncStep(null);
         setIsSyncingFlag(false);
         invalidateAll();
+      } else {
+        const result = await triggerSync({ type, force: false });
+        if (result.run_id && result.status === "RUNNING") {
+          startPolling(result.run_id);
+        } else {
+          const players = result.counts?.players ?? 0;
+          const lastGames = result.counts?.last_games ?? 0;
+          toast.success(`Synced: ${players} players, ${lastGames} last games`);
+          setSyncStep(null);
+          setIsSyncingFlag(false);
+          invalidateAll();
+        }
       }
     } catch (err: any) {
       toast.error(`Sync failed: ${err?.message ?? "Unknown error"}`);

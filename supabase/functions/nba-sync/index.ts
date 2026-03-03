@@ -159,6 +159,24 @@ async function sheetFallbackSync(
     const rows = await fetchSheetRows();
     const dataRows = rows.slice(1).filter((r) => r[0] && r[0].trim() !== "");
 
+    // Diagnostic logging
+    if (dataRows.length > 0) {
+      console.log(`[nba-sync] Sheet: ${dataRows.length} data rows, ${dataRows[0].length} columns per row`);
+      console.log(`[nba-sync] Sheet row 0 sample:`, JSON.stringify(dataRows[0].slice(0, 25)));
+    }
+
+    // Check if sheet has actual stats or just user-entered columns
+    const sampleRows = dataRows.slice(0, 10);
+    const allStatsZero = sampleRows.every((r) => {
+      const gp = euNum(r[14]); const pts = euNum(r[16]); const reb = euNum(r[18]); const ast = euNum(r[17]);
+      return gp === 0 && pts === 0 && reb === 0 && ast === 0;
+    });
+    if (allStatsZero && sampleRows.length > 0) {
+      const warning = "Sheet appears to have no stats data — Python script may need to be run";
+      console.warn(`[nba-sync] ${warning}`);
+      errors.push(warning);
+    }
+
     // Build player rows
     const playerRows = dataRows.map((row) => {
       const col = (i: number) => row[i] ?? "";
@@ -190,6 +208,7 @@ async function sheetFallbackSync(
     counts.players = upsertedPlayers;
 
     // Build last game rows
+    // Build last game rows — log filter stats
     const lgRows = dataRows.map((row) => {
       const col = (i: number) => row[i] ?? "";
       const { opp, home_away } = parseOpp(col(35));
@@ -208,11 +227,14 @@ async function sheetFallbackSync(
         fp: euNum(col(45)), nba_game_url: nullable(col(44)),
         updated_at: new Date().toISOString(),
       };
-    }).filter((lg) => lg.game_date);
+    });
+    const totalLgBefore = lgRows.length;
+    const filteredLg = lgRows.filter((lg) => lg.game_date);
+    console.log(`[nba-sync] Sheet last games: ${totalLgBefore} total, ${filteredLg.length} with valid game_date (${totalLgBefore - filteredLg.length} filtered out)`);
 
     let upsertedLastGames = 0;
-    for (let i = 0; i < lgRows.length; i += 50) {
-      const batch = lgRows.slice(i, i + 50);
+    for (let i = 0; i < filteredLg.length; i += 50) {
+      const batch = filteredLg.slice(i, i + 50);
       const { error } = await sb.from("player_last_game").upsert(batch, { onConflict: "player_id" });
       if (!error) upsertedLastGames += batch.length;
       else errors.push(`Sheet last game upsert: ${error.message}`);
