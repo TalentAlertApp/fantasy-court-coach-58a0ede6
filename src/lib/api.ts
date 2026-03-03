@@ -22,6 +22,8 @@ import {
   AIInjuryMonitorResponseSchema,
   TeamListResponseSchema,
   TeamCreateResponseSchema,
+  SyncRunResponseSchema,
+  SyncStatusResponseSchema,
 } from "@/lib/contracts";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -209,4 +211,18 @@ export async function aiInjuryMonitor(body: {
   return unwrap(await apiFetch(appendTeam("ai-coach", teamId), AIInjuryMonitorResponseSchema, {
     method: "POST", body: JSON.stringify({ action: "injury-monitor", ...body }),
   }));
+}
+
+/** Sync endpoints */
+export async function triggerSync(body: {
+  type: "FULL" | "PERGAME_LAST5" | "LAST_GAME"; force: boolean;
+}) {
+  return unwrap(await apiFetch("nba-sync", SyncRunResponseSchema, {
+    method: "POST", body: JSON.stringify(body),
+  }));
+}
+
+export async function fetchSyncStatus(runId?: string) {
+  const path = runId ? `sync-status?run_id=${runId}` : "sync-status";
+  return unwrap(await apiFetch(path, SyncStatusResponseSchema));
 }

@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      games: {
+        Row: {
+          away_pts: number | null
+          away_team: string | null
+          game_date: string | null
+          game_id: string
+          home_pts: number | null
+          home_team: string | null
+          nba_game_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          away_pts?: number | null
+          away_team?: string | null
+          game_date?: string | null
+          game_id: string
+          home_pts?: number | null
+          home_team?: string | null
+          nba_game_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          away_pts?: number | null
+          away_team?: string | null
+          game_date?: string | null
+          game_id?: string
+          home_pts?: number | null
+          home_team?: string | null
+          nba_game_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      player_game_logs: {
+        Row: {
+          ast: number
+          blk: number
+          created_at: string
+          fp: number
+          game_date: string | null
+          game_id: string
+          home_away: string | null
+          id: string
+          matchup: string | null
+          mp: number
+          nba_game_url: string | null
+          opp: string | null
+          player_id: number
+          pts: number
+          reb: number
+          stl: number
+          updated_at: string
+        }
+        Insert: {
+          ast?: number
+          blk?: number
+          created_at?: string
+          fp?: number
+          game_date?: string | null
+          game_id: string
+          home_away?: string | null
+          id?: string
+          matchup?: string | null
+          mp?: number
+          nba_game_url?: string | null
+          opp?: string | null
+          player_id: number
+          pts?: number
+          reb?: number
+          stl?: number
+          updated_at?: string
+        }
+        Update: {
+          ast?: number
+          blk?: number
+          created_at?: string
+          fp?: number
+          game_date?: string | null
+          game_id?: string
+          home_away?: string | null
+          id?: string
+          matchup?: string | null
+          mp?: number
+          nba_game_url?: string | null
+          opp?: string | null
+          player_id?: number
+          pts?: number
+          reb?: number
+          stl?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       player_last_game: {
         Row: {
           a_pts: number
@@ -90,6 +186,8 @@ export type Database = {
           blk: number
           blk5: number
           college: string | null
+          delta_fp: number
+          delta_mpg: number
           dob: string | null
           exp: number
           fc_bc: string
@@ -113,6 +211,8 @@ export type Database = {
           salary: number
           stl: number
           stl5: number
+          stocks: number
+          stocks5: number
           team: string
           updated_at: string
           value_t: number
@@ -126,6 +226,8 @@ export type Database = {
           blk?: number
           blk5?: number
           college?: string | null
+          delta_fp?: number
+          delta_mpg?: number
           dob?: string | null
           exp?: number
           fc_bc: string
@@ -149,6 +251,8 @@ export type Database = {
           salary?: number
           stl?: number
           stl5?: number
+          stocks?: number
+          stocks5?: number
           team: string
           updated_at?: string
           value_t?: number
@@ -162,6 +266,8 @@ export type Database = {
           blk?: number
           blk5?: number
           college?: string | null
+          delta_fp?: number
+          delta_mpg?: number
           dob?: string | null
           exp?: number
           fc_bc?: string
@@ -185,6 +291,8 @@ export type Database = {
           salary?: number
           stl?: number
           stl5?: number
+          stocks?: number
+          stocks5?: number
           team?: string
           updated_at?: string
           value_t?: number
@@ -280,6 +388,36 @@ export type Database = {
           nba_game_url?: string | null
           status?: string
           tipoff_utc?: string | null
+        }
+        Relationships: []
+      }
+      sync_runs: {
+        Row: {
+          created_at: string
+          details: Json | null
+          finished_at: string | null
+          id: string
+          started_at: string
+          status: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          finished_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          type?: string
         }
         Relationships: []
       }
