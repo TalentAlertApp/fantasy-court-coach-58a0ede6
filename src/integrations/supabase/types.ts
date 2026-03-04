@@ -18,33 +18,48 @@ export type Database = {
         Row: {
           away_pts: number | null
           away_team: string | null
+          away_team_abbr: string | null
+          balldontlie_game_id: number | null
+          date_utc: string | null
           game_date: string | null
           game_id: string
           home_pts: number | null
           home_team: string | null
+          home_team_abbr: string | null
           nba_game_url: string | null
+          season: number | null
           status: string
           updated_at: string
         }
         Insert: {
           away_pts?: number | null
           away_team?: string | null
+          away_team_abbr?: string | null
+          balldontlie_game_id?: number | null
+          date_utc?: string | null
           game_date?: string | null
           game_id: string
           home_pts?: number | null
           home_team?: string | null
+          home_team_abbr?: string | null
           nba_game_url?: string | null
+          season?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
           away_pts?: number | null
           away_team?: string | null
+          away_team_abbr?: string | null
+          balldontlie_game_id?: number | null
+          date_utc?: string | null
           game_date?: string | null
           game_id?: string
           home_pts?: number | null
           home_team?: string | null
+          home_team_abbr?: string | null
           nba_game_url?: string | null
+          season?: number | null
           status?: string
           updated_at?: string
         }
@@ -53,6 +68,7 @@ export type Database = {
       player_game_logs: {
         Row: {
           ast: number
+          balldontlie_game_id: number | null
           blk: number
           created_at: string
           fp: number
@@ -72,6 +88,7 @@ export type Database = {
         }
         Insert: {
           ast?: number
+          balldontlie_game_id?: number | null
           blk?: number
           created_at?: string
           fp?: number
@@ -91,6 +108,7 @@ export type Database = {
         }
         Update: {
           ast?: number
+          balldontlie_game_id?: number | null
           blk?: number
           created_at?: string
           fp?: number

@@ -215,10 +215,17 @@ export async function aiInjuryMonitor(body: {
 
 /** Sync endpoints */
 export async function triggerSync(body: {
-  type: "FULL" | "PERGAME_LAST5" | "LAST_GAME"; force: boolean;
+  type: "FULL" | "PLAYERS" | "GAMES" | "STATS"; force?: boolean;
 }) {
-  return unwrap(await apiFetch("nba-sync", SyncRunResponseSchema, {
+  return unwrap(await apiFetch("bdl-sync", SyncRunResponseSchema, {
     method: "POST", body: JSON.stringify(body),
+  }));
+}
+
+/** Salary update with auto-recalc */
+export async function updateSalaries(updates: Array<{ player_id: number; salary: number | null }>) {
+  return unwrap(await apiFetch("salary-update", SyncRunResponseSchema, {
+    method: "POST", body: JSON.stringify({ updates }),
   }));
 }
 
