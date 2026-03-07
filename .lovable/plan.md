@@ -1,41 +1,40 @@
 
-## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
+Goal: make finished games appear on `/schedule` and simplify nav controls per your request.
 
-### Architecture
+What I found
+- `schedule` page reads only from `schedule_games` (not from `games`).
+- Current DB confirms `schedule_games` only has GW 21–25 (254 rows), so GW20 returns empty.
+- In `sync-sheet`, `syncSchedule()` still filters rows with `gameId && !playerId`; your finished rows in FP have `playerId`, so they are excluded.
+- This matches your screenshot (finished rows are player-stat rows).
 
-```
-Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
-```
+Implementation plan
 
-### Data Sources
+1) Fix schedule ingestion to include finished game rows
+- File: `supabase/functions/sync-sheet/index.ts`
+- Update `syncSchedule()` row filter:
+  - From: `gameId && !playerId`
+  - To: include all rows with valid `gameId` (+ valid week/day), regardless of `playerId`.
+- Keep de-dup by `game_id` (`seen` set) so one schedule row is produced per game even if many player rows exist.
+- Keep score mapping (`home_pts`, `away_pts`) from sheet columns H/I.
+- Keep status mapping, but make it more robust (`FINAL` when status contains `final`/`finished`, else `SCHEDULED`).
+- Update comments to reflect new behavior (full schedule from FP, not only no-player rows).
 
-- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
-- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
-  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
-- **Database.csv**: Player bio data (uploaded via Commissioner page)
+2) Simplify selector controls (remove redundant arrows)
+- File: `src/pages/SchedulePage.tsx`
+- Week selector: remove right arrow button (`+` / `ChevronRight`) and keep only left arrow.
+- Day selector: remove left arrow button (`-` / `ChevronLeft`) and keep only right arrow.
+- Keep existing “Today” button.
+- Keep existing wrapping logic for `changeDay(1)` so advancing day can roll to next week correctly.
 
-### FP Formula (CONSISTENT EVERYWHERE)
+3) Verify and backfill flow
+- Deploy updated `sync-sheet` function.
+- Run `Sync Schedule` once (or `Full Sync`).
+- Validate:
+  - DB: `schedule_games` now includes GW <= 20 (especially GW20 D1).
+  - API: `/functions/v1/schedule?gw=20&day=1` returns games.
+  - UI: `/schedule` shows finished games + scores/status.
 
-```
-FP = PS + R + 2*A + 3*S + 3*B
-```
-Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
-
-### Sync Modes
-
-| Mode | What it does |
-|------|-------------|
-| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
-| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
-| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
-| FULL | Run all three sequentially |
-
-### Edge Functions
-
-1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
-2. **import-players** — CSV-driven bio data import (Commissioner page)
-3. **salary-update** — Manual salary edits with auto-recalc
-
-### Pages
-
-- Commissioner page (`/commissioner`) — CSV upload/download for player database
+Technical details
+- No schema migration required.
+- No changes needed in `supabase/functions/schedule/index.ts` or `src/components/ScheduleList.tsx`; they already render `FINAL` rows when present.
+- Expected impact: `schedule_games` row count increases significantly beyond 254 after backfill.
