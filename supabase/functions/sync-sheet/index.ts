@@ -423,13 +423,11 @@ async function syncSchedule(supabase: any, token: string): Promise<{ schedule_ga
   const rows = await fetchSheetTab("FP", "A:T", token);
   const allDataRows = rows.slice(1); // skip header
 
-  // Schedule rows: rows after the ~2000th data row that have a Game ID but no player ID
-  // OR we just look for rows with Status != "Finished"/"Final"
+  // Include ALL rows with a valid game ID (finished or scheduled, with or without player data).
+  // We dedup by game_id below so multiple player-stat rows for the same game produce one schedule entry.
   const scheduleRows = allDataRows.filter(r => {
     const gameId = (r[10] || "").trim();
-    const playerId = (r[11] || "").trim();
-    // Schedule rows have a game ID but no player ID (any status, including finished)
-    return gameId && !playerId;
+    return !!gameId;
   });
 
   // deno-lint-ignore no-explicit-any
