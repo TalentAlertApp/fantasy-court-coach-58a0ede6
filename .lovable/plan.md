@@ -1,41 +1,51 @@
 
-## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
 
-### Architecture
+## Plan: Fix Day Navigation + Add Expandable Game Box Scores
 
-```
-Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
-```
+### 1. Fix Day Navigation (`src/pages/SchedulePage.tsx`)
 
-### Data Sources
+Replace the current asymmetric Week/Day controls with a single Day-centric navigation:
+- **Left arrow**: `changeDay(-1)` — decrease day by 1, wrap to previous week's last day if at day 1
+- **Right arrow**: `changeDay(+1)` — increase day by 1, wrap to next week's day 1 if at max day
+- Week label updates automatically based on current day position — no separate week arrows
+- Keep the "Today" button and date label as-is
 
-- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
-- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
-  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
-- **Database.csv**: Player bio data (uploaded via Commissioner page)
+### 2. Expandable Game Box Scores
 
-### FP Formula (CONSISTENT EVERYWHERE)
+#### New edge function: `supabase/functions/game-boxscore/index.ts`
+- Accepts `?game_id=22500879`
+- Queries `player_game_logs` joined with `players` for that game_id
+- Returns player stats: `player_id`, `name`, `fc_bc`, `photo`, `pts` (points scored), `mp`, `fp` (fantasy points), `reb`, `ast`, `blk`, `stl`
+- Sorted by `fp` descending
 
-```
-FP = PS + R + 2*A + 3*S + 3*B
-```
-Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
+#### New contract in `src/lib/contracts.ts`
+- `GameBoxscorePlayerSchema`: player_id, name, fc_bc, photo, mp, ps (points scored), fp (PTS/fantasy points), reb, ast, blk, stl
+- `GameBoxscorePayloadSchema`: game_id, players array
+- `GameBoxscoreResponseSchema`: envelope wrapper
 
-### Sync Modes
+#### New API function in `src/lib/api.ts`
+- `fetchGameBoxscore(gameId: string)` calling the new edge function
 
-| Mode | What it does |
-|------|-------------|
-| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
-| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
-| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
-| FULL | Run all three sequentially |
+#### New hook: `src/hooks/useGameBoxscoreQuery.ts`
+- React Query hook wrapping `fetchGameBoxscore`, enabled only when game is expanded
 
-### Edge Functions
+#### Updated `src/components/ScheduleList.tsx`
+- Track expanded game_id(s) in local state
+- For FINAL games, clicking the row toggles expansion
+- Expanded section uses Collapsible component, fetches box score on open
+- Displays a compact table/grid per player:
+  - Player photo (small avatar), FC/BC badge, player name
+  - Columns: PTS (fantasy points), MP, PS (points scored), A, R, B, S
+  - Rows grouped or sorted by team (away then home)
 
-1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
-2. **import-players** — CSV-driven bio data import (Commissioner page)
-3. **salary-update** — Manual salary edits with auto-recalc
+### Files to Create/Modify
 
-### Pages
+| File | Action |
+|---|---|
+| `supabase/functions/game-boxscore/index.ts` | Create — new edge function |
+| `src/lib/contracts.ts` | Add box score schemas |
+| `src/lib/api.ts` | Add `fetchGameBoxscore` |
+| `src/hooks/useGameBoxscoreQuery.ts` | Create — React Query hook |
+| `src/components/ScheduleList.tsx` | Add expandable rows with player stats |
+| `src/pages/SchedulePage.tsx` | Fix navigation to left/right day arrows only |
 
-- Commissioner page (`/commissioner`) — CSV upload/download for player database
