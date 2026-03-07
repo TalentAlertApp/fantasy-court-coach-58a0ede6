@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot } from "lucide-react";
+import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot, Shield } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ const navItems = [
   { to: "/players", label: "Waiver Wire", icon: Users },
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/ai", label: "AI Hub", icon: Bot },
+  { to: "/commissioner", label: "Commissioner", icon: Shield },
 ];
 
 /** Check if now is past 6:00 AM Lisbon time and we haven't synced today */
@@ -91,25 +92,30 @@ export default function AppLayout() {
     }, 2000);
   }, [stopPolling, invalidateAll]);
 
-  const handleSync = useCallback(async () => {
+  const handleSync = useCallback(async (type: "FULL" | "SALARY" | "GAMES" | "SCHEDULE" = "FULL") => {
     if (isSyncingFlag) return;
     setIsSyncingFlag(true);
-    setSyncStep("STARTING");
+    setSyncStep(`Syncing ${type.toLowerCase()}…`);
     try {
-      const result = await triggerSync({ type: "FULL" });
+      const result = await triggerSync({ type });
       if (result.run_id && result.status === "RUNNING") {
         startPolling(result.run_id);
       } else {
-        const players = result.counts?.players ?? 0;
-        const games = result.counts?.games ?? 0;
-        const logs = result.counts?.game_logs ?? 0;
-        toast.success(`Synced: ${players} players, ${games} games, ${logs} logs`);
+        const counts = result.counts ?? {};
+        const parts: string[] = [];
+        if (counts.games) parts.push(`${counts.games} games`);
+        if (counts.game_logs) parts.push(`${counts.game_logs} logs`);
+        if (counts.salary_updated) parts.push(`${counts.salary_updated} salaries`);
+        if (counts.schedule_games) parts.push(`${counts.schedule_games} scheduled`);
+        if (counts.players_updated) parts.push(`${counts.players_updated} players updated`);
+        toast.success(`Synced: ${parts.join(", ") || "done"}`);
         setSyncStep(null);
         setIsSyncingFlag(false);
         invalidateAll();
       }
-    } catch (err: any) {
-      toast.error(`Sync failed: ${err?.message ?? "Unknown error"}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Sync failed: ${msg}`);
       setSyncStep(null);
       setIsSyncingFlag(false);
     }
