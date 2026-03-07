@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS player_game_logs_player_game_unique ON public.player_game_logs (player_id, game_id);
