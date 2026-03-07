@@ -3,7 +3,7 @@ import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import ScheduleList from "@/components/ScheduleList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { format, parse } from "date-fns";
 
 const CALENDAR: Record<string, { week: number; day: number }> = {
@@ -251,7 +251,7 @@ export default function SchedulePage() {
       <h2 className="text-xl font-heading font-bold">Schedule</h2>
 
       {/* Week + Day selectors */}
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-6 flex-wrap">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeWeek(-1)} disabled={gw <= MIN_WEEK}>
             <ChevronLeft className="h-4 w-4" />
@@ -278,6 +278,17 @@ export default function SchedulePage() {
             <span className="text-sm text-muted-foreground ml-1">{dateLabel}</span>
           )}
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5"
+          disabled={gw === initial.week && day === initial.day}
+          onClick={() => { setGw(initial.week); setDay(initial.day); }}
+        >
+          <CalendarDays className="h-3.5 w-3.5" />
+          Today
+        </Button>
       </div>
 
       {isLoading ? (

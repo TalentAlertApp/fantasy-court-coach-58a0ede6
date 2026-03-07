@@ -428,9 +428,8 @@ async function syncSchedule(supabase: any, token: string): Promise<{ schedule_ga
   const scheduleRows = allDataRows.filter(r => {
     const gameId = (r[10] || "").trim();
     const playerId = (r[11] || "").trim();
-    const status = (r[9] || "").trim().toLowerCase();
-    // Schedule rows have a game ID but no player ID, and status is not finished
-    return gameId && !playerId && status !== "finished" && status !== "final";
+    // Schedule rows have a game ID but no player ID (any status, including finished)
+    return gameId && !playerId;
   });
 
   // deno-lint-ignore no-explicit-any
@@ -460,15 +459,18 @@ async function syncSchedule(supabase: any, token: string): Promise<{ schedule_ga
       }
     }
 
+    const rawStatus = (row[9] || "").trim().toLowerCase();
+    const mappedStatus = (rawStatus === "finished" || rawStatus === "final") ? "FINAL" : "SCHEDULED";
+
     scheduleGames.push({
       game_id: gameId,
       gw: week || 1,
       day: day || 1,
       home_team: (row[5] || "").trim(),
       away_team: (row[6] || "").trim(),
-      home_pts: 0,
-      away_pts: 0,
-      status: "SCHEDULED",
+      home_pts: toInt(row[7]),
+      away_pts: toInt(row[8]),
+      status: mappedStatus,
       tipoff_utc,
       nba_game_url: null,
     });
