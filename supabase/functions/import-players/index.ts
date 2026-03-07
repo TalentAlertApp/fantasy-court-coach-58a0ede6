@@ -56,7 +56,7 @@ serve(async (req: Request) => {
   try {
     if (req.method !== "POST") return err("METHOD_NOT_ALLOWED", "POST only", null, 405);
 
-    const { players } = await req.json();
+    const { players, replace } = await req.json();
     if (!Array.isArray(players) || players.length === 0) {
       return err("INVALID_INPUT", "players array required");
     }
@@ -115,9 +115,28 @@ serve(async (req: Request) => {
       }
     }
 
+    // If replace mode, delete players not in the uploaded set
+    let deleted = 0;
+    if (replace) {
+      const validIds = players.map((p: any) => parseInt(p.id)).filter((id: number) => id > 0);
+      if (validIds.length > 0) {
+        const { data: delData, error: delErr } = await supabase
+          .from("players")
+          .delete()
+          .not("id", "in", `(${validIds.join(",")})`)
+          .select("id");
+        if (delErr) {
+          errors.push(`Delete stale: ${delErr.message}`);
+        } else {
+          deleted = delData?.length || 0;
+        }
+      }
+    }
+
     return ok({
       upserted,
       skipped,
+      deleted,
       total: players.length,
       errors: errors.length > 0 ? errors : undefined,
     });
