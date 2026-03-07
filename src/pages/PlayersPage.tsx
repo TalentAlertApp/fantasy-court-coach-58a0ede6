@@ -14,8 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
+
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, "All"] as const;
+type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 
 export default function PlayersPage() {
   const [fcBc, setFcBc] = useState("ALL");
@@ -24,6 +29,8 @@ export default function PlayersPage() {
   const [maxSalary, setMaxSalary] = useState(50);
   const [waiverMode, setWaiverMode] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [pageSize, setPageSize] = useState<PageSizeOption>(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: playersData, isLoading } = usePlayersQuery({
     sort, order: "desc", limit: 500,
@@ -48,8 +55,18 @@ export default function PlayersPage() {
     return items;
   }, [playersData, maxSalary, waiverMode, rosterIds]);
 
-  const fcPlayers = filtered.filter((p) => p.core.fc_bc === "FC");
-  const bcPlayers = filtered.filter((p) => p.core.fc_bc === "BC");
+  // Reset page when filters change
+  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode]);
+
+  const totalItems = filtered.length;
+  const effectivePageSize = pageSize === "All" ? totalItems : pageSize;
+  const totalPages = effectivePageSize > 0 ? Math.ceil(totalItems / effectivePageSize) : 1;
+  const paginatedItems = pageSize === "All"
+    ? filtered
+    : filtered.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
+
+  const fcPlayers = paginatedItems.filter((p) => p.core.fc_bc === "FC");
+  const bcPlayers = paginatedItems.filter((p) => p.core.fc_bc === "BC");
 
   const simulateMutation = useMutation({
     mutationFn: simulateTransactions,
@@ -107,6 +124,55 @@ export default function PlayersPage() {
     </div>
   );
 
+  const renderPagination = () => (
+    <div className="flex items-center justify-between border-t pt-3 mt-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Show</span>
+        <Select
+          value={String(pageSize)}
+          onValueChange={(v) => {
+            setPageSize(v === "All" ? "All" : Number(v) as any);
+            setCurrentPage(1);
+          }}
+        >
+          <SelectTrigger className="w-[70px] h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE_OPTIONS.map((opt) => (
+              <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">
+          of {totalItems} players
+        </span>
+      </div>
+
+      {pageSize !== "All" && totalPages > 1 && (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8"
+            disabled={currentPage <= 1}
+            onClick={() => setCurrentPage((p) => p - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-xs text-muted-foreground px-2">
+            {currentPage} / {totalPages}
+          </span>
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8"
+            disabled={currentPage >= totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="flex gap-4">
       <div className="w-56 flex-shrink-0">
@@ -128,6 +194,7 @@ export default function PlayersPage() {
           <>
             {(fcBc === "ALL" || fcBc === "FC") && renderSection("Front Court", fcPlayers, true)}
             {(fcBc === "ALL" || fcBc === "BC") && renderSection("Back Court", bcPlayers, false)}
+            {renderPagination()}
           </>
         )}
       </div>

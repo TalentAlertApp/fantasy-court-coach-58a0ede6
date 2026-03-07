@@ -113,7 +113,7 @@ export default function CommissionerPage() {
 
       const result = await apiFetch("import-players", ImportResponseSchema, {
         method: "POST",
-        body: JSON.stringify({ players }),
+        body: JSON.stringify({ players, replace: true }),
       });
 
       if (result.ok) {
