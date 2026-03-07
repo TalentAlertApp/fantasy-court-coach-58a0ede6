@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.import-players]
 verify_jwt = false
+
+[functions.game-boxscore]
+verify_jwt = false

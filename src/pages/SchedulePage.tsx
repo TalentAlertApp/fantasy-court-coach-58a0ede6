@@ -223,14 +223,6 @@ export default function SchedulePage() {
   const maxDay = daysInWeek(gw);
   const dateLabel = useMemo(() => getDateLabel(gw, day), [gw, day]);
 
-  const changeWeek = (delta: number) => {
-    const next = gw + delta;
-    if (next >= MIN_WEEK && next <= MAX_WEEK) {
-      setGw(next);
-      setDay(1);
-    }
-  };
-
   const changeDay = (delta: number) => {
     const next = day + delta;
     if (next < 1) {
@@ -250,28 +242,28 @@ export default function SchedulePage() {
     <div className="max-w-2xl mx-auto space-y-4">
       <h2 className="text-xl font-heading font-bold">Schedule</h2>
 
-      {/* Week + Day selectors */}
-      <div className="flex items-center gap-6 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeWeek(-1)} disabled={gw <= MIN_WEEK}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="font-heading font-bold text-sm uppercase tracking-wide min-w-[90px] text-center">
+      {/* Day-centric navigation */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeDay(-1)} disabled={day <= 1 && gw <= MIN_WEEK}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        <div className="text-center">
+          <span className="font-heading font-bold text-sm uppercase tracking-wide">
             Week {gw}
           </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="font-heading font-bold text-sm uppercase tracking-wide min-w-[60px] text-center">
+          <span className="text-muted-foreground mx-1.5">·</span>
+          <span className="font-heading font-bold text-sm uppercase tracking-wide">
             Day {day}
           </span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeDay(1)} disabled={day >= maxDay && gw >= MAX_WEEK}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
           {dateLabel && (
-            <span className="text-sm text-muted-foreground ml-1">{dateLabel}</span>
+            <span className="text-sm text-muted-foreground ml-2">{dateLabel}</span>
           )}
         </div>
+
+        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeDay(1)} disabled={day >= maxDay && gw >= MAX_WEEK}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
 
         <Button
           variant="outline"

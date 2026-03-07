@@ -15,6 +15,7 @@ import {
   TransactionsCommitResponseSchema,
   ScheduleResponseSchema,
   ScheduleImpactResponseSchema,
+  GameBoxscoreResponseSchema,
   AISuggestTransfersResponseSchema,
   AIPickCaptainResponseSchema,
   AIExplainPlayerResponseSchema,
