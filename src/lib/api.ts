@@ -15,6 +15,7 @@ import {
   TransactionsCommitResponseSchema,
   ScheduleResponseSchema,
   ScheduleImpactResponseSchema,
+  GameBoxscoreResponseSchema,
   AISuggestTransfersResponseSchema,
   AIPickCaptainResponseSchema,
   AIExplainPlayerResponseSchema,
@@ -232,4 +233,9 @@ export async function updateSalaries(updates: Array<{ player_id: number; salary:
 export async function fetchSyncStatus(runId?: string) {
   const path = runId ? `sync-status?run_id=${runId}` : "sync-status";
   return unwrap(await apiFetch(path, SyncStatusResponseSchema));
+}
+
+/** GET /game-boxscore */
+export async function fetchGameBoxscore(gameId: string) {
+  return unwrap(await apiFetch(`game-boxscore?game_id=${gameId}`, GameBoxscoreResponseSchema));
 }

@@ -209,6 +209,29 @@ export const ScheduleGameSchema = z
   })
   .strict();
 
+/** ---------- Game Box Score ---------- */
+export const GameBoxscorePlayerSchema = z.object({
+  player_id: IntSchema,
+  name: z.string(),
+  fc_bc: FCBCSchema,
+  photo: z.string().nullable(),
+  mp: IntSchema,
+  ps: IntSchema,
+  fp: NumSchema,
+  reb: IntSchema,
+  ast: IntSchema,
+  blk: IntSchema,
+  stl: IntSchema,
+  home_away: z.string().nullable(),
+}).strict();
+
+export const GameBoxscorePayloadSchema = z.object({
+  game_id: z.string(),
+  players: z.array(GameBoxscorePlayerSchema),
+}).strict();
+
+export const GameBoxscoreResponseSchema = EnvelopeSchema(GameBoxscorePayloadSchema);
+
 /** ---------- endpoint payloads ---------- */
 
 /** GET /api/v1/health */
