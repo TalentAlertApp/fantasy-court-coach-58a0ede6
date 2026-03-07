@@ -215,9 +215,9 @@ export async function aiInjuryMonitor(body: {
 
 /** Sync endpoints */
 export async function triggerSync(body: {
-  type: "FULL" | "PLAYERS" | "GAMES" | "STATS"; force?: boolean;
+  type: "FULL" | "SALARY" | "GAMES" | "SCHEDULE";
 }) {
-  return unwrap(await apiFetch("bdl-sync", SyncRunResponseSchema, {
+  return unwrap(await apiFetch("sync-sheet", SyncRunResponseSchema, {
     method: "POST", body: JSON.stringify(body),
   }));
 }
