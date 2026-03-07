@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.salary-update]
 verify_jwt = false
+
+[functions.import-players]
+verify_jwt = false
