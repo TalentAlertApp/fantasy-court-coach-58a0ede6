@@ -4,6 +4,7 @@ import ScheduleList from "@/components/ScheduleList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { format, parse } from "date-fns";
 
 const CALENDAR: Record<string, { week: number; day: number }> = {
   // GW1 (6 days)
@@ -200,22 +201,45 @@ function getInitialWeekDay(): { week: number; day: number } {
   return { week: MIN_WEEK, day: 1 };
 }
 
+// Build reverse lookup: { "21-1": "2026-03-09", ... }
+const WEEK_DAY_TO_DATE: Record<string, string> = {};
+for (const [dateStr, wd] of Object.entries(CALENDAR)) {
+  WEEK_DAY_TO_DATE[`${wd.week}-${wd.day}`] = dateStr;
+}
+
+function getDateLabel(week: number, day: number): string | null {
+  const dateStr = WEEK_DAY_TO_DATE[`${week}-${day}`];
+  if (!dateStr) return null;
+  const d = parse(dateStr, 'yyyy-MM-dd', new Date());
+  return format(d, 'EEE MMM d');
+}
+
 export default function SchedulePage() {
   const initial = useMemo(getInitialWeekDay, []);
   const [gw, setGw] = useState(initial.week);
   const [day, setDay] = useState(initial.day);
   const { data, isLoading } = useScheduleQuery({ gw, day });
 
+  const maxDay = daysInWeek(gw);
+  const dateLabel = useMemo(() => getDateLabel(gw, day), [gw, day]);
+
   const changeWeek = (delta: number) => {
     const next = gw + delta;
-    if (next >= MIN_WEEK && next <= MAX_WEEK) setGw(next);
+    if (next >= MIN_WEEK && next <= MAX_WEEK) {
+      setGw(next);
+      setDay(1);
+    }
   };
 
   const changeDay = (delta: number) => {
     const next = day + delta;
     if (next < 1) {
-      if (gw > MIN_WEEK) { setGw(gw - 1); setDay(7); }
-    } else if (next > 7) {
+      if (gw > MIN_WEEK) {
+        const prevWeek = gw - 1;
+        setGw(prevWeek);
+        setDay(daysInWeek(prevWeek));
+      }
+    } else if (next > maxDay) {
       if (gw < MAX_WEEK) { setGw(gw + 1); setDay(1); }
     } else {
       setDay(next);
@@ -247,9 +271,12 @@ export default function SchedulePage() {
           <span className="font-heading font-bold text-sm uppercase tracking-wide min-w-[60px] text-center">
             Day {day}
           </span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeDay(1)} disabled={day >= 7 && gw >= MAX_WEEK}>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeDay(1)} disabled={day >= maxDay && gw >= MAX_WEEK}>
             <ChevronRight className="h-4 w-4" />
           </Button>
+          {dateLabel && (
+            <span className="text-sm text-muted-foreground ml-1">{dateLabel}</span>
+          )}
         </div>
       </div>
 
