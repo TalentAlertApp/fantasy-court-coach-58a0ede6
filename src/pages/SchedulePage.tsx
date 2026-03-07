@@ -259,15 +259,9 @@ export default function SchedulePage() {
           <span className="font-heading font-bold text-sm uppercase tracking-wide min-w-[90px] text-center">
             Week {gw}
           </span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeWeek(1)} disabled={gw >= MAX_WEEK}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => changeDay(-1)} disabled={day <= 1 && gw <= MIN_WEEK}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
           <span className="font-heading font-bold text-sm uppercase tracking-wide min-w-[60px] text-center">
             Day {day}
           </span>
