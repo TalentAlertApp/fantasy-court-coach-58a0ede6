@@ -1,41 +1,39 @@
 
-## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
 
-### Architecture
+## Plan: Fix Schedule Display, Replace Players with Database.csv, Add Pagination
 
-```
-Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
-```
+### Issue 1: Schedule tab is empty despite 254 games synced
 
-### Data Sources
+**Root cause**: The `schedule` edge function (`supabase/functions/schedule/index.ts`) is hardcoded to return `{ games: [] }`. It never reads from `schedule_games` table. The sync correctly upserts 254 rows into `schedule_games`, but the API ignores them.
 
-- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
-- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
-  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
-- **Database.csv**: Player bio data (uploaded via Commissioner page)
+**Fix**: Rewrite `supabase/functions/schedule/index.ts` to query the `schedule_games` table, filtering by `gw` and `day` parameters. Return results in the existing `SchedulePayloadSchema` format.
 
-### FP Formula (CONSISTENT EVERYWHERE)
+### Issue 2: Players data (e.g., Cam Thomas at Brooklyn) is stale
 
-```
-FP = PS + R + 2*A + 3*S + 3*B
-```
-Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
+**Root cause**: The `players-list` edge function reads from the Google Sheet (mode=`"sheet"`) by default, not from Supabase. The `import-players` function upserts bio data to Supabase, but `players-list` ignores it because `DATA_SOURCE_MODE` defaults to `"sheet"`.
 
-### Sync Modes
+**Fix** (two parts):
 
-| Mode | What it does |
-|------|-------------|
-| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
-| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
-| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
-| FULL | Run all three sequentially |
+A. **Set `players-list` to always read from Supabase** — Remove the `"sheet"` mode branch entirely from `supabase/functions/players-list/index.ts`. The function should only query the `players` table + `player_last_game` table. This makes the CSV-imported data (Database.csv) the source of truth.
 
-### Edge Functions
+B. **Delete stale players not in Database.csv** — The `import-players` edge function currently only upserts. Add an option (`replace: true`) so that after upserting all CSV players, it deletes any players from the `players` table whose IDs are NOT in the uploaded CSV. This ensures old/stale players (like Cam Thomas showing Brooklyn from the sheet) are removed. The Commissioner page will send `replace: true` to signal a full replacement.
 
-1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
-2. **import-players** — CSV-driven bio data import (Commissioner page)
-3. **salary-update** — Manual salary edits with auto-recalc
+### Issue 3: Add pagination to /players
 
-### Pages
+**Fix**: Add client-side pagination to `PlayersPage.tsx`:
+- State for `page` (default 1) and `pageSize` (default 20, options: 10, 20, 30, 50, All)
+- After filtering, slice the `filtered` array by page/pageSize
+- Render pagination controls below the tables (Previous/Next + page indicator + pageSize selector)
+- Use existing `Pagination*` UI components from `src/components/ui/pagination.tsx`
 
-- Commissioner page (`/commissioner`) — CSV upload/download for player database
+### Files Modified (4)
+
+1. **`supabase/functions/schedule/index.ts`** — Rewrite to query `schedule_games` table by gw/day
+2. **`supabase/functions/players-list/index.ts`** — Remove sheet mode; Supabase-only reads
+3. **`supabase/functions/import-players/index.ts`** — Add `replace: true` option to delete players not in the uploaded set
+4. **`src/pages/PlayersPage.tsx`** — Add pagination with page size selector (10/20/30/50/All)
+
+### Deployment
+
+Deploy updated edge functions: `schedule`, `players-list`, `import-players`. After deployment, user should re-upload Database.csv from Commissioner page (with replace mode) to clean up stale players.
+
