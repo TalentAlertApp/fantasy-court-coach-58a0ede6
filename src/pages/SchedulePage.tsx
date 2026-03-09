@@ -133,6 +133,7 @@ export default function SchedulePage() {
               ? format(parse(wd.date, "yyyy-MM-dd", new Date()), "EEE").toUpperCase()
               : "";
             const dayNum = wd.dateObj.getDate();
+            const gameCount = weekCounts?.[wd.day] ?? 0;
             return (
               <button
                 key={wd.day}
@@ -147,6 +148,9 @@ export default function SchedulePage() {
                 <div className="text-sm font-mono font-bold">{dayNum}</div>
                 {isDayToday && (
                   <div className="w-1.5 h-1.5 rounded-full bg-destructive mx-auto mt-0.5" />
+                )}
+                {gameCount > 0 && (
+                  <div className="text-[9px] font-mono text-muted-foreground mt-0.5">({gameCount})</div>
                 )}
               </button>
             );
