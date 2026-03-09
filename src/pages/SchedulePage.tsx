@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
+import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import ScheduleList from "@/components/ScheduleList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function SchedulePage() {
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
   const { data, isLoading } = useScheduleQuery({ gw, day });
+  const { data: weekCounts } = useScheduleWeekCounts(gw);
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
@@ -131,6 +133,7 @@ export default function SchedulePage() {
               ? format(parse(wd.date, "yyyy-MM-dd", new Date()), "EEE").toUpperCase()
               : "";
             const dayNum = wd.dateObj.getDate();
+            const gameCount = weekCounts?.[wd.day] ?? 0;
             return (
               <button
                 key={wd.day}
@@ -145,6 +148,9 @@ export default function SchedulePage() {
                 <div className="text-sm font-mono font-bold">{dayNum}</div>
                 {isDayToday && (
                   <div className="w-1.5 h-1.5 rounded-full bg-destructive mx-auto mt-0.5" />
+                )}
+                {gameCount > 0 && (
+                  <div className="text-[9px] font-mono text-muted-foreground mt-0.5">({gameCount})</div>
                 )}
               </button>
             );
