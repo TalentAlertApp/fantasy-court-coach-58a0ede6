@@ -1,97 +1,160 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { okResponse, errorResponse } from "../_shared/envelope.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+Deno.serve(async (req: Request) => {
+  const cors = handleCors(req);
+  if (cors) return cors;
 
-function ok(data: unknown) {
-  return new Response(JSON.stringify({ ok: true, data }), {
-    status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-function err(code: string, message: string, details: string | null = null, status = 400) {
-  return new Response(JSON.stringify({ ok: false, data: null, error: { code, message, details } }), {
-    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-// ── Sheets helpers (inlined) ──
-function euNum(v: string | undefined | null): number { if (!v || v.trim() === "" || v === "-") return 0; return Number(v.replace(",", ".")) || 0; }
-function euInt(v: string | undefined | null): number { return Math.round(euNum(v)); }
-function nullable(v: string | undefined | null): string | null { if (!v || v.trim() === "" || v === "None") return null; return v; }
-function normDate(v: string | undefined | null): string | null {
-  if (!v || v.trim() === "") return null;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-  const p = v.split("/"); if (p.length === 3) return `${p[2]}-${p[1].padStart(2,"0")}-${p[0].padStart(2,"0")}`;
-  return null;
-}
-function parseOpp(v: string | undefined | null) {
-  if (!v || v.trim() === "") return { opp: null, home_away: null };
-  const t = v.trim();
-  return t.startsWith("@") ? { opp: t.slice(1), home_away: "A" as const } : { opp: t, home_away: "H" as const };
-}
-function base64url(input: Uint8Array): string { let b = ""; for (const byte of input) b += String.fromCharCode(byte); return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
-function strToB64(s: string) { return base64url(new TextEncoder().encode(s)); }
-// deno-lint-ignore no-explicit-any
-async function getAccessToken(sa: any) {
-  const now = Math.floor(Date.now() / 1000);
-  const h = strToB64(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const c = strToB64(JSON.stringify({ iss: sa.client_email, scope: "https://www.googleapis.com/auth/spreadsheets.readonly", aud: "https://oauth2.googleapis.com/token", exp: now + 3600, iat: now }));
-  const unsigned = `${h}.${c}`;
-  const pem = sa.private_key.replace(/-----BEGIN PRIVATE KEY-----/, "").replace(/-----END PRIVATE KEY-----/, "").replace(/\n/g, "");
-  const bk = Uint8Array.from(atob(pem), (c: string) => c.charCodeAt(0));
-  const key = await crypto.subtle.importKey("pkcs8", bk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned));
-  const jwt = `${unsigned}.${base64url(new Uint8Array(sig))}`;
-  const r = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion: jwt }) });
-  const d = await r.json(); if (!d.access_token) throw new Error(`Token: ${JSON.stringify(d)}`);
-  return d.access_token;
-}
-async function fetchSheetRows(range = "A:AV"): Promise<string[][]> {
-  const saJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON"); if (!saJson) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON not set");
-  const sheetId = Deno.env.get("GSHEET_ID"); if (!sheetId) throw new Error("GSHEET_ID not set");
-  const token = await getAccessToken(JSON.parse(saJson));
-  const r = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}?valueRenderOption=FORMATTED_VALUE`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error(`Sheets ${r.status}: ${await r.text()}`);
-  const d = await r.json(); return (d.values || []) as string[][];
-}
-// deno-lint-ignore no-explicit-any
-function rowToPlayer(row: string[]): any {
-  const col = (i: number) => row[i] ?? "";
-  const salary = euNum(col(5)), fpT = euNum(col(21)), valueT = euNum(col(23)), fp5 = euNum(col(31)), value5 = euNum(col(33));
-  const mpg = euNum(col(15)), mpg5 = euNum(col(25)), stl = euNum(col(20)), blk = euNum(col(19)), stl5 = euNum(col(30)), blk5 = euNum(col(29));
-  const { opp, home_away } = parseOpp(col(35));
-  const aPts = euInt(col(36)), hPts = euInt(col(37));
-  const fcBc = col(4).trim().toUpperCase();
-  let result: string | null = null;
-  if (aPts > 0 || hPts > 0) { if (home_away === "H") result = hPts > aPts ? "W" : "L"; else if (home_away === "A") result = aPts > hPts ? "W" : "L"; }
-  return {
-    core: { id: euInt(col(0)), name: col(2), team: col(3), fc_bc: fcBc === "BC" ? "BC" : "FC", photo: nullable(col(1)), salary, jersey: euInt(col(6)), pos: nullable(col(13)), height: nullable(col(9)), weight: euInt(col(8)), age: euInt(col(10)), dob: normDate(col(11)), exp: euInt(col(12)), college: nullable(col(7)) },
-    season: { gp: euInt(col(14)), mpg, pts: euNum(col(16)), reb: euNum(col(18)), ast: euNum(col(17)), stl, blk, fp: fpT },
-    last5: { mpg5, pts5: euNum(col(26)), reb5: euNum(col(28)), ast5: euNum(col(27)), stl5, blk5, fp5 },
-    lastGame: { date: normDate(col(34)), opp, home_away, result, a_pts: aPts, h_pts: hPts, mp: euInt(col(38)), pts: euInt(col(39)), reb: euInt(col(41)), ast: euInt(col(40)), stl: euInt(col(43)), blk: euInt(col(42)), fp: euNum(col(45)), nba_game_url: nullable(col(44)) },
-    computed: { value: valueT, value5, stocks: stl + blk, stocks5: stl5 + blk5, delta_mpg: mpg5 - mpg, delta_fp: fp5 - fpT },
-    flags: { injury: null, note: null },
-  };
-}
-
-serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const url = new URL(req.url);
     const playerId = Number(url.searchParams.get("id"));
-    if (!playerId) return err("MISSING_PARAM", "id query param required");
-    const rows = await fetchSheetRows();
-    const dataRows = rows.slice(1).filter((r) => r[0] && r[0].trim() !== "");
-    const allPlayers = dataRows.map(rowToPlayer);
-    // deno-lint-ignore no-explicit-any
-    const player = allPlayers.find((p: any) => p.core.id === playerId);
-    if (!player) return err("NOT_FOUND", `Player ${playerId} not found`, null, 404);
-    return ok({ player, history: [], upcoming: [] });
+    if (!playerId) {
+      return errorResponse("MISSING_PARAM", "id query param required");
+    }
+
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Get player core data
+    const { data: playerRow, error: playerErr } = await sb
+      .from("players")
+      .select("*")
+      .eq("id", playerId)
+      .single();
+
+    if (playerErr || !playerRow) {
+      return errorResponse("NOT_FOUND", `Player ${playerId} not found`, null, 404);
+    }
+
+    // Get player's last game
+    const { data: lastGameRow } = await sb
+      .from("player_last_game")
+      .select("*")
+      .eq("player_id", playerId)
+      .single();
+
+    // Get player history (game logs, most recent first, limit 20)
+    const { data: historyRows } = await sb
+      .from("player_game_logs")
+      .select("*")
+      .eq("player_id", playerId)
+      .order("game_date", { ascending: false })
+      .limit(20);
+
+    // Get upcoming games for player's team
+    const { data: upcomingRows } = await sb
+      .from("schedule_games")
+      .select("*")
+      .eq("status", "SCHEDULED")
+      .or(`home_team.eq.${playerRow.team},away_team.eq.${playerRow.team}`)
+      .order("tipoff_utc", { ascending: true })
+      .limit(5);
+
+    // Build player object matching the expected contract
+    const player = {
+      core: {
+        id: playerRow.id,
+        name: playerRow.name,
+        team: playerRow.team,
+        fc_bc: playerRow.fc_bc,
+        photo: playerRow.photo,
+        salary: playerRow.salary,
+        jersey: playerRow.jersey,
+        pos: playerRow.pos,
+        height: playerRow.height,
+        weight: playerRow.weight,
+        age: playerRow.age,
+        dob: playerRow.dob,
+        exp: playerRow.exp,
+        college: playerRow.college,
+      },
+      season: {
+        gp: playerRow.gp,
+        mpg: playerRow.mpg,
+        pts: playerRow.pts,
+        reb: playerRow.reb,
+        ast: playerRow.ast,
+        stl: playerRow.stl,
+        blk: playerRow.blk,
+        fp: playerRow.fp_pg_t,
+      },
+      last5: {
+        mpg5: playerRow.mpg5,
+        pts5: playerRow.pts5,
+        reb5: playerRow.reb5,
+        ast5: playerRow.ast5,
+        stl5: playerRow.stl5,
+        blk5: playerRow.blk5,
+        fp5: playerRow.fp_pg5,
+      },
+      lastGame: lastGameRow ? {
+        date: lastGameRow.game_date,
+        opp: lastGameRow.opp,
+        home_away: lastGameRow.home_away,
+        result: lastGameRow.result,
+        a_pts: lastGameRow.a_pts,
+        h_pts: lastGameRow.h_pts,
+        mp: lastGameRow.mp,
+        pts: lastGameRow.pts,
+        reb: lastGameRow.reb,
+        ast: lastGameRow.ast,
+        stl: lastGameRow.stl,
+        blk: lastGameRow.blk,
+        fp: lastGameRow.fp,
+        nba_game_url: lastGameRow.nba_game_url,
+      } : {
+        date: null, opp: null, home_away: null, result: null,
+        a_pts: 0, h_pts: 0, mp: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, fp: 0,
+        nba_game_url: null,
+      },
+      computed: {
+        value: playerRow.value_t,
+        value5: playerRow.value5,
+        stocks: playerRow.stocks,
+        stocks5: playerRow.stocks5,
+        delta_mpg: playerRow.delta_mpg,
+        delta_fp: playerRow.delta_fp,
+      },
+      flags: {
+        injury: playerRow.injury,
+        note: playerRow.note,
+      },
+    };
+
+    // Map history rows
+    const history = (historyRows || []).map((h) => ({
+      game_date: h.game_date,
+      opp: h.opp,
+      home_away: h.home_away,
+      matchup: h.matchup,
+      mp: h.mp,
+      pts: h.pts,
+      reb: h.reb,
+      ast: h.ast,
+      stl: h.stl,
+      blk: h.blk,
+      fp: h.fp,
+      nba_game_url: h.nba_game_url,
+    }));
+
+    // Map upcoming games
+    const upcoming = (upcomingRows || []).map((u) => {
+      const isHome = u.home_team === playerRow.team;
+      return {
+        game_id: u.game_id,
+        date: u.tipoff_utc,
+        opp: isHome ? u.away_team : u.home_team,
+        home_away: isHome ? "H" : "A",
+        matchup: isHome ? `vs ${u.away_team}` : `@ ${u.home_team}`,
+      };
+    });
+
+    return okResponse({ player, history, upcoming });
   } catch (e) {
     console.error("Player detail error:", e);
-    return err("PLAYER_DETAIL_ERROR", e instanceof Error ? e.message : "Unknown error", null, 500);
+    return errorResponse("PLAYER_DETAIL_ERROR", e instanceof Error ? e.message : "Unknown error", null, 500);
   }
 });

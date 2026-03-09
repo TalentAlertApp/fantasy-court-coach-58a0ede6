@@ -133,12 +133,17 @@ export default function ScheduleList({ games }: ScheduleListProps) {
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              {isExpanded && <GameBoxScore gameId={g.game_id} />}
+              {isExpanded && <GameBoxScore gameId={g.game_id} onPlayerClick={setSelectedPlayerId} />}
             </CollapsibleContent>
             {(i < games.length - 1 && isExpanded) && <div className="border-b" />}
           </Collapsible>
         );
       })}
+      
+      <PlayerModal
+        playerId={selectedPlayerId ? String(selectedPlayerId) : null}
+        onClose={() => setSelectedPlayerId(null)}
+      />
     </div>
   );
 }
