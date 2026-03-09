@@ -89,10 +89,16 @@ Deno.serve(async (req) => {
       const opp = home_away === "H" ? row.awayTeam : row.homeTeam;
 
       // Build player log entry
+      // Parse date for game_date
+      const dp = row.date.includes("/") ? row.date.split("/") : null;
+      const gameDate = dp
+        ? `${dp[2]}-${dp[1].padStart(2,"0")}-${dp[0].padStart(2,"0")}`
+        : row.date;
+
       playerLogs.push({
         player_id: row.playerId,
         game_id: row.gameId,
-        game_date: row.date,
+        game_date: gameDate,
         mp: row.mp,
         pts: row.ps, // Points Scored
         reb: row.r,
