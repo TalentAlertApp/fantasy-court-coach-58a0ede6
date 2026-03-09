@@ -31,6 +31,7 @@ export default function PlayersPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState<PageSizeOption>(20);
   const [currentPage, setCurrentPage] = useState(1);
+  const [team, setTeam] = useState("ALL");
 
   const { data: playersData, isLoading } = usePlayersQuery({
     sort, order: "desc", limit: 500,
