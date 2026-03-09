@@ -60,7 +60,7 @@ export default function PlayersPage() {
   }, [playersData, maxSalary, waiverMode, rosterIds, team]);
 
   // Reset page when filters change
-  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode]);
+  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode, team]);
 
   const totalItems = filtered.length;
   const effectivePageSize = pageSize === "All" ? totalItems : pageSize;
