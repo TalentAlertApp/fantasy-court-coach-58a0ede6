@@ -48,6 +48,9 @@ export default function PlayersPage() {
   const filtered = useMemo(() => {
     let items = playersData?.items ?? [];
     items = items.filter((p) => p.core.salary <= maxSalary);
+    if (team !== "ALL") {
+      items = items.filter((p) => p.core.team === team);
+    }
     if (waiverMode) {
       items = items.filter((p) => !rosterIds.has(p.core.id));
       items.sort((a, b) => b.computed.value5 - a.computed.value5);
