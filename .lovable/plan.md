@@ -1,41 +1,36 @@
 
-## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
 
-### Architecture
+## Schedule Page Overhaul — 6 Items
 
-```
-Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
-```
+### a) Fix Game URLs in Database
+The DB currently has wrong URLs like `https://www.nba.com/game/22500931`. The CSV has correct ones like `https://www.nba.com/game/phi-vs-cle-0022500931`. Will parse all 1,230 rows from the CSV and bulk UPDATE both `schedule_games` and `games` tables using the insert tool. No more URL generation — use CSV values verbatim.
 
-### Data Sources
+### b) Week pills: full-width spread + past weeks dimmed
+Change the week navigator from `flex gap-1.5` to a grid or flex with `flex-1` per pill so they spread across the full bar width. Past weeks (gw < current.gw) get a dimmed/muted style vs future weeks.
 
-- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
-- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
-  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
-- **Database.csv**: Player bio data (uploaded via Commissioner page)
+### c) Day selector: show game day number
+Add the game day number (e.g., "1") below the date number in each day pill. Layout becomes: `MON` → `9` → `1` (day number) → `(5)` game count.
 
-### FP Formula (CONSISTENT EVERYWHERE)
+### d) Deadline inline with date header
+Move the deadline from its own row to inline with the date header row: `MON, MAR 9 — Day 1 · Deadline: 22:30 [TODAY] [Today btn]`
 
-```
-FP = PS + R + 2*A + 3*S + 3*B
-```
-Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
+### e) Boxscore: max 10 players + scroll, FC/BC color
+- Wrap boxscore player list in a `max-h` container with `overflow-y-auto` to cap at ~10 visible rows
+- Change FC/BC badge from `variant="outline"` to `variant={p.fc_bc === "FC" ? "destructive" : "default"}` matching the rest of the app
 
-### Sync Modes
+### f) UI/UX refresh — NBA feel
+- Game rows: larger team logos (w-7 h-7), bolder scores, add subtle gradient accent on FINAL games
+- Add colored left border per game status (green = FINAL, yellow = LIVE, transparent = SCHEDULED)  
+- Tipoff time displayed in Lisbon timezone using `Intl.DateTimeFormat`
+- Better spacing, card-like feel with hover states
+- Week navigator: add subtle gradient, larger text
+- Day navigator: more prominent selected state with primary bg fill instead of just border
 
-| Mode | What it does |
-|------|-------------|
-| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
-| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
-| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
-| FULL | Run all three sequentially |
+### Files Changed
 
-### Edge Functions
+| File | Changes |
+|------|---------|
+| `src/pages/SchedulePage.tsx` | Week pills full-width + dimmed past; day pills show game day #; deadline inline; better styling |
+| `src/components/ScheduleList.tsx` | Boxscore scroll cap, FC/BC colors, game row UI refresh, Lisbon timezone for tipoff, larger logos |
+| Database (insert tool) | Bulk UPDATE ~1,230 game URLs from CSV into `schedule_games` and `games` |
 
-1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
-2. **import-players** — CSV-driven bio data import (Commissioner page)
-3. **salary-update** — Manual salary edits with auto-recalc
-
-### Pages
-
-- Commissioner page (`/commissioner`) — CSV upload/download for player database
