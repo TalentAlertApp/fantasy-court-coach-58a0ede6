@@ -1,106 +1,41 @@
 
+## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
 
-## Plan: CSV Import for Game Data (Weeks 1-20)
+### Architecture
 
-### Overview
-Add a second CSV import section to the Commissioner page to bulk-import historical game and player performance data. This will become the single source of truth for schedule and box scores.
-
-### Data Flow
-```text
-CSV (Week, Day, Game metadata, Player stats per game)
-  ↓
-Edge Function: import-game-data
-  ↓
-Upsert to: schedule_games (1 row per game) + player_game_logs (1 row per player-game)
-  ↓
-Schedule page reads from these tables (already implemented)
+```
+Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
 ```
 
-### CSV → Database Mapping
+### Data Sources
 
-**Schedule (`schedule_games` table)**:
-- Week → `gw`
-- Day → `day`
-- Date → `tipoff_utc`
-- Home Team → `home_team`
-- Away Team → `away_team`
-- Home Score → `home_pts`
-- Away Score → `away_pts`
-- Status → `status` (map "Final" → "FINAL")
-- Game ID → `game_id`
+- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
+- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
+  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
+- **Database.csv**: Player bio data (uploaded via Commissioner page)
 
-**Player Stats (`player_game_logs` table)**:
-- ID → `player_id`
-- Game ID → `game_id`
-- Date → `game_date`
-- PTS (Fantasy Points from CSV) → `fp`
-- MP → `mp`
-- PS (Points Scored) → `pts`
-- R → `reb`
-- A → `ast`
-- B → `blk`
-- S → `stl`
-- `home_away`: Determine by matching player's team against Home Team/Away Team
+### FP Formula (CONSISTENT EVERYWHERE)
 
-### Implementation
-
-#### 1. New Edge Function: `supabase/functions/import-game-data/index.ts`
-- Parse CSV rows (skip header)
-- Extract unique games → batch upsert to `schedule_games`
-- Create player_game_logs entries → batch upsert
-- Calculate `home_away` field: if player's team matches game's home_team → "H", else "A"
-- Calculate `opp` field: opposite team's tricode
-- Return summary: games imported, player logs imported, errors
-
-#### 2. Update `src/pages/CommissionerPage.tsx`
-- Add third card: "Import Game Data"
-- CSV format description: Week, Day, Date, Time, Home/Away Teams, Scores, Status, Game ID, Player ID, Player, PTS, MP, PS, R, A, B, S
-- File upload handler similar to player import
-- Display results: X games, Y player logs imported
-
-#### 3. Add Contracts (`src/lib/contracts.ts`)
-```typescript
-ImportGameDataResponseSchema = EnvelopeSchema(z.object({
-  games_imported: z.number(),
-  player_logs_imported: z.number(),
-  errors: z.array(z.string()).optional()
-}))
 ```
-
-#### 4. Add API Function (`src/lib/api.ts`)
-```typescript
-export async function importGameData(rows: Array<{...}>) {
-  return unwrap(await apiFetch("import-game-data", ImportGameDataResponseSchema, {
-    method: "POST",
-    body: JSON.stringify({ rows })
-  }));
-}
+FP = PS + R + 2*A + 3*S + 3*B
 ```
+Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
 
-#### 5. Update `supabase/config.toml`
-```toml
-[functions.import-game-data]
-verify_jwt = false
-```
+### Sync Modes
 
-### Edge Cases
-- **Duplicate games**: Use upsert with `game_id` as conflict key
-- **Duplicate player logs**: Use upsert with composite key `(player_id, game_id)`
-- **Missing player in players table**: Skip that player log, add to errors array
-- **Invalid team tricode**: Log warning, use raw value
-- **Date parsing**: Handle "2025-10-21" format, convert to timestamp for `tipoff_utc`
+| Mode | What it does |
+|------|-------------|
+| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
+| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
+| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
+| FULL | Run all three sequentially |
 
-### Files to Create/Modify
-| File | Action |
-|------|--------|
-| `supabase/functions/import-game-data/index.ts` | Create — bulk import processor |
-| `src/pages/CommissionerPage.tsx` | Add game data import section |
-| `src/lib/contracts.ts` | Add ImportGameDataResponseSchema |
-| `src/lib/api.ts` | Add importGameData function |
-| `supabase/config.toml` | Add function config |
+### Edge Functions
 
-### Post-Import
-- Schedule page will automatically show historical games (Weeks 1-20)
-- Box scores will expand to show player stats
-- No changes needed to ScheduleList.tsx or game-boxscore function (already implemented)
+1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
+2. **import-players** — CSV-driven bio data import (Commissioner page)
+3. **salary-update** — Manual salary edits with auto-recalc
 
+### Pages
+
+- Commissioner page (`/commissioner`) — CSV upload/download for player database

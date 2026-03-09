@@ -25,6 +25,7 @@ import {
   TeamCreateResponseSchema,
   SyncRunResponseSchema,
   SyncStatusResponseSchema,
+  ImportGameDataResponseSchema,
 } from "@/lib/contracts";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -238,4 +239,16 @@ export async function fetchSyncStatus(runId?: string) {
 /** GET /game-boxscore */
 export async function fetchGameBoxscore(gameId: string) {
   return unwrap(await apiFetch(`game-boxscore?game_id=${gameId}`, GameBoxscoreResponseSchema));
+}
+
+/** POST /import-game-data */
+export async function importGameData(rows: Array<{
+  week: number; day: number; date: string; dayName: string; time: string;
+  homeTeam: string; awayTeam: string; homeScore: number; awayScore: number;
+  status: string; gameId: string; playerId: number; playerName: string;
+  pts: number; mp: number; ps: number; r: number; a: number; b: number; s: number;
+}>) {
+  return unwrap(await apiFetch("import-game-data", ImportGameDataResponseSchema, {
+    method: "POST", body: JSON.stringify({ rows }),
+  }));
 }
