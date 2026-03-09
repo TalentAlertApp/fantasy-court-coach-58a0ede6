@@ -228,14 +228,16 @@ export function getGamedaysRemaining(): number {
  */
 export function formatDeadline(utc: string): string {
   const d = new Date(utc);
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const dayName = days[d.getUTCDay()];
-  const date = d.getUTCDate();
-  const month = months[d.getUTCMonth()];
-  const hours = String(d.getUTCHours()).padStart(2, "0");
-  const mins = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${dayName} ${date} ${month} ${hours}:${mins}`;
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Lisbon",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return fmt.format(d);
 }
 
 /**
