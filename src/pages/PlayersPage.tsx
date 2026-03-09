@@ -57,7 +57,7 @@ export default function PlayersPage() {
       items = items.slice(0, 25);
     }
     return items;
-  }, [playersData, maxSalary, waiverMode, rosterIds]);
+  }, [playersData, maxSalary, waiverMode, rosterIds, team]);
 
   // Reset page when filters change
   useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode]);
