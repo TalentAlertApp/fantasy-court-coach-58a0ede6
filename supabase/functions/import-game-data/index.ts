@@ -57,11 +57,17 @@ Deno.serve(async (req) => {
     for (const row of rows as CSVRow[]) {
       // Build game entry
       if (!gamesMap.has(row.gameId)) {
+        // Parse date: handle DD/MM/YYYY or YYYY-MM-DD
+        const dateParts = row.date.includes("/") ? row.date.split("/") : null;
+        const isoDate = dateParts
+          ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}`
+          : row.date;
+
         gamesMap.set(row.gameId, {
           game_id: row.gameId,
           gw: row.week,
           day: row.day,
-          tipoff_utc: new Date(row.date).toISOString(),
+          tipoff_utc: `${isoDate}T${row.time || "00:00"}:00+00:00`,
           home_team: row.homeTeam,
           away_team: row.awayTeam,
           home_pts: row.homeScore,
