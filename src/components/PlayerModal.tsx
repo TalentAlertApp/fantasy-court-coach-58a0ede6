@@ -60,8 +60,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
-          <DialogHeader>
-            <DialogTitle className="font-heading">{isLoading ? "Loading…" : data?.player?.core?.name ?? "Player"}</DialogTitle>
+          <DialogHeader className="sr-only">
+            <DialogTitle>{isLoading ? "Loading…" : data?.player?.core?.name ?? "Player"}</DialogTitle>
           </DialogHeader>
           {isLoading ? (
             <div className="space-y-3">
