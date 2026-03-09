@@ -126,10 +126,9 @@ Deno.serve(async (req: Request) => {
 
     // Map history rows
     const history = (historyRows || []).map((h) => ({
-      game_date: h.game_date,
-      opp: h.opp,
-      home_away: h.home_away,
-      matchup: h.matchup,
+      date: h.game_date,
+      opp: h.opp || "",
+      home_away: h.home_away || "H",
       mp: h.mp,
       pts: h.pts,
       reb: h.reb,
@@ -141,16 +140,13 @@ Deno.serve(async (req: Request) => {
     }));
 
     // Map upcoming games
-    const upcoming = (upcomingRows || []).map((u) => {
-      const isHome = u.home_team === playerRow.team;
-      return {
-        game_id: u.game_id,
-        date: u.tipoff_utc,
-        opp: isHome ? u.away_team : u.home_team,
-        home_away: isHome ? "H" : "A",
-        matchup: isHome ? `vs ${u.away_team}` : `@ ${u.home_team}`,
-      };
-    });
+    const upcoming = (upcomingRows || []).map((u) => ({
+      game_id: u.game_id,
+      tipoff_utc: u.tipoff_utc,
+      away_team: u.away_team,
+      home_team: u.home_team,
+      status: u.status,
+    }));
 
     return okResponse({ player, history, upcoming });
   } catch (e) {
