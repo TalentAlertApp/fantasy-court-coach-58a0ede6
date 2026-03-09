@@ -751,6 +751,15 @@ export const SyncStatusPayloadSchema = z
 
 export const SyncStatusResponseSchema = EnvelopeSchema(SyncStatusPayloadSchema);
 
+/** ---------- Import Game Data ---------- */
+export const ImportGameDataPayloadSchema = z.object({
+  games_imported: z.number(),
+  player_logs_imported: z.number(),
+  errors: z.array(z.string()).optional(),
+});
+
+export const ImportGameDataResponseSchema = EnvelopeSchema(ImportGameDataPayloadSchema);
+
 /** ---------- optional: runtime helpers ---------- */
 export function assertOk<T extends z.ZodTypeAny>(
   schema: z.ZodTypeAny,
