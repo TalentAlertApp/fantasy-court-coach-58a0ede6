@@ -49,6 +49,7 @@ export default function SchedulePage() {
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
   const { data, isLoading } = useScheduleQuery({ gw, day });
+  const { data: weekCounts } = useScheduleWeekCounts(gw);
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
