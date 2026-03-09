@@ -73,6 +73,7 @@ function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick
 
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
   if (games.length === 0) {
     return (
