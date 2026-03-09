@@ -25,6 +25,36 @@ interface CSVRow {
   s: number;
 }
 
+/** Map any variant of "Final", "Final/OT", "FINAL/OT" → "FINAL". Everything else → "SCHEDULED". */
+function normalizeStatus(raw: string): "FINAL" | "SCHEDULED" {
+  const s = (raw || "").trim().toUpperCase();
+  return s.startsWith("FINAL") ? "FINAL" : "SCHEDULED";
+}
+
+/** Accept DD/MM/YYYY or YYYY-MM-DD → YYYY-MM-DD, or null */
+function normalizeDate(raw: string): string | null {
+  const v = (raw || "").trim();
+  if (!v) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  const p = v.split("/");
+  if (p.length === 3) return `${p[2]}-${p[1].padStart(2, "0")}-${p[0].padStart(2, "0")}`;
+  return null;
+}
+
+/** Strip seconds, timezone text → HH:MM or null */
+function normalizeTime(raw: string): string | null {
+  let t = (raw || "").trim();
+  if (!t) return null;
+  // Remove timezone abbreviations and offsets
+  t = t.replace(/\s*(UTC|GMT|Z|[+-]\d{1,2}(:\d{2})?)\s*/gi, "").trim();
+  // If HH:MM:SS, keep HH:MM
+  const m = t.match(/^(\d{1,2}:\d{2})/);
+  if (!m) return null;
+  const result = m[1];
+  if (/^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(result)) return result;
+  return null;
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -45,7 +75,7 @@ Deno.serve(async (req) => {
     );
 
     const errors: string[] = [];
-    
+
     // Get all players to validate player_ids
     const { data: players } = await sb.from("players").select("id, team");
     const playerMap = new Map((players || []).map((p: any) => [p.id, p.team]));
@@ -54,87 +84,99 @@ Deno.serve(async (req) => {
     const gamesMap = new Map<string, any>();
     const playerLogs: any[] = [];
 
-    for (const row of rows as CSVRow[]) {
-      // Build game entry
-      if (!gamesMap.has(row.gameId)) {
-        // Parse date: handle DD/MM/YYYY or YYYY-MM-DD
-        const dateParts = row.date.includes("/") ? row.date.split("/") : null;
-        const isoDate = dateParts
-          ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}`
-          : row.date;
+    for (let idx = 0; idx < rows.length; idx++) {
+      const row = rows[idx] as CSVRow;
+      try {
+        const isoDate = normalizeDate(row.date);
+        const normTime = normalizeTime(row.time);
+        const status = normalizeStatus(row.status);
 
-        gamesMap.set(row.gameId, {
+        // Build game entry
+        if (row.gameId && !gamesMap.has(row.gameId)) {
+          const tipoff_utc = isoDate && normTime
+            ? `${isoDate}T${normTime}:00+00:00`
+            : isoDate
+              ? `${isoDate}T00:00:00+00:00`
+              : null;
+
+          gamesMap.set(row.gameId, {
+            game_id: row.gameId,
+            gw: row.week,
+            day: row.day,
+            tipoff_utc,
+            home_team: row.homeTeam,
+            away_team: row.awayTeam,
+            home_pts: row.homeScore,
+            away_pts: row.awayScore,
+            status,
+            nba_game_url: `https://www.nba.com/game/${row.gameId}`,
+          });
+        }
+
+        // Validate player exists
+        const playerTeam = playerMap.get(row.playerId);
+        if (!playerTeam) {
+          errors.push(`Row #${idx + 1}: Player ID ${row.playerId} (${row.playerName}) not found in database`);
+          continue;
+        }
+
+        // Calculate home_away and opp
+        const home_away = playerTeam === row.homeTeam ? "H" : "A";
+        const opp = home_away === "H" ? row.awayTeam : row.homeTeam;
+
+        playerLogs.push({
+          player_id: row.playerId,
           game_id: row.gameId,
-          gw: row.week,
-          day: row.day,
-          tipoff_utc: `${isoDate}T${row.time || "00:00"}:00+00:00`,
-          home_team: row.homeTeam,
-          away_team: row.awayTeam,
-          home_pts: row.homeScore,
-          away_pts: row.awayScore,
-          status: row.status.toUpperCase() === "FINAL" ? "FINAL" : row.status.toUpperCase(),
+          game_date: isoDate,
+          mp: row.mp,
+          pts: row.ps, // Points Scored
+          reb: row.r,
+          ast: row.a,
+          blk: row.b,
+          stl: row.s,
+          fp: row.pts, // Fantasy Points from CSV
+          home_away,
+          opp,
+          matchup: home_away === "H" ? `vs ${opp}` : `@ ${opp}`,
           nba_game_url: `https://www.nba.com/game/${row.gameId}`,
         });
+      } catch (rowErr) {
+        const msg = rowErr instanceof Error ? rowErr.message : String(rowErr);
+        errors.push(`Row #${idx + 1} gameId=${row.gameId}: ${msg}`);
       }
-
-      // Validate player exists
-      const playerTeam = playerMap.get(row.playerId);
-      if (!playerTeam) {
-        errors.push(`Player ID ${row.playerId} (${row.playerName}) not found in database`);
-        continue;
-      }
-
-      // Calculate home_away and opp
-      const home_away = playerTeam === row.homeTeam ? "H" : "A";
-      const opp = home_away === "H" ? row.awayTeam : row.homeTeam;
-
-      // Build player log entry
-      // Parse date for game_date
-      const dp = row.date.includes("/") ? row.date.split("/") : null;
-      const gameDate = dp
-        ? `${dp[2]}-${dp[1].padStart(2,"0")}-${dp[0].padStart(2,"0")}`
-        : row.date;
-
-      playerLogs.push({
-        player_id: row.playerId,
-        game_id: row.gameId,
-        game_date: gameDate,
-        mp: row.mp,
-        pts: row.ps, // Points Scored
-        reb: row.r,
-        ast: row.a,
-        blk: row.b,
-        stl: row.s,
-        fp: row.pts, // Fantasy Points from CSV
-        home_away,
-        opp,
-        matchup: home_away === "H" ? `vs ${opp}` : `@ ${opp}`,
-        nba_game_url: `https://www.nba.com/game/${row.gameId}`,
-      });
     }
 
     // Upsert games
     const games = Array.from(gamesMap.values());
-    const { error: gamesErr } = await sb
-      .from("schedule_games")
-      .upsert(games, { onConflict: "game_id" });
+    if (games.length > 0) {
+      const { error: gamesErr } = await sb
+        .from("schedule_games")
+        .upsert(games, { onConflict: "game_id" });
 
-    if (gamesErr) {
-      return errorResponse("DB_ERROR", `Failed to upsert games: ${gamesErr.message}`);
+      if (gamesErr) {
+        return errorResponse("DB_ERROR", `Failed to upsert games: ${gamesErr.message}`);
+      }
     }
 
-    // Upsert player logs
-    const { error: logsErr } = await sb
-      .from("player_game_logs")
-      .upsert(playerLogs, { onConflict: "player_id,game_id" });
+    // Upsert player logs in batches
+    let logsUpserted = 0;
+    const BATCH = 100;
+    for (let i = 0; i < playerLogs.length; i += BATCH) {
+      const batch = playerLogs.slice(i, i + BATCH);
+      const { error: logsErr } = await sb
+        .from("player_game_logs")
+        .upsert(batch, { onConflict: "player_id,game_id" });
 
-    if (logsErr) {
-      return errorResponse("DB_ERROR", `Failed to upsert player logs: ${logsErr.message}`);
+      if (logsErr) {
+        errors.push(`Player logs batch ${i}: ${logsErr.message}`);
+      } else {
+        logsUpserted += batch.length;
+      }
     }
 
     return okResponse({
       games_imported: games.length,
-      player_logs_imported: playerLogs.length,
+      player_logs_imported: logsUpserted,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (e) {
