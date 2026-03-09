@@ -36,24 +36,69 @@ Deno.serve(async (req: Request) => {
       .eq("player_id", playerId)
       .single();
 
-    // Get player history (game logs, most recent first, limit 20)
-    const { data: historyRows } = await sb
+    // Get ALL player game logs (for computing averages + history)
+    const { data: allLogs } = await sb
       .from("player_game_logs")
       .select("*")
       .eq("player_id", playerId)
-      .order("game_date", { ascending: false })
-      .limit(20);
+      .order("game_date", { ascending: false });
 
-    // Get upcoming games for player's team
-    const { data: upcomingRows } = await sb
+    const logs = allLogs || [];
+
+    // Compute season averages from logs
+    const gp = logs.length;
+    const sum = (arr: any[], key: string) => arr.reduce((s, r) => s + Number(r[key] || 0), 0);
+    const avg = (arr: any[], key: string) => arr.length > 0 ? sum(arr, key) / arr.length : 0;
+
+    const seasonFp = avg(logs, "fp");
+    const seasonPts = avg(logs, "pts");
+    const seasonReb = avg(logs, "reb");
+    const seasonAst = avg(logs, "ast");
+    const seasonStl = avg(logs, "stl");
+    const seasonBlk = avg(logs, "blk");
+    const seasonMp = avg(logs, "mp");
+
+    const last5 = logs.slice(0, 5);
+    const l5Count = Math.max(last5.length, 1);
+    const fp5 = sum(last5, "fp") / l5Count;
+    const pts5 = sum(last5, "pts") / l5Count;
+    const reb5 = sum(last5, "reb") / l5Count;
+    const ast5 = sum(last5, "ast") / l5Count;
+    const stl5 = sum(last5, "stl") / l5Count;
+    const blk5 = sum(last5, "blk") / l5Count;
+    const mpg5 = sum(last5, "mp") / l5Count;
+
+    const salary = Number(playerRow.salary) || 1;
+    const valueT = seasonFp / salary;
+    const value5 = fp5 / salary;
+    const stocks5 = stl5 + blk5;
+    const stocks = seasonStl + seasonBlk;
+    const deltaFp = fp5 - seasonFp;
+    const deltaMpg = mpg5 - seasonMp;
+
+    // Get schedule_games for enrichment (player's team)
+    const { data: schedRows } = await sb
       .from("schedule_games")
       .select("*")
-      .eq("status", "SCHEDULED")
       .or(`home_team.eq.${playerRow.team},away_team.eq.${playerRow.team}`)
-      .order("tipoff_utc", { ascending: true })
-      .limit(5);
+      .order("tipoff_utc", { ascending: true });
 
-    // Build player object matching the expected contract
+    const schedMap = new Map((schedRows || []).map((s: any) => [s.game_id, s]));
+
+    // Get upcoming games (SCHEDULED only)
+    const upcoming = (schedRows || [])
+      .filter((s: any) => s.status === "SCHEDULED")
+      .map((u: any) => ({
+        game_id: u.game_id,
+        tipoff_utc: u.tipoff_utc,
+        away_team: u.away_team,
+        home_team: u.home_team,
+        status: u.status,
+        gw: u.gw,
+        day: u.day,
+      }));
+
+    // Build player object
     const player = {
       core: {
         id: playerRow.id,
@@ -72,23 +117,23 @@ Deno.serve(async (req: Request) => {
         college: playerRow.college,
       },
       season: {
-        gp: playerRow.gp,
-        mpg: playerRow.mpg,
-        pts: playerRow.pts,
-        reb: playerRow.reb,
-        ast: playerRow.ast,
-        stl: playerRow.stl,
-        blk: playerRow.blk,
-        fp: playerRow.fp_pg_t,
+        gp,
+        mpg: Number(seasonMp.toFixed(1)),
+        pts: Number(seasonPts.toFixed(1)),
+        reb: Number(seasonReb.toFixed(1)),
+        ast: Number(seasonAst.toFixed(1)),
+        stl: Number(seasonStl.toFixed(1)),
+        blk: Number(seasonBlk.toFixed(1)),
+        fp: Number(seasonFp.toFixed(1)),
       },
       last5: {
-        mpg5: playerRow.mpg5,
-        pts5: playerRow.pts5,
-        reb5: playerRow.reb5,
-        ast5: playerRow.ast5,
-        stl5: playerRow.stl5,
-        blk5: playerRow.blk5,
-        fp5: playerRow.fp_pg5,
+        mpg5: Number(mpg5.toFixed(1)),
+        pts5: Number(pts5.toFixed(1)),
+        reb5: Number(reb5.toFixed(1)),
+        ast5: Number(ast5.toFixed(1)),
+        stl5: Number(stl5.toFixed(1)),
+        blk5: Number(blk5.toFixed(1)),
+        fp5: Number(fp5.toFixed(1)),
       },
       lastGame: lastGameRow ? {
         date: lastGameRow.game_date,
@@ -111,12 +156,12 @@ Deno.serve(async (req: Request) => {
         nba_game_url: null,
       },
       computed: {
-        value: playerRow.value_t,
-        value5: playerRow.value5,
-        stocks: playerRow.stocks,
-        stocks5: playerRow.stocks5,
-        delta_mpg: playerRow.delta_mpg,
-        delta_fp: playerRow.delta_fp,
+        value: Number(valueT.toFixed(2)),
+        value5: Number(value5.toFixed(2)),
+        stocks: Number(stocks.toFixed(1)),
+        stocks5: Number(stocks5.toFixed(1)),
+        delta_mpg: Number(deltaMpg.toFixed(1)),
+        delta_fp: Number(deltaFp.toFixed(1)),
       },
       flags: {
         injury: playerRow.injury,
@@ -124,29 +169,30 @@ Deno.serve(async (req: Request) => {
       },
     };
 
-    // Map history rows
-    const history = (historyRows || []).map((h) => ({
-      date: h.game_date,
-      opp: h.opp || "",
-      home_away: h.home_away || "H",
-      mp: h.mp,
-      pts: h.pts,
-      reb: h.reb,
-      ast: h.ast,
-      stl: h.stl,
-      blk: h.blk,
-      fp: h.fp,
-      nba_game_url: h.nba_game_url,
-    }));
-
-    // Map upcoming games
-    const upcoming = (upcomingRows || []).map((u) => ({
-      game_id: u.game_id,
-      tipoff_utc: u.tipoff_utc,
-      away_team: u.away_team,
-      home_team: u.home_team,
-      status: u.status,
-    }));
+    // Map history rows with schedule enrichment
+    const history = logs.slice(0, 100).map((h: any) => {
+      const sched = schedMap.get(h.game_id);
+      return {
+        date: h.game_date,
+        opp: h.opp || "",
+        home_away: h.home_away || "H",
+        mp: h.mp,
+        pts: h.pts,
+        reb: h.reb,
+        ast: h.ast,
+        stl: h.stl,
+        blk: h.blk,
+        fp: Number(h.fp),
+        nba_game_url: h.nba_game_url,
+        game_id: h.game_id,
+        gw: sched?.gw ?? 0,
+        day: sched?.day ?? 0,
+        home_pts: sched?.home_pts ?? 0,
+        away_pts: sched?.away_pts ?? 0,
+        home_team: sched?.home_team ?? "",
+        away_team: sched?.away_team ?? "",
+      };
+    });
 
     return okResponse({ player, history, upcoming });
   } catch (e) {
