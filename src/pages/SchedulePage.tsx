@@ -4,17 +4,14 @@ import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import ScheduleList from "@/components/ScheduleList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
-import { Clock } from "lucide-react";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const MIN_WEEK = 1;
 const MAX_WEEK = 25;
 
-/** Build a map: "gw-day" → date string from DEADLINES */
 function buildWeekDayToDate(): Record<string, string> {
   const map: Record<string, string> = {};
   for (const d of DEADLINES) {
@@ -62,6 +59,8 @@ export default function SchedulePage() {
     ? format(parse(selectedDateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
     : "";
 
+  const deadline = DEADLINES.find((d) => d.gw === gw && d.day === day);
+
   // Auto-scroll week pills to current
   const weekScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -71,36 +70,47 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-0">
-      {/* Week Navigator — blue bar */}
-      <div className="bg-primary text-primary-foreground rounded-t-sm px-4 py-3">
-        <p className="text-[10px] font-heading font-bold uppercase tracking-widest mb-2 opacity-70">
-          NBA Fantasy Week
-        </p>
-        <div ref={weekScrollRef} className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
-          {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => (
-            <button
-              key={w}
-              data-gw={w}
-              onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
-              className={`shrink-0 px-2.5 py-1 text-xs font-heading font-bold rounded-sm transition-colors ${
-                w === gw
-                  ? "bg-accent text-accent-foreground"
-                  : "bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
-              }`}
-            >
-              W{w}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 mt-2 text-sm">
-          <span className="font-heading font-bold">Week {gw}</span>
-          <span className="opacity-50">|</span>
-          <span className="text-xs opacity-70">{dateRange}</span>
+      {/* Week Navigator — navy gradient bar */}
+      <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-sm px-3 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-heading font-bold uppercase tracking-[0.2em] opacity-60">
+            NBA Fantasy · Season 2025-26
+          </p>
           {isCurrentWeek && (
-            <Badge className="bg-accent text-accent-foreground text-[9px] rounded-sm px-1.5 py-0">
-              CURRENT
+            <Badge className="bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] text-[9px] rounded-sm px-1.5 py-0 font-heading font-bold">
+              CURRENT WEEK
             </Badge>
           )}
+        </div>
+        <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide pb-1">
+          {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
+            const isPast = w < current.gw;
+            const isCurrent = w === current.gw;
+            const isSelected = w === gw;
+            return (
+              <button
+                key={w}
+                data-gw={w}
+                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
+                className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-sm transition-all ${
+                  isSelected
+                    ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
+                    : isPast
+                    ? "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50"
+                    : isCurrent
+                    ? "bg-primary/80 text-white hover:bg-primary"
+                    : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+                }`}
+              >
+                {w}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 mt-2 text-sm">
+          <span className="font-heading font-bold text-base">GW {gw}</span>
+          <span className="opacity-30">|</span>
+          <span className="text-xs opacity-60 font-body">{dateRange}</span>
         </div>
       </div>
 
@@ -109,7 +119,7 @@ export default function SchedulePage() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-8 shrink-0 rounded-none"
+          className="h-14 w-8 shrink-0 rounded-none"
           disabled={gw <= MIN_WEEK && day <= (weekDays[0]?.day ?? 1)}
           onClick={() => {
             const idx = weekDays.findIndex((d) => d.day === day);
@@ -138,19 +148,24 @@ export default function SchedulePage() {
               <button
                 key={wd.day}
                 onClick={() => setDay(wd.day)}
-                className={`flex-1 min-w-[60px] py-2 px-2 text-center transition-colors border-b-2 ${
+                className={`flex-1 min-w-[56px] py-2 px-1 text-center transition-all border-b-2 ${
                   isSelected
-                    ? "bg-primary/10 border-primary text-foreground"
+                    ? "bg-primary text-primary-foreground border-[hsl(var(--nba-yellow))]"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
-                <div className="text-[10px] font-heading font-bold">{dayLabel}</div>
-                <div className="text-sm font-mono font-bold">{dayNum}</div>
+                <div className={`text-[9px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</div>
+                <div className={`text-sm font-mono font-bold ${isSelected ? "" : ""}`}>{dayNum}</div>
+                <div className={`text-[9px] font-heading mt-0.5 ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                  Day {wd.day}
+                </div>
                 {isDayToday && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-destructive mx-auto mt-0.5" />
+                  <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-0.5 ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
                 )}
                 {gameCount > 0 && (
-                  <div className="text-[9px] font-mono text-muted-foreground mt-0.5">({gameCount})</div>
+                  <div className={`text-[9px] font-mono mt-0.5 ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                    {gameCount}G
+                  </div>
                 )}
               </button>
             );
@@ -160,7 +175,7 @@ export default function SchedulePage() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-8 shrink-0 rounded-none"
+          className="h-14 w-8 shrink-0 rounded-none"
           disabled={gw >= MAX_WEEK && day >= (weekDays[weekDays.length - 1]?.day ?? 1)}
           onClick={() => {
             const idx = weekDays.findIndex((d) => d.day === day);
@@ -177,14 +192,14 @@ export default function SchedulePage() {
         </Button>
       </div>
 
-      {/* Date header + Deadline + Today button */}
-      <div className="px-1 py-3 space-y-1">
+      {/* Date header + Deadline inline + Today button */}
+      <div className="px-1 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-heading font-bold text-sm uppercase">
               {selectedDateLabel}
             </h3>
-            <span className="text-xs text-muted-foreground font-heading">
+            <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-sm">
               Day {day}
             </span>
             {isToday && (
@@ -192,11 +207,22 @@ export default function SchedulePage() {
                 TODAY
               </Badge>
             )}
+            {deadline && (
+              <>
+                <span className="text-muted-foreground">·</span>
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span className="font-heading">
+                    Deadline <span className="font-bold text-foreground">{formatDeadline(deadline.deadline_utc)}</span>
+                  </span>
+                </div>
+              </>
+            )}
           </div>
           <Button
             variant="outline"
             size="sm"
-            className="h-7 gap-1 text-xs"
+            className="h-7 gap-1 text-xs shrink-0"
             disabled={gw === current.gw && day === current.day}
             onClick={() => { setGw(current.gw); setDay(current.day); }}
           >
@@ -204,23 +230,11 @@ export default function SchedulePage() {
             Today
           </Button>
         </div>
-        {(() => {
-          const dl = DEADLINES.find((d) => d.gw === gw && d.day === day);
-          if (!dl) return null;
-          return (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span className="font-heading">
-                Deadline: <span className="font-bold text-foreground">{formatDeadline(dl.deadline_utc)}</span>
-              </span>
-            </div>
-          );
-        })()}
       </div>
 
       {/* Games */}
       {isLoading ? (
-        <div className="space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+        <div className="space-y-2 px-1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-sm" />)}</div>
       ) : (
         <ScheduleList games={data?.games ?? []} />
       )}
