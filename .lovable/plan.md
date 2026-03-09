@@ -1,41 +1,36 @@
 
-## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
+## Plan: Wire Players Data to CSV Import & Add Player Click on Schedule
 
-### Architecture
+### Issues Identified
 
-```
-Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
-```
+1. **Schedule page**: Box score player rows are not clickable - no way to open PlayerModal
+2. **Player detail endpoint** (`player-detail`): Still reads from Google Sheets instead of Supabase database
+3. **Players data**: `player_last_game` table isn't populated from CSV import, so "Last Game FP Breakdown" shows zeros
+4. **Player history**: PlayerModal "History" tab returns empty because `player-detail` doesn't query `player_game_logs`
 
-### Data Sources
+### Solution
 
-- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
-- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
-  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
-- **Database.csv**: Player bio data (uploaded via Commissioner page)
+#### 1. Update `ScheduleList.tsx` - Make player rows clickable
+- Add state for `selectedPlayerId`
+- Wrap player row content in a clickable div that calls `setSelectedPlayerId(p.player_id)`
+- Import and render `PlayerModal` component
 
-### FP Formula (CONSISTENT EVERYWHERE)
+#### 2. Rewrite `player-detail` edge function to use Supabase
+- Remove all Google Sheets code
+- Query `players` table for core player data
+- Query `player_game_logs` for history (most recent games)
+- Query `schedule_games` for upcoming games
+- Return `player`, `history[]`, and `upcoming[]`
 
-```
-FP = PS + R + 2*A + 3*S + 3*B
-```
-Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
+#### 3. Update `import-game-data` to also populate `player_last_game`
+- After inserting `player_game_logs`, for each player find their most recent game log
+- Upsert into `player_last_game` table with latest stats
+- This fixes the "Last Game FP Breakdown" in PlayerModal
 
-### Sync Modes
+### Files to Modify
 
-| Mode | What it does |
-|------|-------------|
-| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
-| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
-| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
-| FULL | Run all three sequentially |
-
-### Edge Functions
-
-1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
-2. **import-players** — CSV-driven bio data import (Commissioner page)
-3. **salary-update** — Manual salary edits with auto-recalc
-
-### Pages
-
-- Commissioner page (`/commissioner`) — CSV upload/download for player database
+| File | Change |
+|------|--------|
+| `src/components/ScheduleList.tsx` | Add player click → open modal |
+| `supabase/functions/player-detail/index.ts` | Rewrite to read from Supabase DB |
+| `supabase/functions/import-game-data/index.ts` | Add logic to update `player_last_game` |
