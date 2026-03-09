@@ -16,6 +16,26 @@ interface ScheduleListProps {
   games: ScheduleGame[];
 }
 
+/** Format tipoff in Lisbon timezone */
+function formatTipoff(utc: string): string {
+  const d = new Date(utc);
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Lisbon",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(d);
+}
+
+/** Get status color for left border */
+function getStatusBorder(status: string): string {
+  switch (status) {
+    case "FINAL": return "border-l-green-500";
+    case "LIVE": case "IN_PROGRESS": return "border-l-[hsl(var(--nba-yellow))]";
+    default: return "border-l-transparent";
+  }
+}
+
 function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick: (playerId: number) => void }) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
 
@@ -29,11 +49,11 @@ function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick
   }
 
   return (
-    <div className="border-t bg-muted/30">
+    <div className="border-t bg-muted/20">
       {/* Header */}
-      <div className="grid grid-cols-[1fr_repeat(7,40px)] gap-1 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b">
+      <div className="grid grid-cols-[1fr_repeat(7,36px)] gap-1 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
         <span>Player</span>
-        <span className="text-center">PTS</span>
+        <span className="text-center">FP</span>
         <span className="text-center">MP</span>
         <span className="text-center">PS</span>
         <span className="text-center">A</span>
@@ -41,32 +61,40 @@ function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick
         <span className="text-center">B</span>
         <span className="text-center">S</span>
       </div>
-      {/* Rows */}
-      {players.map((p) => (
-        <div
-          key={p.player_id}
-          onClick={() => onPlayerClick(p.player_id)}
-          className="grid grid-cols-[1fr_repeat(7,40px)] gap-1 px-3 py-1.5 text-sm items-center border-b border-border/50 last:border-b-0 cursor-pointer hover:bg-accent/50 transition-colors"
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            <Avatar className="h-6 w-6 shrink-0">
-              {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
-              <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
-            </Avatar>
-            <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 rounded-sm font-heading">
-              {p.fc_bc}
-            </Badge>
-            <span className="truncate text-xs font-medium">{p.name}</span>
-          </div>
-          <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
-          <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
-          <span className="text-center font-mono text-xs">{p.ps}</span>
-          <span className="text-center font-mono text-xs">{p.ast}</span>
-          <span className="text-center font-mono text-xs">{p.reb}</span>
-          <span className="text-center font-mono text-xs">{p.blk}</span>
-          <span className="text-center font-mono text-xs">{p.stl}</span>
-        </div>
-      ))}
+      {/* Scrollable rows — max 10 visible */}
+      <div className="max-h-[360px] overflow-y-auto">
+        {players.map((p) => {
+          const isFc = p.fc_bc === "FC";
+          return (
+            <div
+              key={p.player_id}
+              onClick={() => onPlayerClick(p.player_id)}
+              className="grid grid-cols-[1fr_repeat(7,36px)] gap-1 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar className="h-6 w-6 shrink-0">
+                  {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
+                  <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <Badge
+                  variant={isFc ? "destructive" : "default"}
+                  className="text-[8px] px-1 py-0 shrink-0 rounded-sm font-heading min-w-[22px] justify-center"
+                >
+                  {p.fc_bc}
+                </Badge>
+                <span className="truncate text-xs font-medium">{p.name}</span>
+              </div>
+              <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
+              <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
+              <span className="text-center font-mono text-xs">{p.ps}</span>
+              <span className="text-center font-mono text-xs">{p.ast}</span>
+              <span className="text-center font-mono text-xs">{p.reb}</span>
+              <span className="text-center font-mono text-xs">{p.blk}</span>
+              <span className="text-center font-mono text-xs">{p.stl}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -85,8 +113,8 @@ export default function ScheduleList({ games }: ScheduleListProps) {
   }
 
   return (
-    <div className="border rounded-sm overflow-hidden">
-      {games.map((g, i) => {
+    <div className="space-y-1.5 px-1">
+      {games.map((g) => {
         const isFinal = g.status === "FINAL";
         const isExpanded = expandedId === g.game_id;
 
@@ -98,32 +126,53 @@ export default function ScheduleList({ games }: ScheduleListProps) {
           >
             <CollapsibleTrigger asChild disabled={!isFinal}>
               <div
-                className={`bg-card flex items-center justify-between px-4 py-3 ${i < games.length - 1 && !isExpanded ? "border-b" : ""} ${isFinal ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""}`}
+                className={`bg-card rounded-sm border border-l-4 ${getStatusBorder(g.status)} flex items-center justify-between px-4 py-3 ${
+                  isFinal ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
+                } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
+                {/* Teams */}
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center gap-2 text-right min-w-[90px] justify-end">
-                    {getTeamLogo(g.away_team) && <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-5 h-5" />}
+                  {/* Away */}
+                  <div className="flex items-center gap-2.5 min-w-[110px] justify-end text-right">
                     <div>
-                      <p className="font-heading font-bold text-sm uppercase">{g.away_team}</p>
-                      {isFinal && <p className="text-lg font-mono font-bold">{g.away_pts}</p>}
+                      <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
+                      {isFinal && <p className="text-xl font-mono font-black leading-tight">{g.away_pts}</p>}
                     </div>
+                    {getTeamLogo(g.away_team) && (
+                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-8 h-8" />
+                    )}
                   </div>
-                  <span className="text-muted-foreground text-xs font-heading">@</span>
-                  <div className="flex items-center gap-2 min-w-[90px]">
-                    {getTeamLogo(g.home_team) && <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-5 h-5" />}
+
+                  {/* VS / @ */}
+                  <div className="flex flex-col items-center">
+                    <span className="text-muted-foreground text-[10px] font-heading font-bold">@</span>
+                  </div>
+
+                  {/* Home */}
+                  <div className="flex items-center gap-2.5 min-w-[110px]">
+                    {getTeamLogo(g.home_team) && (
+                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-8 h-8" />
+                    )}
                     <div>
-                      <p className="font-heading font-bold text-sm uppercase">{g.home_team}</p>
-                      {isFinal && <p className="text-lg font-mono font-bold">{g.home_pts}</p>}
+                      <p className="font-heading font-bold text-sm uppercase leading-tight">{g.home_team}</p>
+                      {isFinal && <p className="text-xl font-mono font-black leading-tight">{g.home_pts}</p>}
                     </div>
                   </div>
                 </div>
+
+                {/* Right info */}
                 <div className="flex items-center gap-2">
-                  <Badge variant={isFinal ? "secondary" : "outline"} className="text-[10px] rounded-sm font-heading">
+                  <Badge
+                    variant={isFinal ? "secondary" : "outline"}
+                    className={`text-[10px] rounded-sm font-heading ${
+                      isFinal ? "bg-green-500/10 text-green-700 border-green-500/30" : ""
+                    }`}
+                  >
                     {g.status}
                   </Badge>
                   {g.tipoff_utc && (
-                    <span className="text-xs font-mono border border-border px-1.5 py-0.5 rounded-sm">
-                      {new Date(g.tipoff_utc).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded-sm font-bold">
+                      {formatTipoff(g.tipoff_utc)}
                     </span>
                   )}
                   {g.nba_game_url && (
@@ -144,13 +193,14 @@ export default function ScheduleList({ games }: ScheduleListProps) {
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              {isExpanded && <GameBoxScore gameId={g.game_id} onPlayerClick={setSelectedPlayerId} />}
+              <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
+                {isExpanded && <GameBoxScore gameId={g.game_id} onPlayerClick={setSelectedPlayerId} />}
+              </div>
             </CollapsibleContent>
-            {(i < games.length - 1 && isExpanded) && <div className="border-b" />}
           </Collapsible>
         );
       })}
-      
+
       <PlayerModal
         playerId={selectedPlayerId}
         open={selectedPlayerId !== null}
