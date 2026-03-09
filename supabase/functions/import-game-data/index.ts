@@ -57,11 +57,17 @@ Deno.serve(async (req) => {
     for (const row of rows as CSVRow[]) {
       // Build game entry
       if (!gamesMap.has(row.gameId)) {
+        // Parse date: handle DD/MM/YYYY or YYYY-MM-DD
+        const dateParts = row.date.includes("/") ? row.date.split("/") : null;
+        const isoDate = dateParts
+          ? `${dateParts[2]}-${dateParts[1].padStart(2,"0")}-${dateParts[0].padStart(2,"0")}`
+          : row.date;
+
         gamesMap.set(row.gameId, {
           game_id: row.gameId,
           gw: row.week,
           day: row.day,
-          tipoff_utc: new Date(row.date).toISOString(),
+          tipoff_utc: `${isoDate}T${row.time || "00:00"}:00+00:00`,
           home_team: row.homeTeam,
           away_team: row.awayTeam,
           home_pts: row.homeScore,
@@ -83,10 +89,16 @@ Deno.serve(async (req) => {
       const opp = home_away === "H" ? row.awayTeam : row.homeTeam;
 
       // Build player log entry
+      // Parse date for game_date
+      const dp = row.date.includes("/") ? row.date.split("/") : null;
+      const gameDate = dp
+        ? `${dp[2]}-${dp[1].padStart(2,"0")}-${dp[0].padStart(2,"0")}`
+        : row.date;
+
       playerLogs.push({
         player_id: row.playerId,
         game_id: row.gameId,
-        game_date: row.date,
+        game_date: gameDate,
         mp: row.mp,
         pts: row.ps, // Points Scored
         reb: row.r,
