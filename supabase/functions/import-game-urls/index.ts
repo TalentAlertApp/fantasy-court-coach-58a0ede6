@@ -16,8 +16,12 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Expect CSV content as POST body
-    const csvText = await req.text();
+    // Fetch CSV from the preview URL
+    const csvUrl = "https://id-preview--ba61aa54-c833-4760-9f99-8588f60e9a36.lovable.app/data/NBA_fantasy_API_-_GameURL.csv";
+    const resp = await fetch(csvUrl);
+    if (!resp.ok) throw new Error(`Failed to fetch CSV: ${resp.status}`);
+    const csvText = await resp.text();
+    
     const lines = csvText.trim().split("\n");
     
     // Parse CSV: game_id,url
@@ -33,27 +37,24 @@ serve(async (req: Request) => {
 
     console.log(`Parsed ${mappings.length} game URL mappings`);
 
-    // Batch update schedule_games
+    // Batch update schedule_games and games
     let scheduleUpdated = 0;
     let gamesUpdated = 0;
 
-    // Process in batches of 50
-    for (let i = 0; i < mappings.length; i += 50) {
-      const batch = mappings.slice(i, i + 50);
-      
-      for (const m of batch) {
-        const { error: e1 } = await supabase
-          .from("schedule_games")
-          .update({ nba_game_url: m.url })
-          .eq("game_id", m.game_id);
-        if (!e1) scheduleUpdated++;
+    for (const m of mappings) {
+      const { data: d1 } = await supabase
+        .from("schedule_games")
+        .update({ nba_game_url: m.url })
+        .eq("game_id", m.game_id)
+        .select("game_id");
+      if (d1 && d1.length > 0) scheduleUpdated++;
 
-        const { error: e2 } = await supabase
-          .from("games")
-          .update({ nba_game_url: m.url })
-          .eq("game_id", m.game_id);
-        if (!e2) gamesUpdated++;
-      }
+      const { data: d2 } = await supabase
+        .from("games")
+        .update({ nba_game_url: m.url })
+        .eq("game_id", m.game_id)
+        .select("game_id");
+      if (d2 && d2.length > 0) gamesUpdated++;
     }
 
     return new Response(JSON.stringify({
