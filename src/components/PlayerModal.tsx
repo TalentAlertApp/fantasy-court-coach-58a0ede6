@@ -147,7 +147,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                   {data.history.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
                   ) : (
-                    <ScrollArea className="max-h-64">
+                    <ScrollArea className="max-h-[60vh]">
                       <Table>
                         <TableHeader>
                           <TableRow>
