@@ -1,8 +1,8 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, importGameData } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
