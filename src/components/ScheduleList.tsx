@@ -7,7 +7,7 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;

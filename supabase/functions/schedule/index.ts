@@ -20,7 +20,7 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    let query = supabase.from("schedule_games").select("*").order("tipoff_utc", { ascending: true });
+    let query = supabase.from("schedule_games").select("*").order("tipoff_utc", { ascending: true, nullsFirst: false });
     
     if (gwParam) query = query.eq("gw", parseInt(gwParam));
     if (dayParam) query = query.eq("day", parseInt(dayParam));

@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
+import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import ScheduleList from "@/components/ScheduleList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
