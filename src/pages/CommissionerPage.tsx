@@ -307,6 +307,44 @@ export default function CommissionerPage() {
         </div>
       </div>
 
+      {/* Game Data Import Card */}
+      <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="section-bar flex items-center gap-2">
+          <Database className="h-4 w-4" />
+          Import Game Data
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            CSV format: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS, MP, PS, R, A, B, S
+          </p>
+          <p className="text-xs text-muted-foreground">
+            This will populate schedule_games and player_game_logs. Existing data will be updated.
+          </p>
+          <input
+            ref={gameFileRef}
+            type="file"
+            accept=".csv"
+            onChange={handleGameDataUpload}
+            className="hidden"
+          />
+          <Button
+            onClick={() => gameFileRef.current?.click()}
+            disabled={isImportingGames}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {isImportingGames ? "Importing…" : "Upload Game Data CSV"}
+          </Button>
+
+          {lastGameResult && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              {lastGameResult.games} games, {lastGameResult.logs} player logs imported
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Info */}
       <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
