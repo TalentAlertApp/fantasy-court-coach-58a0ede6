@@ -196,20 +196,20 @@ export default function CommissionerPage() {
         const cols = parseCSVLine(lines[i]);
         if (!cols[10]) continue; // Skip if no Game ID
 
-        rows.push({
+      rows.push({
           week: parseInt(cols[0]) || 1,
           day: parseInt(cols[1]) || 1,
-          date: cols[2] || "",
-          dayName: cols[3] || "",
-          time: cols[4] || "",
-          homeTeam: cols[5] || "",
-          awayTeam: cols[6] || "",
+          date: (cols[2] || "").trim(),
+          dayName: (cols[3] || "").trim(),
+          time: (cols[4] || "").trim(),
+          homeTeam: (cols[5] || "").trim(),
+          awayTeam: (cols[6] || "").trim(),
           homeScore: parseInt(cols[7]) || 0,
           awayScore: parseInt(cols[8]) || 0,
-          status: cols[9] || "SCHEDULED",
-          gameId: cols[10] || "",
+          status: (cols[9] || "SCHEDULED").trim(),
+          gameId: (cols[10] || "").trim(),
           playerId: parseInt(cols[11]) || 0,
-          playerName: cols[12] || "",
+          playerName: (cols[12] || "").trim(),
           pts: parseFloat(cols[13]) || 0, // Fantasy Points
           mp: parseInt(cols[14]) || 0,
           ps: parseInt(cols[15]) || 0, // Points Scored
