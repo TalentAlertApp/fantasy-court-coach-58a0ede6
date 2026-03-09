@@ -93,8 +93,11 @@ function parseCSVLine(line: string): string[] {
 export default function CommissionerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isImportingGames, setIsImportingGames] = useState(false);
   const [lastResult, setLastResult] = useState<{ upserted: number; total: number } | null>(null);
+  const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const gameFileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
