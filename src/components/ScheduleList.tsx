@@ -141,8 +141,9 @@ export default function ScheduleList({ games }: ScheduleListProps) {
       })}
       
       <PlayerModal
-        playerId={selectedPlayerId ? String(selectedPlayerId) : null}
-        onClose={() => setSelectedPlayerId(null)}
+        playerId={selectedPlayerId}
+        open={selectedPlayerId !== null}
+        onOpenChange={(open) => !open && setSelectedPlayerId(null)}
       />
     </div>
   );
