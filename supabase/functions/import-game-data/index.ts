@@ -174,9 +174,70 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Update player_last_game for each player with their most recent game
+    const playerIds = [...new Set(playerLogs.map((l) => l.player_id))];
+    let lastGameUpdated = 0;
+
+    for (const pid of playerIds) {
+      // Get the most recent game log for this player
+      const { data: latestLog, error: latestErr } = await sb
+        .from("player_game_logs")
+        .select("*")
+        .eq("player_id", pid)
+        .order("game_date", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (latestErr || !latestLog) continue;
+
+      // Get game info to determine result
+      const { data: gameInfo } = await sb
+        .from("schedule_games")
+        .select("home_team, away_team, home_pts, away_pts")
+        .eq("game_id", latestLog.game_id)
+        .single();
+
+      let result: string | null = null;
+      let hPts = 0, aPts = 0;
+      if (gameInfo) {
+        hPts = gameInfo.home_pts;
+        aPts = gameInfo.away_pts;
+        if (hPts > 0 || aPts > 0) {
+          if (latestLog.home_away === "H") {
+            result = hPts > aPts ? "W" : "L";
+          } else {
+            result = aPts > hPts ? "W" : "L";
+          }
+        }
+      }
+
+      const { error: lastGameErr } = await sb
+        .from("player_last_game")
+        .upsert({
+          player_id: pid,
+          game_date: latestLog.game_date,
+          opp: latestLog.opp,
+          home_away: latestLog.home_away,
+          result,
+          h_pts: hPts,
+          a_pts: aPts,
+          mp: latestLog.mp,
+          pts: latestLog.pts,
+          reb: latestLog.reb,
+          ast: latestLog.ast,
+          stl: latestLog.stl,
+          blk: latestLog.blk,
+          fp: latestLog.fp,
+          nba_game_url: latestLog.nba_game_url,
+        }, { onConflict: "player_id" });
+
+      if (!lastGameErr) lastGameUpdated++;
+    }
+
     return okResponse({
       games_imported: games.length,
       player_logs_imported: logsUpserted,
+      player_last_game_updated: lastGameUpdated,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (e) {

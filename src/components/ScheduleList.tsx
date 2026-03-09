@@ -8,6 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown } from "lucide-react";
+import PlayerModal from "@/components/PlayerModal";
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
@@ -15,7 +16,7 @@ interface ScheduleListProps {
   games: ScheduleGame[];
 }
 
-function GameBoxScore({ gameId }: { gameId: string }) {
+function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick: (playerId: number) => void }) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
 
   if (isLoading) {
@@ -42,7 +43,11 @@ function GameBoxScore({ gameId }: { gameId: string }) {
       </div>
       {/* Rows */}
       {players.map((p) => (
-        <div key={p.player_id} className="grid grid-cols-[1fr_repeat(7,40px)] gap-1 px-3 py-1.5 text-sm items-center border-b border-border/50 last:border-b-0">
+        <div
+          key={p.player_id}
+          onClick={() => onPlayerClick(p.player_id)}
+          className="grid grid-cols-[1fr_repeat(7,40px)] gap-1 px-3 py-1.5 text-sm items-center border-b border-border/50 last:border-b-0 cursor-pointer hover:bg-accent/50 transition-colors"
+        >
           <div className="flex items-center gap-2 min-w-0">
             <Avatar className="h-6 w-6 shrink-0">
               {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
@@ -68,6 +73,7 @@ function GameBoxScore({ gameId }: { gameId: string }) {
 
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
   if (games.length === 0) {
     return (
@@ -127,12 +133,18 @@ export default function ScheduleList({ games }: ScheduleListProps) {
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              {isExpanded && <GameBoxScore gameId={g.game_id} />}
+              {isExpanded && <GameBoxScore gameId={g.game_id} onPlayerClick={setSelectedPlayerId} />}
             </CollapsibleContent>
             {(i < games.length - 1 && isExpanded) && <div className="border-b" />}
           </Collapsible>
         );
       })}
+      
+      <PlayerModal
+        playerId={selectedPlayerId}
+        open={selectedPlayerId !== null}
+        onOpenChange={(open) => !open && setSelectedPlayerId(null)}
+      />
     </div>
   );
 }
