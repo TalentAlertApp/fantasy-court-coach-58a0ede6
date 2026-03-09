@@ -16,50 +16,47 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch CSV from the preview URL
-    const csvUrl = "https://id-preview--ba61aa54-c833-4760-9f99-8588f60e9a36.lovable.app/data/NBA_fantasy_API_-_GameURL.csv";
-    const resp = await fetch(csvUrl);
-    if (!resp.ok) throw new Error(`Failed to fetch CSV: ${resp.status}`);
-    const csvText = await resp.text();
-    
-    const lines = csvText.trim().split("\n");
-    
-    // Parse CSV: game_id,url
-    const mappings: { game_id: string; url: string }[] = [];
-    for (const line of lines) {
-      const parts = line.split(",");
-      if (parts.length < 2) continue;
-      const game_id = parts[0].trim();
-      const url = parts.slice(1).join(",").trim();
-      if (!game_id || !url || game_id === "Game ID") continue;
-      mappings.push({ game_id, url });
+    // Generate URLs from existing schedule_games data
+    const { data: schedGames, error: e1 } = await supabase
+      .from("schedule_games")
+      .select("game_id, away_team, home_team")
+      .is("nba_game_url", null);
+    if (e1) throw e1;
+
+    console.log(`Found ${schedGames?.length ?? 0} schedule_games without URL`);
+
+    let scheduleUpdated = 0;
+    for (const g of schedGames ?? []) {
+      const url = `https://www.nba.com/game/${g.away_team.toLowerCase()}-vs-${g.home_team.toLowerCase()}-00${g.game_id}`;
+      const { error } = await supabase
+        .from("schedule_games")
+        .update({ nba_game_url: url })
+        .eq("game_id", g.game_id);
+      if (!error) scheduleUpdated++;
     }
 
-    console.log(`Parsed ${mappings.length} game URL mappings`);
+    // Same for games table
+    const { data: gameRows, error: e2 } = await supabase
+      .from("games")
+      .select("game_id, away_team, home_team")
+      .is("nba_game_url", null);
+    if (e2) throw e2;
 
-    // Batch update schedule_games and games
-    let scheduleUpdated = 0;
+    console.log(`Found ${gameRows?.length ?? 0} games without URL`);
+
     let gamesUpdated = 0;
-
-    for (const m of mappings) {
-      const { data: d1 } = await supabase
-        .from("schedule_games")
-        .update({ nba_game_url: m.url })
-        .eq("game_id", m.game_id)
-        .select("game_id");
-      if (d1 && d1.length > 0) scheduleUpdated++;
-
-      const { data: d2 } = await supabase
+    for (const g of gameRows ?? []) {
+      if (!g.away_team || !g.home_team) continue;
+      const url = `https://www.nba.com/game/${g.away_team.toLowerCase()}-vs-${g.home_team.toLowerCase()}-00${g.game_id}`;
+      const { error } = await supabase
         .from("games")
-        .update({ nba_game_url: m.url })
-        .eq("game_id", m.game_id)
-        .select("game_id");
-      if (d2 && d2.length > 0) gamesUpdated++;
+        .update({ nba_game_url: url })
+        .eq("game_id", g.game_id);
+      if (!error) gamesUpdated++;
     }
 
     return new Response(JSON.stringify({
       ok: true,
-      total_parsed: mappings.length,
       schedule_updated: scheduleUpdated,
       games_updated: gamesUpdated,
     }), {
