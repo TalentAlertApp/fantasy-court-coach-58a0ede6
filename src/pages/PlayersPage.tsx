@@ -31,6 +31,7 @@ export default function PlayersPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState<PageSizeOption>(20);
   const [currentPage, setCurrentPage] = useState(1);
+  const [team, setTeam] = useState("ALL");
 
   const { data: playersData, isLoading } = usePlayersQuery({
     sort, order: "desc", limit: 500,
@@ -47,16 +48,19 @@ export default function PlayersPage() {
   const filtered = useMemo(() => {
     let items = playersData?.items ?? [];
     items = items.filter((p) => p.core.salary <= maxSalary);
+    if (team !== "ALL") {
+      items = items.filter((p) => p.core.team === team);
+    }
     if (waiverMode) {
       items = items.filter((p) => !rosterIds.has(p.core.id));
       items.sort((a, b) => b.computed.value5 - a.computed.value5);
       items = items.slice(0, 25);
     }
     return items;
-  }, [playersData, maxSalary, waiverMode, rosterIds]);
+  }, [playersData, maxSalary, waiverMode, rosterIds, team]);
 
   // Reset page when filters change
-  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode]);
+  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode, team]);
 
   const totalItems = filtered.length;
   const effectivePageSize = pageSize === "All" ? totalItems : pageSize;
@@ -181,6 +185,7 @@ export default function PlayersPage() {
           sort={sort} onSortChange={setSort}
           search={search} onSearchChange={setSearch}
           maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary}
+          team={team} onTeamChange={setTeam}
         />
         <div className="mt-3 flex items-center gap-2 p-3 bg-card border rounded-sm">
           <Switch checked={waiverMode} onCheckedChange={setWaiverMode} />
