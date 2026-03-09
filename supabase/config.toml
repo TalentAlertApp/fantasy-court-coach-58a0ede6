@@ -46,8 +46,6 @@ verify_jwt = false
 [functions.sync-status]
 verify_jwt = false
 
-[functions.bdl-sync]
-verify_jwt = false
 
 [functions.salary-update]
 verify_jwt = false
