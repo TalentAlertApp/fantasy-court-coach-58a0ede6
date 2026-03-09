@@ -287,6 +287,13 @@ export const PlayerHistoryItemSchema = z
     blk: IntSchema,
     fp: NumSchema,
     nba_game_url: z.string().nullable(),
+    game_id: z.string(),
+    gw: IntSchema,
+    day: IntSchema,
+    home_pts: IntSchema,
+    away_pts: IntSchema,
+    home_team: z.string(),
+    away_team: z.string(),
   })
   .strict();
 
@@ -297,6 +304,8 @@ export const PlayerUpcomingItemSchema = z
     away_team: z.string(),
     home_team: z.string(),
     status: z.enum(["SCHEDULED", "FINAL"]),
+    gw: IntSchema,
+    day: IntSchema,
   })
   .strict();
 
