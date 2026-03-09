@@ -10,13 +10,13 @@ export interface Deadline {
 }
 
 export const DEADLINES: Deadline[] = [
-  // GW1
-  { gw: 1, day: 1, deadline_utc: "2025-10-22T00:00:00Z" },
-  { gw: 1, day: 2, deadline_utc: "2025-10-22T23:30:00Z" },
-  { gw: 1, day: 3, deadline_utc: "2025-10-24T00:00:00Z" },
-  { gw: 1, day: 4, deadline_utc: "2025-10-25T00:00:00Z" },
-  { gw: 1, day: 5, deadline_utc: "2025-10-25T23:30:00Z" },
-  { gw: 1, day: 6, deadline_utc: "2025-10-26T17:30:00Z" },
+  // GW1 (Lisbon UTC+1 until Oct 26)
+  { gw: 1, day: 1, deadline_utc: "2025-10-21T23:00:00Z" },
+  { gw: 1, day: 2, deadline_utc: "2025-10-22T22:30:00Z" },
+  { gw: 1, day: 3, deadline_utc: "2025-10-23T23:00:00Z" },
+  { gw: 1, day: 4, deadline_utc: "2025-10-24T23:00:00Z" },
+  { gw: 1, day: 5, deadline_utc: "2025-10-25T22:30:00Z" },
+  { gw: 1, day: 6, deadline_utc: "2025-10-26T16:30:00Z" },
   // GW2
   { gw: 2, day: 1, deadline_utc: "2025-10-27T22:30:00Z" },
   { gw: 2, day: 2, deadline_utc: "2025-10-28T22:30:00Z" },
@@ -183,22 +183,22 @@ export const DEADLINES: Deadline[] = [
   { gw: 23, day: 4, deadline_utc: "2026-03-26T22:30:00Z" },
   { gw: 23, day: 5, deadline_utc: "2026-03-27T22:30:00Z" },
   { gw: 23, day: 6, deadline_utc: "2026-03-28T18:30:00Z" },
-  { gw: 23, day: 7, deadline_utc: "2026-03-29T20:00:00Z" },
-  // GW24
-  { gw: 24, day: 1, deadline_utc: "2026-03-30T23:30:00Z" },
-  { gw: 24, day: 2, deadline_utc: "2026-03-31T23:30:00Z" },
-  { gw: 24, day: 3, deadline_utc: "2026-04-01T23:30:00Z" },
-  { gw: 24, day: 4, deadline_utc: "2026-04-02T23:30:00Z" },
-  { gw: 24, day: 5, deadline_utc: "2026-04-03T23:30:00Z" },
-  { gw: 24, day: 6, deadline_utc: "2026-04-04T19:30:00Z" },
-  { gw: 24, day: 7, deadline_utc: "2026-04-05T20:00:00Z" },
-  // GW25
-  { gw: 25, day: 1, deadline_utc: "2026-04-06T23:30:00Z" },
-  { gw: 25, day: 2, deadline_utc: "2026-04-07T23:30:00Z" },
-  { gw: 25, day: 3, deadline_utc: "2026-04-08T23:30:00Z" },
-  { gw: 25, day: 4, deadline_utc: "2026-04-09T23:30:00Z" },
-  { gw: 25, day: 5, deadline_utc: "2026-04-10T23:30:00Z" },
-  { gw: 25, day: 6, deadline_utc: "2026-04-12T22:30:00Z" },
+  { gw: 23, day: 7, deadline_utc: "2026-03-29T19:00:00Z" },
+  // GW24 (Lisbon UTC+1 from Mar 29)
+  { gw: 24, day: 1, deadline_utc: "2026-03-30T22:30:00Z" },
+  { gw: 24, day: 2, deadline_utc: "2026-03-31T22:30:00Z" },
+  { gw: 24, day: 3, deadline_utc: "2026-04-01T22:30:00Z" },
+  { gw: 24, day: 4, deadline_utc: "2026-04-02T22:30:00Z" },
+  { gw: 24, day: 5, deadline_utc: "2026-04-03T22:30:00Z" },
+  { gw: 24, day: 6, deadline_utc: "2026-04-04T18:30:00Z" },
+  { gw: 24, day: 7, deadline_utc: "2026-04-05T19:00:00Z" },
+  // GW25 (Lisbon UTC+1)
+  { gw: 25, day: 1, deadline_utc: "2026-04-06T22:30:00Z" },
+  { gw: 25, day: 2, deadline_utc: "2026-04-07T22:30:00Z" },
+  { gw: 25, day: 3, deadline_utc: "2026-04-08T22:30:00Z" },
+  { gw: 25, day: 4, deadline_utc: "2026-04-09T22:30:00Z" },
+  { gw: 25, day: 5, deadline_utc: "2026-04-10T22:30:00Z" },
+  { gw: 25, day: 6, deadline_utc: "2026-04-12T21:30:00Z" },
 ];
 
 /**
@@ -228,14 +228,16 @@ export function getGamedaysRemaining(): number {
  */
 export function formatDeadline(utc: string): string {
   const d = new Date(utc);
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const dayName = days[d.getUTCDay()];
-  const date = d.getUTCDate();
-  const month = months[d.getUTCMonth()];
-  const hours = String(d.getUTCHours()).padStart(2, "0");
-  const mins = String(d.getUTCMinutes()).padStart(2, "0");
-  return `${dayName} ${date} ${month} ${hours}:${mins}`;
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Lisbon",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return fmt.format(d);
 }
 
 /**

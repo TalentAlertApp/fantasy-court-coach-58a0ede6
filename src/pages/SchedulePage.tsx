@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
-import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
+import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
+import { Clock } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const MIN_WEEK = 1;
@@ -170,31 +171,45 @@ export default function SchedulePage() {
         </Button>
       </div>
 
-      {/* Date header + Today button */}
-      <div className="flex items-center justify-between px-1 py-3">
-        <div className="flex items-center gap-2">
-          <h3 className="font-heading font-bold text-sm uppercase">
-            {selectedDateLabel}
-          </h3>
-          <span className="text-xs text-muted-foreground font-heading">
-            Day {day}
-          </span>
-          {isToday && (
-            <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">
-              TODAY
-            </Badge>
-          )}
+      {/* Date header + Deadline + Today button */}
+      <div className="px-1 py-3 space-y-1">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="font-heading font-bold text-sm uppercase">
+              {selectedDateLabel}
+            </h3>
+            <span className="text-xs text-muted-foreground font-heading">
+              Day {day}
+            </span>
+            {isToday && (
+              <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">
+                TODAY
+              </Badge>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1 text-xs"
+            disabled={gw === current.gw && day === current.day}
+            onClick={() => { setGw(current.gw); setDay(current.day); }}
+          >
+            <CalendarDays className="h-3 w-3" />
+            Today
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 gap-1 text-xs"
-          disabled={gw === current.gw && day === current.day}
-          onClick={() => { setGw(current.gw); setDay(current.day); }}
-        >
-          <CalendarDays className="h-3 w-3" />
-          Today
-        </Button>
+        {(() => {
+          const dl = DEADLINES.find((d) => d.gw === gw && d.day === day);
+          if (!dl) return null;
+          return (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span className="font-heading">
+                Deadline: <span className="font-bold text-foreground">{formatDeadline(dl.deadline_utc)}</span>
+              </span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Games */}

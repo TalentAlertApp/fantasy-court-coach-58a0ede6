@@ -1,56 +1,41 @@
 
+## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
 
-## Fix Deadline Timezones + Display on Schedule
+### Architecture
 
-### Problem
-The deadline times in `deadlines.ts` are Lisbon local times stored as if they were UTC. Portugal observes DST (UTC+1) from last Sunday of March to last Sunday of October. This means ~20 entries during DST periods have incorrect UTC values.
-
-### Affected Entries
-
-**GW1 Days 1-5 (Oct 22-25, 2025 — Lisbon is UTC+1):** Each needs -1 hour
-- Day 1: `00:00Z` → `23:00Z` (Oct 21)
-- Day 2: `23:30Z` → `22:30Z`
-- Day 3: `00:00Z` → `23:00Z` (Oct 23)
-- Day 4: `00:00Z` → `23:00Z` (Oct 24)
-- Day 5: `23:30Z` → `22:30Z`
-
-**GW23 Day 7 (Mar 29 — DST starts):** `20:00Z` → `19:00Z`
-
-**GW24 all 7 days (Mar 30 - Apr 5 — UTC+1):** Each needs -1 hour
-
-**GW25 all 6 days (Apr 6-12 — UTC+1):** Each needs -1 hour
-
-### Changes
-
-| File | Change |
-|------|--------|
-| `src/lib/deadlines.ts` | Fix ~20 UTC values for DST; update `formatDeadline()` to display in `Europe/Lisbon` timezone using `Intl.DateTimeFormat` |
-| `src/pages/SchedulePage.tsx` | Add deadline display below the date header: "Deadline: Mon 9 Mar 22:30" |
-
-### formatDeadline Update
-
-Replace manual UTC formatting with `Intl.DateTimeFormat` using `timeZone: 'Europe/Lisbon'` so displayed times always match the user's Lisbon reference:
-
-```typescript
-export function formatDeadline(utc: string): string {
-  const d = new Date(utc);
-  const fmt = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Europe/Lisbon",
-    weekday: "short", day: "numeric", month: "short",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  });
-  return fmt.format(d);
-}
+```
+Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
 ```
 
-### Schedule Page Deadline Display
+### Data Sources
 
-Add below the existing date header row a small line showing the deadline for the selected day:
+- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
+- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
+  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
+- **Database.csv**: Player bio data (uploaded via Commissioner page)
 
-```text
-Mon, Mar 9 — Day 1  [TODAY]          [Today btn]
-⏰ Deadline: Mon 9 Mar 22:30
+### FP Formula (CONSISTENT EVERYWHERE)
+
 ```
+FP = PS + R + 2*A + 3*S + 3*B
+```
+Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
 
-Uses `DEADLINES.find(d => d.gw === gw && d.day === day)` to get the deadline for the selected day, then `formatDeadline()` to display it.
+### Sync Modes
 
+| Mode | What it does |
+|------|-------------|
+| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
+| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
+| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
+| FULL | Run all three sequentially |
+
+### Edge Functions
+
+1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
+2. **import-players** — CSV-driven bio data import (Commissioner page)
+3. **salary-update** — Manual salary edits with auto-recalc
+
+### Pages
+
+- Commissioner page (`/commissioner`) — CSV upload/download for player database
