@@ -10,13 +10,13 @@ export interface Deadline {
 }
 
 export const DEADLINES: Deadline[] = [
-  // GW1
-  { gw: 1, day: 1, deadline_utc: "2025-10-22T00:00:00Z" },
-  { gw: 1, day: 2, deadline_utc: "2025-10-22T23:30:00Z" },
-  { gw: 1, day: 3, deadline_utc: "2025-10-24T00:00:00Z" },
-  { gw: 1, day: 4, deadline_utc: "2025-10-25T00:00:00Z" },
-  { gw: 1, day: 5, deadline_utc: "2025-10-25T23:30:00Z" },
-  { gw: 1, day: 6, deadline_utc: "2025-10-26T17:30:00Z" },
+  // GW1 (Lisbon UTC+1 until Oct 26)
+  { gw: 1, day: 1, deadline_utc: "2025-10-21T23:00:00Z" },
+  { gw: 1, day: 2, deadline_utc: "2025-10-22T22:30:00Z" },
+  { gw: 1, day: 3, deadline_utc: "2025-10-23T23:00:00Z" },
+  { gw: 1, day: 4, deadline_utc: "2025-10-24T23:00:00Z" },
+  { gw: 1, day: 5, deadline_utc: "2025-10-25T22:30:00Z" },
+  { gw: 1, day: 6, deadline_utc: "2025-10-26T16:30:00Z" },
   // GW2
   { gw: 2, day: 1, deadline_utc: "2025-10-27T22:30:00Z" },
   { gw: 2, day: 2, deadline_utc: "2025-10-28T22:30:00Z" },
