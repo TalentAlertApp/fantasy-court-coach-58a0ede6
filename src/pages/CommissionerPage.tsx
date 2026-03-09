@@ -176,6 +176,72 @@ export default function CommissionerPage() {
     }
   };
 
+  const handleGameDataUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImportingGames(true);
+    setLastGameResult(null);
+    try {
+      const text = await file.text();
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) {
+        toast.error("No valid game data found in CSV");
+        return;
+      }
+
+      // Parse CSV
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCSVLine(lines[i]);
+        if (!cols[10]) continue; // Skip if no Game ID
+
+        rows.push({
+          week: parseInt(cols[0]) || 1,
+          day: parseInt(cols[1]) || 1,
+          date: cols[2] || "",
+          dayName: cols[3] || "",
+          time: cols[4] || "",
+          homeTeam: cols[5] || "",
+          awayTeam: cols[6] || "",
+          homeScore: parseInt(cols[7]) || 0,
+          awayScore: parseInt(cols[8]) || 0,
+          status: cols[9] || "SCHEDULED",
+          gameId: cols[10] || "",
+          playerId: parseInt(cols[11]) || 0,
+          playerName: cols[12] || "",
+          pts: parseFloat(cols[13]) || 0, // Fantasy Points
+          mp: parseInt(cols[14]) || 0,
+          ps: parseInt(cols[15]) || 0, // Points Scored
+          r: parseInt(cols[16]) || 0,
+          a: parseInt(cols[17]) || 0,
+          b: parseInt(cols[18]) || 0,
+          s: parseInt(cols[19]) || 0,
+        });
+      }
+
+      if (rows.length === 0) {
+        toast.error("No valid game data rows found");
+        return;
+      }
+
+      const result = await importGameData(rows);
+      setLastGameResult({ games: result.games_imported, logs: result.player_logs_imported });
+      toast.success(`Imported ${result.games_imported} games, ${result.player_logs_imported} player logs`);
+      
+      if (result.errors?.length) {
+        toast.warning(`${result.errors.length} errors during import`);
+        console.warn("Import errors:", result.errors);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Game data import failed: ${msg}`);
+    } finally {
+      setIsImportingGames(false);
+      if (gameFileRef.current) gameFileRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
