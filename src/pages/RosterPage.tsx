@@ -7,18 +7,20 @@ import { saveRoster } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import KpiTiles from "@/components/KpiTiles";
+import { getCurrentGameday, getGamedaysRemaining, formatDeadline } from "@/lib/deadlines";
 import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
+import RosterSidebar from "@/components/RosterSidebar";
 import BottomActionBar from "@/components/BottomActionBar";
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
 import PlayerPickerDialog from "@/components/PlayerPickerDialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -40,6 +42,11 @@ export default function RosterPage() {
   const allPlayers = playersData?.items ?? [];
   const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "My Team";
 
+  // Compute current gameday from deadlines
+  const currentGameday = useMemo(() => getCurrentGameday(), []);
+  const gamedaysRemaining = useMemo(() => getGamedaysRemaining(), []);
+  const deadlineFormatted = useMemo(() => formatDeadline(currentGameday.deadline_utc), [currentGameday]);
+
   const resolvePlayer = useCallback(
     (id: number) => allPlayers.find((p) => p.core.id === id),
     [allPlayers]
@@ -59,6 +66,11 @@ export default function RosterPage() {
     ...(roster?.starters ?? []),
     ...(roster?.bench ?? []),
   ].filter((id) => id > 0)), [roster?.starters, roster?.bench]);
+
+  // Compute roster stats
+  const fcStarters = starters.filter((p) => p.core.fc_bc === "FC").length;
+  const bcStarters = starters.filter((p) => p.core.fc_bc === "BC").length;
+  const totalSalary = [...starters, ...bench].reduce((s, p) => s + p.core.salary, 0);
 
   useMemo(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
@@ -83,7 +95,7 @@ export default function RosterPage() {
       return;
     }
     saveMutation.mutate({
-      gw: roster.gw, day: roster.day,
+      gw: currentGameday.gw, day: currentGameday.day,
       starters: starters.map((p) => p.core.id),
       bench: bench.map((p) => p.core.id),
       captain_id: captainId || starters[0]?.core.id || 0,
@@ -106,7 +118,7 @@ export default function RosterPage() {
   const handleApplyOptimization = () => {
     if (!optimizerResult || !roster) return;
     saveMutation.mutate({
-      gw: roster.gw, day: roster.day,
+      gw: currentGameday.gw, day: currentGameday.day,
       starters: optimizerResult.newStarters,
       bench: optimizerResult.newBench,
       captain_id: captainId,
@@ -126,21 +138,17 @@ export default function RosterPage() {
     const newStarters = [...(roster.starters ?? [])];
     const newBench = [...(roster.bench ?? [])];
 
-    if (starterIdx >= 0) {
-      newStarters[starterIdx] = newPlayer.core.id;
-    } else if (benchIdx >= 0) {
-      newBench[benchIdx] = newPlayer.core.id;
-    }
+    if (starterIdx >= 0) newStarters[starterIdx] = newPlayer.core.id;
+    else if (benchIdx >= 0) newBench[benchIdx] = newPlayer.core.id;
 
     saveMutation.mutate({
-      gw: roster.gw, day: roster.day,
+      gw: currentGameday.gw, day: currentGameday.day,
       starters: newStarters, bench: newBench,
       captain_id: captainId === swapPlayerId ? newPlayer.core.id : captainId,
     });
     setSwapPlayerId(null);
   };
 
-  /** Drag & drop swap between two roster players */
   const handleDnDSwap = (fromId: number, toId: number) => {
     if (!roster) return;
     const newStarters = [...(roster.starters ?? [])];
@@ -151,7 +159,6 @@ export default function RosterPage() {
     const toStarterIdx = newStarters.indexOf(toId);
     const toBenchIdx = newBench.indexOf(toId);
 
-    // Find where each player is and swap them
     if (fromStarterIdx >= 0 && toStarterIdx >= 0) {
       newStarters[fromStarterIdx] = toId;
       newStarters[toStarterIdx] = fromId;
@@ -169,7 +176,7 @@ export default function RosterPage() {
     const newCaptain = captainId === fromId ? toId : captainId === toId ? fromId : captainId;
 
     saveMutation.mutate({
-      gw: roster.gw, day: roster.day,
+      gw: currentGameday.gw, day: currentGameday.day,
       starters: newStarters, bench: newBench,
       captain_id: newCaptain,
     });
@@ -178,10 +185,21 @@ export default function RosterPage() {
   const isLoading = rosterLoading || playersLoading;
 
   return (
-    <div className="space-y-4 pb-20">
-      <div className="flex items-center gap-2">
-        <h2 className="text-xl font-heading font-bold">{teamName}</h2>
-        <span className="text-sm text-muted-foreground font-body">— Roster</span>
+    <div className="pb-20">
+      {/* ── Full-width Header Banner ── */}
+      <div className="bg-primary rounded-sm mb-4 px-5 py-4">
+        <p className="text-destructive font-heading text-[11px] font-bold uppercase tracking-widest mb-0.5">
+          {teamName}
+        </p>
+        <h1 className="text-primary-foreground font-heading text-2xl font-bold tracking-wider">
+          GAMEWEEK {currentGameday.gw} — DAY {currentGameday.day}
+        </h1>
+        <div className="flex items-center gap-1.5 mt-1">
+          <Clock className="h-3.5 w-3.5 text-accent" />
+          <span className="text-primary-foreground/80 text-xs font-body">
+            Deadline: <span className="font-semibold text-primary-foreground">{deadlineFormatted}</span>
+          </span>
+        </div>
       </div>
 
       {isLoading ? (
@@ -191,30 +209,54 @@ export default function RosterPage() {
         </div>
       ) : (
         <>
-          {roster && (
-            <KpiTiles
-              gw={roster.gw} day={roster.day}
-              deadline={roster.deadline_utc}
-              bankRemaining={roster.bank_remaining}
-              freeTransfers={roster.free_transfers_remaining}
-            />
-          )}
-
-          <div className="flex items-center justify-between">
-            <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "court" | "list")}>
-              <ToggleGroupItem value="court" className="font-heading text-xs uppercase"><LayoutGrid className="h-4 w-4 mr-1" />Court</ToggleGroupItem>
-              <ToggleGroupItem value="list" className="font-heading text-xs uppercase"><List className="h-4 w-4 mr-1" />List</ToggleGroupItem>
-            </ToggleGroup>
-            <Button onClick={handleOptimize} variant="outline" size="sm">
+          {/* ── Toolbar Row ── */}
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "court" | "list")}>
+                <ToggleGroupItem value="court" className="font-heading text-xs uppercase rounded-sm">
+                  <LayoutGrid className="h-4 w-4 mr-1" />Court
+                </ToggleGroupItem>
+                <ToggleGroupItem value="list" className="font-heading text-xs uppercase rounded-sm">
+                  <List className="h-4 w-4 mr-1" />List
+                </ToggleGroupItem>
+              </ToggleGroup>
+              <div className="hidden sm:flex items-center gap-2 ml-3 text-[10px] font-heading uppercase text-muted-foreground">
+                <Badge variant="destructive" className="rounded-sm text-[9px]">FC:{fcStarters}</Badge>
+                <Badge className="rounded-sm text-[9px]">BC:{bcStarters}</Badge>
+                <span className="font-mono">Bank: ${roster?.bank_remaining?.toFixed(1) ?? "—"}</span>
+                <span className="font-mono">Trans: {roster?.free_transfers_remaining ?? "—"}</span>
+              </div>
+            </div>
+            <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
               <Zap className="h-4 w-4 mr-1" />Optimize
             </Button>
           </div>
 
-          {viewMode === "court" ? (
-            <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-          ) : (
-            <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-          )}
+          {/* ── Two-Column Layout ── */}
+          <div className="flex gap-4">
+            {/* Main content */}
+            <div className="flex-1 min-w-0">
+              {viewMode === "court" ? (
+                <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
+              ) : (
+                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
+              )}
+            </div>
+
+            {/* Sidebar — hidden on mobile */}
+            <div className="hidden lg:block w-64 shrink-0">
+              <RosterSidebar
+                gw={currentGameday.gw}
+                day={currentGameday.day}
+                teamId={selectedTeamId ?? undefined}
+                bankRemaining={roster?.bank_remaining ?? 0}
+                freeTransfers={roster?.free_transfers_remaining ?? 0}
+                fcStarters={fcStarters}
+                bcStarters={bcStarters}
+                totalSalary={totalSalary}
+              />
+            </div>
+          </div>
 
           {starters.length > 0 && (
             <BottomActionBar
@@ -223,6 +265,7 @@ export default function RosterPage() {
               onCaptainChange={setCaptainId}
               onSave={handleSave}
               saving={saveMutation.isPending}
+              gamedaysRemaining={gamedaysRemaining}
             />
           )}
 
@@ -234,7 +277,7 @@ export default function RosterPage() {
             allPlayers={allPlayers}
             rosterIds={rosterIds}
             onSelect={handleSwapSelect}
-            title={`Swap Player`}
+            title="Swap Player"
           />
         </>
       )}
