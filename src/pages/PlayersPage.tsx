@@ -185,6 +185,7 @@ export default function PlayersPage() {
           sort={sort} onSortChange={setSort}
           search={search} onSearchChange={setSearch}
           maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary}
+          team={team} onTeamChange={setTeam}
         />
         <div className="mt-3 flex items-center gap-2 p-3 bg-card border rounded-sm">
           <Switch checked={waiverMode} onCheckedChange={setWaiverMode} />
