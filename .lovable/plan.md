@@ -1,41 +1,30 @@
 
-## Plan: Google Apps Script → Google Sheet → Supabase (Sheet-Driven Pipeline)
 
-### Architecture
+## Fix: Player Modal Shows Empty Data
 
-```
-Google Apps Script (manual) → Google Sheet (3 tabs) → Edge Function (sync-sheet) → Supabase → Frontend
-```
+### Root Cause
+The `player-detail` edge function response shape doesn't match the `PlayerDetailPayloadSchema` Zod contract. The client does `schema.parse(json)` which throws on mismatch, so the modal renders with no data.
 
-### Data Sources
+### Mismatches Found
 
-- **Salary tab** (gid=1509599415): ID, Player, Team, Salary
-- **FP tab** (gid=1967183508): Game logs (rows 1-2000) + Schedule (rows 2001+)
-  - Columns: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS(=FP), MP, PS(=pts scored), R(=reb), A(=ast), B(=blk), S(=stl)
-- **Database.csv**: Player bio data (uploaded via Commissioner page)
+| Section | Edge function returns | Contract expects |
+|---------|----------------------|-----------------|
+| `history[].game_date` | `game_date` | `date` |
+| `history[].home_away` | nullable | `"H" \| "A"` (non-nullable) |
+| `upcoming[].date` | `date` | `tipoff_utc` |
+| `upcoming[].opp` | `opp` | `away_team` + `home_team` |
+| `upcoming` | missing `status` | `status: "SCHEDULED"` |
 
-### FP Formula (CONSISTENT EVERYWHERE)
+### Fix: Update `supabase/functions/player-detail/index.ts`
 
-```
-FP = PS + R + 2*A + 3*S + 3*B
-```
-Where: PS=points scored, R=rebounds, A=assists, S=steals, B=blocks
+Align the response mapping to match the contract:
 
-### Sync Modes
+**History items** - rename `game_date` → `date`, ensure `home_away` defaults to `"H"`, ensure `opp` defaults to empty string.
 
-| Mode | What it does |
-|------|-------------|
-| SALARY | Read Salary tab → update players.salary → recalc value_t/value5 |
-| GAMES | Read FP tab finished rows → upsert games + player_game_logs → recompute season/last5 aggregates |
-| SCHEDULE | Read FP tab rows 2001+ → upsert schedule_games |
-| FULL | Run all three sequentially |
+**Upcoming items** - return `{ game_id, tipoff_utc, away_team, home_team, status }` instead of `{ game_id, date, opp, home_away, matchup }`.
 
-### Edge Functions
+### Files
+- `supabase/functions/player-detail/index.ts` — fix response field mapping
 
-1. **sync-sheet** — Main sync (SALARY/GAMES/SCHEDULE/FULL modes)
-2. **import-players** — CSV-driven bio data import (Commissioner page)
-3. **salary-update** — Manual salary edits with auto-recalc
+No database or client changes needed. The contract and modal code are already correct.
 
-### Pages
-
-- Commissioner page (`/commissioner`) — CSV upload/download for player database
