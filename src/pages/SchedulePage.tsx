@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
-import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
+import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
+import { Clock } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const MIN_WEEK = 1;
