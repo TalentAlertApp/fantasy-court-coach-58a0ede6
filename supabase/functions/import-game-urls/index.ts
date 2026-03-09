@@ -18,37 +18,22 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    let updatedSchedule = 0;
-    let updatedGames = 0;
+    // Process all updates in parallel
+    const results = await Promise.allSettled(
+      mappings.flatMap(({ game_id, url }) => [
+        supabase.from("schedule_games").update({ nba_game_url: url }).eq("game_id", game_id),
+        supabase.from("games").update({ nba_game_url: url }).eq("game_id", game_id),
+      ])
+    );
 
-    // Process in batches of 50
-    for (let i = 0; i < mappings.length; i += 50) {
-      const batch = mappings.slice(i, i + 50);
-      
-      // Update schedule_games
-      for (const { game_id, url } of batch) {
-        const { error } = await supabase
-          .from("schedule_games")
-          .update({ nba_game_url: url })
-          .eq("game_id", game_id);
-        if (!error) updatedSchedule++;
-      }
-
-      // Update games table
-      for (const { game_id, url } of batch) {
-        const { error } = await supabase
-          .from("games")
-          .update({ nba_game_url: url })
-          .eq("game_id", game_id);
-        if (!error) updatedGames++;
-      }
-    }
+    const ok = results.filter(r => r.status === "fulfilled").length;
+    const failed = results.filter(r => r.status === "rejected").length;
 
     return new Response(JSON.stringify({
       ok: true,
       total: mappings.length,
-      updatedSchedule,
-      updatedGames,
+      updatedOps: ok,
+      failedOps: failed,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
