@@ -241,6 +241,6 @@ Deno.serve(async (req) => {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (e) {
-    return errorResponse("INTERNAL", e.message, null, 500);
+    return errorResponse("INTERNAL", (e as Error).message, null, 500);
   }
 });
