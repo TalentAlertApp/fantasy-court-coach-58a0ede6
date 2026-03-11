@@ -1,12 +1,10 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
 /**
  * Resolve team_id from: query param > header > default (first team by created_at).
  * Returns { team_id, team_name } or throws.
  */
 export async function resolveTeam(
   req: Request,
-  sb: ReturnType<typeof createClient>
+  sb: any
 ): Promise<{ team_id: string; team_name: string }> {
   const url = new URL(req.url);
   let teamId = url.searchParams.get("team_id") || req.headers.get("x-team-id");
@@ -18,7 +16,7 @@ export async function resolveTeam(
       .eq("id", teamId)
       .single();
     if (error || !data) throw new Error(`Team not found: ${teamId}`);
-    return { team_id: data.id, team_name: data.name };
+    return { team_id: (data as any).id, team_name: (data as any).name };
   }
 
   // Default: earliest created team
@@ -29,5 +27,5 @@ export async function resolveTeam(
     .limit(1)
     .single();
   if (error || !data) throw new Error("No teams exist");
-  return { team_id: data.id, team_name: data.name };
+  return { team_id: (data as any).id, team_name: (data as any).name };
 }

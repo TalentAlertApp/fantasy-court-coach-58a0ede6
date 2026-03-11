@@ -59,6 +59,6 @@ Deno.serve(async (req) => {
 
     return okResponse({ game_id: gameId, players: result });
   } catch (e) {
-    return errorResponse("INTERNAL", e.message, null, 500);
+    return errorResponse("INTERNAL", (e as Error).message, null, 500);
   }
 });
