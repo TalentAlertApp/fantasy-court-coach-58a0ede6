@@ -135,6 +135,10 @@ export type Database = {
           blk: number
           fp: number
           game_date: string | null
+          game_recap_url: string | null
+          game_boxscore_url: string | null
+          game_charts_url: string | null
+          game_playbyplay_url: string | null
           h_pts: number
           home_away: string | null
           id: string
@@ -154,6 +158,10 @@ export type Database = {
           blk?: number
           fp?: number
           game_date?: string | null
+          game_recap_url?: string | null
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
+          game_playbyplay_url?: string | null
           h_pts?: number
           home_away?: string | null
           id?: string
@@ -173,6 +181,10 @@ export type Database = {
           blk?: number
           fp?: number
           game_date?: string | null
+          game_recap_url?: string | null
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
+          game_playbyplay_url?: string | null
           h_pts?: number
           home_away?: string | null
           id?: string
