@@ -60,7 +60,7 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "injury-monitor": `Return JSON: { "items": [{ "player_id": number, "status": "OUT"|"Q"|"DTD"|"ACTIVE"|"UNKNOWN", "headline": string|null, "impact": "low"|"medium"|"high", "recommended_move": { "action": "hold"|"bench"|"drop"|"swap", "replacement_targets": [{ "player_id": number, "why": string[], "confidence": number(0-1) }] }, "risk_flags": string[] }], "notes": string[] }`,
 };
 
-async function fetchContext(sb: ReturnType<typeof createClient>, teamId?: string) {
+async function fetchContext(sb: any, teamId?: string) {
   const [playersRes, rosterRes, scheduleRes] = await Promise.all([
     sb.from("players").select("*").order("fp_pg5", { ascending: false }).limit(200),
     teamId

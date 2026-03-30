@@ -21,8 +21,12 @@ export type Database = {
           away_team_abbr: string | null
           balldontlie_game_id: number | null
           date_utc: string | null
+          game_boxscore_url: string | null
+          game_charts_url: string | null
           game_date: string | null
           game_id: string
+          game_playbyplay_url: string | null
+          game_recap_url: string | null
           home_pts: number | null
           home_team: string | null
           home_team_abbr: string | null
@@ -37,8 +41,12 @@ export type Database = {
           away_team_abbr?: string | null
           balldontlie_game_id?: number | null
           date_utc?: string | null
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
           game_date?: string | null
           game_id: string
+          game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           home_pts?: number | null
           home_team?: string | null
           home_team_abbr?: string | null
@@ -53,8 +61,12 @@ export type Database = {
           away_team_abbr?: string | null
           balldontlie_game_id?: number | null
           date_utc?: string | null
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
           game_date?: string | null
           game_id?: string
+          game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           home_pts?: number | null
           home_team?: string | null
           home_team_abbr?: string | null
@@ -72,8 +84,12 @@ export type Database = {
           blk: number
           created_at: string
           fp: number
+          game_boxscore_url: string | null
+          game_charts_url: string | null
           game_date: string | null
           game_id: string
+          game_playbyplay_url: string | null
+          game_recap_url: string | null
           home_away: string | null
           id: string
           matchup: string | null
@@ -92,8 +108,12 @@ export type Database = {
           blk?: number
           created_at?: string
           fp?: number
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
           game_date?: string | null
           game_id: string
+          game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           home_away?: string | null
           id?: string
           matchup?: string | null
@@ -112,8 +132,12 @@ export type Database = {
           blk?: number
           created_at?: string
           fp?: number
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
           game_date?: string | null
           game_id?: string
+          game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           home_away?: string | null
           id?: string
           matchup?: string | null
@@ -134,11 +158,11 @@ export type Database = {
           ast: number
           blk: number
           fp: number
-          game_date: string | null
-          game_recap_url: string | null
           game_boxscore_url: string | null
           game_charts_url: string | null
+          game_date: string | null
           game_playbyplay_url: string | null
+          game_recap_url: string | null
           h_pts: number
           home_away: string | null
           id: string
@@ -157,11 +181,11 @@ export type Database = {
           ast?: number
           blk?: number
           fp?: number
-          game_date?: string | null
-          game_recap_url?: string | null
           game_boxscore_url?: string | null
           game_charts_url?: string | null
+          game_date?: string | null
           game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           h_pts?: number
           home_away?: string | null
           id?: string
@@ -180,11 +204,11 @@ export type Database = {
           ast?: number
           blk?: number
           fp?: number
-          game_date?: string | null
-          game_recap_url?: string | null
           game_boxscore_url?: string | null
           game_charts_url?: string | null
+          game_date?: string | null
           game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           h_pts?: number
           home_away?: string | null
           id?: string
@@ -387,7 +411,11 @@ export type Database = {
           away_pts: number
           away_team: string
           day: number
+          game_boxscore_url: string | null
+          game_charts_url: string | null
           game_id: string
+          game_playbyplay_url: string | null
+          game_recap_url: string | null
           gw: number
           home_pts: number
           home_team: string
@@ -399,7 +427,11 @@ export type Database = {
           away_pts?: number
           away_team: string
           day?: number
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
           game_id: string
+          game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           gw?: number
           home_pts?: number
           home_team: string
@@ -411,7 +443,11 @@ export type Database = {
           away_pts?: number
           away_team?: string
           day?: number
+          game_boxscore_url?: string | null
+          game_charts_url?: string | null
           game_id?: string
+          game_playbyplay_url?: string | null
+          game_recap_url?: string | null
           gw?: number
           home_pts?: number
           home_team?: string
