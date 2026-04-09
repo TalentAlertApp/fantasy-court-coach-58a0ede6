@@ -247,8 +247,8 @@ export async function importGameData(rows: Array<{
   homeTeam: string; awayTeam: string; homeScore: number; awayScore: number;
   status: string; gameId: string; playerId: number; playerName: string;
   pts: number; mp: number; ps: number; r: number; a: number; b: number; s: number;
-}>) {
+}>, replace = false) {
   return unwrap(await apiFetch("import-game-data", ImportGameDataResponseSchema, {
-    method: "POST", body: JSON.stringify({ rows }),
+    method: "POST", body: JSON.stringify({ rows, replace }),
   }));
 }
