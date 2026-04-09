@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
 import { Upload, Download, Users, AlertCircle, CheckCircle2, Database } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiFetch, importGameData } from "@/lib/api";
@@ -110,6 +112,7 @@ export default function CommissionerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
+  const [replaceGames, setReplaceGames] = useState(true);
   const [lastResult, setLastResult] = useState<{ upserted: number; total: number; deleted?: number } | null>(null);
   const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -204,13 +207,17 @@ export default function CommissionerPage() {
       const text = await file.text();
       const lines = text.split("\n").filter(l => l.trim());
       if (lines.length < 2) {
-        toast.error("No valid game data found in CSV");
+        toast.error("No valid game data found");
         return;
       }
 
+      // Detect delimiter: if the header contains tabs, use TSV; otherwise CSV
+      const headerLine = lines[0].replace(/^\uFEFF/, "");
+      const isTsv = headerLine.includes("\t");
+
       const rows = [];
       for (let i = 1; i < lines.length; i++) {
-        const cols = parseCSVLine(lines[i]);
+        const cols = isTsv ? lines[i].split("\t").map(c => c.trim()) : parseCSVLine(lines[i]);
         if (!cols[10]) continue;
 
         rows.push({
@@ -242,7 +249,7 @@ export default function CommissionerPage() {
         return;
       }
 
-      const result = await importGameData(rows);
+      const result = await importGameData(rows, replaceGames);
       setLastGameResult({ games: result.games_imported, logs: result.player_logs_imported });
       toast.success(`Imported ${result.games_imported} games, ${result.player_logs_imported} player logs`);
 
@@ -333,12 +340,18 @@ export default function CommissionerPage() {
         </div>
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
-            CSV format: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS, MP, PS, R, A, B, S
+            TSV/CSV: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS, MP, PS, R, A, B, S
           </p>
+          <div className="flex items-center gap-2">
+            <Switch id="replace-games" checked={replaceGames} onCheckedChange={setReplaceGames} />
+            <Label htmlFor="replace-games" className="text-sm">
+              Full replace <span className="text-muted-foreground">(wipe existing data before import)</span>
+            </Label>
+          </div>
           <input
             ref={gameFileRef}
             type="file"
-            accept=".csv"
+            accept=".tsv,.csv,.txt"
             onChange={handleGameDataUpload}
             className="hidden"
           />
@@ -348,7 +361,7 @@ export default function CommissionerPage() {
             className="w-full"
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isImportingGames ? "Importing…" : "Upload Game Data CSV"}
+            {isImportingGames ? "Importing…" : "Upload Game Data"}
           </Button>
 
           {lastGameResult && (
