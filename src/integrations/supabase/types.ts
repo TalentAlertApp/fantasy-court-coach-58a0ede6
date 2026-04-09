@@ -255,6 +255,7 @@ export type Database = {
           mpg: number
           mpg5: number
           name: string
+          nba_url: string | null
           note: string | null
           photo: string | null
           pos: string | null
@@ -295,6 +296,7 @@ export type Database = {
           mpg?: number
           mpg5?: number
           name: string
+          nba_url?: string | null
           note?: string | null
           photo?: string | null
           pos?: string | null
@@ -335,6 +337,7 @@ export type Database = {
           mpg?: number
           mpg5?: number
           name?: string
+          nba_url?: string | null
           note?: string | null
           photo?: string | null
           pos?: string | null

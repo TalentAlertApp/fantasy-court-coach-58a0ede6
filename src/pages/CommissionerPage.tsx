@@ -11,17 +11,20 @@ const ImportResponseSchema = z.object({
   data: z.object({
     upserted: z.number(),
     skipped: z.number(),
+    deleted: z.number().optional(),
     total: z.number(),
     errors: z.array(z.string()).optional(),
   }),
 });
 
-interface CsvPlayer {
+interface TsvPlayer {
+  nba_url: string;
   id: string;
   photo: string;
   name: string;
   team: string;
   fc_bc: string;
+  salary: string;
   jersey: string;
   college: string;
   weight: string;
@@ -32,35 +35,48 @@ interface CsvPlayer {
   pos: string;
 }
 
-function parseCsv(text: string): CsvPlayer[] {
+/** Parse salary like "22,0" or "4,5" → 22.0 or 4.5 (comma = decimal) */
+function parseSalary(raw: string): number {
+  if (!raw || raw.trim() === "") return 0;
+  // Replace comma with dot for decimal
+  const cleaned = raw.trim().replace(",", ".");
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? 0 : val;
+}
+
+function parseTsv(text: string): TsvPlayer[] {
   const lines = text.split("\n").filter(l => l.trim());
   if (lines.length < 2) return [];
-  
-  // Parse header
-  const header = parseCSVLine(lines[0]).map(h => h.trim().toUpperCase());
-  
+
+  // Remove BOM if present
+  const firstLine = lines[0].replace(/^\uFEFF/, "");
+  const header = firstLine.split("\t").map(h => h.trim().toUpperCase());
+
   const colMap: Record<string, number> = {};
   header.forEach((h, i) => { colMap[h] = i; });
 
-  const players: CsvPlayer[] = [];
+  const players: TsvPlayer[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const cols = parseCSVLine(lines[i]);
-    if (!cols[colMap["ID"]]) continue;
+    const cols = lines[i].split("\t");
+    const id = cols[colMap["ID"]]?.trim();
+    if (!id) continue;
 
     players.push({
-      id: cols[colMap["ID"]] || "",
-      photo: cols[colMap["PHOTO"]] || "",
-      name: cols[colMap["NAME"]] || "",
-      team: cols[colMap["TEAM"]] || "",
-      fc_bc: cols[colMap["FC_BC"]] || "FC",
-      jersey: cols[colMap["#"]] || "0",
-      college: cols[colMap["COLLEGE"]] || "",
-      weight: cols[colMap["WEIGHT"]] || "0",
-      height: cols[colMap["HEIGHT"]] || "",
-      age: cols[colMap["AGE"]] || "0",
-      dob: cols[colMap["DOB"]] || "",
-      exp: cols[colMap["EXP"]] || "0",
-      pos: cols[colMap["POS"]] || "",
+      nba_url: cols[colMap["URL"]]?.trim() || "",
+      id,
+      photo: cols[colMap["PHOTO"]]?.trim() || "",
+      name: cols[colMap["NAME"]]?.trim() || "",
+      team: cols[colMap["TEAM"]]?.trim() || "",
+      fc_bc: cols[colMap["FC_BC"]]?.trim() || "FC",
+      salary: cols[colMap["$"]]?.trim() || "0",
+      jersey: cols[colMap["#"]]?.trim() || "0",
+      college: cols[colMap["COLLEGE"]]?.trim() || "",
+      weight: cols[colMap["WEIGHT"]]?.trim() || "0",
+      height: cols[colMap["HEIGHT"]]?.trim() || "",
+      age: cols[colMap["AGE"]]?.trim() || "0",
+      dob: cols[colMap["DOB"]]?.trim() || "",
+      exp: cols[colMap["EXP"]]?.trim() || "0",
+      pos: cols[colMap["POS"]]?.trim() || "",
     });
   }
   return players;
@@ -94,7 +110,7 @@ export default function CommissionerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
-  const [lastResult, setLastResult] = useState<{ upserted: number; total: number } | null>(null);
+  const [lastResult, setLastResult] = useState<{ upserted: number; total: number; deleted?: number } | null>(null);
   const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const gameFileRef = useRef<HTMLInputElement>(null);
@@ -107,20 +123,26 @@ export default function CommissionerPage() {
     setLastResult(null);
     try {
       const text = await file.text();
-      const players = parseCsv(text);
+      const players = parseTsv(text);
 
       if (players.length === 0) {
-        toast.error("No valid players found in CSV");
+        toast.error("No valid players found in TSV file");
         return;
       }
 
+      // Map salary before sending
+      const payload = players.map(p => ({
+        ...p,
+        salary: parseSalary(p.salary),
+      }));
+
       const result = await apiFetch("import-players", ImportResponseSchema, {
         method: "POST",
-        body: JSON.stringify({ players, replace: true }),
+        body: JSON.stringify({ players: payload, replace: true }),
       });
 
       if (result.ok) {
-        setLastResult({ upserted: result.data.upserted, total: result.data.total });
+        setLastResult({ upserted: result.data.upserted, total: result.data.total, deleted: result.data.deleted });
         toast.success(`Imported ${result.data.upserted} players`);
         if (result.data.errors?.length) {
           toast.warning(`${result.data.errors.length} errors during import`);
@@ -140,7 +162,7 @@ export default function CommissionerPage() {
     try {
       const { data: players, error } = await supabase
         .from("players")
-        .select("id, photo, name, team, fc_bc, jersey, college, weight, height, age, dob, exp, pos")
+        .select("id, nba_url, photo, name, team, fc_bc, salary, jersey, college, weight, height, age, dob, exp, pos")
         .order("name");
 
       if (error) throw new Error(error.message);
@@ -149,22 +171,18 @@ export default function CommissionerPage() {
         return;
       }
 
-      const header = "ID,PHOTO,NAME,TEAM,FC_BC,#,COLLEGE,WEIGHT,HEIGHT,AGE,DOB,EXP,POS";
+      const header = "URL\tID\tPHOTO\tNAME\tTEAM\tFC_BC\t$\t#\tCOLLEGE\tWEIGHT\tHEIGHT\tAGE\tDOB\tEXP\tPOS";
       const rows = players.map(p => {
-        const escapeCsv = (v: string | number | null) => {
-          const s = String(v ?? "");
-          return s.includes(",") || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
-        };
-        return [p.id, p.photo, p.name, p.team, p.fc_bc, p.jersey, p.college,
-          p.weight, p.height, p.age, p.dob, p.exp, p.pos].map(escapeCsv).join(",");
+        return [p.nba_url, p.id, p.photo, p.name, p.team, p.fc_bc, p.salary, p.jersey, p.college,
+          p.weight, p.height, p.age, p.dob, p.exp, p.pos].map(v => String(v ?? "")).join("\t");
       });
 
-      const csv = [header, ...rows].join("\n");
-      const blob = new Blob([csv], { type: "text/csv" });
+      const tsv = [header, ...rows].join("\n");
+      const blob = new Blob([tsv], { type: "text/tab-separated-values" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `players_${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = `players_${new Date().toISOString().split("T")[0]}.tsv`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(`Exported ${players.length} players`);
@@ -190,13 +208,12 @@ export default function CommissionerPage() {
         return;
       }
 
-      // Parse CSV
       const rows = [];
       for (let i = 1; i < lines.length; i++) {
         const cols = parseCSVLine(lines[i]);
-        if (!cols[10]) continue; // Skip if no Game ID
+        if (!cols[10]) continue;
 
-      rows.push({
+        rows.push({
           week: parseInt(cols[0]) || 1,
           day: parseInt(cols[1]) || 1,
           date: (cols[2] || "").trim(),
@@ -210,9 +227,9 @@ export default function CommissionerPage() {
           gameId: (cols[10] || "").trim(),
           playerId: parseInt(cols[11]) || 0,
           playerName: (cols[12] || "").trim(),
-          pts: parseFloat(cols[13]) || 0, // Fantasy Points
+          pts: parseFloat(cols[13]) || 0,
           mp: parseInt(cols[14]) || 0,
-          ps: parseInt(cols[15]) || 0, // Points Scored
+          ps: parseInt(cols[15]) || 0,
           r: parseInt(cols[16]) || 0,
           a: parseInt(cols[17]) || 0,
           b: parseInt(cols[18]) || 0,
@@ -228,7 +245,7 @@ export default function CommissionerPage() {
       const result = await importGameData(rows);
       setLastGameResult({ games: result.games_imported, logs: result.player_logs_imported });
       toast.success(`Imported ${result.games_imported} games, ${result.player_logs_imported} player logs`);
-      
+
       if (result.errors?.length) {
         toast.warning(`${result.errors.length} errors during import`);
         console.warn("Import errors:", result.errors);
@@ -250,8 +267,8 @@ export default function CommissionerPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Manage the player database. Upload a CSV to update bio data (photo, team, position, DOB, etc.).
-        This will <strong>never</strong> overwrite salary or stats — only static player information.
+        Manage the player database. Upload a TSV file to <strong>fully replace</strong> all player data
+        (URL, photo, team, salary, position, DOB, etc.). This is the single source of truth.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -260,12 +277,12 @@ export default function CommissionerPage() {
           <div className="section-bar">Upload Player Database</div>
           <div className="p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              CSV format: ID, PHOTO, NAME, TEAM, FC_BC, #, COLLEGE, WEIGHT, HEIGHT, AGE, DOB, EXP, POS
+              TSV format (tab-separated): URL, ID, PHOTO, NAME, TEAM, FC_BC, $, #, COLLEGE, WEIGHT, HEIGHT, AGE, DOB, EXP, POS
             </p>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv"
+              accept=".tsv,.csv,.txt"
               onChange={handleUpload}
               className="hidden"
             />
@@ -275,13 +292,14 @@ export default function CommissionerPage() {
               className="w-full"
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? "Importing…" : "Upload CSV"}
+              {isUploading ? "Importing…" : "Upload TSV"}
             </Button>
 
             {lastResult && (
               <div className="flex items-center gap-2 text-sm text-primary">
                 <CheckCircle2 className="h-4 w-4" />
                 {lastResult.upserted} / {lastResult.total} players imported
+                {lastResult.deleted ? `, ${lastResult.deleted} old players removed` : ""}
               </div>
             )}
           </div>
@@ -292,7 +310,7 @@ export default function CommissionerPage() {
           <div className="section-bar">Download Player Database</div>
           <div className="p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
-              Export current player bio data as CSV. Includes all players in the database.
+              Export current player data as TSV. Includes all players in the database.
             </p>
             <Button
               onClick={handleDownload}
@@ -301,7 +319,7 @@ export default function CommissionerPage() {
               className="w-full"
             >
               <Download className="h-4 w-4 mr-2" />
-              {isDownloading ? "Exporting…" : "Download CSV"}
+              {isDownloading ? "Exporting…" : "Download TSV"}
             </Button>
           </div>
         </div>
@@ -316,9 +334,6 @@ export default function CommissionerPage() {
         <div className="p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             CSV format: Week, Day, Date, Day Name, Time, Home Team, Away Team, Home Score, Away Score, Status, Game ID, ID, Player, PTS, MP, PS, R, A, B, S
-          </p>
-          <p className="text-xs text-muted-foreground">
-            This will populate schedule_games and player_game_logs. Existing data will be updated.
           </p>
           <input
             ref={gameFileRef}
@@ -349,9 +364,9 @@ export default function CommissionerPage() {
       <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground space-y-1">
+          <p><strong>Full replace mode:</strong> uploading a TSV wipes the entire players table and replaces it with the file contents.</p>
+          <p><strong>Salary</strong> is imported from the $ column (comma = decimal separator, e.g. "22,0" → 22.0).</p>
           <p><strong>Age</strong> is automatically calculated from DOB on import.</p>
-          <p><strong>New players</strong> (IDs not in DB) will be created. Existing players will have bio fields updated.</p>
-          <p><strong>Salary, stats, and computed values</strong> are never modified by this import.</p>
         </div>
       </div>
     </div>

@@ -35,11 +35,9 @@ function calcAge(dobStr: string | null): number {
   }
 }
 
-// Normalize DOB from various formats to YYYY-MM-DD
 function normDob(v: string | null | undefined): string | null {
   if (!v || v.trim() === "" || v === "None") return null;
   const t = v.trim();
-  // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
   // M/D/YYYY or MM/DD/YYYY
   const parts = t.split("/");
@@ -63,6 +61,22 @@ serve(async (req: Request) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Full wipe mode: delete ALL existing players first
+    let deleted = 0;
+    if (replace) {
+      const { data: delData, error: delErr } = await supabase
+        .from("players")
+        .delete()
+        .neq("id", 0) // match all rows
+        .select("id");
+      if (delErr) {
+        console.error("Delete all error:", delErr);
+      } else {
+        deleted = delData?.length || 0;
+        console.log(`Deleted ${deleted} existing players`);
+      }
+    }
+
     let upserted = 0;
     let skipped = 0;
     const errors: string[] = [];
@@ -74,13 +88,16 @@ serve(async (req: Request) => {
         const dob = normDob(p.dob);
         const age = calcAge(dob) || (parseInt(p.age) || 0);
         const college = (p.college === "None" || !p.college) ? null : p.college;
+        const salary = typeof p.salary === "number" ? p.salary : (parseFloat(String(p.salary || "0").replace(",", ".")) || 0);
 
         return {
           id: parseInt(p.id),
+          nba_url: p.nba_url || null,
           name: p.name,
           team: p.team,
           fc_bc: (p.fc_bc || "FC").toUpperCase(),
           photo: p.photo || null,
+          salary,
           jersey: parseInt(p.jersey) || 0,
           college,
           weight: parseInt(p.weight) || 0,
@@ -95,41 +112,13 @@ serve(async (req: Request) => {
 
       if (rows.length === 0) { skipped += batch.length; continue; }
 
-      // Upsert bio fields ONLY - never overwrite salary, stats, or fc_bc if already set
-      // Actually, for CSV import we DO want to set fc_bc, team, etc - these are bio fields
-      // But we must NOT overwrite salary or computed stats
-      // Supabase upsert will overwrite all provided columns, so we need to be careful
-      // Solution: use upsert with ignoreDuplicates=false and only include bio columns
-
-      const { error } = await supabase.from("players").upsert(rows, {
-        onConflict: "id",
-        // This will update all provided columns for existing rows
-        // Since we only provide bio fields, stats/salary won't be touched
-      });
+      const { error } = await supabase.from("players").upsert(rows, { onConflict: "id" });
 
       if (error) {
         errors.push(`Batch ${i}: ${error.message}`);
         console.error("Import error:", error);
       } else {
         upserted += rows.length;
-      }
-    }
-
-    // If replace mode, delete players not in the uploaded set
-    let deleted = 0;
-    if (replace) {
-      const validIds = players.map((p: any) => parseInt(p.id)).filter((id: number) => id > 0);
-      if (validIds.length > 0) {
-        const { data: delData, error: delErr } = await supabase
-          .from("players")
-          .delete()
-          .not("id", "in", `(${validIds.join(",")})`)
-          .select("id");
-        if (delErr) {
-          errors.push(`Delete stale: ${delErr.message}`);
-        } else {
-          deleted = delData?.length || 0;
-        }
       }
     }
 
