@@ -44,17 +44,20 @@ export default function NBAGameModal({ open, onOpenChange, defaultTab, urls, tit
               );
             })}
           </TabsList>
-          {TAB_CONFIG.map(({ key, urlKey }) => {
+          {TAB_CONFIG.map(({ key, label, icon: Icon, urlKey }) => {
             const url = urls[urlKey];
             if (!url) return null;
             return (
-              <TabsContent key={key} value={key} className="flex-1 min-h-0 px-4 pb-4">
-                <iframe
-                  src={url}
-                  className="w-full h-full rounded-sm border"
-                  title={key}
-                  allowFullScreen
-                />
+              <TabsContent key={key} value={key} className="flex-1 min-h-0 px-4 pb-4 flex items-center justify-center">
+                <button
+                  onClick={() => window.open(url, "_blank")}
+                  className="flex flex-col items-center gap-4 p-10 rounded-md border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-muted/30 transition-colors cursor-pointer group"
+                >
+                  <Icon className="h-16 w-16 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="text-sm font-heading uppercase text-muted-foreground group-hover:text-foreground">
+                    Open {label} on NBA.com
+                  </span>
+                </button>
               </TabsContent>
             );
           })}

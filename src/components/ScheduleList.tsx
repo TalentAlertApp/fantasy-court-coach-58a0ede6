@@ -85,7 +85,7 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
     <div className="border-t bg-muted/20 flex">
       {/* Left: stats table */}
       <div className="flex-1 min-w-0">
-        <div className="grid grid-cols-[minmax(100px,1fr)_repeat(7,32px)] gap-0.5 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
+        <div className="grid grid-cols-[minmax(90px,1fr)_repeat(7,28px)] gap-0.5 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
           <span>Player</span>
           {SORT_COLUMNS.map(({ key, label }) => (
             <button
@@ -105,7 +105,7 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
               <div
                 key={p.player_id}
                 onClick={() => onPlayerClick(p.player_id)}
-                className="grid grid-cols-[minmax(100px,1fr)_repeat(7,32px)] gap-0.5 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[minmax(90px,1fr)_repeat(7,28px)] gap-0.5 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Avatar className="h-5 w-5 shrink-0">
@@ -118,7 +118,7 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
                   >
                     {p.fc_bc}
                   </Badge>
-                  <span className="truncate text-xs font-medium max-w-[120px]">{p.name}</span>
+                  <span className="truncate text-xs font-medium max-w-[100px]">{p.name}</span>
                 </div>
                 <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
                 <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
@@ -134,14 +134,14 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
       </div>
       {/* Right: recap video */}
       {recapUrl && (
-        <div className="w-[320px] shrink-0 border-l flex flex-col items-center justify-start p-3 bg-muted/10">
-          <p className="text-[10px] font-heading uppercase text-muted-foreground mb-2">Game Recap</p>
-          <iframe
-            src={recapUrl}
-            className="w-full aspect-video rounded-sm border"
-            title="Game Recap"
-            allowFullScreen
-          />
+        <div className="w-[420px] shrink-0 border-l flex flex-col items-center justify-center p-4 bg-muted/10">
+          <button
+            onClick={() => window.open(recapUrl, "_blank")}
+            className="w-full aspect-video rounded-sm border bg-black/80 flex flex-col items-center justify-center gap-2 hover:bg-black/60 transition-colors cursor-pointer group"
+          >
+            <Tv2 className="h-10 w-10 text-white/70 group-hover:text-white transition-colors" />
+            <span className="text-[11px] font-heading uppercase text-white/70 group-hover:text-white">Watch Recap</span>
+          </button>
         </div>
       )}
     </div>
