@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const playerIds = logs.map((l: any) => l.player_id);
     const { data: players, error: pErr } = await sb
       .from("players")
-      .select("id, name, fc_bc, photo")
+      .select("id, name, fc_bc, photo, team")
       .in("id", playerIds);
 
     if (pErr) return errorResponse("DB_ERROR", pErr.message);
@@ -40,10 +40,11 @@ Deno.serve(async (req) => {
     const playerMap = new Map((players || []).map((p: any) => [p.id, p]));
 
     const result = logs.map((l: any) => {
-      const p = playerMap.get(l.player_id) || { name: "Unknown", fc_bc: "FC", photo: null };
+      const p = playerMap.get(l.player_id) || { name: "Unknown", fc_bc: "FC", photo: null, team: "???" };
       return {
         player_id: l.player_id,
         name: p.name,
+        team: p.team,
         fc_bc: p.fc_bc,
         photo: p.photo,
         mp: l.mp,

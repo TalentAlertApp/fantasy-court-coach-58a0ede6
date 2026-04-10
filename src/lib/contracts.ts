@@ -213,6 +213,7 @@ export const ScheduleGameSchema = z
 export const GameBoxscorePlayerSchema = z.object({
   player_id: IntSchema,
   name: z.string(),
+  team: z.string(),
   fc_bc: FCBCSchema,
   photo: z.string().nullable(),
   mp: IntSchema,
