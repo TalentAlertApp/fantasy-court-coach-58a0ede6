@@ -159,7 +159,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
                 onClick={() => onPlayerClick(p.player_id)}
                 className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
               >
-                <div className="flex items-center gap-1.5 min-w-0">
+                <div className="flex items-center gap-1.5 pr-3">
                   <Avatar className="h-5 w-5 shrink-0">
                     {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
                     <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
@@ -170,7 +170,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
                   >
                     {p.fc_bc}
                   </Badge>
-                  <span className="text-xs font-medium">{p.name}</span>
+                  <span className="text-xs font-medium whitespace-nowrap">{p.name}</span>
                 </div>
                 <span className="text-right font-mono text-xs font-bold">{p.fp}</span>
                 <span className="text-right font-mono text-xs text-muted-foreground">{p.mp}</span>
