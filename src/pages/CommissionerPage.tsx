@@ -380,7 +380,69 @@ export default function CommissionerPage() {
     }
   };
 
-  return (
+  const SCHEDULE_HEADER_MAP: Record<string, string> = {
+    "WEEK": "gw", "DAY": "day", "DATE": "date", "DAY NAME": "dayName",
+    "TIME": "time", "HOME TEAM": "home_team", "AWAY TEAM": "away_team",
+    "STATUS": "status", "HOME SCORE": "home_pts", "AWAY SCORE": "away_pts",
+    "GAME ID": "game_id", "GAME URL": "nba_game_url", "GAME RECAP": "game_recap_url",
+    "GAME BOXSCORE": "game_boxscore_url", "GAME CHARTS": "game_charts_url",
+    "GAME PLAY_BY_PLAY": "game_playbyplay_url",
+  };
+
+  const handleScheduleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImportingSchedule(true);
+    setLastScheduleResult(null);
+    try {
+      const buffer = await file.arrayBuffer();
+      const text = decodeBuffer(buffer, encoding);
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) { toast.error("No valid schedule data found"); return; }
+
+      const headerLine = lines[0].replace(/^\uFEFF/, "");
+      const isTsv = headerLine.includes("\t");
+      const headers = (isTsv ? headerLine.split("\t") : parseCSVLine(headerLine))
+        .map(h => stripQuotes(h.trim()).toUpperCase());
+
+      const colIdx: Record<string, number> = {};
+      headers.forEach((h, i) => { const mapped = SCHEDULE_HEADER_MAP[h]; if (mapped) colIdx[mapped] = i; });
+
+      if (colIdx.game_id === undefined) { toast.error("Missing 'Game ID' column in header"); return; }
+
+      const rows: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = isTsv ? lines[i].split("\t").map(c => c.trim()) : parseCSVLine(lines[i]);
+        const get = (key: string) => { const idx = colIdx[key]; return idx !== undefined && idx < cols.length ? stripQuotes(cols[idx]) : ""; };
+        const gameId = get("game_id");
+        if (!gameId) continue;
+        rows.push({
+          gw: parseInt(get("gw")) || 1, day: parseInt(get("day")) || 1,
+          date: get("date"), dayName: get("dayName"), time: get("time"),
+          home_team: get("home_team"), away_team: get("away_team"),
+          status: get("status") || "SCHEDULED",
+          home_pts: parseInt(get("home_pts")) || 0, away_pts: parseInt(get("away_pts")) || 0,
+          game_id: gameId,
+          nba_game_url: get("nba_game_url") || null, game_recap_url: get("game_recap_url") || null,
+          game_boxscore_url: get("game_boxscore_url") || null, game_charts_url: get("game_charts_url") || null,
+          game_playbyplay_url: get("game_playbyplay_url") || null,
+        });
+      }
+
+      if (rows.length === 0) { toast.error("No valid schedule rows found"); return; }
+      console.log(`[Commissioner] Importing ${rows.length} schedule games (replace=${replaceSchedule})`);
+      const result = await importSchedule(rows, replaceSchedule);
+      setLastScheduleResult({ games: result.games_imported });
+      toast.success(`Imported ${result.games_imported} schedule games`);
+      if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
+    } catch (err: unknown) {
+      toast.error(`Schedule import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsImportingSchedule(false);
+      if (scheduleFileRef.current) scheduleFileRef.current.value = "";
+    }
+  };
+
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Users className="h-6 w-6 text-primary" />
