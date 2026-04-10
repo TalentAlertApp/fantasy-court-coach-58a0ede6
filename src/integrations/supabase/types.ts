@@ -425,6 +425,7 @@ export type Database = {
           nba_game_url: string | null
           status: string
           tipoff_utc: string | null
+          youtube_recap_id: string | null
         }
         Insert: {
           away_pts?: number
@@ -441,6 +442,7 @@ export type Database = {
           nba_game_url?: string | null
           status?: string
           tipoff_utc?: string | null
+          youtube_recap_id?: string | null
         }
         Update: {
           away_pts?: number
@@ -457,6 +459,7 @@ export type Database = {
           nba_game_url?: string | null
           status?: string
           tipoff_utc?: string | null
+          youtube_recap_id?: string | null
         }
         Relationships: []
       }
