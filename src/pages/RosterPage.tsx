@@ -271,10 +271,33 @@ export default function RosterPage() {
                 <span className="font-mono">Trans: {roster?.free_transfers_remaining ?? "—"}</span>
               </div>
             </div>
-            <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
-              <Zap className="h-4 w-4 mr-1" />Optimize
-            </Button>
-          </div>
+            <div className="flex items-center gap-2">
+              {starters.length + bench.length < 10 && (
+                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
+                  <Plus className="h-4 w-4 mr-1" />Add Player
+                </Button>
+              )}
+              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
+                <Zap className="h-4 w-4 mr-1" />Optimize
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
+                    <RotateCcw className="h-4 w-4 mr-1" />Reset
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Roster?</AlertDialogTitle>
+                    <AlertDialogDescription>This will remove all 10 players from your roster. You'll need to re-select them.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset} className="bg-destructive text-destructive-foreground">Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
 
           {/* ── Two-Column Layout ── */}
           <div className="flex gap-4">
@@ -320,8 +343,8 @@ export default function RosterPage() {
             onOpenChange={setPickerOpen}
             allPlayers={allPlayers}
             rosterIds={rosterIds}
-            onSelect={handleSwapSelect}
-            title="Swap Player"
+            onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
+            title={swapPlayerId ? "Swap Player" : "Add Player"}
           />
         </>
       )}
