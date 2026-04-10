@@ -443,6 +443,7 @@ export default function CommissionerPage() {
     }
   };
 
+  return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Users className="h-6 w-6 text-primary" />
