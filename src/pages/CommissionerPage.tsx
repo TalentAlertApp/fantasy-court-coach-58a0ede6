@@ -139,11 +139,10 @@ export default function CommissionerPage() {
     try {
       const buffer = await file.arrayBuffer();
       let text = new TextDecoder("utf-8").decode(buffer);
-      if (text.includes("\uFFFD")) {
-        const w1250 = new TextDecoder("windows-1250").decode(buffer);
-        text = w1250.includes("\uFFFD")
-          ? new TextDecoder("windows-1252").decode(buffer)
-          : w1250;
+      const hasReplacementChar = text.includes("\uFFFD");
+      const hasMojibake = /[\u00c2\u00c3][\u0080-\u00bf]/.test(text);
+      if (hasReplacementChar || hasMojibake) {
+        text = new TextDecoder("windows-1250").decode(buffer);
       }
       const players = parseTsv(text);
 
@@ -225,11 +224,10 @@ export default function CommissionerPage() {
     try {
       const buffer = await file.arrayBuffer();
       let text = new TextDecoder("utf-8").decode(buffer);
-      if (text.includes("\uFFFD")) {
-        const w1250 = new TextDecoder("windows-1250").decode(buffer);
-        text = w1250.includes("\uFFFD")
-          ? new TextDecoder("windows-1252").decode(buffer)
-          : w1250;
+      const hasReplacementChar2 = text.includes("\uFFFD");
+      const hasMojibake2 = /[\u00c2\u00c3][\u0080-\u00bf]/.test(text);
+      if (hasReplacementChar2 || hasMojibake2) {
+        text = new TextDecoder("windows-1250").decode(buffer);
       }
       const lines = text.split("\n").filter(l => l.trim());
       if (lines.length < 2) {
