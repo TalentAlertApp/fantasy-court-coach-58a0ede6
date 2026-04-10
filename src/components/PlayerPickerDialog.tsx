@@ -21,10 +21,19 @@ interface PlayerPickerDialogProps {
 }
 
 export default function PlayerPickerDialog({
-  open, onOpenChange, allPlayers, rosterIds, onSelect, title = "Pick a Player",
+  open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
+
+  // Count how many roster players per NBA team
+  const teamCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const t of rosterTeams) {
+      counts[t] = (counts[t] || 0) + 1;
+    }
+    return counts;
+  }, [rosterTeams]);
 
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
