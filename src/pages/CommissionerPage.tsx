@@ -179,15 +179,19 @@ export default function CommissionerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
+  const [isImportingSchedule, setIsImportingSchedule] = useState(false);
   const [replaceGames, setReplaceGames] = useState(true);
+  const [replaceSchedule, setReplaceSchedule] = useState(true);
   const [encoding, setEncoding] = useState<Encoding>("auto");
   const [lastResult, setLastResult] = useState<{ upserted: number; total: number; deleted?: number } | null>(null);
   const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
+  const [lastScheduleResult, setLastScheduleResult] = useState<{ games: number } | null>(null);
   const [preview, setPreview] = useState<TsvPlayer[] | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any[] | null>(null);
   const [corruptCount, setCorruptCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const gameFileRef = useRef<HTMLInputElement>(null);
+  const scheduleFileRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
