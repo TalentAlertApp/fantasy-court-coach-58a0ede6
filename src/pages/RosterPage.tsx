@@ -298,6 +298,7 @@ export default function RosterPage() {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
+          </div>
 
           {/* ── Two-Column Layout ── */}
           <div className="flex gap-4">
