@@ -204,7 +204,7 @@ export const ScheduleGameSchema = z
     home_team: z.string(),
     away_pts: IntSchema,
     home_pts: IntSchema,
-    status: z.enum(["SCHEDULED", "FINAL"]),
+    status: z.string(),
     nba_game_url: z.string().nullable(),
     game_recap_url: z.string().nullable(),
     game_boxscore_url: z.string().nullable(),
@@ -308,7 +308,7 @@ export const PlayerUpcomingItemSchema = z
     tipoff_utc: NullableIsoDateTimeSchema,
     away_team: z.string(),
     home_team: z.string(),
-    status: z.enum(["SCHEDULED", "FINAL"]),
+    status: z.string(),
     gw: IntSchema,
     day: IntSchema,
   })
