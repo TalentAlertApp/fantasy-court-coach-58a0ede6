@@ -1,40 +1,21 @@
 
 
-## Fix Video Playback and Widen Video Container
+## Replace "Watch Recap" Button with Iframe + Fallback
 
-### Problem
-NBA.com blocks iframe embedding via `X-Frame-Options: SAMEORIGIN`. Both the in-row recap video and the modal tabs show blank/broken content (visible in the screenshots).
+### What changes
 
-### Solution
+**`src/components/ScheduleList.tsx`** — single file edit:
 
-**1. Replace iframes with clickable video thumbnails/links**
+1. **Add `RecapVideoEmbed` component** (as specified in the request) above `GameBoxScore`. It renders an iframe from `game_recap_url` with autoplay/fullscreen permissions, plus an "Open on NBA.com" fallback link below. If `url` is null, shows a "Recap unavailable" placeholder.
 
-Since NBA.com content cannot be embedded in iframes, we need a different approach:
+2. **Replace the current recap container** (lines 135-146) — swap the `<button>` that just opens a new tab with the new `RecapVideoEmbed` component. Keep the `w-[420px]` container width but use the iframe-based embed inside it.
 
-- **Game row recap container**: Replace the iframe with a styled "play" button card that opens the recap URL in a new browser tab. Show a play icon overlay on a dark placeholder with the "Game Recap" label.
-- **NBA Game Modal**: Replace iframes with a full-size styled card per tab that opens the corresponding URL in a new tab when clicked. Each tab shows a large call-to-action button: "Open on NBA.com" with the appropriate icon.
+3. **Iframe error resilience** — add an `onError` handler on the iframe that hides it and shows the fallback CTA instead. Also wrap in a state-based approach: if the iframe fails to load (via `onError` or a timeout), toggle to a fallback view with the play button + "Open on NBA.com" link, so the layout never breaks.
 
-**2. Widen the video/recap container**
-
-- Change the recap container from `w-[320px]` to `w-[420px]` to give it more space.
-- Reduce player name `max-w` from `120px` to `100px` and stat columns from `32px` to `28px` to reclaim space for the wider container.
+4. **Show container even without recap** — when `recapUrl` is missing, still render the right column with the "Recap unavailable" placeholder (instead of hiding it entirely), keeping the layout consistent.
 
 ### Files changed
-
 | File | Action |
 |------|--------|
-| `src/components/ScheduleList.tsx` | Replace iframe with clickable "Watch Recap" card; tighten stat columns; widen container |
-| `src/components/NBAGameModal.tsx` | Replace iframes with styled "Open on NBA.com" buttons per tab |
-
-### Detail
-
-**ScheduleList.tsx — GameBoxScore recap container**
-- Grid columns: `grid-cols-[minmax(90px,1fr)_repeat(7,28px)]` (was 32px)
-- Recap container: `w-[420px]` (was 320px)
-- Replace `<iframe>` with a clickable card containing a Play icon + "Watch Recap" text that calls `window.open(recapUrl, '_blank')`
-
-**NBAGameModal.tsx**
-- Replace each tab's `<iframe>` with a centered card containing: the tab icon (large), "Open [Tab Name] on NBA.com" button
-- Clicking the button calls `window.open(url, '_blank')`
-- This ensures the content is always accessible regardless of NBA.com's embedding restrictions
+| `src/components/ScheduleList.tsx` | Add `RecapVideoEmbed`, replace button with iframe+fallback in `GameBoxScore` |
 
