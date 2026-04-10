@@ -61,12 +61,24 @@ serve(async (req: Request) => {
     const { data: lastGames } = await supabase.from("player_last_game").select("*");
     const lgMap = new Map((lastGames || []).map((lg: any) => [lg.player_id, lg]));
 
-    // Fetch ALL game logs to compute real season stats + last 5
-    const { data: gameLogs } = await supabase
-      .from("player_game_logs")
-      .select("player_id, mp, pts, reb, ast, stl, blk, fp, game_date")
-      .gt("mp", 0)
-      .order("game_date", { ascending: false });
+    // Fetch ALL game logs (paginated to bypass 1000-row limit)
+    const allGameLogs: any[] = [];
+    let glOffset = 0;
+    const GL_BATCH = 1000;
+    while (true) {
+      const { data: batch, error: glErr } = await supabase
+        .from("player_game_logs")
+        .select("player_id, mp, pts, reb, ast, stl, blk, fp, game_date")
+        .gt("mp", 0)
+        .order("game_date", { ascending: false })
+        .range(glOffset, glOffset + GL_BATCH - 1);
+      if (glErr) throw new Error(glErr.message);
+      if (!batch || batch.length === 0) break;
+      allGameLogs.push(...batch);
+      if (batch.length < GL_BATCH) break;
+      glOffset += GL_BATCH;
+    }
+    const gameLogs = allGameLogs;
 
     // Aggregate season stats and last-5 from game logs
     const statsMap = new Map<number, {
