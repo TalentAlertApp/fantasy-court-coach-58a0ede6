@@ -1,232 +1,132 @@
 import { useState, useMemo } from "react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
-import { useRosterQuery } from "@/hooks/useRosterQuery";
-import { useMutation } from "@tanstack/react-query";
-import { simulateTransactions } from "@/lib/api";
-import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import FiltersPanel from "@/components/FiltersPanel";
-import PlayerRow from "@/components/PlayerRow";
 import PlayerModal from "@/components/PlayerModal";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getTeamLogo } from "@/lib/nba-teams";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
-const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, "All"] as const;
-type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
-
 export default function PlayersPage() {
-  const [fcBc, setFcBc] = useState("ALL");
-  const [sort, setSort] = useState("fp5");
-  const [search, setSearch] = useState("");
-  const [maxSalary, setMaxSalary] = useState(999);
-  const [waiverMode, setWaiverMode] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
-  const [pageSize, setPageSize] = useState<PageSizeOption>(20);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [team, setTeam] = useState("ALL");
-  const [activeTab, setActiveTab] = useState("overview");
   const [perfMode, setPerfMode] = useState<"pg" | "total">("pg");
+  const [search, setSearch] = useState("");
+  const [sortCol, setSortCol] = useState<string>("fp");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
-  const { data: playersData, isLoading } = usePlayersQuery({
-    sort, order: "desc", limit: 500,
-    ...(fcBc !== "ALL" ? { fc_bc: fcBc } : {}),
-    ...(search ? { search } : {}),
-  });
-  const { data: rosterData } = useRosterQuery();
+  const { data: playersData, isLoading } = usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 });
 
-  const rosterIds = useMemo(() => {
-    if (!rosterData?.roster) return new Set<number>();
-    return new Set([...rosterData.roster.starters, ...rosterData.roster.bench]);
-  }, [rosterData]);
-
-  const maxSalaryLimit = useMemo(() => {
-    const items = playersData?.items ?? [];
-    if (items.length === 0) return 50;
-    return Math.ceil(Math.max(...items.map((p) => p.core.salary)));
-  }, [playersData]);
-
-  const filtered = useMemo(() => {
-    let items = playersData?.items ?? [];
-    items = items.filter((p) => p.core.salary <= maxSalary);
-    if (team !== "ALL") {
-      items = items.filter((p) => p.core.team === team);
+  const perfFiltered = useMemo(() => {
+    let items = (playersData?.items ?? []).filter((p) => p.season.gp > 0);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      items = items.filter((p) =>
+        p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
+      );
     }
-    if (waiverMode) {
-      items = items.filter((p) => !rosterIds.has(p.core.id));
-      items.sort((a, b) => b.computed.value5 - a.computed.value5);
-      items = items.slice(0, 25);
-    }
-    return items;
-  }, [playersData, maxSalary, waiverMode, rosterIds, team]);
-
-  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode, team]);
-
-  const totalItems = filtered.length;
-  const effectivePageSize = pageSize === "All" ? totalItems : pageSize;
-  const totalPages = effectivePageSize > 0 ? Math.ceil(totalItems / effectivePageSize) : 1;
-  const paginatedItems = pageSize === "All"
-    ? filtered
-    : filtered.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
-
-  const fcPlayers = paginatedItems.filter((p) => p.core.fc_bc === "FC");
-  const bcPlayers = paginatedItems.filter((p) => p.core.fc_bc === "BC");
-
-  const simulateMutation = useMutation({
-    mutationFn: simulateTransactions,
-    onSuccess: (data) => {
-      toast({
-        title: data.is_valid ? "Transaction valid ✓" : "Transaction invalid",
-        description: `Delta FP5: ${data.delta.proj_fp5 >= 0 ? "+" : ""}${data.delta.proj_fp5.toFixed(1)}`,
-      });
-    },
-    onError: (err) => {
-      toast({ title: "Simulation failed", description: err.message, variant: "destructive" });
-    },
-  });
-
-  const handleAdd = (playerId: number) => {
-    if (!rosterData?.roster) return;
-    simulateMutation.mutate({
-      gw: rosterData.roster.gw, day: rosterData.roster.day,
-      adds: [playerId], drops: [],
+    // Sort
+    items.sort((a, b) => {
+      const getVal = (p: PlayerListItem): number => {
+        const gp = p.season.gp || 1;
+        const s = p.season as any;
+        if (sortCol === "gp") return p.season.gp;
+        if (sortCol === "salary") return p.core.salary;
+        if (perfMode === "total") {
+          const tk = `total_${sortCol}`;
+          return s[tk] ?? 0;
+        } else {
+          const tk = `total_${sortCol}`;
+          return s[tk] !== undefined ? s[tk] / gp : 0;
+        }
+      };
+      const av = getVal(a), bv = getVal(b);
+      return sortDir === "desc" ? bv - av : av - bv;
     });
+    return items;
+  }, [playersData, search, sortCol, sortDir, perfMode]);
+
+  const handleSort = (col: string) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortCol(col);
+      setSortDir("desc");
+    }
   };
 
-  const renderSection = (title: string, players: PlayerListItem[], isFC: boolean) => (
-    <div>
-      <div className={`section-bar mb-1 rounded-sm ${isFC ? "!bg-destructive/10 !text-destructive" : "!bg-primary/10 !text-primary"}`}>
-        {title} ({players.length})
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Player</TableHead>
-            <TableHead>FC/BC</TableHead>
-            <TableHead className="text-right">Salary</TableHead>
-            <TableHead className="text-right">FP5</TableHead>
-            <TableHead className="text-right">Value5</TableHead>
-            <TableHead className="text-right">Last FP</TableHead>
-            <TableHead className="text-right">Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {players.map((p) => (
-            <PlayerRow
-              key={p.core.id}
-              player={p}
-              onClick={() => setSelectedPlayerId(p.core.id)}
-              actionButton={
-                <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleAdd(p.core.id); }}>
-                  Add
-                </Button>
-              }
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
+  const columns = [
+    { key: "pts", label: "PTS" },
+    { key: "mp", label: "MP" },
+    { key: "reb", label: "REB" },
+    { key: "ast", label: "AST" },
+    { key: "stl", label: "STL" },
+    { key: "blk", label: "BLK" },
+    { key: "fp", label: "FP" },
+  ];
 
-  const renderPagination = () => (
-    <div className="flex items-center justify-between border-t pt-3 mt-3">
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Show</span>
-        <Select
-          value={String(pageSize)}
-          onValueChange={(v) => {
-            setPageSize(v === "All" ? "All" : Number(v) as any);
-            setCurrentPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[70px] h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PAGE_SIZE_OPTIONS.map((opt) => (
-              <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="text-xs text-muted-foreground">
-          of {totalItems} players
-        </span>
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="text-xl font-heading font-bold">Players</h2>
+        <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
+          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-sm h-8">Per Game</ToggleGroupItem>
+          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-sm h-8">Totals</ToggleGroupItem>
+        </ToggleGroup>
+        <div className="relative ml-auto w-56">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search player or team…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 rounded-sm h-9 text-sm"
+          />
+        </div>
+        <span className="text-xs text-muted-foreground">{perfFiltered.length} players</span>
       </div>
 
-      {pageSize !== "All" && totalPages > 1 && (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost" size="icon" className="h-8 w-8"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((p) => p - 1)}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs text-muted-foreground px-2">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            variant="ghost" size="icon" className="h-8 w-8"
-            disabled={currentPage >= totalPages}
-            onClick={() => setCurrentPage((p) => p + 1)}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderPerformanceTab = () => {
-    const allItems = playersData?.items ?? [];
-    const perfFiltered = allItems
-      .filter((p) => p.season.gp > 0)
-      .sort((a, b) => b.season.fp - a.season.fp);
-
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
-            <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-sm h-8">Per Game</ToggleGroupItem>
-            <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-sm h-8">Totals</ToggleGroupItem>
-          </ToggleGroup>
-          <span className="text-xs text-muted-foreground">{perfFiltered.length} players</span>
-        </div>
+      {isLoading ? (
+        <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
+      ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="text-xs">Player</TableHead>
               <TableHead className="text-xs">Team</TableHead>
-              <TableHead className="text-xs text-right">GP</TableHead>
-              <TableHead className="text-xs text-right">PTS</TableHead>
-              <TableHead className="text-xs text-right">MP</TableHead>
-              <TableHead className="text-xs text-right">REB</TableHead>
-              <TableHead className="text-xs text-right">AST</TableHead>
-              <TableHead className="text-xs text-right">STL</TableHead>
-              <TableHead className="text-xs text-right">BLK</TableHead>
-              <TableHead className="text-xs text-right">FP</TableHead>
+              <TableHead
+                className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`}
+                onClick={() => handleSort("gp")}
+              >GP</TableHead>
+              {columns.map((c) => (
+                <TableHead
+                  key={c.key}
+                  className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`}
+                  onClick={() => handleSort(c.key)}
+                >{c.label}</TableHead>
+              ))}
+              <TableHead
+                className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`}
+                onClick={() => handleSort("salary")}
+              >$</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {perfFiltered.slice(0, 100).map((p) => {
+            {perfFiltered.slice(0, 200).map((p) => {
               const gp = p.season.gp || 1;
               const s = p.season as any;
-              const fmtPg = (v: number) => v.toFixed(1);
+              const fmtPg = (key: string) => {
+                const tk = `total_${key}`;
+                return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0";
+              };
               const fmtTot = (key: string) => {
-                const totalKey = `total_${key}`;
-                return s[totalKey] !== undefined ? Math.round(s[totalKey]).toString() : (s[key] !== undefined ? Math.round(s[key] * gp).toString() : "0");
+                const tk = `total_${key}`;
+                return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0";
               };
               const teamLogo = getTeamLogo(p.core.team);
               return (
@@ -248,81 +148,18 @@ export default function PlayersPage() {
                     </div>
                   </td>
                   <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">
-                    {perfMode === "total" ? fmtTot("pts") : fmtPg(p.season.pts)}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">
-                    {perfMode === "total" ? fmtTot("mp") : fmtPg(p.season.mpg)}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">
-                    {perfMode === "total" ? fmtTot("reb") : fmtPg(p.season.reb)}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">
-                    {perfMode === "total" ? fmtTot("ast") : fmtPg(p.season.ast)}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">
-                    {perfMode === "total" ? fmtTot("stl") : fmtPg(p.season.stl)}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">
-                    {perfMode === "total" ? fmtTot("blk") : fmtPg(p.season.blk)}
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">
-                    {perfMode === "total" ? fmtTot("fp") : fmtPg(p.season.fp)}
-                  </td>
+                  {columns.map((c) => (
+                    <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
+                      {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
+                    </td>
+                  ))}
+                  <td className="px-2 py-1.5 text-xs text-right font-mono">${p.core.salary}</td>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-4">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="rounded-sm">
-          <TabsTrigger value="overview" className="font-heading text-xs uppercase rounded-sm">Waiver Wire</TabsTrigger>
-          <TabsTrigger value="performance" className="font-heading text-xs uppercase rounded-sm">Performance</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <div className="flex gap-4">
-            <div className="w-56 flex-shrink-0">
-              <FiltersPanel
-                fcBc={fcBc} onFcBcChange={setFcBc}
-                sort={sort} onSortChange={setSort}
-                search={search} onSearchChange={setSearch}
-                maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit}
-                team={team} onTeamChange={setTeam}
-              />
-              <div className="mt-3 flex items-center gap-2 p-3 bg-card border rounded-sm">
-                <Switch checked={waiverMode} onCheckedChange={setWaiverMode} />
-                <Label className="text-xs font-heading uppercase">Waiver Mode</Label>
-              </div>
-            </div>
-            <div className="flex-1 space-y-4">
-              {isLoading ? (
-                <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-              ) : (
-                <>
-                  {(fcBc === "ALL" || fcBc === "FC") && renderSection("Front Court", fcPlayers, true)}
-                  {(fcBc === "ALL" || fcBc === "BC") && renderSection("Back Court", bcPlayers, false)}
-                  {renderPagination()}
-                </>
-              )}
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="performance">
-          {isLoading ? (
-            <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
-          ) : (
-            renderPerformanceTab()
-          )}
-        </TabsContent>
-      </Tabs>
+      )}
 
       <PlayerModal
         playerId={selectedPlayerId}

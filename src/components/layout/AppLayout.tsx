@@ -13,7 +13,7 @@ const navItems = [
   { to: "/", label: "Home", icon: Home, end: true },
   { to: "/stats", label: "Stats", icon: BarChart3 },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/players", label: "Waiver Wire", icon: Users },
+  { to: "/players", label: "Players", icon: Users },
   { to: "/teams", label: "Teams", icon: Shirt },
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/ai", label: "AI Hub", icon: Bot },
