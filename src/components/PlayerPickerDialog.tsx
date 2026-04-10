@@ -30,11 +30,11 @@ export default function PlayerPickerDialog({
     if (fcBcFilter !== "ALL") {
       filtered = filtered.filter((p) => p.core.fc_bc === fcBcFilter);
     }
-    if (!search.trim()) return filtered.slice(0, 60);
+    if (!search.trim()) return filtered;
     const q = search.toLowerCase();
     return filtered.filter((p) =>
       p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
-    ).slice(0, 60);
+    );
   }, [allPlayers, rosterIds, search, fcBcFilter]);
 
   return (
@@ -61,37 +61,44 @@ export default function PlayerPickerDialog({
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2">
           <div className="space-y-0">
-            {available.map((p) => (
-              <button
-                key={p.core.id}
-                onClick={() => { onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
-                className="w-full flex items-center gap-3 px-2 py-2 border-b hover:bg-muted transition-colors text-left group"
-              >
-                {p.core.photo ? (
-                  <img src={p.core.photo} alt={p.core.name} className="w-9 h-9 rounded-sm object-cover bg-muted" />
-                ) : (
-                  <div className="w-9 h-9 rounded-sm bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
-                    {p.core.name.substring(0, 2).toUpperCase()}
+            {available.map((p) => {
+              const teamLogo = getTeamLogo(p.core.team);
+              return (
+                <button
+                  key={p.core.id}
+                  onClick={() => { onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
+                  className="w-full flex items-center gap-3 px-2 py-2 border-b hover:bg-muted transition-colors text-left group relative overflow-hidden"
+                >
+                  {/* Team watermark */}
+                  {teamLogo && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07] group-hover:opacity-[0.18] transition-opacity duration-300">
+                      <img src={teamLogo} alt="" className="w-14 h-14 transition-transform duration-300 group-hover:scale-125" />
+                    </div>
+                  )}
+                  {/* Player photo */}
+                  {p.core.photo ? (
+                    <img src={p.core.photo} alt={p.core.name} className="w-9 h-9 rounded-full object-cover bg-muted relative z-10 transition-transform duration-200 group-hover:scale-110" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground relative z-10 transition-transform duration-200 group-hover:scale-110">
+                      {p.core.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0 relative z-10">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-heading font-semibold uppercase truncate">{p.core.name}</p>
+                      <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-sm shrink-0">
+                        {p.core.fc_bc}
+                      </Badge>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-heading font-semibold uppercase truncate">{p.core.name}</p>
-                  <div className="flex items-center gap-1.5">
-                     {getTeamLogo(p.core.team) && (
-                       <img src={getTeamLogo(p.core.team)} alt={p.core.team} className="w-4 h-4 flex-shrink-0 opacity-60" />
-                     )}
-                     <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
-                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-sm">
-                      {p.core.fc_bc}
-                    </Badge>
+                  <div className="text-right relative z-10">
+                    <p className="text-sm font-mono font-semibold">${p.core.salary}</p>
+                    <p className="text-[10px] text-muted-foreground">FP5: {p.last5.fp5.toFixed(1)}</p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-mono font-semibold">${p.core.salary}</p>
-                  <p className="text-[10px] text-muted-foreground">FP5: {p.last5.fp5.toFixed(1)}</p>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
             {available.length === 0 && (
               <p className="text-sm text-muted-foreground text-center py-6 font-body">No players found</p>
             )}
