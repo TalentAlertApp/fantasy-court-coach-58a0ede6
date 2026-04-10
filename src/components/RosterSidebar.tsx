@@ -2,9 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Bot, Star, ArrowLeftRight, Loader2, ChevronDown, ChevronUp, Wallet, ArrowRightLeft, Users, Shield } from "lucide-react";
 import { aiSuggestTransfers, aiPickCaptain } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { PlayerListItemSchema } from "@/lib/contracts";
+
+type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
 interface RosterSidebarProps {
   gw: number;
@@ -15,10 +20,11 @@ interface RosterSidebarProps {
   fcStarters: number;
   bcStarters: number;
   totalSalary: number;
+  allPlayers?: PlayerListItem[];
 }
 
 export default function RosterSidebar({
-  gw, day, teamId, bankRemaining, freeTransfers, fcStarters, bcStarters, totalSalary,
+  gw, day, teamId, bankRemaining, freeTransfers, fcStarters, bcStarters, totalSalary, allPlayers = [],
 }: RosterSidebarProps) {
   const { toast } = useToast();
   const [aiOpen, setAiOpen] = useState(true);
@@ -26,6 +32,8 @@ export default function RosterSidebar({
   const [captainResult, setCaptainResult] = useState<any>(null);
   const [transfersLoading, setTransfersLoading] = useState(false);
   const [transfersResult, setTransfersResult] = useState<any>(null);
+
+  const resolvePlayer = (id: number) => allPlayers.find((p) => p.core.id === id);
 
   const handleCaptain = async () => {
     setCaptainLoading(true);
@@ -55,6 +63,8 @@ export default function RosterSidebar({
       setTransfersLoading(false);
     }
   };
+
+  const captainPlayer = captainResult ? resolvePlayer(captainResult.captain_id) : null;
 
   return (
     <div className="space-y-3">
@@ -88,20 +98,36 @@ export default function RosterSidebar({
               disabled={captainLoading}
             >
               {captainLoading ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <Star className="h-3.5 w-3.5 mr-2" />}
-              Best Captain Today
+              Captain of the Week
             </Button>
 
-            {captainLoading && <Skeleton className="h-12 w-full" />}
+            {captainLoading && <Skeleton className="h-16 w-full" />}
             {captainResult && (
-              <div className="bg-muted rounded-sm p-2 text-xs space-y-1">
-                <p className="font-heading font-bold uppercase text-[11px]">
-                  ⭐ Captain: #{captainResult.captain_id}
-                </p>
+              <div className="bg-muted rounded-sm p-2.5 space-y-2">
+                <p className="font-heading font-bold uppercase text-[10px] text-muted-foreground tracking-wider">⭐ Captain of the Week</p>
+                {captainPlayer ? (
+                  <div className="flex items-center gap-2.5">
+                    <Avatar className="h-10 w-10 border-2 border-accent">
+                      <AvatarImage src={captainPlayer.core.photo ?? undefined} alt={captainPlayer.core.name} />
+                      <AvatarFallback className="text-[10px] font-bold">{captainPlayer.core.name.split(" ").map(n => n[0]).join("")}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-heading font-bold text-xs truncate">{captainPlayer.core.name}</p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span>{captainPlayer.core.team}</span>
+                        <span>•</span>
+                        <span className="font-mono">${captainPlayer.core.salary}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs font-mono">#{captainResult.captain_id}</p>
+                )}
                 <Badge variant="outline" className="text-[9px] rounded-sm">
                   {Math.round(captainResult.confidence * 100)}% confidence
                 </Badge>
                 <ul className="list-disc pl-3 text-[10px] text-muted-foreground">
-                  {captainResult.reason_bullets?.slice(0, 2).map((b: string, i: number) => (
+                  {captainResult.reason_bullets?.slice(0, 3).map((b: string, i: number) => (
                     <li key={i}>{b}</li>
                   ))}
                 </ul>
@@ -109,17 +135,30 @@ export default function RosterSidebar({
             )}
 
             {transfersLoading && <Skeleton className="h-16 w-full" />}
-            {transfersResult && (
+            {transfersResult && transfersResult.moves?.length === 0 && (
+              <div className="bg-muted rounded-sm p-2 text-[10px] text-muted-foreground text-center">
+                No moves suggested — your roster looks optimal.
+              </div>
+            )}
+            {transfersResult && transfersResult.moves?.length > 0 && (
               <div className="space-y-1.5">
-                {transfersResult.moves?.slice(0, 3).map((m: any, i: number) => (
-                  <div key={i} className="bg-muted rounded-sm p-2 text-[10px] space-y-0.5">
-                    <div className="flex gap-1 flex-wrap">
-                      <Badge className="bg-green-600 text-primary-foreground rounded-sm text-[8px] px-1">+{m.add}</Badge>
-                      <Badge variant="destructive" className="rounded-sm text-[8px] px-1">-{m.drop}</Badge>
+                {transfersResult.moves.slice(0, 3).map((m: any, i: number) => {
+                  const addPlayer = resolvePlayer(m.add);
+                  const dropPlayer = resolvePlayer(m.drop);
+                  return (
+                    <div key={i} className="bg-muted rounded-sm p-2 text-[10px] space-y-0.5">
+                      <div className="flex gap-1 flex-wrap">
+                        <Badge className="bg-green-600 text-primary-foreground rounded-sm text-[8px] px-1">
+                          +{addPlayer ? addPlayer.core.name : m.add}
+                        </Badge>
+                        <Badge variant="destructive" className="rounded-sm text-[8px] px-1">
+                          -{dropPlayer ? dropPlayer.core.name : m.drop}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground">{m.reason_bullets?.[0]}</p>
                     </div>
-                    <p className="text-muted-foreground">{m.reason_bullets?.[0]}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

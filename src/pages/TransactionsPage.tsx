@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -24,6 +23,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, "All"] as const;
 type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
+
+type SortKey = "fp5" | "salary" | "value5" | "lastFp";
 
 export default function TransactionsPage() {
   const queryClient = useQueryClient();
@@ -38,10 +39,9 @@ export default function TransactionsPage() {
 
   // Waiver Wire state
   const [fcBc, setFcBc] = useState("ALL");
-  const [sort, setSort] = useState("fp5");
+  const [sort, setSort] = useState<SortKey>("fp5");
   const [search, setSearch] = useState("");
-  const [maxSalary, setMaxSalary] = useState(999);
-  const [waiverMode, setWaiverMode] = useState(false);
+  const [maxSalary, setMaxSalary] = useState(50);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState<PageSizeOption>(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,7 +61,22 @@ export default function TransactionsPage() {
     return Math.ceil(Math.max(...allPlayers.map((p) => p.core.salary)));
   }, [allPlayers]);
 
-  // Waiver wire filtered
+  // Sync maxSalary with actual data
+  useEffect(() => {
+    if (maxSalaryLimit > 0) setMaxSalary(maxSalaryLimit);
+  }, [maxSalaryLimit]);
+
+  const sortFn = (p: PlayerListItem): number => {
+    switch (sort) {
+      case "salary": return p.core.salary;
+      case "fp5": return p.last5.fp5;
+      case "value5": return p.computed.value5;
+      case "lastFp": return p.lastGame.fp;
+      default: return p.last5.fp5;
+    }
+  };
+
+  // Waiver wire filtered & sorted
   const filtered = useMemo(() => {
     let items = [...allPlayers];
     if (fcBc !== "ALL") items = items.filter((p) => p.core.fc_bc === fcBc);
@@ -71,15 +86,12 @@ export default function TransactionsPage() {
     }
     items = items.filter((p) => p.core.salary <= maxSalary);
     if (team !== "ALL") items = items.filter((p) => p.core.team === team);
-    if (waiverMode) {
-      items = items.filter((p) => !rosterIds.has(p.core.id));
-      items.sort((a, b) => b.computed.value5 - a.computed.value5);
-      items = items.slice(0, 25);
-    }
+    // Apply sorting (highest first)
+    items.sort((a, b) => sortFn(b) - sortFn(a));
     return items;
-  }, [allPlayers, fcBc, search, maxSalary, waiverMode, rosterIds, team]);
+  }, [allPlayers, fcBc, search, maxSalary, team, sort]);
 
-  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, waiverMode, team]);
+  useMemo(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, team]);
 
   const totalItems = filtered.length;
   const effectivePageSize = pageSize === "All" ? totalItems : pageSize;
@@ -138,6 +150,15 @@ export default function TransactionsPage() {
   const isLoading = rosterLoading || playersLoading;
   const teamName = teams.find((t: any) => t.id === selectedTeamId)?.name ?? "My Team";
 
+  const SortableHead = ({ label, sortKey, align = "right" }: { label: string; sortKey: SortKey; align?: string }) => (
+    <TableHead
+      className={`${align === "right" ? "text-right" : ""} cursor-pointer select-none hover:text-foreground transition-colors ${sort === sortKey ? "font-bold text-foreground" : ""}`}
+      onClick={() => setSort(sortKey)}
+    >
+      {label}
+    </TableHead>
+  );
+
   const renderSection = (title: string, players: PlayerListItem[], isFC: boolean) => (
     <div>
       <div className={`section-bar mb-1 rounded-sm ${isFC ? "!bg-destructive/10 !text-destructive" : "!bg-primary/10 !text-primary"}`}>
@@ -148,10 +169,10 @@ export default function TransactionsPage() {
           <TableRow>
             <TableHead>Player</TableHead>
             <TableHead>FC/BC</TableHead>
-            <TableHead className="text-right">Salary</TableHead>
-            <TableHead className="text-right">FP5</TableHead>
-            <TableHead className="text-right">Value5</TableHead>
-            <TableHead className="text-right">Last FP</TableHead>
+            <SortableHead label="Salary" sortKey="salary" />
+            <SortableHead label="FP5" sortKey="fp5" />
+            <SortableHead label="Value5" sortKey="value5" />
+            <SortableHead label="Last FP" sortKey="lastFp" />
             <TableHead className="text-right">Action</TableHead>
           </TableRow>
         </TableHeader>
@@ -273,15 +294,11 @@ export default function TransactionsPage() {
                 <div className="w-56 flex-shrink-0">
                   <FiltersPanel
                     fcBc={fcBc} onFcBcChange={setFcBc}
-                    sort={sort} onSortChange={setSort}
+                    sort={sort} onSortChange={(v) => setSort(v as SortKey)}
                     search={search} onSearchChange={setSearch}
                     maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit}
                     team={team} onTeamChange={setTeam}
                   />
-                  <div className="mt-3 flex items-center gap-2 p-3 bg-card border rounded-sm">
-                    <Switch checked={waiverMode} onCheckedChange={setWaiverMode} />
-                    <Label className="text-xs font-heading uppercase">Waiver Mode</Label>
-                  </div>
                 </div>
                 <div className="flex-1 space-y-4">
                   {(fcBc === "ALL" || fcBc === "FC") && renderSection("Front Court", fcPlayers, true)}
