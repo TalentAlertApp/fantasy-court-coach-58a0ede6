@@ -21,6 +21,19 @@ function err(code: string, message: string, details: string | null = null, statu
   );
 }
 
+function calcAgeFromDob(dobStr: string | null): number {
+  if (!dobStr) return 0;
+  try {
+    const d = new Date(dobStr);
+    if (isNaN(d.getTime())) return 0;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age;
+  } catch { return 0; }
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,7 +62,7 @@ serve(async (req: Request) => {
     let items = (players || []).map((p: any) => {
       const lg: any = lgMap.get(p.id) || {};
       return {
-        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary: Number(p.salary), jersey: p.jersey, pos: p.pos || null, height: p.height || null, weight: p.weight, age: p.age, dob: p.dob || null, exp: p.exp, college: p.college || null },
+        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary: Number(p.salary), jersey: p.jersey, pos: p.pos || null, height: p.height || null, weight: p.weight, age: calcAgeFromDob(p.dob) || p.age, dob: p.dob || null, exp: p.exp, college: p.college || null },
         season: { gp: p.gp, mpg: Number(p.mpg), pts: Number(p.pts), reb: Number(p.reb), ast: Number(p.ast), stl: Number(p.stl), blk: Number(p.blk), fp: Number(p.fp_pg_t) },
         last5: { mpg5: Number(p.mpg5), pts5: Number(p.pts5), reb5: Number(p.reb5), ast5: Number(p.ast5), stl5: Number(p.stl5), blk5: Number(p.blk5), fp5: Number(p.fp_pg5) },
         lastGame: { date: lg.game_date || null, opp: lg.opp || null, home_away: lg.home_away || null, result: lg.result || null, a_pts: lg.a_pts || 0, h_pts: lg.h_pts || 0, mp: lg.mp || 0, pts: lg.pts || 0, reb: lg.reb || 0, ast: lg.ast || 0, stl: lg.stl || 0, blk: lg.blk || 0, fp: Number(lg.fp || 0), nba_game_url: lg.nba_game_url || null },

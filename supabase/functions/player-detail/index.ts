@@ -2,6 +2,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 
+function calcAgeFromDob(dobStr: string | null): number {
+  if (!dobStr) return 0;
+  try {
+    const d = new Date(dobStr);
+    if (isNaN(d.getTime())) return 0;
+    const now = new Date();
+    let age = now.getFullYear() - d.getFullYear();
+    const m = now.getMonth() - d.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+    return age;
+  } catch { return 0; }
+}
+
 Deno.serve(async (req: Request) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -111,7 +124,7 @@ Deno.serve(async (req: Request) => {
         pos: playerRow.pos,
         height: playerRow.height,
         weight: playerRow.weight,
-        age: playerRow.age,
+        age: calcAgeFromDob(playerRow.dob) || playerRow.age,
         dob: playerRow.dob,
         exp: playerRow.exp,
         college: playerRow.college,

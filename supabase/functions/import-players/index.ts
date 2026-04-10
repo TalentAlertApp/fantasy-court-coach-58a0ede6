@@ -37,13 +37,18 @@ function calcAge(dobStr: string | null): number {
 
 function normDob(v: string | null | undefined): string | null {
   if (!v || v.trim() === "" || v === "None") return null;
-  const t = v.trim();
+  const t = v.trim().replace(/^"|"$/g, "");
+  // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
-  // M/D/YYYY or MM/DD/YYYY
   const parts = t.split("/");
   if (parts.length === 3) {
-    const [m, d, y] = parts;
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    const [a, b, c] = parts;
+    // If first part > 12, it's DD/MM/YYYY (European)
+    if (parseInt(a) > 12) {
+      return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`;
+    }
+    // Otherwise assume M/D/YYYY (American)
+    return `${c}-${a.padStart(2, "0")}-${b.padStart(2, "0")}`;
   }
   return null;
 }
@@ -61,13 +66,12 @@ serve(async (req: Request) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Full wipe mode: delete ALL existing players first
     let deleted = 0;
     if (replace) {
       const { data: delData, error: delErr } = await supabase
         .from("players")
         .delete()
-        .neq("id", 0) // match all rows
+        .neq("id", 0)
         .select("id");
       if (delErr) {
         console.error("Delete all error:", delErr);
@@ -83,18 +87,19 @@ serve(async (req: Request) => {
 
     for (let i = 0; i < players.length; i += 50) {
       const batch = players.slice(i, i + 50);
-      // deno-lint-ignore no-explicit-any
       const rows = batch.map((p: any) => {
         const dob = normDob(p.dob);
         const age = calcAge(dob) || (parseInt(p.age) || 0);
         const college = (p.college === "None" || !p.college) ? null : p.college;
-        const salary = typeof p.salary === "number" ? p.salary : (parseFloat(String(p.salary || "0").replace(",", ".")) || 0);
+        // Strip quotes and handle European comma decimal
+        const salRaw = String(p.salary ?? "0").replace(/^"|"$/g, "").replace(",", ".");
+        const salary = typeof p.salary === "number" ? p.salary : (parseFloat(salRaw) || 0);
 
         return {
           id: parseInt(p.id),
           nba_url: p.nba_url || null,
           name: p.name,
-          team: p.team,
+          team: p.team ?? "",
           fc_bc: (p.fc_bc || "FC").toUpperCase(),
           photo: p.photo || null,
           salary,
