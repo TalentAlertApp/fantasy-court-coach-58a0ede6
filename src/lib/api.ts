@@ -26,6 +26,7 @@ import {
   SyncRunResponseSchema,
   SyncStatusResponseSchema,
   ImportGameDataResponseSchema,
+  ImportScheduleResponseSchema,
 } from "@/lib/contracts";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -249,6 +250,19 @@ export async function importGameData(rows: Array<{
   pts: number; mp: number; ps: number; r: number; a: number; b: number; s: number;
 }>, replace = false) {
   return unwrap(await apiFetch("import-game-data", ImportGameDataResponseSchema, {
+    method: "POST", body: JSON.stringify({ rows, replace }),
+  }));
+}
+
+/** POST /import-schedule */
+export async function importSchedule(rows: Array<{
+  gw: number; day: number; date: string; dayName: string; time: string;
+  home_team: string; away_team: string; status: string; home_pts: number; away_pts: number;
+  game_id: string; nba_game_url: string | null; game_recap_url: string | null;
+  game_boxscore_url: string | null; game_charts_url: string | null;
+  game_playbyplay_url: string | null;
+}>, replace = false) {
+  return unwrap(await apiFetch("import-schedule", ImportScheduleResponseSchema, {
     method: "POST", body: JSON.stringify({ rows, replace }),
   }));
 }

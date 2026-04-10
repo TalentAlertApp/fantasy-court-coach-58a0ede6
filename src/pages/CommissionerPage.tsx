@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiFetch, importGameData } from "@/lib/api";
+import { apiFetch, importGameData, importSchedule } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import {
@@ -179,15 +179,19 @@ export default function CommissionerPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
+  const [isImportingSchedule, setIsImportingSchedule] = useState(false);
   const [replaceGames, setReplaceGames] = useState(true);
+  const [replaceSchedule, setReplaceSchedule] = useState(true);
   const [encoding, setEncoding] = useState<Encoding>("auto");
   const [lastResult, setLastResult] = useState<{ upserted: number; total: number; deleted?: number } | null>(null);
   const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
+  const [lastScheduleResult, setLastScheduleResult] = useState<{ games: number } | null>(null);
   const [preview, setPreview] = useState<TsvPlayer[] | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any[] | null>(null);
   const [corruptCount, setCorruptCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const gameFileRef = useRef<HTMLInputElement>(null);
+  const scheduleFileRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -373,6 +377,69 @@ export default function CommissionerPage() {
     } finally {
       setIsImportingGames(false);
       if (gameFileRef.current) gameFileRef.current.value = "";
+    }
+  };
+
+  const SCHEDULE_HEADER_MAP: Record<string, string> = {
+    "WEEK": "gw", "DAY": "day", "DATE": "date", "DAY NAME": "dayName",
+    "TIME": "time", "HOME TEAM": "home_team", "AWAY TEAM": "away_team",
+    "STATUS": "status", "HOME SCORE": "home_pts", "AWAY SCORE": "away_pts",
+    "GAME ID": "game_id", "GAME URL": "nba_game_url", "GAME RECAP": "game_recap_url",
+    "GAME BOXSCORE": "game_boxscore_url", "GAME CHARTS": "game_charts_url",
+    "GAME PLAY_BY_PLAY": "game_playbyplay_url",
+  };
+
+  const handleScheduleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImportingSchedule(true);
+    setLastScheduleResult(null);
+    try {
+      const buffer = await file.arrayBuffer();
+      const text = decodeBuffer(buffer, encoding);
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) { toast.error("No valid schedule data found"); return; }
+
+      const headerLine = lines[0].replace(/^\uFEFF/, "");
+      const isTsv = headerLine.includes("\t");
+      const headers = (isTsv ? headerLine.split("\t") : parseCSVLine(headerLine))
+        .map(h => stripQuotes(h.trim()).toUpperCase());
+
+      const colIdx: Record<string, number> = {};
+      headers.forEach((h, i) => { const mapped = SCHEDULE_HEADER_MAP[h]; if (mapped) colIdx[mapped] = i; });
+
+      if (colIdx.game_id === undefined) { toast.error("Missing 'Game ID' column in header"); return; }
+
+      const rows: any[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = isTsv ? lines[i].split("\t").map(c => c.trim()) : parseCSVLine(lines[i]);
+        const get = (key: string) => { const idx = colIdx[key]; return idx !== undefined && idx < cols.length ? stripQuotes(cols[idx]) : ""; };
+        const gameId = get("game_id");
+        if (!gameId) continue;
+        rows.push({
+          gw: parseInt(get("gw")) || 1, day: parseInt(get("day")) || 1,
+          date: get("date"), dayName: get("dayName"), time: get("time"),
+          home_team: get("home_team"), away_team: get("away_team"),
+          status: get("status") || "SCHEDULED",
+          home_pts: parseInt(get("home_pts")) || 0, away_pts: parseInt(get("away_pts")) || 0,
+          game_id: gameId,
+          nba_game_url: get("nba_game_url") || null, game_recap_url: get("game_recap_url") || null,
+          game_boxscore_url: get("game_boxscore_url") || null, game_charts_url: get("game_charts_url") || null,
+          game_playbyplay_url: get("game_playbyplay_url") || null,
+        });
+      }
+
+      if (rows.length === 0) { toast.error("No valid schedule rows found"); return; }
+      console.log(`[Commissioner] Importing ${rows.length} schedule games (replace=${replaceSchedule})`);
+      const result = await importSchedule(rows, replaceSchedule);
+      setLastScheduleResult({ games: result.games_imported });
+      toast.success(`Imported ${result.games_imported} schedule games`);
+      if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
+    } catch (err: unknown) {
+      toast.error(`Schedule import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsImportingSchedule(false);
+      if (scheduleFileRef.current) scheduleFileRef.current.value = "";
     }
   };
 
@@ -571,7 +638,46 @@ export default function CommissionerPage() {
         </div>
       </div>
 
-      {/* Info */}
+      {/* Schedule Import Card */}
+      <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="section-bar flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Import Schedule
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            TSV: Week, Day, Date, Day Name, Time, Home Team, Away Team, Status, Home Score, Away Score, Game ID, Game URL, Game Recap, Game BoxScore, Game Charts, Game Play_By_Play
+          </p>
+          <div className="flex items-center gap-2">
+            <Switch id="replace-schedule" checked={replaceSchedule} onCheckedChange={setReplaceSchedule} />
+            <Label htmlFor="replace-schedule" className="text-sm">
+              Full replace <span className="text-muted-foreground">(wipe existing schedule before import)</span>
+            </Label>
+          </div>
+          <input
+            ref={scheduleFileRef}
+            type="file"
+            accept=".tsv,.csv,.txt"
+            onChange={handleScheduleUpload}
+            className="hidden"
+          />
+          <Button
+            onClick={() => scheduleFileRef.current?.click()}
+            disabled={isImportingSchedule}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {isImportingSchedule ? "Importing…" : "Upload Schedule TSV"}
+          </Button>
+
+          {lastScheduleResult && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              {lastScheduleResult.games} schedule games imported
+            </div>
+          )}
+        </div>
+      </div>
       <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground space-y-1">

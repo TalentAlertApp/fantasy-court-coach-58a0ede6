@@ -48,6 +48,10 @@ serve(async (req: Request) => {
           home_pts: g.home_pts || 0,
           status: g.status || "SCHEDULED",
           nba_game_url: g.nba_game_url || null,
+          game_recap_url: g.game_recap_url || null,
+          game_boxscore_url: g.game_boxscore_url || null,
+          game_charts_url: g.game_charts_url || null,
+          game_playbyplay_url: g.game_playbyplay_url || null,
         })),
       },
     }), {
