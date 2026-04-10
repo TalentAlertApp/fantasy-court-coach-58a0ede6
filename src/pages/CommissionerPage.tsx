@@ -137,7 +137,11 @@ export default function CommissionerPage() {
     setIsUploading(true);
     setLastResult(null);
     try {
-      const text = await file.text();
+      const buffer = await file.arrayBuffer();
+      let text = new TextDecoder("utf-8").decode(buffer);
+      if (text.includes("\uFFFD")) {
+        text = new TextDecoder("windows-1252").decode(buffer);
+      }
       const players = parseTsv(text);
 
       if (players.length === 0) {
@@ -216,7 +220,11 @@ export default function CommissionerPage() {
     setIsImportingGames(true);
     setLastGameResult(null);
     try {
-      const text = await file.text();
+      const buffer = await file.arrayBuffer();
+      let text = new TextDecoder("utf-8").decode(buffer);
+      if (text.includes("\uFFFD")) {
+        text = new TextDecoder("windows-1252").decode(buffer);
+      }
       const lines = text.split("\n").filter(l => l.trim());
       if (lines.length < 2) {
         toast.error("No valid game data found");
