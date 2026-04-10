@@ -140,7 +140,10 @@ export default function CommissionerPage() {
       const buffer = await file.arrayBuffer();
       let text = new TextDecoder("utf-8").decode(buffer);
       if (text.includes("\uFFFD")) {
-        text = new TextDecoder("windows-1252").decode(buffer);
+        const w1250 = new TextDecoder("windows-1250").decode(buffer);
+        text = w1250.includes("\uFFFD")
+          ? new TextDecoder("windows-1252").decode(buffer)
+          : w1250;
       }
       const players = parseTsv(text);
 
@@ -223,7 +226,10 @@ export default function CommissionerPage() {
       const buffer = await file.arrayBuffer();
       let text = new TextDecoder("utf-8").decode(buffer);
       if (text.includes("\uFFFD")) {
-        text = new TextDecoder("windows-1252").decode(buffer);
+        const w1250 = new TextDecoder("windows-1250").decode(buffer);
+        text = w1250.includes("\uFFFD")
+          ? new TextDecoder("windows-1252").decode(buffer)
+          : w1250;
       }
       const lines = text.split("\n").filter(l => l.trim());
       if (lines.length < 2) {
