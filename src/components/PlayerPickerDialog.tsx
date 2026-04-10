@@ -15,6 +15,7 @@ interface PlayerPickerDialogProps {
   onOpenChange: (open: boolean) => void;
   allPlayers: PlayerListItem[];
   rosterIds: Set<number>;
+  rosterTeams?: string[];
   onSelect: (player: PlayerListItem) => void;
   title?: string;
 }
