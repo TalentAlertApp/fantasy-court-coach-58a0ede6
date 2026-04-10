@@ -311,12 +311,15 @@ export default function CommissionerPage() {
     }
   };
 
+  const [gameProgress, setGameProgress] = useState<string | null>(null);
+
   const handleGameDataUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsImportingGames(true);
     setLastGameResult(null);
+    setGameProgress(null);
     try {
       const buffer = await file.arrayBuffer();
       const text = decodeBuffer(buffer, encoding);
@@ -363,19 +366,38 @@ export default function CommissionerPage() {
         return;
       }
 
-      const result = await importGameData(rows, replaceGames);
-      setLastGameResult({ games: result.games_imported, logs: result.player_logs_imported });
-      toast.success(`Imported ${result.games_imported} games, ${result.player_logs_imported} player logs`);
+      // Chunk into batches of 2000 to avoid edge function timeout
+      const BATCH_SIZE = 2000;
+      const totalBatches = Math.ceil(rows.length / BATCH_SIZE);
+      let totalGames = 0;
+      let totalLogs = 0;
+      let totalErrors: string[] = [];
 
-      if (result.errors?.length) {
-        toast.warning(`${result.errors.length} errors during import`);
-        console.warn("Import errors:", result.errors);
+      for (let b = 0; b < totalBatches; b++) {
+        const batch = rows.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE);
+        const isFirst = b === 0;
+        setGameProgress(`Importing batch ${b + 1}/${totalBatches} (${batch.length} rows)…`);
+
+        const result = await importGameData(batch, replaceGames && isFirst);
+        totalGames += result.games_imported;
+        totalLogs += result.player_logs_imported;
+        if (result.errors?.length) totalErrors.push(...result.errors);
+      }
+
+      setGameProgress(null);
+      setLastGameResult({ games: totalGames, logs: totalLogs });
+      toast.success(`Imported ${totalGames} games, ${totalLogs} player logs (${totalBatches} batches)`);
+
+      if (totalErrors.length) {
+        toast.warning(`${totalErrors.length} errors during import`);
+        console.warn("Import errors:", totalErrors.slice(0, 50));
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Game data import failed: ${msg}`);
     } finally {
       setIsImportingGames(false);
+      setGameProgress(null);
       if (gameFileRef.current) gameFileRef.current.value = "";
     }
   };
@@ -626,7 +648,7 @@ export default function CommissionerPage() {
             className="w-full"
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isImportingGames ? "Importing…" : "Upload Game Data"}
+            {isImportingGames ? (gameProgress || "Importing…") : "Upload Game Data"}
           </Button>
 
           {lastGameResult && (
