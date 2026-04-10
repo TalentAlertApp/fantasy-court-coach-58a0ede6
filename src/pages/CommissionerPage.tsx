@@ -138,10 +138,10 @@ export default function CommissionerPage() {
     setLastResult(null);
     try {
       const buffer = await file.arrayBuffer();
-      let text = new TextDecoder("utf-8").decode(buffer);
-      const hasReplacementChar = text.includes("\uFFFD");
-      const hasMojibake = /[\u00c2\u00c3][\u0080-\u00bf]/.test(text);
-      if (hasReplacementChar || hasMojibake) {
+      let text: string;
+      try {
+        text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+      } catch {
         text = new TextDecoder("windows-1250").decode(buffer);
       }
       const players = parseTsv(text);
@@ -223,10 +223,10 @@ export default function CommissionerPage() {
     setLastGameResult(null);
     try {
       const buffer = await file.arrayBuffer();
-      let text = new TextDecoder("utf-8").decode(buffer);
-      const hasReplacementChar2 = text.includes("\uFFFD");
-      const hasMojibake2 = /[\u00c2\u00c3][\u0080-\u00bf]/.test(text);
-      if (hasReplacementChar2 || hasMojibake2) {
+      let text: string;
+      try {
+        text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+      } catch {
         text = new TextDecoder("windows-1250").decode(buffer);
       }
       const lines = text.split("\n").filter(l => l.trim());
