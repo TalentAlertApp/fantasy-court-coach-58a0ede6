@@ -1,61 +1,40 @@
 
 
-## Schedule Page Enhancements
+## Fix Video Playback and Widen Video Container
 
-### Overview
-Four groups of changes to the `/schedule` page: a "Last Played" navigation button, LIVE game indicator, redesigned expanded box score with embedded recap video, and game card action icons that open an "NBA Game" modal with tabs.
+### Problem
+NBA.com blocks iframe embedding via `X-Frame-Options: SAMEORIGIN`. Both the in-row recap video and the modal tabs show blank/broken content (visible in the screenshots).
 
-### 1. "LAST PLAYED" Button (SchedulePage.tsx)
+### Solution
 
-- Add a new edge function query or a lightweight Supabase query to find the latest `(gw, day)` with `status = 'FINAL'` games.
-- New hook `useLastPlayedDay()` — queries `schedule_games` for `SELECT gw, day FROM schedule_games WHERE status = 'FINAL' ORDER BY gw DESC, day DESC LIMIT 1`.
-- Place a button with green background and a `History` (or `CircleCheckBig`) icon, labeled "LAST PLAYED", right before the existing "Today" button in the date header bar.
-- Clicking it sets `gw` and `day` to the returned values.
+**1. Replace iframes with clickable video thumbnails/links**
 
-**New file**: `src/hooks/useLastPlayedDay.ts` (calls schedule edge function or a small dedicated query)
-**Edit**: `src/pages/SchedulePage.tsx` — add the button
+Since NBA.com content cannot be embedded in iframes, we need a different approach:
 
-### 2. LIVE Game Indicator (ScheduleList.tsx)
+- **Game row recap container**: Replace the iframe with a styled "play" button card that opens the recap URL in a new browser tab. Show a play icon overlay on a dark placeholder with the "Game Recap" label.
+- **NBA Game Modal**: Replace iframes with a full-size styled card per tab that opens the corresponding URL in a new tab when clicked. Each tab shows a large call-to-action button: "Open on NBA.com" with the appropriate icon.
 
-- Update `ScheduleGameSchema` status enum to include `"LIVE"` and `"IN_PROGRESS"`.
-- For games with status `LIVE` or `IN_PROGRESS`, show a pulsing red "LIVE" badge before the status badge.
-- The "LIVE" badge links to the game's `game_playbyplay_url` (opens in new tab).
-- Also update `getStatusBorder` for LIVE styling.
+**2. Widen the video/recap container**
 
-**Edit**: `src/lib/contracts.ts` — relax status enum
-**Edit**: `src/components/ScheduleList.tsx` — add LIVE badge with link
-
-### 3. Redesigned Expanded Box Score (ScheduleList.tsx)
-
-- Change the grid layout of `GameBoxScore` so stat columns (FP, MP, PS, A, R, B, S) come right after the player name column (compact), leaving room on the right for a video container.
-- New layout: `grid-cols-[minmax(140px,1fr)_repeat(7,32px)_1fr]` — player info + stats on the left, recap video on the right.
-- The video container embeds the `game_recap_url` in an `<iframe>` (NBA.com recap URLs are embeddable). Video does NOT autoplay — user must click play.
-- Player names use `truncate` with a `max-w` to prevent clipping issues.
-
-### 4. Game Card Action Icons + "NBA Game" Modal
-
-**New component**: `src/components/NBAGameModal.tsx`
-- A dialog/modal titled "NBA Game" with 4 tabs: "Game Recap", "Game BoxScore", "Game Charts", "Game Play_By_Play".
-- Each tab embeds the corresponding URL in an `<iframe>`.
-- The "Game Recap" tab auto-plays when opened from the recap icon.
-- Accepts props: `game`, `defaultTab`, `open`, `onOpenChange`, `autoPlay`.
-
-**Edit**: `src/components/ScheduleList.tsx` — On each game card row, add 4 clickable icons (right side, before the chevron):
-- **TV icon** (`Tv2` from lucide) → opens modal on "Game Recap" tab (autoplay)
-- **Scoreboard icon** (`LayoutGrid` or `Table2`) → opens modal on "Game BoxScore" tab
-- **Chart icon** (`BarChart3`) → opens modal on "Game Charts" tab
-- **Microphone icon** (`Mic`) → opens modal on "Game Play_By_Play" tab
-
-Each icon only renders if the corresponding URL exists on the game object.
+- Change the recap container from `w-[320px]` to `w-[420px]` to give it more space.
+- Reduce player name `max-w` from `120px` to `100px` and stat columns from `32px` to `28px` to reclaim space for the wider container.
 
 ### Files changed
 
 | File | Action |
 |------|--------|
-| `src/hooks/useLastPlayedDay.ts` | New — query for last day with FINAL games |
-| `src/components/NBAGameModal.tsx` | New — tabbed modal with iframe embeds |
-| `src/pages/SchedulePage.tsx` | Add "LAST PLAYED" button |
-| `src/components/ScheduleList.tsx` | LIVE badge, redesigned box score layout with video, game card action icons |
-| `src/lib/contracts.ts` | Add LIVE/IN_PROGRESS to status enum |
-| `supabase/functions/schedule/index.ts` | Pass through LIVE status without normalizing to FINAL |
+| `src/components/ScheduleList.tsx` | Replace iframe with clickable "Watch Recap" card; tighten stat columns; widen container |
+| `src/components/NBAGameModal.tsx` | Replace iframes with styled "Open on NBA.com" buttons per tab |
+
+### Detail
+
+**ScheduleList.tsx — GameBoxScore recap container**
+- Grid columns: `grid-cols-[minmax(90px,1fr)_repeat(7,28px)]` (was 32px)
+- Recap container: `w-[420px]` (was 320px)
+- Replace `<iframe>` with a clickable card containing a Play icon + "Watch Recap" text that calls `window.open(recapUrl, '_blank')`
+
+**NBAGameModal.tsx**
+- Replace each tab's `<iframe>` with a centered card containing: the tab icon (large), "Open [Tab Name] on NBA.com" button
+- Clicking the button calls `window.open(url, '_blank')`
+- This ensures the content is always accessible regardless of NBA.com's embedding restrictions
 
