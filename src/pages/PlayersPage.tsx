@@ -130,15 +130,15 @@ export default function PlayersPage() {
               };
               const teamLogo = getTeamLogo(p.core.team);
               return (
-                <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30" onClick={() => setSelectedPlayerId(p.core.id)}>
+                <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
                   <td className="px-2 py-1.5 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <Avatar className="h-5 w-5 shrink-0">
+                      <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
                         {p.core.photo && <AvatarImage src={p.core.photo} />}
                         <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
                       </Avatar>
-                      <span className="font-medium whitespace-nowrap">{p.core.name}</span>
                       <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-sm">{p.core.fc_bc}</Badge>
+                      <span className="font-medium whitespace-nowrap">{p.core.name}</span>
                     </div>
                   </td>
                   <td className="px-2 py-1.5 text-xs">

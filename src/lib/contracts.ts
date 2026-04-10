@@ -104,13 +104,13 @@ export const PlayerSeasonSchema = z
     stl: NumSchema,
     blk: NumSchema,
     fp: NumSchema,
-    total_mp: NumSchema,
-    total_pts: NumSchema,
-    total_reb: NumSchema,
-    total_ast: NumSchema,
-    total_stl: NumSchema,
-    total_blk: NumSchema,
-    total_fp: NumSchema,
+    total_mp: NumSchema.optional().default(0),
+    total_pts: NumSchema.optional().default(0),
+    total_reb: NumSchema.optional().default(0),
+    total_ast: NumSchema.optional().default(0),
+    total_stl: NumSchema.optional().default(0),
+    total_blk: NumSchema.optional().default(0),
+    total_fp: NumSchema.optional().default(0),
   })
   .strict();
 
