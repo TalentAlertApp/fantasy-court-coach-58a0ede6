@@ -20,7 +20,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
         <iframe
           src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
           title={title}
-          className="flex-1 w-full min-h-[220px]"
+          className="w-full aspect-video"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           allowFullScreen
           loading="lazy"
@@ -39,7 +39,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
 
   if (url) {
     return (
-      <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 rounded-sm border border-border bg-black/80">
+      <div className="flex aspect-video flex-col items-center justify-center gap-3 rounded-sm border border-border bg-black/80">
         <button
           onClick={() => window.open(url, "_blank")}
           className="flex flex-col items-center gap-2 group cursor-pointer"
@@ -55,7 +55,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
   }
 
   return (
-    <div className="flex h-full min-h-[220px] items-center justify-center rounded-sm border border-border bg-muted/30 text-sm text-muted-foreground">
+    <div className="flex aspect-video items-center justify-center rounded-sm border border-border bg-muted/30 text-sm text-muted-foreground">
       Recap unavailable
     </div>
   );
@@ -168,7 +168,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
                   >
                     {p.fc_bc}
                   </Badge>
-                  <span className="truncate text-xs font-medium max-w-[100px]">{p.name}</span>
+                  <span className="text-xs font-medium">{p.name}</span>
                 </div>
                 <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
                 <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
@@ -183,7 +183,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
         </div>
       </div>
       {/* Right: recap video */}
-      <div className="w-[420px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
+      <div className="w-[500px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
         <RecapVideoEmbed
           youtubeVideoId={youtubeRecapId}
           url={recapUrl}
