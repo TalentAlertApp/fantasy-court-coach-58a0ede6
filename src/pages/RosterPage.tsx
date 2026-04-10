@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -21,9 +21,25 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
+
+function useCountdown(deadlineUtc: string | null) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!deadlineUtc) return null;
+  const diff = new Date(deadlineUtc).getTime() - now;
+  if (diff <= 0) return "LOCKED";
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return `${h}h ${m}m ${s}s`;
+}
 
 export default function RosterPage() {
   const queryClient = useQueryClient();
@@ -39,14 +55,19 @@ export default function RosterPage() {
   const [swapPlayerId, setSwapPlayerId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  // Chips state (visual toggles for now)
+  const [chipCaptain, setChipCaptain] = useState(false);
+  const [chipAllStar, setChipAllStar] = useState(false);
+  const [chipWildcard, setChipWildcard] = useState(false);
+
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
   const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "My Team";
 
-  // Compute current gameday from deadlines
   const currentGameday = useMemo(() => getCurrentGameday(), []);
   const gamedaysRemaining = useMemo(() => getGamedaysRemaining(), []);
   const deadlineFormatted = useMemo(() => formatDeadline(currentGameday.deadline_utc), [currentGameday]);
+  const countdown = useCountdown(currentGameday.deadline_utc);
 
   const resolvePlayer = useCallback(
     (id: number) => allPlayers.find((p) => p.core.id === id),
@@ -73,7 +94,6 @@ export default function RosterPage() {
     [starters, bench]
   );
 
-  // Compute roster stats
   const fcStarters = starters.filter((p) => p.core.fc_bc === "FC").length;
   const bcStarters = starters.filter((p) => p.core.fc_bc === "BC").length;
   const totalSalary = [...starters, ...bench].reduce((s, p) => s + p.core.salary, 0);
@@ -96,10 +116,6 @@ export default function RosterPage() {
 
   const handleSave = () => {
     if (!roster) return;
-    const totalPlayers = starters.length + bench.length;
-    if (totalPlayers > 0 && totalPlayers < 10) {
-      // Allow partial rosters — pad with zeros
-    }
     const starterIds = [...starters.map((p) => p.core.id), ...Array(Math.max(0, 5 - starters.length)).fill(0)].slice(0, 5);
     const benchIds = [...bench.map((p) => p.core.id), ...Array(Math.max(0, 5 - bench.length)).fill(0)].slice(0, 5);
     saveMutation.mutate({
@@ -133,7 +149,6 @@ export default function RosterPage() {
     const totalPlayers = currentStarters.length + currentBench.length;
     if (totalPlayers >= 10) return;
 
-    // Add to starters first (up to 5), then bench
     if (currentStarters.length < 5) {
       currentStarters.push(newPlayer.core.id);
     } else {
@@ -243,11 +258,18 @@ export default function RosterPage() {
         <h1 className="text-primary-foreground font-heading text-2xl font-bold tracking-wider">
           GAMEWEEK {currentGameday.gw} — DAY {currentGameday.day}
         </h1>
-        <div className="flex items-center gap-1.5 mt-1">
-          <Clock className="h-3.5 w-3.5 text-accent" />
-          <span className="text-primary-foreground/80 text-xs font-body">
-            Deadline: <span className="font-semibold text-primary-foreground">{deadlineFormatted}</span>
-          </span>
+        <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-accent" />
+            <span className="text-primary-foreground/80 text-xs font-body">
+              Deadline: <span className="font-semibold text-primary-foreground">{deadlineFormatted}</span>
+            </span>
+          </div>
+          {countdown && (
+            <Badge className={`rounded-sm text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
+              {countdown}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -277,6 +299,32 @@ export default function RosterPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Chips */}
+              <Button
+                onClick={() => setChipCaptain(!chipCaptain)}
+                variant={chipCaptain ? "default" : "outline"}
+                size="sm"
+                className={`rounded-sm font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+              >
+                <Star className="h-3.5 w-3.5 mr-1" />Captain
+              </Button>
+              <Button
+                onClick={() => setChipAllStar(!chipAllStar)}
+                variant={chipAllStar ? "default" : "outline"}
+                size="sm"
+                className={`rounded-sm font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
+              </Button>
+              <Button
+                onClick={() => setChipWildcard(!chipWildcard)}
+                variant={chipWildcard ? "default" : "outline"}
+                size="sm"
+                className={`rounded-sm font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+              >
+                <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
+              </Button>
+
               {starters.length + bench.length < 10 && (
                 <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
                   <Plus className="h-4 w-4 mr-1" />Add Player
@@ -307,7 +355,6 @@ export default function RosterPage() {
 
           {/* ── Two-Column Layout ── */}
           <div className="flex gap-4">
-            {/* Main content */}
             <div className="flex-1 min-w-0">
               {viewMode === "court" ? (
                 <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
@@ -316,7 +363,6 @@ export default function RosterPage() {
               )}
             </div>
 
-            {/* Sidebar — hidden on mobile */}
             <div className="hidden lg:block w-64 shrink-0">
               <RosterSidebar
                 gw={currentGameday.gw}
@@ -327,6 +373,7 @@ export default function RosterPage() {
                 fcStarters={fcStarters}
                 bcStarters={bcStarters}
                 totalSalary={totalSalary}
+                allPlayers={allPlayers}
               />
             </div>
           </div>

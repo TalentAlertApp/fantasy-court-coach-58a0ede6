@@ -546,7 +546,7 @@ export const AISuggestTransferMoveSchema = z
 
 export const AISuggestTransfersPayloadSchema = z
   .object({
-    moves: z.array(AISuggestTransferMoveSchema).min(1).max(5),
+    moves: z.array(AISuggestTransferMoveSchema).max(5),
     notes: z.array(z.string()),
   })
   .strict();
