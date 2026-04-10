@@ -1,46 +1,29 @@
 
 
-## Fix: Special Characters Still Corrupted After Import
+## Fix: Force Reliable Encoding Detection with `fatal: true`
 
-### Diagnosis
-The current encoding detection relies on `\uFFFD` (replacement character) to decide whether UTF-8 decoding failed. However, some byte sequences that represent `č`, `ć`, `ž` in Windows-1250 may decode as **valid but wrong** UTF-8 characters (or valid Windows-1252 characters), so the fallback never triggers.
+### Root Cause
+The current encoding detection uses `text.includes("\uFFFD")` and a mojibake regex after a non-fatal UTF-8 decode. For this specific file, neither check triggers — likely because the byte sequences decode to valid (but wrong) UTF-8 codepoints that don't match the mojibake pattern. The result: the file is treated as UTF-8, and bytes for `ć`, `č`, `ž` are silently replaced with `?`.
 
 ### Fix
-**File**: `src/pages/CommissionerPage.tsx`
+**One file**: `src/pages/CommissionerPage.tsx`
 
-Replace the simple `\uFFFD` check with a smarter detection approach:
-
-1. Decode as UTF-8
-2. Check for **mojibake indicators** — common patterns that appear when Windows-1250 text is wrongly decoded as UTF-8 or Windows-1252 (e.g., `Ã¨`, `Ã¶`, `Å¡`, or the presence of C2/C3 byte sequences followed by specific bytes)
-3. Also check for `?` appearing where accented characters are expected (some decoders silently replace unknown bytes with `?`)
-4. If mojibake or corruption is detected, re-decode using Windows-1250
-
-Additionally, add a **server-side safeguard** in `import-players/index.ts`: log the first few player names so encoding issues can be debugged from edge function logs.
-
-### Concrete change
-
-In `handleUpload` and `handleGameDataUpload`, replace the encoding block with:
+Replace the encoding detection in both `handleUpload` and `handleGameDataUpload` with a **strict UTF-8 decode** using `fatal: true`. If the file contains any invalid UTF-8 byte, the decoder throws instead of silently replacing — guaranteeing we fall back to Windows-1250.
 
 ```js
 const buffer = await file.arrayBuffer();
-const bytes = new Uint8Array(buffer);
-
-// Try UTF-8 first
-let text = new TextDecoder("utf-8").decode(buffer);
-
-// Check if UTF-8 produced replacement chars OR if the file has
-// high bytes (>127) that suggest a single-byte encoding
-const hasReplacementChar = text.includes("\uFFFD");
-const hasHighBytes = bytes.some(b => b > 127);
-const hasMojibake = /[\u00c2\u00c3][\u0080-\u00bf]/.test(text);
-
-if (hasReplacementChar || hasMojibake) {
-  // File is not valid UTF-8, try Windows-1250 (Central European)
+let text: string;
+try {
+  text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+} catch {
+  // Not valid UTF-8 → use Windows-1250 (Central European)
   text = new TextDecoder("windows-1250").decode(buffer);
 }
 ```
 
-This catches cases where the UTF-8 decoder doesn't produce `\uFFFD` but still produces garbled output from a Windows-1250 source file.
+This is simpler, more robust, and eliminates the possibility of silent misdetection.
+
+Additionally, add a `console.log` with the first 3 player names after parsing so any remaining issues can be debugged from the browser console.
 
 ### After fix
 Re-upload `NBA_dataset_full.tsv` on `/commissioner` with Full replace ON. Names like Nikola Jokić, Luka Dončić, and Nikola Vučević should display correctly.
@@ -48,5 +31,5 @@ Re-upload `NBA_dataset_full.tsv` on `/commissioner` with Full replace ON. Names 
 ### Files changed
 | File | Action |
 |------|--------|
-| `src/pages/CommissionerPage.tsx` | Improved encoding detection with mojibake check |
+| `src/pages/CommissionerPage.tsx` | Use `fatal: true` UTF-8 decode with Windows-1250 fallback |
 
