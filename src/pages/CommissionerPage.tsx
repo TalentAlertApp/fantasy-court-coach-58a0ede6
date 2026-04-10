@@ -648,7 +648,7 @@ export default function CommissionerPage() {
             className="w-full"
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isImportingGames ? "Importing…" : "Upload Game Data"}
+            {isImportingGames ? (gameProgress || "Importing…") : "Upload Game Data"}
           </Button>
 
           {lastGameResult && (
