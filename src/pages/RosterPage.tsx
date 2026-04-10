@@ -68,6 +68,11 @@ export default function RosterPage() {
     ...(roster?.bench ?? []),
   ].filter((id) => id > 0)), [roster?.starters, roster?.bench]);
 
+  const rosterTeams = useMemo(() => 
+    [...starters, ...bench].map((p) => p.core.team),
+    [starters, bench]
+  );
+
   // Compute roster stats
   const fcStarters = starters.filter((p) => p.core.fc_bc === "FC").length;
   const bcStarters = starters.filter((p) => p.core.fc_bc === "BC").length;
