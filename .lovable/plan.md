@@ -1,21 +1,45 @@
 
 
-## Replace "Watch Recap" Button with Iframe + Fallback
+## Fix Player Names, Widen Video, Auto-Populate YouTube Recaps
 
-### What changes
+### 1. Player names at full length
+Remove `max-w-[100px]` and `truncate` from player name span in `ScheduleList.tsx`. The `minmax(90px,1fr)` column already flexes — the name will use all available space.
 
-**`src/components/ScheduleList.tsx`** — single file edit:
+### 2. Wider video container in 16:9
+- Change recap container from `w-[420px]` to `w-[500px]`
+- Replace `min-h-[220px]` on the iframe with `aspect-video` (Tailwind's 16:9 aspect ratio class), so the video fills the container without black bars
+- The iframe gets `w-full` and the aspect ratio handles height automatically
 
-1. **Add `RecapVideoEmbed` component** (as specified in the request) above `GameBoxScore`. It renders an iframe from `game_recap_url` with autoplay/fullscreen permissions, plus an "Open on NBA.com" fallback link below. If `url` is null, shows a "Recap unavailable" placeholder.
+### 3. Auto-populate YouTube recap IDs for all games
+Create a new Edge Function `youtube-recap-lookup` that:
+- Queries `schedule_games` for all FINAL games where `youtube_recap_id IS NULL`
+- For each game, calls the YouTube Data API (`search.list`) searching for `"Motion Station" {away_team} vs {home_team} recap` (the channel that publishes all NBA recaps)
+- Takes the first result's video ID and updates `youtube_recap_id` in `schedule_games`
+- Processes in batches to respect API quotas
+- Requires a `YOUTUBE_API_KEY` secret in Supabase
 
-2. **Replace the current recap container** (lines 135-146) — swap the `<button>` that just opens a new tab with the new `RecapVideoEmbed` component. Keep the `w-[420px]` container width but use the iframe-based embed inside it.
-
-3. **Iframe error resilience** — add an `onError` handler on the iframe that hides it and shows the fallback CTA instead. Also wrap in a state-based approach: if the iframe fails to load (via `onError` or a timeout), toggle to a fallback view with the play button + "Open on NBA.com" link, so the layout never breaks.
-
-4. **Show container even without recap** — when `recapUrl` is missing, still render the right column with the "Recap unavailable" placeholder (instead of hiding it entirely), keeping the layout consistent.
+Also add a button on the Commissioner page to trigger this function, and wire it so it can be called manually or on a schedule.
 
 ### Files changed
-| File | Action |
+
+| File | Change |
 |------|--------|
-| `src/components/ScheduleList.tsx` | Add `RecapVideoEmbed`, replace button with iframe+fallback in `GameBoxScore` |
+| `src/components/ScheduleList.tsx` | Remove name truncation; widen container to 500px; use `aspect-video` on iframe |
+| `supabase/functions/youtube-recap-lookup/index.ts` | New — batch YouTube search + update `schedule_games` |
+| `src/pages/CommissionerPage.tsx` | Add "Populate YouTube Recaps" button |
+
+### Technical detail
+
+**YouTube Data API search call:**
+```
+GET https://www.googleapis.com/youtube/v3/search
+  ?part=snippet
+  &q=Motion+Station+{away}+vs+{home}+recap
+  &type=video
+  &maxResults=1
+  &key={YOUTUBE_API_KEY}
+```
+Response gives `items[0].id.videoId` → stored as `youtube_recap_id`.
+
+The free YouTube API quota is 10,000 units/day; each search costs 100 units = ~100 games/day. For a full season (~1,200 games) this takes ~12 days of daily runs, or we can request a quota increase. The function will process what it can per invocation and skip already-populated games.
 
