@@ -1,51 +1,80 @@
 
 
-## Plan: Add "How To Play" Guide Modal + Align Rules in Codebase
+## Plan: Fix 7 Issues Across Roster, AI Coach, and Transactions
 
-### What the images say (rules summary)
-- Roster: 10 players (5 BC + 5 FC), salary cap $100M, max 2 per NBA team
-- Formations: 2BC+3FC or 3BC+2FC (starters), bench provides auto-subs
-- Scoring: PTS×1, REB×1, AST×2, BLK×3, STL×3
-- Chips: Gameday Captain (1/week, doubles score), All-Star (once/season, unlimited budget), Wildcard (3/season, free transfers)
-- Deadlines: 30 min before first tipoff each gameday
-- Max 2 players from same NBA team
+### 1. Chips System — Interactive Buttons on Roster Page
+**File:** `src/pages/RosterPage.tsx`
+- Add 3 chip buttons in the toolbar: **Gameday Captain** (toggle on/off per gameday), **All-Star** (once/season), **Wildcard** (3/season)
+- For now these are visual/state toggles (no backend persistence yet) — styled as accent buttons that highlight when active
+- Captain chip doubles the captain's score (visual indicator on the captain card)
 
-### Changes
+### 2. Deadline Countdown Timer on Roster Page
+**File:** `src/pages/RosterPage.tsx`
+- Add a live countdown timer next to the existing deadline text in the header banner
+- Use `useEffect` with `setInterval(1000)` to compute `deadline_utc - now` and display as `Xh Ym Zs`
+- When expired, show "LOCKED" in red
 
-**1. Create `src/components/HowToPlayModal.tsx`**
-A dialog/modal containing the full guide content organized in collapsible accordion sections:
-- Selecting Your Initial Roster (roster size, 5BC+5FC, salary cap $100M, max 2 per team)
-- Managing Your Team (formations 2BC+3FC or 3BC+2FC, auto bench subs, bench priority)
-- Deadlines (gameweeks/gamedays, 30 min before first tipoff)
-- Chips (Gameday Captain, All-Star, Wildcard — with availability windows)
-- Scoring (PTS×1, REB×1, AST×2, BLK×3, STL×3)
-- FAQ (can I have more than one team, injury transfers, bench subs cascade)
+### 3. Captain Selection — Fix Missing UI
+**File:** `src/components/BottomActionBar.tsx`
+- The captain selector already exists in the bottom bar but may not render if `starters.length === 0` (the bar is conditionally shown). The real issue: the bottom bar only shows when `starters.length > 0` — this is correct. Check if `captainId` defaults to 0 and the `Select` doesn't show a value for 0.
+- Fix: ensure `captainId` is initialized from `roster.captain_id` and the Select shows "Select captain" placeholder when 0
 
-Styled with yellow accordion headers matching the uploaded screenshots' aesthetic. Triggered by a `HelpCircle` icon button.
+### 4. "Best Captain" → "Captain of the Week" + Rich Display
+**Files:** `src/components/RosterSidebar.tsx`, `supabase/functions/ai-coach/index.ts`
 
-**2. Update `src/components/layout/AppLayout.tsx`**
-- Add `HelpCircle` icon button at the far right of the header (inline with Commissioner nav area, but in the top navy header bar, after TeamSwitcher)
-- Clicking opens the HowToPlayModal
+**Sidebar changes:**
+- Rename button label from "Best Captain Today" → "Captain of the Week"
+- Replace `Captain: #{captainResult.captain_id}` with a rich display: player photo (circular), name, team, salary
+- Need to resolve `captain_id` to a player object using the `allPlayers` data — pass `allPlayers` as a prop to `RosterSidebar`
 
-**3. Enforce "max 2 players per NBA team" rule**
-- **`src/components/PlayerPickerDialog.tsx`**: When filtering available players, grey out / disable players from teams that already have 2 players on the roster. Show a small tooltip "Max 2 per team".
-- **`src/lib/optimizer.ts`**: No change needed (swaps don't change team composition)
+**Edge function changes:**
+- Update the `pick-captain` schema description prompt to say "captain of the week" and optimize for the entire gameweek, not just one day
+- No schema changes needed (still returns `captain_id`)
 
-**4. Verify existing constraints match rules**
-- `starter_fc_min=2, starter_bc_min=2` already enforced — correct
-- Salary cap $100 already used — correct
-- Roster size 10 (5 starters + 5 bench) — already enforced
+### 5. "Suggest 3 Moves" Error Fix
+**File:** `src/lib/contracts.ts`
+- The error is `"Array must contain at least 1 element(s)"` on `data.moves` — the Zod schema has `.min(1)` on the moves array
+- When the AI determines no moves are needed, it returns an empty array, which fails validation
+- **Fix:** Change `z.array(AISuggestTransferMoveSchema).min(1).max(5)` → `z.array(AISuggestTransferMoveSchema).max(5)` (remove `.min(1)`)
+- Also handle empty moves gracefully in `RosterSidebar.tsx` — show "No moves suggested" message
 
-### Files
+### 6. Transactions Page Fixes
+**File:** `src/pages/TransactionsPage.tsx`
+
+**a) Sort not working:**
+The `sort` state is set but never applied to the `filtered` array. Add sorting logic:
+```
+const sortFn = { fp5: p => p.last5.fp5, salary: p => p.core.salary, value5: p => p.computed.value5, ... }
+items.sort((a, b) => sortFn[sort](b) - sortFn[sort](a));
+```
+
+**b) Sortable column headers (Salary, FP5, Value5, Last FP):**
+- Make these 4 `TableHead` cells clickable — clicking sets the `sort` state
+- Active sort header gets `font-bold` class, no arrows
+- Default sort direction: highest first
+
+**c) Remove "Waiver Mode" toggle:**
+- Delete the `waiverMode` state, the `Switch` component, and the filter logic that limits to top 25
+
+**d) Max Salary default:**
+- Initialize `maxSalary` from `maxSalaryLimit` (computed from actual player data) instead of hardcoded 999
+- Use `useEffect` to sync: when `maxSalaryLimit` changes and `maxSalary > maxSalaryLimit`, reset to `maxSalaryLimit`
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/HowToPlayModal.tsx` | New — full guide modal with accordion sections |
-| `src/components/layout/AppLayout.tsx` | Add HelpCircle icon in header, import/render modal |
-| `src/components/PlayerPickerDialog.tsx` | Enforce max 2 players per NBA team rule |
+| `src/pages/RosterPage.tsx` | Add chips buttons, deadline countdown timer, pass allPlayers to sidebar |
+| `src/components/BottomActionBar.tsx` | Ensure captain select works properly |
+| `src/components/RosterSidebar.tsx` | Rename to "Captain of the Week", rich captain display with photo/name/team/$ |
+| `src/lib/contracts.ts` | Remove `.min(1)` from suggest-transfers moves array |
+| `supabase/functions/ai-coach/index.ts` | Update pick-captain prompt to "captain of the week" |
+| `src/pages/TransactionsPage.tsx` | Fix sort logic, sortable headers, remove waiver mode, fix max salary default |
 
 ### Implementation Order
-1. Create HowToPlayModal component
-2. Wire it into AppLayout header
-3. Add max-2-per-team constraint to PlayerPickerDialog
+1. Fix contracts `.min(1)` (unblocks Suggest 3 Moves)
+2. Fix TransactionsPage (sort, waiver mode removal, max salary)
+3. Update RosterSidebar (captain of the week + rich display)
+4. Update ai-coach edge function prompt
+5. Add chips UI + countdown timer to RosterPage
 
