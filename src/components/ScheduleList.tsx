@@ -106,7 +106,7 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "stl", label: "S" },
 ];
 
-function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; recapUrl?: string | null; onPlayerClick: (playerId: number) => void }) {
+function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gameId: string; recapUrl?: string | null; youtubeRecapId?: string | null; onPlayerClick: (playerId: number) => void }) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -185,6 +185,7 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
       {/* Right: recap video */}
       <div className="w-[420px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
         <RecapVideoEmbed
+          youtubeVideoId={youtubeRecapId}
           url={recapUrl}
           title="Game Recap"
         />
@@ -327,7 +328,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
-                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} onPlayerClick={setSelectedPlayerId} />}
+                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} youtubeRecapId={(g as any).youtube_recap_id} onPlayerClick={setSelectedPlayerId} />}
               </div>
             </CollapsibleContent>
           </Collapsible>
