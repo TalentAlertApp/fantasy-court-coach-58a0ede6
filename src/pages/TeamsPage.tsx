@@ -11,6 +11,7 @@ interface NbaTeamSummary {
   tricode: string;
   name: string;
   logo: string;
+  primaryColor: string;
   wins: number;
   losses: number;
   activePlayers: number;
@@ -20,7 +21,6 @@ interface NbaTeamSummary {
 export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
-  // Fetch team records from schedule_games
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["nba-teams-schedule-stats"],
     queryFn: async () => {
@@ -33,18 +33,31 @@ export default function TeamsPage() {
     staleTime: 120_000,
   });
 
-  // Fetch active player counts from player_game_logs
   const { data: playerCounts, isLoading: playersLoading } = useQuery({
     queryKey: ["nba-teams-active-players"],
     queryFn: async () => {
+      // Count players who played at least 1 minute in any game
       const { data, error } = await supabase
-        .from("players")
-        .select("team, id");
+        .from("player_game_logs")
+        .select("player_id, mp")
+        .gt("mp", 0);
       if (error) throw error;
-      const counts: Record<string, number> = {};
-      for (const p of data ?? []) {
-        counts[p.team] = (counts[p.team] || 0) + 1;
+      // Get player team mapping
+      const { data: players, error: pErr } = await supabase
+        .from("players")
+        .select("id, team");
+      if (pErr) throw pErr;
+      const teamMap = new Map<number, string>();
+      for (const p of players ?? []) teamMap.set(p.id, p.team);
+      const activeByTeam = new Map<string, Set<number>>();
+      for (const log of data ?? []) {
+        const team = teamMap.get(log.player_id);
+        if (!team) continue;
+        if (!activeByTeam.has(team)) activeByTeam.set(team, new Set());
+        activeByTeam.get(team)!.add(log.player_id);
       }
+      const counts: Record<string, number> = {};
+      for (const [team, ids] of activeByTeam) counts[team] = ids.size;
       return counts;
     },
     staleTime: 120_000,
@@ -70,6 +83,7 @@ export default function TeamsPage() {
       tricode: t.tricode,
       name: t.name,
       logo: t.logo,
+      primaryColor: t.primaryColor,
       wins: records[t.tricode]?.w ?? 0,
       losses: records[t.tricode]?.l ?? 0,
       activePlayers: playerCounts?.[t.tricode] ?? 0,
@@ -100,11 +114,18 @@ export default function TeamsPage() {
             return (
               <Card
                 key={t.tricode}
-                className="cursor-pointer hover:bg-muted/50 transition-colors border rounded-sm"
+                className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-sm border-2 group"
+                style={{ borderColor: `${t.primaryColor}40` }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = t.primaryColor; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}40`; }}
                 onClick={() => setSelectedTeam(t.tricode)}
               >
                 <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                  <img src={t.logo} alt={t.name} className="w-12 h-12" />
+                  <img
+                    src={t.logo}
+                    alt={t.name}
+                    className="w-12 h-12 transition-transform duration-200 group-hover:scale-110"
+                  />
                   <div>
                     <p className="font-heading font-bold text-sm uppercase">{t.tricode}</p>
                     <p className="text-[10px] text-muted-foreground">{t.name}</p>

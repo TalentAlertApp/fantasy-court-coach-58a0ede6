@@ -167,7 +167,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
         </div>
       </div>
       {/* Right: recap video — stretch to full table height, aspect-video only */}
-      <div className="w-[480px] shrink-0 border-l aspect-video self-stretch">
+      <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
         <RecapVideoEmbed
           youtubeVideoId={youtubeRecapId}
           url={recapUrl}
