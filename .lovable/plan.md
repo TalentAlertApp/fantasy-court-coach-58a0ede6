@@ -1,34 +1,34 @@
 
 
-## Fix: Special Characters in Player Names (Encoding Issue)
+## Fix: Central European Characters (č, ć, ž, etc.)
 
-### Problem
-Player names with diacritics (Vučević, González, Dončić, Jokić, etc.) are stored as garbled text (`Vu?evi?`, `Gonz�lez`) because the browser's `file.text()` assumes UTF-8, but the TSV file is encoded in Windows-1252 (or Latin-1).
+### Root cause
+Characters like **č**, **ć**, **ž** (Jokić, Vučević, Dončić) are Central/Eastern European and do NOT exist in Windows-1252 or ISO-8859-1. They exist in **ISO-8859-2** (Latin-2) or **Windows-1250**. The current fallback decodes with `windows-1252`, which maps these bytes to `?`.
 
 ### Fix
-**One file change**: `src/pages/CommissionerPage.tsx`
+**One file**: `src/pages/CommissionerPage.tsx`
 
-In `handleUpload`, replace:
-```js
-const text = await file.text();
-```
-with encoding detection that tries UTF-8 first, and falls back to Windows-1252:
+Update the encoding detection in `handleUpload` (and `handleGameDataUpload`) to try multiple encodings:
+
 ```js
 const buffer = await file.arrayBuffer();
-// Try UTF-8 first; if it produces replacement chars, fall back to windows-1252
 let text = new TextDecoder("utf-8").decode(buffer);
 if (text.includes("\uFFFD")) {
-  text = new TextDecoder("windows-1252").decode(buffer);
+  // Try Windows-1250 (Central European) first, then fall back to Windows-1252
+  const w1250 = new TextDecoder("windows-1250").decode(buffer);
+  text = w1250.includes("\uFFFD")
+    ? new TextDecoder("windows-1252").decode(buffer)
+    : w1250;
 }
 ```
 
-Apply the same fix to `handleGameDataUpload` for consistency.
+This ensures characters like č, ć, ž, š, ď are correctly decoded from Central European encoded files.
 
-### After deployment
-Re-upload your `NBA_dataset_full.tsv` on `/commissioner` — names like Nikola Vučević, Hugo González, Luka Dončić will import correctly.
+### After fix
+Re-upload `NBA_dataset_full.tsv` on `/commissioner` with Full replace ON. Names like Nikola Jokić and Nikola Vučević will display correctly.
 
 ### Files changed
 | File | Action |
 |------|--------|
-| `src/pages/CommissionerPage.tsx` | Add encoding detection for TSV/CSV file reads |
+| `src/pages/CommissionerPage.tsx` | Try Windows-1250 before Windows-1252 fallback |
 
