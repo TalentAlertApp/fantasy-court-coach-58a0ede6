@@ -24,7 +24,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const team = tricode ? getTeamByTricode(tricode) : null;
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [selectedGame, setSelectedGame] = useState<any>(null);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
     queryKey: ["team-games", tricode],
@@ -138,7 +138,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         <div
                           key={g.game_id}
                           className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
-                          onClick={() => setSelectedGameId(g.game_id)}
+                          onClick={() => setSelectedGame(g)}
                         >
                           <Badge variant={won ? "default" : "destructive"} className="rounded-sm text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
                           {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
@@ -229,9 +229,16 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
       />
 
       <NBAGameModal
-        gameId={selectedGameId}
-        open={selectedGameId !== null}
-        onOpenChange={(o) => { if (!o) setSelectedGameId(null); }}
+        open={selectedGame !== null}
+        onOpenChange={(o) => { if (!o) setSelectedGame(null); }}
+        defaultTab="boxscore"
+        urls={{
+          game_recap_url: selectedGame?.game_recap_url,
+          game_boxscore_url: selectedGame?.game_boxscore_url,
+          game_charts_url: selectedGame?.game_charts_url,
+          game_playbyplay_url: selectedGame?.game_playbyplay_url,
+        }}
+        title={selectedGame ? `${selectedGame.home_team} vs ${selectedGame.away_team}` : undefined}
       />
     </>
   );
