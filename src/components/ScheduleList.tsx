@@ -16,15 +16,17 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
   // Priority: YouTube embed > NBA.com external link > unavailable
   if (youtubeVideoId) {
     return (
-      <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col h-full">
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
-          title={title}
-          className="w-full aspect-video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowFullScreen
-          loading="lazy"
-        />
+      <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col">
+        <div className="w-full aspect-video overflow-hidden">
+          <iframe
+            src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
+            title={title}
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            loading="lazy"
+          />
+        </div>
         {url && (
           <div className="flex items-center justify-between border-t border-border bg-background px-3 py-2">
             <span className="text-xs text-muted-foreground">YouTube recap</span>
@@ -135,13 +137,13 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
     <div className="border-t bg-muted/20 flex">
       {/* Left: stats table */}
       <div className="flex-1 min-w-0">
-        <div className="grid grid-cols-[minmax(90px,1fr)_repeat(7,28px)] gap-0.5 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
-          <span>Player</span>
+        <div className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
+          <span className="pr-3">Player</span>
           {SORT_COLUMNS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => handleSort(key)}
-              className="text-center flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer"
+              className="text-right flex items-center justify-end gap-0.5 hover:text-foreground transition-colors cursor-pointer"
             >
               {label}
               {sortKey === key && (sortDir === "desc" ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />)}
@@ -155,7 +157,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
               <div
                 key={p.player_id}
                 onClick={() => onPlayerClick(p.player_id)}
-                className="grid grid-cols-[minmax(90px,1fr)_repeat(7,28px)] gap-0.5 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Avatar className="h-5 w-5 shrink-0">
@@ -170,13 +172,13 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
                   </Badge>
                   <span className="text-xs font-medium">{p.name}</span>
                 </div>
-                <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
-                <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
-                <span className="text-center font-mono text-xs">{p.ps}</span>
-                <span className="text-center font-mono text-xs">{p.ast}</span>
-                <span className="text-center font-mono text-xs">{p.reb}</span>
-                <span className="text-center font-mono text-xs">{p.blk}</span>
-                <span className="text-center font-mono text-xs">{p.stl}</span>
+                <span className="text-right font-mono text-xs font-bold">{p.fp}</span>
+                <span className="text-right font-mono text-xs text-muted-foreground">{p.mp}</span>
+                <span className="text-right font-mono text-xs">{p.ps}</span>
+                <span className="text-right font-mono text-xs">{p.ast}</span>
+                <span className="text-right font-mono text-xs">{p.reb}</span>
+                <span className="text-right font-mono text-xs">{p.blk}</span>
+                <span className="text-right font-mono text-xs">{p.stl}</span>
               </div>
             );
           })}
