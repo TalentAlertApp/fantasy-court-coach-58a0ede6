@@ -75,11 +75,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Full replace mode: wipe all game-related tables first
+    // Full replace mode: wipe player game tables (schedule is managed separately)
     if (replace) {
       await sb.from("player_last_game").delete().neq("player_id", -1);
       await sb.from("player_game_logs").delete().neq("player_id", -1);
-      await sb.from("schedule_games").delete().neq("game_id", "___none___");
     }
 
     const errors: string[] = [];
