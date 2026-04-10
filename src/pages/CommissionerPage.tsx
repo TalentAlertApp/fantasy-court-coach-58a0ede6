@@ -145,6 +145,7 @@ export default function CommissionerPage() {
         text = new TextDecoder("windows-1250").decode(buffer);
       }
       const players = parseTsv(text);
+      console.log("[Commissioner] First 3 parsed names:", players.slice(0, 3).map(p => p.name));
 
       if (players.length === 0) {
         toast.error("No valid players found in TSV file");
