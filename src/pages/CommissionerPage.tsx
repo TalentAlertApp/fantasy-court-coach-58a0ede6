@@ -37,11 +37,18 @@ interface TsvPlayer {
   pos: string;
 }
 
+/** Strip surrounding quotes and unescape doubled quotes */
+function stripQuotes(v: string): string {
+  if (v.length >= 2 && v.startsWith('"') && v.endsWith('"')) {
+    return v.slice(1, -1).replace(/""/g, '"');
+  }
+  return v;
+}
+
 /** Parse salary like "22,0" or "4,5" → 22.0 or 4.5 (comma = decimal) */
 function parseSalary(raw: string): number {
   if (!raw || raw.trim() === "") return 0;
-  // Replace comma with dot for decimal
-  const cleaned = raw.trim().replace(",", ".");
+  const cleaned = stripQuotes(raw.trim()).replace(",", ".");
   const val = parseFloat(cleaned);
   return isNaN(val) ? 0 : val;
 }
@@ -50,35 +57,40 @@ function parseTsv(text: string): TsvPlayer[] {
   const lines = text.split("\n").filter(l => l.trim());
   if (lines.length < 2) return [];
 
-  // Remove BOM if present
   const firstLine = lines[0].replace(/^\uFEFF/, "");
-  const header = firstLine.split("\t").map(h => h.trim().toUpperCase());
+  const header = firstLine.split("\t").map(h => stripQuotes(h.trim()).toUpperCase());
 
   const colMap: Record<string, number> = {};
   header.forEach((h, i) => { colMap[h] = i; });
 
+  const get = (cols: string[], key: string): string => {
+    const idx = colMap[key];
+    if (idx === undefined || idx >= cols.length) return "";
+    return stripQuotes(cols[idx].trim());
+  };
+
   const players: TsvPlayer[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split("\t");
-    const id = cols[colMap["ID"]]?.trim();
+    const id = get(cols, "ID");
     if (!id) continue;
 
     players.push({
-      nba_url: cols[colMap["URL"]]?.trim() || "",
+      nba_url: get(cols, "URL"),
       id,
-      photo: cols[colMap["PHOTO"]]?.trim() || "",
-      name: cols[colMap["NAME"]]?.trim() || "",
-      team: cols[colMap["TEAM"]]?.trim() || "",
-      fc_bc: cols[colMap["FC_BC"]]?.trim() || "FC",
-      salary: cols[colMap["$"]]?.trim() || "0",
-      jersey: cols[colMap["#"]]?.trim() || "0",
-      college: cols[colMap["COLLEGE"]]?.trim() || "",
-      weight: cols[colMap["WEIGHT"]]?.trim() || "0",
-      height: cols[colMap["HEIGHT"]]?.trim() || "",
-      age: cols[colMap["AGE"]]?.trim() || "0",
-      dob: cols[colMap["DOB"]]?.trim() || "",
-      exp: cols[colMap["EXP"]]?.trim() || "0",
-      pos: cols[colMap["POS"]]?.trim() || "",
+      photo: get(cols, "PHOTO"),
+      name: get(cols, "NAME"),
+      team: get(cols, "TEAM"),
+      fc_bc: get(cols, "FC_BC") || "FC",
+      salary: get(cols, "$") || "0",
+      jersey: get(cols, "#"),
+      college: get(cols, "COLLEGE"),
+      weight: get(cols, "WEIGHT") || "0",
+      height: get(cols, "HEIGHT"),
+      age: get(cols, "AGE") || "0",
+      dob: get(cols, "DOB"),
+      exp: get(cols, "EXP") || "0",
+      pos: get(cols, "POS"),
     });
   }
   return players;
