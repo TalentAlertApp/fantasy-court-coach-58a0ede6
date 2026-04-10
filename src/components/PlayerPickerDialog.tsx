@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Search } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 
@@ -23,21 +24,32 @@ export default function PlayerPickerDialog({
   open, onOpenChange, allPlayers, rosterIds, onSelect, title = "Pick a Player",
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
+  const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
 
   const available = useMemo(() => {
-    const filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
+    let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
+    if (fcBcFilter !== "ALL") {
+      filtered = filtered.filter((p) => p.core.fc_bc === fcBcFilter);
+    }
     if (!search.trim()) return filtered.slice(0, 60);
     const q = search.toLowerCase();
     return filtered.filter((p) =>
       p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
     ).slice(0, 60);
-  }, [allPlayers, rosterIds, search]);
+  }, [allPlayers, rosterIds, search, fcBcFilter]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setSearch(""); }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); } }}>
       <DialogContent className="max-w-md max-h-[80vh] flex flex-col rounded-sm">
         <DialogHeader>
-          <DialogTitle className="font-heading">{title}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="font-heading">{title}</DialogTitle>
+            <ToggleGroup type="single" value={fcBcFilter} onValueChange={(v) => v && setFcBcFilter(v as "ALL" | "FC" | "BC")}>
+              <ToggleGroupItem value="ALL" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">All</ToggleGroupItem>
+              <ToggleGroupItem value="FC" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">FC</ToggleGroupItem>
+              <ToggleGroupItem value="BC" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">BC</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
         </DialogHeader>
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -53,7 +65,7 @@ export default function PlayerPickerDialog({
             {available.map((p) => (
               <button
                 key={p.core.id}
-                onClick={() => { onSelect(p); onOpenChange(false); setSearch(""); }}
+                onClick={() => { onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
                 className="w-full flex items-center gap-3 px-2 py-2 border-b hover:bg-muted transition-colors text-left group"
               >
                 {p.core.photo ? (
