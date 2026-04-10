@@ -176,6 +176,34 @@ function parseCSVLine(line: string): string[] {
 }
 
 export default function CommissionerPage() {
+  const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
+  const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+
+  const handleYoutubeRecapLookup = async () => {
+    setIsLookingUpRecaps(true);
+    setRecapResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("youtube-recap-lookup", {
+        body: null,
+      });
+      if (error) throw error;
+      if (data?.ok && data.data) {
+        setRecapResult(data.data);
+        toast.success(`Found ${data.data.found} recaps (${data.data.remaining} remaining)`);
+        if (data.data.errors?.length) {
+          toast.warning(`${data.data.errors.length} errors`);
+          console.warn("Recap lookup errors:", data.data.errors);
+        }
+      } else {
+        throw new Error(data?.error?.message || "Unknown error");
+      }
+    } catch (err: any) {
+      toast.error(`Recap lookup failed: ${err.message}`);
+    } finally {
+      setIsLookingUpRecaps(false);
+    }
+  };
+
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
