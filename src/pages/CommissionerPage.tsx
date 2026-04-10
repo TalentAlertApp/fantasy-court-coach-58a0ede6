@@ -728,6 +728,32 @@ export default function CommissionerPage() {
           )}
         </div>
       </div>
+
+      {/* YouTube Recaps */}
+      <div className="bg-card border rounded-sm p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Youtube className="h-5 w-5 text-destructive" />
+          <h3 className="font-heading font-bold text-lg uppercase">YouTube Recaps</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Auto-populate YouTube recap video IDs for all finished games missing a recap.
+          Uses the YouTube Data API to search for "Motion Station" recaps.
+        </p>
+        <Button
+          onClick={handleYoutubeRecapLookup}
+          disabled={isLookingUpRecaps}
+          className="w-full"
+        >
+          <Youtube className="h-4 w-4 mr-2" />
+          {isLookingUpRecaps ? "Looking up recaps…" : "Populate YouTube Recaps"}
+        </Button>
+        {recapResult && (
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <CheckCircle2 className="h-4 w-4" />
+            Found {recapResult.found}/{recapResult.processed} recaps · {recapResult.remaining} remaining
+          </div>
+        )}
+      </div>
       <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground space-y-1">
