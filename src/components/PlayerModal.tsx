@@ -28,6 +28,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [aiResult, setAiResult] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [boxscoreGameId, setBoxscoreGameId] = useState<string | null>(null);
+  const [boxscorePlayerId, setBoxscorePlayerId] = useState<number | null>(null);
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
@@ -49,6 +50,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     }
   };
 
+  const handleBoxscorePlayerClick = (pid: number) => {
+    setBoxscoreGameId(null);
+    setBoxscorePlayerId(pid);
+  };
+
   if (!open) return null;
 
   const teamLogo = data ? getTeamLogo(data.player.core.team) : undefined;
@@ -56,7 +62,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
-        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
@@ -69,9 +75,9 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
               <Skeleton className="h-40 w-full" />
             </div>
           ) : data ? (
-            <div className="space-y-4">
+            <div className="flex flex-col min-h-0 flex-1 gap-4">
               {/* Core Info */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 {data.player.core.photo ? (
                   <img src={data.player.core.photo} alt="" className="w-14 h-14 rounded-sm object-cover bg-muted" />
                 ) : (
@@ -95,7 +101,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
               </div>
 
               {/* Last Game FP Breakdown */}
-              <div className="bg-muted rounded-sm p-3 border">
+              <div className="bg-muted rounded-sm p-3 border shrink-0">
                 <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">Last Game FP Breakdown</p>
                 <div className="grid grid-cols-6 gap-2 text-center text-xs">
                   {[
@@ -123,7 +129,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsList>
 
                 {/* Stats Tab */}
-                <TabsContent value="stats">
+                <TabsContent value="stats" className="shrink-0">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {[
                       { l: "Season FP/G", v: data.player.season.fp.toFixed(1) },
@@ -142,12 +148,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* History Tab */}
-                <TabsContent value="history" className="flex-1 min-h-0 overflow-hidden">
+                <TabsContent value="history" className="flex-1 min-h-0">
                   <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">This Season</p>
                   {data.history.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
                   ) : (
-                    <ScrollArea className="max-h-[60vh]">
+                    <ScrollArea className="h-[40vh]">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -202,11 +208,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* Schedule Tab */}
-                <TabsContent value="schedule">
+                <TabsContent value="schedule" className="flex-1 min-h-0">
                   {data.upcoming.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No upcoming games</p>
                   ) : (
-                    <ScrollArea className="max-h-[60vh]">
+                    <ScrollArea className="h-[40vh]">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -244,7 +250,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* AI Tab */}
-                <TabsContent value="ai">
+                <TabsContent value="ai" className="shrink-0">
                   <div className="space-y-3">
                     <Button size="sm" onClick={handleExplain} disabled={aiLoading} className="w-full">
                       {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
@@ -293,19 +299,19 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
 
       {/* Game Boxscore Dialog */}
       <Dialog open={!!boxscoreGameId} onOpenChange={(o) => { if (!o) setBoxscoreGameId(null); }}>
-        <DialogContent className="max-w-lg rounded-sm overflow-hidden">
+        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="font-heading">Game Box Score</DialogTitle>
           </DialogHeader>
           {boxscoreLoading ? (
             <Skeleton className="h-40 w-full" />
           ) : boxscoreData ? (
-            <ScrollArea className="max-h-80">
+            <ScrollArea className="h-[50vh]">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8">Player</TableHead>
-                    <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">PTS</TableHead>
+                    <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">FP</TableHead>
                     <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">MP</TableHead>
                     <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">PS</TableHead>
                     <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">R</TableHead>
@@ -316,7 +322,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TableHeader>
                 <TableBody>
                   {boxscoreData.players.map((p: any) => (
-                    <TableRow key={p.player_id}>
+                    <TableRow
+                      key={p.player_id}
+                      className="cursor-pointer hover:bg-accent/50"
+                      onClick={() => handleBoxscorePlayerClick(p.player_id)}
+                    >
                       <TableCell className="px-1.5 py-1 text-xs">
                         <div className="flex items-center gap-1.5">
                           {p.photo ? (
@@ -324,7 +334,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                           ) : (
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
-                          <span className="font-medium truncate max-w-[100px]">{p.name}</span>
+                          <span className="font-medium whitespace-nowrap">{p.name}</span>
                           <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="rounded-sm text-[8px] px-1 py-0">{p.fc_bc}</Badge>
                         </div>
                       </TableCell>
@@ -345,6 +355,15 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Nested player modal from boxscore click */}
+      {boxscorePlayerId && (
+        <PlayerModal
+          playerId={boxscorePlayerId}
+          open={!!boxscorePlayerId}
+          onOpenChange={(o) => { if (!o) setBoxscorePlayerId(null); }}
+        />
+      )}
     </>
   );
 }
