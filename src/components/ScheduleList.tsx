@@ -7,7 +7,7 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink, ArrowUp, ArrowDown } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
@@ -36,8 +36,23 @@ function getStatusBorder(status: string): string {
   }
 }
 
+type SortKey = "fp" | "mp" | "ps" | "ast" | "reb" | "blk" | "stl";
+type SortDir = "asc" | "desc";
+
+const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "fp", label: "FP" },
+  { key: "mp", label: "MP" },
+  { key: "ps", label: "PS" },
+  { key: "ast", label: "A" },
+  { key: "reb", label: "R" },
+  { key: "blk", label: "B" },
+  { key: "stl", label: "S" },
+];
+
 function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick: (playerId: number) => void }) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
+  const [sortKey, setSortKey] = useState<SortKey>("fp");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   if (isLoading) {
     return <div className="p-3 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>;
@@ -48,22 +63,42 @@ function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick
     return <p className="p-3 text-sm text-muted-foreground">No player data available</p>;
   }
 
+  const sorted = [...players].sort((a, b) => {
+    const av = a[sortKey] ?? 0;
+    const bv = b[sortKey] ?? 0;
+    return sortDir === "desc" ? bv - av : av - bv;
+  });
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
   return (
     <div className="border-t bg-muted/20">
       {/* Header */}
       <div className="grid grid-cols-[1fr_repeat(7,36px)] gap-1 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
         <span>Player</span>
-        <span className="text-center">FP</span>
-        <span className="text-center">MP</span>
-        <span className="text-center">PS</span>
-        <span className="text-center">A</span>
-        <span className="text-center">R</span>
-        <span className="text-center">B</span>
-        <span className="text-center">S</span>
+        {SORT_COLUMNS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => handleSort(key)}
+            className="text-center flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer"
+          >
+            {label}
+            {sortKey === key && (
+              sortDir === "desc" ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />
+            )}
+          </button>
+        ))}
       </div>
       {/* Scrollable rows — max 10 visible */}
       <div className="max-h-[360px] overflow-y-auto">
-        {players.map((p) => {
+        {sorted.map((p) => {
           const isFc = p.fc_bc === "FC";
           return (
             <div
@@ -83,6 +118,9 @@ function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick
                   {p.fc_bc}
                 </Badge>
                 <span className="truncate text-xs font-medium">{p.name}</span>
+                {p.team && (
+                  <span className="text-[10px] text-muted-foreground font-mono shrink-0">{p.team}</span>
+                )}
               </div>
               <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
               <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
