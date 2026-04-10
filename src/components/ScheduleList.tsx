@@ -328,7 +328,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
-                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} youtubeRecapId={(g as any).youtube_recap_id} onPlayerClick={setSelectedPlayerId} />}
+                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} youtubeRecapId={g.youtube_recap_id} onPlayerClick={setSelectedPlayerId} />}
               </div>
             </CollapsibleContent>
           </Collapsible>
