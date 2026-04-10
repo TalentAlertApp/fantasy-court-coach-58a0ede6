@@ -31,7 +31,7 @@ export default function PlayersPage() {
   const [fcBc, setFcBc] = useState("ALL");
   const [sort, setSort] = useState("fp5");
   const [search, setSearch] = useState("");
-  const [maxSalary, setMaxSalary] = useState(50);
+  const [maxSalary, setMaxSalary] = useState(999);
   const [waiverMode, setWaiverMode] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState<PageSizeOption>(20);
