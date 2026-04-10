@@ -4,7 +4,6 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Search } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
@@ -40,9 +39,9 @@ export default function PlayerPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); } }}>
-      <DialogContent className="max-w-md max-h-[80vh] flex flex-col rounded-sm overflow-hidden">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
+      <DialogContent className="max-w-md h-[min(80vh,42rem)] flex flex-col rounded-sm overflow-hidden">
+        <DialogHeader className="pr-10">
+          <div className="flex items-center justify-between gap-3">
             <DialogTitle className="font-heading">{title}</DialogTitle>
             <ToggleGroup type="single" value={fcBcFilter} onValueChange={(v) => v && setFcBcFilter(v as "ALL" | "FC" | "BC")}>
               <ToggleGroupItem value="ALL" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">All</ToggleGroupItem>
@@ -60,7 +59,7 @@ export default function PlayerPickerDialog({
             className="pl-8 rounded-sm"
           />
         </div>
-        <ScrollArea className="flex-1 min-h-0 max-h-[55vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2">
           <div className="space-y-0">
             {available.map((p) => (
               <button
@@ -97,7 +96,7 @@ export default function PlayerPickerDialog({
               <p className="text-sm text-muted-foreground text-center py-6 font-body">No players found</p>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
