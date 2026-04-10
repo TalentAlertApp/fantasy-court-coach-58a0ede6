@@ -12,18 +12,32 @@ import PlayerModal from "@/components/PlayerModal";
 import NBAGameModal, { type NBAGameTab } from "@/components/NBAGameModal";
 
 /* ---------- Recap Video Embed ---------- */
-function RecapVideoEmbed({ url, title = "Game recap" }: { url?: string | null; title?: string }) {
-  const [iframeFailed, setIframeFailed] = useState(false);
-
-  if (!url) {
+function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
+  // Priority: YouTube embed > NBA.com external link > unavailable
+  if (youtubeVideoId) {
     return (
-      <div className="flex h-full min-h-[220px] items-center justify-center rounded-sm border border-border bg-muted/30 text-sm text-muted-foreground">
-        Recap unavailable
+      <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col h-full">
+        <iframe
+          src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
+          title={title}
+          className="flex-1 w-full min-h-[220px]"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          loading="lazy"
+        />
+        {url && (
+          <div className="flex items-center justify-between border-t border-border bg-background px-3 py-2">
+            <span className="text-xs text-muted-foreground">YouTube recap</span>
+            <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
+              Open on NBA.com
+            </a>
+          </div>
+        )}
       </div>
     );
   }
 
-  if (iframeFailed) {
+  if (url) {
     return (
       <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 rounded-sm border border-border bg-black/80">
         <button
@@ -41,23 +55,8 @@ function RecapVideoEmbed({ url, title = "Game recap" }: { url?: string | null; t
   }
 
   return (
-    <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col h-full">
-      <iframe
-        src={url}
-        title={title}
-        className="flex-1 w-full min-h-[220px]"
-        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-        allowFullScreen
-        loading="lazy"
-        referrerPolicy="strict-origin-when-cross-origin"
-        onError={() => setIframeFailed(true)}
-      />
-      <div className="flex items-center justify-between border-t border-border bg-background px-3 py-2">
-        <span className="text-xs text-muted-foreground">NBA recap</span>
-        <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
-          Open on NBA.com
-        </a>
-      </div>
+    <div className="flex h-full min-h-[220px] items-center justify-center rounded-sm border border-border bg-muted/30 text-sm text-muted-foreground">
+      Recap unavailable
     </div>
   );
 }
@@ -107,7 +106,7 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "stl", label: "S" },
 ];
 
-function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; recapUrl?: string | null; onPlayerClick: (playerId: number) => void }) {
+function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gameId: string; recapUrl?: string | null; youtubeRecapId?: string | null; onPlayerClick: (playerId: number) => void }) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -186,6 +185,7 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
       {/* Right: recap video */}
       <div className="w-[420px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
         <RecapVideoEmbed
+          youtubeVideoId={youtubeRecapId}
           url={recapUrl}
           title="Game Recap"
         />
@@ -328,7 +328,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
-                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} onPlayerClick={setSelectedPlayerId} />}
+                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} youtubeRecapId={g.youtube_recap_id} onPlayerClick={setSelectedPlayerId} />}
               </div>
             </CollapsibleContent>
           </Collapsible>

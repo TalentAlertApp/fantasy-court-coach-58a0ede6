@@ -1,0 +1,1 @@
+ALTER TABLE public.schedule_games ADD COLUMN youtube_recap_id text DEFAULT NULL;

@@ -210,6 +210,7 @@ export const ScheduleGameSchema = z
     game_boxscore_url: z.string().nullable(),
     game_charts_url: z.string().nullable(),
     game_playbyplay_url: z.string().nullable(),
+    youtube_recap_id: z.string().nullable().optional(),
   })
   .strict();
 

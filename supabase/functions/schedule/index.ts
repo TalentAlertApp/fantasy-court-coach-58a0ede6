@@ -52,6 +52,7 @@ serve(async (req: Request) => {
           game_boxscore_url: g.game_boxscore_url || null,
           game_charts_url: g.game_charts_url || null,
           game_playbyplay_url: g.game_playbyplay_url || null,
+          youtube_recap_id: g.youtube_recap_id || null,
         })),
       },
     }), {
