@@ -221,16 +221,30 @@ export default function SchedulePage() {
               </>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 gap-1 text-xs shrink-0"
-            disabled={gw === current.gw && day === current.day}
-            onClick={() => { setGw(current.gw); setDay(current.day); }}
-          >
-            <CalendarDays className="h-3 w-3" />
-            Today
-          </Button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {lastPlayed && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20"
+                disabled={gw === lastPlayed.gw && day === lastPlayed.day}
+                onClick={() => { setGw(lastPlayed.gw); setDay(lastPlayed.day); }}
+              >
+                <CircleCheckBig className="h-3 w-3" />
+                Last Played
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 text-xs shrink-0"
+              disabled={gw === current.gw && day === current.day}
+              onClick={() => { setGw(current.gw); setDay(current.day); }}
+            >
+              <CalendarDays className="h-3 w-3" />
+              Today
+            </Button>
+          </div>
         </div>
       </div>
 
