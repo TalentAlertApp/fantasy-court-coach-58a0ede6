@@ -19,8 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -90,15 +91,58 @@ export default function RosterPage() {
 
   const handleSave = () => {
     if (!roster) return;
-    if (starters.length !== 5 || bench.length !== 5) {
-      toast({ title: "Invalid lineup", description: "Need exactly 5 starters and 5 bench", variant: "destructive" });
-      return;
+    const totalPlayers = starters.length + bench.length;
+    if (totalPlayers > 0 && totalPlayers < 10) {
+      // Allow partial rosters — pad with zeros
     }
+    const starterIds = [...starters.map((p) => p.core.id), ...Array(Math.max(0, 5 - starters.length)).fill(0)].slice(0, 5);
+    const benchIds = [...bench.map((p) => p.core.id), ...Array(Math.max(0, 5 - bench.length)).fill(0)].slice(0, 5);
     saveMutation.mutate({
       gw: currentGameday.gw, day: currentGameday.day,
-      starters: starters.map((p) => p.core.id),
-      bench: bench.map((p) => p.core.id),
+      starters: starterIds,
+      bench: benchIds,
       captain_id: captainId || starters[0]?.core.id || 0,
+    });
+  };
+
+  const handleReset = () => {
+    if (!roster) return;
+    saveMutation.mutate({
+      gw: currentGameday.gw, day: currentGameday.day,
+      starters: [0, 0, 0, 0, 0],
+      bench: [0, 0, 0, 0, 0],
+      captain_id: 0,
+    });
+    setCaptainId(0);
+  };
+
+  const handleAddPlayer = () => {
+    setSwapPlayerId(null);
+    setPickerOpen(true);
+  };
+
+  const handleAddSelect = (newPlayer: PlayerListItem) => {
+    if (!roster) return;
+    const currentStarters = [...(roster.starters ?? [])].filter(id => id > 0);
+    const currentBench = [...(roster.bench ?? [])].filter(id => id > 0);
+    const totalPlayers = currentStarters.length + currentBench.length;
+    if (totalPlayers >= 10) return;
+
+    // Add to starters first (up to 5), then bench
+    if (currentStarters.length < 5) {
+      currentStarters.push(newPlayer.core.id);
+    } else {
+      currentBench.push(newPlayer.core.id);
+    }
+
+    const starterIds = [...currentStarters, ...Array(Math.max(0, 5 - currentStarters.length)).fill(0)].slice(0, 5);
+    const benchIds = [...currentBench, ...Array(Math.max(0, 5 - currentBench.length)).fill(0)].slice(0, 5);
+
+    saveMutation.mutate({
+      gw: currentGameday.gw, day: currentGameday.day,
+      starters: starterIds,
+      bench: benchIds,
+      captain_id: captainId || currentStarters[0] || 0,
     });
   };
 
@@ -227,9 +271,33 @@ export default function RosterPage() {
                 <span className="font-mono">Trans: {roster?.free_transfers_remaining ?? "—"}</span>
               </div>
             </div>
-            <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
-              <Zap className="h-4 w-4 mr-1" />Optimize
-            </Button>
+            <div className="flex items-center gap-2">
+              {starters.length + bench.length < 10 && (
+                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
+                  <Plus className="h-4 w-4 mr-1" />Add Player
+                </Button>
+              )}
+              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
+                <Zap className="h-4 w-4 mr-1" />Optimize
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
+                    <RotateCcw className="h-4 w-4 mr-1" />Reset
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset Roster?</AlertDialogTitle>
+                    <AlertDialogDescription>This will remove all 10 players from your roster. You'll need to re-select them.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleReset} className="bg-destructive text-destructive-foreground">Reset</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
 
           {/* ── Two-Column Layout ── */}
@@ -276,8 +344,8 @@ export default function RosterPage() {
             onOpenChange={setPickerOpen}
             allPlayers={allPlayers}
             rosterIds={rosterIds}
-            onSelect={handleSwapSelect}
-            title="Swap Player"
+            onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
+            title={swapPlayerId ? "Swap Player" : "Add Player"}
           />
         </>
       )}

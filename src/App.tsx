@@ -8,6 +8,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import RosterPage from "@/pages/RosterPage";
 import PlayersPage from "@/pages/PlayersPage";
 import TransactionsPage from "@/pages/TransactionsPage";
+import TeamsPage from "@/pages/TeamsPage";
 import SchedulePage from "@/pages/SchedulePage";
 import StatsPage from "@/pages/StatsPage";
 import AIHubPage from "@/pages/AIHubPage";
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/roster" element={<Navigate to="/" replace />} />
               <Route path="/players" element={<PlayersPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/teams" element={<TeamsPage />} />
               <Route path="/schedule" element={<SchedulePage />} />
               <Route path="/stats" element={<StatsPage />} />
               <Route path="/ai" element={<AIHubPage />} />

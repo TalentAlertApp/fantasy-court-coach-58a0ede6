@@ -182,8 +182,8 @@ export const RosterSnapshotSchema = z
     gw: IntSchema,
     day: IntSchema,
     deadline_utc: NullableIsoDateTimeSchema,
-    starters: z.array(IntSchema).length(5),
-    bench: z.array(IntSchema).length(5),
+    starters: z.array(IntSchema).min(0).max(5),
+    bench: z.array(IntSchema).min(0).max(5),
     captain_id: IntSchema,
     bank_remaining: NumSchema,
     free_transfers_remaining: IntSchema,
@@ -355,8 +355,8 @@ export const RosterSaveBodySchema = z
   .object({
     gw: IntSchema,
     day: IntSchema,
-    starters: z.array(IntSchema).length(5),
-    bench: z.array(IntSchema).length(5),
+    starters: z.array(IntSchema).min(0).max(5),
+    bench: z.array(IntSchema).min(0).max(5),
     captain_id: IntSchema,
   })
   .strict();

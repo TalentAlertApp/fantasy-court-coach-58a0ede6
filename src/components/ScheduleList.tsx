@@ -7,16 +7,14 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ExternalLink, ArrowUp, ArrowDown, Tv2, Table2, BarChart3, Mic, Play } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Play } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
-import NBAGameModal, { type NBAGameTab } from "@/components/NBAGameModal";
 
 /* ---------- Recap Video Embed ---------- */
 function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
-  // Priority: YouTube embed > NBA.com external link > unavailable
   if (youtubeVideoId) {
     return (
-      <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col">
+      <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col h-full">
         <div className="w-full aspect-video overflow-hidden">
           <iframe
             src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
@@ -134,19 +132,20 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
   };
 
   return (
-    <div className="border-t bg-muted/20 flex">
+    <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto]">
       {/* Left: stats table */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0">
         <div className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
           <span className="pr-3">Player</span>
           {SORT_COLUMNS.map(({ key, label }) => (
             <button
               key={key}
               onClick={() => handleSort(key)}
-              className="text-right flex items-center justify-end gap-0.5 hover:text-foreground transition-colors cursor-pointer"
+              className={`text-right hover:text-foreground transition-colors cursor-pointer ${
+                sortKey === key ? "font-bold text-foreground" : ""
+              }`}
             >
               {label}
-              {sortKey === key && (sortDir === "desc" ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />)}
             </button>
           ))}
         </div>
@@ -184,8 +183,8 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
           })}
         </div>
       </div>
-      {/* Right: recap video */}
-      <div className="w-[500px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
+      {/* Right: recap video — self-stretch to fill card height */}
+      <div className="w-[480px] shrink-0 border-l flex flex-col p-3 bg-muted/10 self-stretch">
         <RecapVideoEmbed
           youtubeVideoId={youtubeRecapId}
           url={recapUrl}
@@ -196,33 +195,29 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
   );
 }
 
-/** Action icon button for game card */
-function GameActionIcon({ icon: Icon, url, label, onClick }: {
+/** Action icon for direct URL links */
+function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
   icon: typeof Tv2; url: string | null | undefined; label: string;
-  onClick: (e: React.MouseEvent) => void;
+  className?: string;
 }) {
   if (!url) return null;
   return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick(e); }}
-      className="text-muted-foreground hover:text-primary transition-colors p-0.5"
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className={`text-muted-foreground hover:text-primary transition-colors p-0.5 ${extraClass ?? ""}`}
       title={label}
     >
       <Icon className="h-3.5 w-3.5" />
-    </button>
+    </a>
   );
 }
 
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
-  const [modalState, setModalState] = useState<{ open: boolean; tab: NBAGameTab; game: ScheduleGame | null }>({
-    open: false, tab: "recap", game: null,
-  });
-
-  const openModal = (game: ScheduleGame, tab: NBAGameTab) => {
-    setModalState({ open: true, tab, game });
-  };
 
   if (games.length === 0) {
     return (
@@ -239,6 +234,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
         const isFinal = isGameFinal(g.status);
         const isLive = isGameLive(g.status);
         const isExpanded = expandedId === g.game_id;
+        const hasYoutubeRecap = !!g.youtube_recap_id;
 
         return (
           <Collapsible
@@ -279,7 +275,6 @@ export default function ScheduleList({ games }: ScheduleListProps) {
 
                 {/* Right info */}
                 <div className="flex items-center gap-1.5">
-                  {/* LIVE badge */}
                   {isLive && (
                     <a
                       href={g.game_playbyplay_url || "#"}
@@ -306,11 +301,19 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       {formatTipoff(g.tipoff_utc)}
                     </span>
                   )}
-                  {/* Action icons */}
-                  <GameActionIcon icon={Tv2} url={g.game_recap_url} label="Game Recap" onClick={() => openModal(g, "recap")} />
-                  <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" onClick={() => openModal(g, "boxscore")} />
-                  <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" onClick={() => openModal(g, "charts")} />
-                  <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" onClick={() => openModal(g, "playbyplay")} />
+                  {/* Action icons — direct links */}
+                  {isFinal && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); if (hasYoutubeRecap || g.game_recap_url) setExpandedId(isExpanded ? null : g.game_id); }}
+                      className={`p-0.5 cursor-pointer transition-colors ${hasYoutubeRecap ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
+                      title="Game Recap"
+                    >
+                      <Tv2 className="h-3.5 w-3.5" />
+                    </span>
+                  )}
+                  <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
+                  <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
+                  <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
                   {g.nba_game_url && (
                     <a
                       href={g.nba_game_url}
@@ -342,16 +345,6 @@ export default function ScheduleList({ games }: ScheduleListProps) {
         open={selectedPlayerId !== null}
         onOpenChange={(open) => !open && setSelectedPlayerId(null)}
       />
-
-      {modalState.game && (
-        <NBAGameModal
-          open={modalState.open}
-          onOpenChange={(open) => setModalState((s) => ({ ...s, open }))}
-          defaultTab={modalState.tab}
-          urls={modalState.game}
-          title={`${modalState.game.away_team} @ ${modalState.game.home_team}`}
-        />
-      )}
     </div>
   );
 }
