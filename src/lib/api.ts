@@ -26,6 +26,7 @@ import {
   SyncRunResponseSchema,
   SyncStatusResponseSchema,
   ImportGameDataResponseSchema,
+  ImportScheduleResponseSchema,
 } from "@/lib/contracts";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;

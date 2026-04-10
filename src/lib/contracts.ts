@@ -206,6 +206,10 @@ export const ScheduleGameSchema = z
     home_pts: IntSchema,
     status: z.enum(["SCHEDULED", "FINAL"]),
     nba_game_url: z.string().nullable(),
+    game_recap_url: z.string().nullable(),
+    game_boxscore_url: z.string().nullable(),
+    game_charts_url: z.string().nullable(),
+    game_playbyplay_url: z.string().nullable(),
   })
   .strict();
 
@@ -769,6 +773,14 @@ export const ImportGameDataPayloadSchema = z.object({
 });
 
 export const ImportGameDataResponseSchema = EnvelopeSchema(ImportGameDataPayloadSchema);
+
+/** ---------- Import Schedule ---------- */
+export const ImportSchedulePayloadSchema = z.object({
+  games_imported: z.number(),
+  errors: z.array(z.string()).optional(),
+});
+
+export const ImportScheduleResponseSchema = EnvelopeSchema(ImportSchedulePayloadSchema);
 
 /** ---------- optional: runtime helpers ---------- */
 export function assertOk<T extends z.ZodTypeAny>(
