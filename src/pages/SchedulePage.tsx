@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
+import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
 import ScheduleList from "@/components/ScheduleList";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -47,6 +48,7 @@ export default function SchedulePage() {
   const [day, setDay] = useState(current.day);
   const { data, isLoading } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
+  const { data: lastPlayed } = useLastPlayedDay();
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
