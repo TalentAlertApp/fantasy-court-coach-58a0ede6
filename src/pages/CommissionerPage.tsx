@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiFetch, importGameData } from "@/lib/api";
+import { apiFetch, importGameData, importSchedule } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import {

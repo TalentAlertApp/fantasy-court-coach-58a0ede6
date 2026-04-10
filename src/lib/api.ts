@@ -253,3 +253,16 @@ export async function importGameData(rows: Array<{
     method: "POST", body: JSON.stringify({ rows, replace }),
   }));
 }
+
+/** POST /import-schedule */
+export async function importSchedule(rows: Array<{
+  gw: number; day: number; date: string; dayName: string; time: string;
+  home_team: string; away_team: string; status: string; home_pts: number; away_pts: number;
+  game_id: string; nba_game_url: string | null; game_recap_url: string | null;
+  game_boxscore_url: string | null; game_charts_url: string | null;
+  game_playbyplay_url: string | null;
+}>, replace = false) {
+  return unwrap(await apiFetch("import-schedule", ImportScheduleResponseSchema, {
+    method: "POST", body: JSON.stringify({ rows, replace }),
+  }));
+}
