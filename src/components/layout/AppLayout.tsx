@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { Home, Users, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
+import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { triggerSync, fetchSyncStatus } from "@/lib/api";
@@ -182,6 +183,7 @@ export default function AppLayout() {
             />
 
             <TeamSwitcher />
+            <HowToPlayModal />
           </div>
         </div>
       </header>

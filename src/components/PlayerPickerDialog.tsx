@@ -15,15 +15,25 @@ interface PlayerPickerDialogProps {
   onOpenChange: (open: boolean) => void;
   allPlayers: PlayerListItem[];
   rosterIds: Set<number>;
+  rosterTeams?: string[];
   onSelect: (player: PlayerListItem) => void;
   title?: string;
 }
 
 export default function PlayerPickerDialog({
-  open, onOpenChange, allPlayers, rosterIds, onSelect, title = "Pick a Player",
+  open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
+
+  // Count how many roster players per NBA team
+  const teamCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const t of rosterTeams) {
+      counts[t] = (counts[t] || 0) + 1;
+    }
+    return counts;
+  }, [rosterTeams]);
 
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
@@ -63,11 +73,16 @@ export default function PlayerPickerDialog({
           <div className="space-y-0">
             {available.map((p) => {
               const teamLogo = getTeamLogo(p.core.team);
+              const teamFull = (teamCounts[p.core.team] || 0) >= 2;
               return (
                 <button
                   key={p.core.id}
-                  onClick={() => { onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
-                  className="w-full flex items-center gap-3 px-2 py-2 border-b hover:bg-muted transition-colors text-left group relative overflow-hidden"
+                  onClick={() => { if (teamFull) return; onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
+                  disabled={teamFull}
+                  className={`w-full flex items-center gap-3 px-2 py-2 border-b transition-colors text-left group relative overflow-hidden ${
+                    teamFull ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
+                  }`}
+                  title={teamFull ? "Max 2 players per NBA team" : undefined}
                 >
                   {/* Team watermark */}
                   {teamLogo && (
@@ -89,6 +104,9 @@ export default function PlayerPickerDialog({
                       <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-sm shrink-0">
                         {p.core.fc_bc}
                       </Badge>
+                      {teamFull && (
+                        <span className="text-[8px] text-destructive font-semibold shrink-0">MAX 2</span>
+                      )}
                     </div>
                     <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
                   </div>
