@@ -184,17 +184,12 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
         </div>
       </div>
       {/* Right: recap video */}
-      {recapUrl && (
-        <div className="w-[420px] shrink-0 border-l flex flex-col items-center justify-center p-4 bg-muted/10">
-          <button
-            onClick={() => window.open(recapUrl, "_blank")}
-            className="w-full aspect-video rounded-sm border bg-black/80 flex flex-col items-center justify-center gap-2 hover:bg-black/60 transition-colors cursor-pointer group"
-          >
-            <Tv2 className="h-10 w-10 text-white/70 group-hover:text-white transition-colors" />
-            <span className="text-[11px] font-heading uppercase text-white/70 group-hover:text-white">Watch Recap</span>
-          </button>
-        </div>
-      )}
+      <div className="w-[420px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
+        <RecapVideoEmbed
+          url={recapUrl}
+          title="Game Recap"
+        />
+      </div>
     </div>
   );
 }
