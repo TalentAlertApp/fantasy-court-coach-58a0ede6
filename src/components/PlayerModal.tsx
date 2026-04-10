@@ -142,7 +142,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* History Tab */}
-                <TabsContent value="history">
+                <TabsContent value="history" className="flex-1 min-h-0 overflow-hidden">
                   <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">This Season</p>
                   {data.history.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
