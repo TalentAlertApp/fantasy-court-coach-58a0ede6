@@ -7,8 +7,9 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ExternalLink, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, ExternalLink, ArrowUp, ArrowDown, Tv2, Table2, BarChart3, Mic } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
+import NBAGameModal, { type NBAGameTab } from "@/components/NBAGameModal";
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
@@ -16,7 +17,6 @@ interface ScheduleListProps {
   games: ScheduleGame[];
 }
 
-/** Format tipoff in Lisbon timezone */
 function formatTipoff(utc: string): string {
   const d = new Date(utc);
   return new Intl.DateTimeFormat("en-GB", {
@@ -27,13 +27,20 @@ function formatTipoff(utc: string): string {
   }).format(d);
 }
 
-/** Get status color for left border */
 function getStatusBorder(status: string): string {
-  switch (status) {
-    case "FINAL": return "border-l-green-500";
-    case "LIVE": case "IN_PROGRESS": return "border-l-[hsl(var(--nba-yellow))]";
-    default: return "border-l-transparent";
-  }
+  const s = status.toUpperCase();
+  if (s.includes("FINAL")) return "border-l-green-500";
+  if (s === "LIVE" || s === "IN_PROGRESS") return "border-l-[hsl(var(--nba-yellow))]";
+  return "border-l-transparent";
+}
+
+function isGameFinal(status: string) {
+  return status.toUpperCase().includes("FINAL");
+}
+
+function isGameLive(status: string) {
+  const s = status.toUpperCase();
+  return s === "LIVE" || s === "IN_PROGRESS";
 }
 
 type SortKey = "fp" | "mp" | "ps" | "ast" | "reb" | "blk" | "stl";
@@ -49,7 +56,7 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "stl", label: "S" },
 ];
 
-function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick: (playerId: number) => void }) {
+function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; recapUrl?: string | null; onPlayerClick: (playerId: number) => void }) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -70,76 +77,104 @@ function GameBoxScore({ gameId, onPlayerClick }: { gameId: string; onPlayerClick
   });
 
   const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    } else {
-      setSortKey(key);
-      setSortDir("desc");
-    }
+    if (sortKey === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    else { setSortKey(key); setSortDir("desc"); }
   };
 
   return (
-    <div className="border-t bg-muted/20">
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_repeat(7,36px)] gap-1 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
-        <span>Player</span>
-        {SORT_COLUMNS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => handleSort(key)}
-            className="text-center flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer"
-          >
-            {label}
-            {sortKey === key && (
-              sortDir === "desc" ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />
-            )}
-          </button>
-        ))}
-      </div>
-      {/* Scrollable rows — max 10 visible */}
-      <div className="max-h-[360px] overflow-y-auto">
-        {sorted.map((p) => {
-          const isFc = p.fc_bc === "FC";
-          return (
-            <div
-              key={p.player_id}
-              onClick={() => onPlayerClick(p.player_id)}
-              className="grid grid-cols-[1fr_repeat(7,36px)] gap-1 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+    <div className="border-t bg-muted/20 flex">
+      {/* Left: stats table */}
+      <div className="flex-1 min-w-0">
+        <div className="grid grid-cols-[minmax(100px,1fr)_repeat(7,32px)] gap-0.5 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
+          <span>Player</span>
+          {SORT_COLUMNS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => handleSort(key)}
+              className="text-center flex items-center justify-center gap-0.5 hover:text-foreground transition-colors cursor-pointer"
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <Avatar className="h-6 w-6 shrink-0">
-                  {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
-                  <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <Badge
-                  variant={isFc ? "destructive" : "default"}
-                  className="text-[8px] px-1 py-0 shrink-0 rounded-sm font-heading min-w-[22px] justify-center"
-                >
-                  {p.fc_bc}
-                </Badge>
-                <span className="truncate text-xs font-medium">{p.name}</span>
-                {p.team && (
-                  <span className="text-[10px] text-muted-foreground font-mono shrink-0">{p.team}</span>
-                )}
+              {label}
+              {sortKey === key && (sortDir === "desc" ? <ArrowDown className="h-2.5 w-2.5" /> : <ArrowUp className="h-2.5 w-2.5" />)}
+            </button>
+          ))}
+        </div>
+        <div className="max-h-[360px] overflow-y-auto">
+          {sorted.map((p) => {
+            const isFc = p.fc_bc === "FC";
+            return (
+              <div
+                key={p.player_id}
+                onClick={() => onPlayerClick(p.player_id)}
+                className="grid grid-cols-[minmax(100px,1fr)_repeat(7,32px)] gap-0.5 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+              >
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Avatar className="h-5 w-5 shrink-0">
+                    {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
+                    <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <Badge
+                    variant={isFc ? "destructive" : "default"}
+                    className="text-[7px] px-0.5 py-0 shrink-0 rounded-sm font-heading min-w-[18px] justify-center"
+                  >
+                    {p.fc_bc}
+                  </Badge>
+                  <span className="truncate text-xs font-medium max-w-[120px]">{p.name}</span>
+                </div>
+                <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
+                <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
+                <span className="text-center font-mono text-xs">{p.ps}</span>
+                <span className="text-center font-mono text-xs">{p.ast}</span>
+                <span className="text-center font-mono text-xs">{p.reb}</span>
+                <span className="text-center font-mono text-xs">{p.blk}</span>
+                <span className="text-center font-mono text-xs">{p.stl}</span>
               </div>
-              <span className="text-center font-mono text-xs font-bold">{p.fp}</span>
-              <span className="text-center font-mono text-xs text-muted-foreground">{p.mp}</span>
-              <span className="text-center font-mono text-xs">{p.ps}</span>
-              <span className="text-center font-mono text-xs">{p.ast}</span>
-              <span className="text-center font-mono text-xs">{p.reb}</span>
-              <span className="text-center font-mono text-xs">{p.blk}</span>
-              <span className="text-center font-mono text-xs">{p.stl}</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+      {/* Right: recap video */}
+      {recapUrl && (
+        <div className="w-[320px] shrink-0 border-l flex flex-col items-center justify-start p-3 bg-muted/10">
+          <p className="text-[10px] font-heading uppercase text-muted-foreground mb-2">Game Recap</p>
+          <iframe
+            src={recapUrl}
+            className="w-full aspect-video rounded-sm border"
+            title="Game Recap"
+            allowFullScreen
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+/** Action icon button for game card */
+function GameActionIcon({ icon: Icon, url, label, onClick }: {
+  icon: typeof Tv2; url: string | null | undefined; label: string;
+  onClick: (e: React.MouseEvent) => void;
+}) {
+  if (!url) return null;
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(e); }}
+      className="text-muted-foreground hover:text-primary transition-colors p-0.5"
+      title={label}
+    >
+      <Icon className="h-3.5 w-3.5" />
+    </button>
   );
 }
 
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [modalState, setModalState] = useState<{ open: boolean; tab: NBAGameTab; game: ScheduleGame | null }>({
+    open: false, tab: "recap", game: null,
+  });
+
+  const openModal = (game: ScheduleGame, tab: NBAGameTab) => {
+    setModalState({ open: true, tab, game });
+  };
 
   if (games.length === 0) {
     return (
@@ -153,7 +188,8 @@ export default function ScheduleList({ games }: ScheduleListProps) {
   return (
     <div className="space-y-1.5 px-1">
       {games.map((g) => {
-        const isFinal = g.status === "FINAL";
+        const isFinal = isGameFinal(g.status);
+        const isLive = isGameLive(g.status);
         const isExpanded = expandedId === g.game_id;
 
         return (
@@ -170,36 +206,45 @@ export default function ScheduleList({ games }: ScheduleListProps) {
               >
                 {/* Teams */}
                 <div className="flex items-center gap-4 flex-1">
-                  {/* Away */}
                   <div className="flex items-center gap-2.5 min-w-[110px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
-                      {isFinal && <p className="text-xl font-mono font-black leading-tight">{g.away_pts}</p>}
+                      {(isFinal || isLive) && <p className="text-xl font-mono font-black leading-tight">{g.away_pts}</p>}
                     </div>
                     {getTeamLogo(g.away_team) && (
                       <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-8 h-8" />
                     )}
                   </div>
-
-                  {/* VS / @ */}
                   <div className="flex flex-col items-center">
                     <span className="text-muted-foreground text-[10px] font-heading font-bold">@</span>
                   </div>
-
-                  {/* Home */}
                   <div className="flex items-center gap-2.5 min-w-[110px]">
                     {getTeamLogo(g.home_team) && (
                       <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-8 h-8" />
                     )}
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.home_team}</p>
-                      {isFinal && <p className="text-xl font-mono font-black leading-tight">{g.home_pts}</p>}
+                      {(isFinal || isLive) && <p className="text-xl font-mono font-black leading-tight">{g.home_pts}</p>}
                     </div>
                   </div>
                 </div>
 
                 {/* Right info */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  {/* LIVE badge */}
+                  {isLive && (
+                    <a
+                      href={g.game_playbyplay_url || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-block"
+                    >
+                      <Badge className="bg-destructive text-destructive-foreground text-[9px] rounded-sm px-1.5 py-0 font-heading font-bold animate-pulse">
+                        LIVE
+                      </Badge>
+                    </a>
+                  )}
                   <Badge
                     variant={isFinal ? "secondary" : "outline"}
                     className={`text-[10px] rounded-sm font-heading ${
@@ -213,6 +258,11 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       {formatTipoff(g.tipoff_utc)}
                     </span>
                   )}
+                  {/* Action icons */}
+                  <GameActionIcon icon={Tv2} url={g.game_recap_url} label="Game Recap" onClick={() => openModal(g, "recap")} />
+                  <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" onClick={() => openModal(g, "boxscore")} />
+                  <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" onClick={() => openModal(g, "charts")} />
+                  <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" onClick={() => openModal(g, "playbyplay")} />
                   {g.nba_game_url && (
                     <a
                       href={g.nba_game_url}
@@ -232,7 +282,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
-                {isExpanded && <GameBoxScore gameId={g.game_id} onPlayerClick={setSelectedPlayerId} />}
+                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} onPlayerClick={setSelectedPlayerId} />}
               </div>
             </CollapsibleContent>
           </Collapsible>
@@ -244,6 +294,16 @@ export default function ScheduleList({ games }: ScheduleListProps) {
         open={selectedPlayerId !== null}
         onOpenChange={(open) => !open && setSelectedPlayerId(null)}
       />
+
+      {modalState.game && (
+        <NBAGameModal
+          open={modalState.open}
+          onOpenChange={(open) => setModalState((s) => ({ ...s, open }))}
+          defaultTab={modalState.tab}
+          urls={modalState.game}
+          title={`${modalState.game.away_team} @ ${modalState.game.home_team}`}
+        />
+      )}
     </div>
   );
 }
