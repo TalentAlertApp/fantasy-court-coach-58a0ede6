@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2, Database } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,21 @@ import { toast } from "sonner";
 import { apiFetch, importGameData } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
@@ -37,6 +52,16 @@ interface TsvPlayer {
   pos: string;
 }
 
+type Encoding = "auto" | "utf-8" | "windows-1250" | "windows-1252" | "iso-8859-2";
+
+const ENCODINGS: { value: Encoding; label: string }[] = [
+  { value: "auto", label: "Auto-detect" },
+  { value: "utf-8", label: "UTF-8" },
+  { value: "windows-1250", label: "Windows-1250 (Central European)" },
+  { value: "windows-1252", label: "Windows-1252 (Western)" },
+  { value: "iso-8859-2", label: "ISO-8859-2 (Latin-2)" },
+];
+
 /** Strip surrounding quotes and unescape doubled quotes */
 function stripQuotes(v: string): string {
   if (v.length >= 2 && v.startsWith('"') && v.endsWith('"')) {
@@ -51,6 +76,36 @@ function parseSalary(raw: string): number {
   const cleaned = stripQuotes(raw.trim()).replace(",", ".");
   const val = parseFloat(cleaned);
   return isNaN(val) ? 0 : val;
+}
+
+/** Decode a buffer with the selected encoding */
+function decodeBuffer(buffer: ArrayBuffer, encoding: Encoding): string {
+  if (encoding !== "auto") {
+    return new TextDecoder(encoding, { fatal: false }).decode(buffer);
+  }
+  // Auto: try UTF-8 strict, then try multiple fallbacks and pick best
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+  } catch {
+    // Not valid UTF-8 — try Windows-1250 first (Central European: č, ć, ž, š)
+    const w1250 = new TextDecoder("windows-1250", { fatal: false }).decode(buffer);
+    // Check if it looks reasonable (has actual diacritics, not replacement chars)
+    if (/[čćžšđščćžŠČĆŽĐ]/.test(w1250)) {
+      return w1250;
+    }
+    // Fallback to ISO-8859-2
+    const iso2 = new TextDecoder("iso-8859-2", { fatal: false }).decode(buffer);
+    if (/[čćžšđščćžŠČĆŽĐ]/.test(iso2)) {
+      return iso2;
+    }
+    // Last resort: windows-1250 anyway (most common for this data)
+    return w1250;
+  }
+}
+
+/** Check if a name looks corrupted (contains ? where diacritics should be) */
+function hasCorruptedChars(name: string): boolean {
+  return /\?/.test(name) || /\uFFFD/.test(name);
 }
 
 function parseTsv(text: string): TsvPlayer[] {
@@ -125,42 +180,70 @@ export default function CommissionerPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
   const [replaceGames, setReplaceGames] = useState(true);
+  const [encoding, setEncoding] = useState<Encoding>("auto");
   const [lastResult, setLastResult] = useState<{ upserted: number; total: number; deleted?: number } | null>(null);
   const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
+  const [preview, setPreview] = useState<TsvPlayer[] | null>(null);
+  const [pendingPayload, setPendingPayload] = useState<any[] | null>(null);
+  const [corruptCount, setCorruptCount] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const gameFileRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
-    setLastResult(null);
     try {
       const buffer = await file.arrayBuffer();
-      let text: string;
-      try {
-        text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
-      } catch {
-        text = new TextDecoder("windows-1250").decode(buffer);
-      }
+      const text = decodeBuffer(buffer, encoding);
       const players = parseTsv(text);
-      console.log("[Commissioner] First 3 parsed names:", players.slice(0, 3).map(p => p.name));
+
+      console.log("[Commissioner] Encoding:", encoding);
+      console.log("[Commissioner] First 5 parsed names:", players.slice(0, 5).map(p => p.name));
 
       if (players.length === 0) {
         toast.error("No valid players found in TSV file");
         return;
       }
 
-      // Map salary before sending
+      // Check for corruption
+      const corrupt = players.filter(p => hasCorruptedChars(p.name));
+      setCorruptCount(corrupt.length);
+      if (corrupt.length > 0) {
+        console.warn("[Commissioner] Corrupted names found:", corrupt.slice(0, 10).map(p => `${p.id}: ${p.name}`));
+      }
+
+      // Show preview (first 10 + any corrupted ones)
+      const previewPlayers = players.slice(0, 10);
+      // Add some corrupted ones to preview if not already there
+      for (const cp of corrupt.slice(0, 5)) {
+        if (!previewPlayers.find(p => p.id === cp.id)) {
+          previewPlayers.push(cp);
+        }
+      }
+      setPreview(previewPlayers);
+
+      // Prepare payload
       const payload = players.map(p => ({
         ...p,
         salary: parseSalary(p.salary),
       }));
+      setPendingPayload(payload);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Parse failed: ${msg}`);
+    }
+    if (fileRef.current) fileRef.current.value = "";
+  };
 
+  const handleConfirmImport = async () => {
+    if (!pendingPayload) return;
+    setIsUploading(true);
+    setLastResult(null);
+    try {
       const result = await apiFetch("import-players", ImportResponseSchema, {
         method: "POST",
-        body: JSON.stringify({ players: payload, replace: true }),
+        body: JSON.stringify({ players: pendingPayload, replace: true }),
       });
 
       if (result.ok) {
@@ -169,14 +252,22 @@ export default function CommissionerPage() {
         if (result.data.errors?.length) {
           toast.warning(`${result.data.errors.length} errors during import`);
         }
+        setPreview(null);
+        setPendingPayload(null);
+        setCorruptCount(0);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Import failed: ${msg}`);
     } finally {
       setIsUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const handleCancelPreview = () => {
+    setPreview(null);
+    setPendingPayload(null);
+    setCorruptCount(0);
   };
 
   const handleDownload = async () => {
@@ -224,19 +315,13 @@ export default function CommissionerPage() {
     setLastGameResult(null);
     try {
       const buffer = await file.arrayBuffer();
-      let text: string;
-      try {
-        text = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
-      } catch {
-        text = new TextDecoder("windows-1250").decode(buffer);
-      }
+      const text = decodeBuffer(buffer, encoding);
       const lines = text.split("\n").filter(l => l.trim());
       if (lines.length < 2) {
         toast.error("No valid game data found");
         return;
       }
 
-      // Detect delimiter: if the header contains tabs, use TSV; otherwise CSV
       const headerLine = lines[0].replace(/^\uFEFF/, "");
       const isTsv = headerLine.includes("\t");
 
@@ -303,6 +388,24 @@ export default function CommissionerPage() {
         (URL, photo, team, salary, position, DOB, etc.). This is the single source of truth.
       </p>
 
+      {/* Encoding Selector */}
+      <div className="flex items-center gap-3">
+        <Label className="text-sm font-medium whitespace-nowrap">File encoding:</Label>
+        <Select value={encoding} onValueChange={(v) => setEncoding(v as Encoding)}>
+          <SelectTrigger className="w-[280px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ENCODINGS.map(e => (
+              <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">
+          Use Windows-1250 for files with č, ć, ž, š characters
+        </span>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Upload Card */}
         <div className="bg-card border rounded-sm overflow-hidden">
@@ -315,16 +418,16 @@ export default function CommissionerPage() {
               ref={fileRef}
               type="file"
               accept=".tsv,.csv,.txt"
-              onChange={handleUpload}
+              onChange={handleFileSelect}
               className="hidden"
             />
             <Button
               onClick={() => fileRef.current?.click()}
-              disabled={isUploading}
+              disabled={isUploading || preview !== null}
               className="w-full"
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? "Importing…" : "Upload TSV"}
+              {isUploading ? "Importing…" : "Select TSV File"}
             </Button>
 
             {lastResult && (
@@ -356,6 +459,76 @@ export default function CommissionerPage() {
           </div>
         </div>
       </div>
+
+      {/* Preview Table */}
+      {preview && (
+        <div className="bg-card border rounded-sm overflow-hidden">
+          <div className="section-bar flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Preview — Verify Names Before Import
+          </div>
+          <div className="p-4 space-y-3">
+            {corruptCount > 0 && (
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-sm p-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>
+                  <strong>{corruptCount} names contain '?' characters</strong> — likely encoding issue.
+                  Try selecting a different encoding (e.g. Windows-1250) and re-select the file.
+                </span>
+              </div>
+            )}
+            <div className="overflow-auto max-h-[300px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[80px]">ID</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="w-[60px]">Team</TableHead>
+                    <TableHead className="w-[60px]">Pos</TableHead>
+                    <TableHead className="w-[60px]">Salary</TableHead>
+                    <TableHead className="w-[40px]">OK?</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {preview.map(p => {
+                    const corrupted = hasCorruptedChars(p.name);
+                    return (
+                      <TableRow key={p.id} className={corrupted ? "bg-destructive/5" : ""}>
+                        <TableCell className="font-mono text-xs">{p.id}</TableCell>
+                        <TableCell className={corrupted ? "text-destructive font-medium" : ""}>
+                          {p.name}
+                        </TableCell>
+                        <TableCell>{p.team}</TableCell>
+                        <TableCell>{p.pos}</TableCell>
+                        <TableCell>{p.salary}</TableCell>
+                        <TableCell>
+                          {corrupted ? "⚠️" : "✅"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleConfirmImport}
+                disabled={isUploading}
+                className="flex-1"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isUploading ? "Importing…" : `Confirm Import (${pendingPayload?.length ?? 0} players)`}
+              </Button>
+              <Button
+                onClick={handleCancelPreview}
+                variant="outline"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Game Data Import Card */}
       <div className="bg-card border rounded-sm overflow-hidden">
@@ -405,6 +578,7 @@ export default function CommissionerPage() {
           <p><strong>Full replace mode:</strong> uploading a TSV wipes the entire players table and replaces it with the file contents.</p>
           <p><strong>Salary</strong> is imported from the $ column (comma = decimal separator, e.g. "22,0" → 22.0).</p>
           <p><strong>Age</strong> is automatically calculated from DOB on import.</p>
+          <p><strong>Encoding:</strong> If names with special characters (č, ć, ž, š) show as '?', select <em>Windows-1250</em> encoding and re-upload.</p>
         </div>
       </div>
     </div>
