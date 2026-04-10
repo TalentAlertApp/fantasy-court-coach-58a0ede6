@@ -15,13 +15,14 @@ interface FiltersPanelProps {
   onSearchChange: (v: string) => void;
   maxSalary: number;
   onMaxSalaryChange: (v: number) => void;
+  maxSalaryLimit?: number;
   team?: string;
   onTeamChange?: (v: string) => void;
 }
 
 export default function FiltersPanel({
   fcBc, onFcBcChange, sort, onSortChange, search, onSearchChange, maxSalary, onMaxSalaryChange,
-  team, onTeamChange,
+  maxSalaryLimit = 50, team, onTeamChange,
 }: FiltersPanelProps) {
   const sortedTeams = useMemo(
     () => [...NBA_TEAMS].sort((a, b) => a.name.localeCompare(b.name)),
@@ -73,7 +74,7 @@ export default function FiltersPanel({
       </div>
       <div>
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Max Salary: ${maxSalary}</Label>
-        <Slider value={[maxSalary]} onValueChange={([v]) => onMaxSalaryChange(v)} min={0} max={50} step={0.5} />
+        <Slider value={[maxSalary]} onValueChange={([v]) => onMaxSalaryChange(v)} min={0} max={maxSalaryLimit} step={0.5} />
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ export default function PlayersPage() {
   const [fcBc, setFcBc] = useState("ALL");
   const [sort, setSort] = useState("fp5");
   const [search, setSearch] = useState("");
-  const [maxSalary, setMaxSalary] = useState(50);
+  const [maxSalary, setMaxSalary] = useState(999);
   const [waiverMode, setWaiverMode] = useState(false);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [pageSize, setPageSize] = useState<PageSizeOption>(20);
@@ -51,6 +51,12 @@ export default function PlayersPage() {
     if (!rosterData?.roster) return new Set<number>();
     return new Set([...rosterData.roster.starters, ...rosterData.roster.bench]);
   }, [rosterData]);
+
+  const maxSalaryLimit = useMemo(() => {
+    const items = playersData?.items ?? [];
+    if (items.length === 0) return 50;
+    return Math.ceil(Math.max(...items.map((p) => p.core.salary)));
+  }, [playersData]);
 
   const filtered = useMemo(() => {
     let items = playersData?.items ?? [];
@@ -287,7 +293,7 @@ export default function PlayersPage() {
                 fcBc={fcBc} onFcBcChange={setFcBc}
                 sort={sort} onSortChange={setSort}
                 search={search} onSearchChange={setSearch}
-                maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary}
+                maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit}
                 team={team} onTeamChange={setTeam}
               />
               <div className="mt-3 flex items-center gap-2 p-3 bg-card border rounded-sm">

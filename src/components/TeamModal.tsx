@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table2 } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
+import NBAGameModal from "@/components/NBAGameModal";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -17,11 +18,14 @@ interface TeamModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type RosterSort = "mpg" | "ppg" | "fpg" | "salary";
+
 export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProps) {
   const team = tricode ? getTeamByTricode(tricode) : null;
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
+  const [selectedGame, setSelectedGame] = useState<any>(null);
 
-  // Games played + upcoming
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
     queryKey: ["team-games", tricode],
     queryFn: async () => {
@@ -37,11 +41,9 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
     staleTime: 60_000,
   });
 
-  // Real roster data from player_game_logs aggregated
   const { data: rosterData, isLoading: rosterLoading } = useQuery({
     queryKey: ["team-roster-agg", tricode],
     queryFn: async () => {
-      // Get all players on this team
       const { data: teamPlayers, error: pErr } = await supabase
         .from("players")
         .select("id, name, photo, fc_bc, salary")
@@ -51,7 +53,6 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
       const playerIds = (teamPlayers ?? []).map(p => p.id);
       if (playerIds.length === 0) return [];
 
-      // Get game logs for these players
       const { data: logs, error: lErr } = await supabase
         .from("player_game_logs")
         .select("player_id, mp, pts, fp")
@@ -59,7 +60,6 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
         .gt("mp", 0);
       if (lErr) throw lErr;
 
-      // Aggregate
       const agg = new Map<number, { gp: number; total_mp: number; total_pts: number; total_fp: number }>();
       for (const log of (logs ?? [])) {
         let s = agg.get(log.player_id);
@@ -79,16 +79,33 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
           ppg: s ? s.total_pts / s.gp : 0,
           fpg: s ? s.total_fp / s.gp : 0,
         };
-      }).filter(p => p.gp > 0).sort((a, b) => b.fpg - a.fpg);
+      }).filter(p => p.gp > 0);
     },
     enabled: open && !!tricode,
     staleTime: 60_000,
   });
 
+  const sortedRoster = useMemo(() => {
+    if (!rosterData) return [];
+    return [...rosterData].sort((a, b) => {
+      if (rosterSort === "salary") return b.salary - a.salary;
+      return b[rosterSort] - a[rosterSort];
+    });
+  }, [rosterData, rosterSort]);
+
   const played = useMemo(() => (gamesData ?? []).filter(g => g.status?.toUpperCase().includes("FINAL")), [gamesData]);
   const upcoming = useMemo(() => (gamesData ?? []).filter(g => !g.status?.toUpperCase().includes("FINAL")).reverse(), [gamesData]);
 
   if (!open || !tricode) return null;
+
+  const sortHeader = (label: string, key: RosterSort) => (
+    <button
+      onClick={() => setRosterSort(key)}
+      className={`text-[10px] uppercase tracking-wider ${rosterSort === key ? "font-bold text-foreground" : "text-muted-foreground"} hover:text-foreground transition-colors`}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <>
@@ -105,7 +122,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
             <TabsList className="rounded-sm shrink-0">
               <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-sm">Played ({played.length})</TabsTrigger>
               <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-sm">Upcoming ({upcoming.length})</TabsTrigger>
-              <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-sm">Roster ({rosterData?.length ?? 0})</TabsTrigger>
+              <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-sm">Roster ({sortedRoster.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="played" className="flex-1 min-h-0">
@@ -118,7 +135,11 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       const oppLogo = getTeamLogo(opp);
                       const won = isHome ? g.home_pts > g.away_pts : g.away_pts > g.home_pts;
                       return (
-                        <div key={g.game_id} className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm">
+                        <div
+                          key={g.game_id}
+                          className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
+                          onClick={() => setSelectedGame(g)}
+                        >
                           <Badge variant={won ? "default" : "destructive"} className="rounded-sm text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
                           {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
                           <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
@@ -166,8 +187,16 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
             <TabsContent value="roster" className="flex-1 min-h-0">
               {rosterLoading ? <Skeleton className="h-40" /> : (
                 <ScrollArea className="h-[50vh]">
-                  <div className="space-y-1">
-                    {(rosterData ?? []).map((p) => (
+                  {/* Header */}
+                  <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border sticky top-0 bg-card z-10">
+                    <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground">Player</span>
+                    <span className="w-12 text-right">{sortHeader("MPG", "mpg")}</span>
+                    <span className="w-12 text-right">{sortHeader("PPG", "ppg")}</span>
+                    <span className="w-12 text-right">{sortHeader("FP", "fpg")}</span>
+                    <span className="w-10 text-right">{sortHeader("$", "salary")}</span>
+                  </div>
+                  <div className="space-y-0">
+                    {sortedRoster.map((p) => (
                       <div
                         key={p.id}
                         className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
@@ -178,11 +207,11 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
                         </Avatar>
                         <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-sm">{p.fc_bc}</Badge>
-                        <span className="text-xs font-medium">{p.name}</span>
-                        <span className="ml-auto text-xs font-mono text-muted-foreground">{p.mpg.toFixed(1)} MPG</span>
-                        <span className="text-xs font-mono">{p.ppg.toFixed(1)} PPG</span>
-                        <span className="text-xs font-mono font-bold">{p.fpg.toFixed(1)} FP</span>
-                        <span className="text-[10px] text-muted-foreground">${p.salary}</span>
+                        <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
+                        <span className="w-12 text-right text-xs font-mono text-muted-foreground">{p.mpg.toFixed(1)}</span>
+                        <span className="w-12 text-right text-xs font-mono">{p.ppg.toFixed(1)}</span>
+                        <span className="w-12 text-right text-xs font-mono font-bold">{p.fpg.toFixed(1)}</span>
+                        <span className="w-10 text-right text-[10px] text-muted-foreground">${p.salary}</span>
                       </div>
                     ))}
                   </div>
@@ -197,6 +226,19 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
         playerId={selectedPlayerId}
         open={selectedPlayerId !== null}
         onOpenChange={(o) => { if (!o) setSelectedPlayerId(null); }}
+      />
+
+      <NBAGameModal
+        open={selectedGame !== null}
+        onOpenChange={(o) => { if (!o) setSelectedGame(null); }}
+        defaultTab="boxscore"
+        urls={{
+          game_recap_url: selectedGame?.game_recap_url,
+          game_boxscore_url: selectedGame?.game_boxscore_url,
+          game_charts_url: selectedGame?.game_charts_url,
+          game_playbyplay_url: selectedGame?.game_playbyplay_url,
+        }}
+        title={selectedGame ? `${selectedGame.home_team} vs ${selectedGame.away_team}` : undefined}
       />
     </>
   );
