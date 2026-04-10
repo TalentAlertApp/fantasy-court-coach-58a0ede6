@@ -7,9 +7,60 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ExternalLink, ArrowUp, ArrowDown, Tv2, Table2, BarChart3, Mic } from "lucide-react";
+import { ChevronDown, ExternalLink, ArrowUp, ArrowDown, Tv2, Table2, BarChart3, Mic, Play } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import NBAGameModal, { type NBAGameTab } from "@/components/NBAGameModal";
+
+/* ---------- Recap Video Embed ---------- */
+function RecapVideoEmbed({ url, title = "Game recap" }: { url?: string | null; title?: string }) {
+  const [iframeFailed, setIframeFailed] = useState(false);
+
+  if (!url) {
+    return (
+      <div className="flex h-full min-h-[220px] items-center justify-center rounded-sm border border-border bg-muted/30 text-sm text-muted-foreground">
+        Recap unavailable
+      </div>
+    );
+  }
+
+  if (iframeFailed) {
+    return (
+      <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 rounded-sm border border-border bg-black/80">
+        <button
+          onClick={() => window.open(url, "_blank")}
+          className="flex flex-col items-center gap-2 group cursor-pointer"
+        >
+          <Play className="h-10 w-10 text-white/70 group-hover:text-white transition-colors" />
+          <span className="text-[11px] font-heading uppercase text-white/70 group-hover:text-white">Watch Recap</span>
+        </button>
+        <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
+          Open on NBA.com
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col h-full">
+      <iframe
+        src={url}
+        title={title}
+        className="flex-1 w-full min-h-[220px]"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="strict-origin-when-cross-origin"
+        onError={() => setIframeFailed(true)}
+      />
+      <div className="flex items-center justify-between border-t border-border bg-background px-3 py-2">
+        <span className="text-xs text-muted-foreground">NBA recap</span>
+        <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
+          Open on NBA.com
+        </a>
+      </div>
+    </div>
+  );
+}
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
@@ -133,17 +184,12 @@ function GameBoxScore({ gameId, recapUrl, onPlayerClick }: { gameId: string; rec
         </div>
       </div>
       {/* Right: recap video */}
-      {recapUrl && (
-        <div className="w-[420px] shrink-0 border-l flex flex-col items-center justify-center p-4 bg-muted/10">
-          <button
-            onClick={() => window.open(recapUrl, "_blank")}
-            className="w-full aspect-video rounded-sm border bg-black/80 flex flex-col items-center justify-center gap-2 hover:bg-black/60 transition-colors cursor-pointer group"
-          >
-            <Tv2 className="h-10 w-10 text-white/70 group-hover:text-white transition-colors" />
-            <span className="text-[11px] font-heading uppercase text-white/70 group-hover:text-white">Watch Recap</span>
-          </button>
-        </div>
-      )}
+      <div className="w-[420px] shrink-0 border-l flex flex-col p-3 bg-muted/10">
+        <RecapVideoEmbed
+          url={recapUrl}
+          title="Game Recap"
+        />
+      </div>
     </div>
   );
 }
