@@ -38,19 +38,21 @@ function calcAge(dobStr: string | null): number {
 function normDob(v: string | null | undefined): string | null {
   if (!v || v.trim() === "" || v === "None") return null;
   const t = v.trim().replace(/^"|"$/g, "");
-  // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
   const parts = t.split("/");
   if (parts.length === 3) {
     const [a, b, c] = parts;
-    // If first part > 12, it's DD/MM/YYYY (European)
     if (parseInt(a) > 12) {
       return `${c}-${b.padStart(2, "0")}-${a.padStart(2, "0")}`;
     }
-    // Otherwise assume M/D/YYYY (American)
     return `${c}-${a.padStart(2, "0")}-${b.padStart(2, "0")}`;
   }
   return null;
+}
+
+/** Check if a name looks corrupted — contains literal ? where diacritics should be */
+function looksCorrupted(name: string): boolean {
+  return /\?/.test(name);
 }
 
 serve(async (req: Request) => {
@@ -65,6 +67,24 @@ serve(async (req: Request) => {
     }
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Load existing names for corruption protection
+    let existingNames: Record<number, string> = {};
+    if (replace) {
+      // Before deleting, grab existing clean names as backup
+      const { data: existing } = await supabase
+        .from("players")
+        .select("id, name")
+        .limit(2000);
+      if (existing) {
+        for (const p of existing) {
+          if (!looksCorrupted(p.name)) {
+            existingNames[p.id] = p.name;
+          }
+        }
+      }
+      console.log(`Loaded ${Object.keys(existingNames).length} clean existing names as backup`);
+    }
 
     let deleted = 0;
     if (replace) {
@@ -83,6 +103,7 @@ serve(async (req: Request) => {
 
     let upserted = 0;
     let skipped = 0;
+    let nameProtected = 0;
     const errors: string[] = [];
 
     for (let i = 0; i < players.length; i += 50) {
@@ -91,14 +112,23 @@ serve(async (req: Request) => {
         const dob = normDob(p.dob);
         const age = calcAge(dob) || (parseInt(p.age) || 0);
         const college = (p.college === "None" || !p.college) ? null : p.college;
-        // Strip quotes and handle European comma decimal
         const salRaw = String(p.salary ?? "0").replace(/^"|"$/g, "").replace(",", ".");
         const salary = typeof p.salary === "number" ? p.salary : (parseFloat(salRaw) || 0);
 
+        let name = p.name;
+        const playerId = parseInt(p.id);
+
+        // If incoming name looks corrupted but we have a clean backup, use the backup
+        if (looksCorrupted(name) && existingNames[playerId]) {
+          console.log(`Protected name for ID ${playerId}: "${name}" → "${existingNames[playerId]}"`);
+          name = existingNames[playerId];
+          nameProtected++;
+        }
+
         return {
-          id: parseInt(p.id),
+          id: playerId,
           nba_url: p.nba_url || null,
-          name: p.name,
+          name,
           team: p.team ?? "",
           fc_bc: (p.fc_bc || "FC").toUpperCase(),
           photo: p.photo || null,
@@ -127,10 +157,15 @@ serve(async (req: Request) => {
       }
     }
 
+    if (nameProtected > 0) {
+      console.log(`Protected ${nameProtected} names from corruption`);
+    }
+
     return ok({
       upserted,
       skipped,
       deleted,
+      nameProtected,
       total: players.length,
       errors: errors.length > 0 ? errors : undefined,
     });
