@@ -638,7 +638,46 @@ export default function CommissionerPage() {
         </div>
       </div>
 
-      {/* Info */}
+      {/* Schedule Import Card */}
+      <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="section-bar flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Import Schedule
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            TSV: Week, Day, Date, Day Name, Time, Home Team, Away Team, Status, Home Score, Away Score, Game ID, Game URL, Game Recap, Game BoxScore, Game Charts, Game Play_By_Play
+          </p>
+          <div className="flex items-center gap-2">
+            <Switch id="replace-schedule" checked={replaceSchedule} onCheckedChange={setReplaceSchedule} />
+            <Label htmlFor="replace-schedule" className="text-sm">
+              Full replace <span className="text-muted-foreground">(wipe existing schedule before import)</span>
+            </Label>
+          </div>
+          <input
+            ref={scheduleFileRef}
+            type="file"
+            accept=".tsv,.csv,.txt"
+            onChange={handleScheduleUpload}
+            className="hidden"
+          />
+          <Button
+            onClick={() => scheduleFileRef.current?.click()}
+            disabled={isImportingSchedule}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {isImportingSchedule ? "Importing…" : "Upload Schedule TSV"}
+          </Button>
+
+          {lastScheduleResult && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              {lastScheduleResult.games} schedule games imported
+            </div>
+          )}
+        </div>
+      </div>
       <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground space-y-1">
