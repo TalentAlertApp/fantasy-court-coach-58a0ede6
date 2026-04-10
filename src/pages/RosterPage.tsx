@@ -349,6 +349,7 @@ export default function RosterPage() {
             onOpenChange={setPickerOpen}
             allPlayers={allPlayers}
             rosterIds={rosterIds}
+            rosterTeams={rosterTeams}
             onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
             title={swapPlayerId ? "Swap Player" : "Add Player"}
           />
