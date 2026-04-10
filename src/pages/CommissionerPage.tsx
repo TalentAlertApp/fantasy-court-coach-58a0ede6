@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar, Youtube } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -176,6 +176,34 @@ function parseCSVLine(line: string): string[] {
 }
 
 export default function CommissionerPage() {
+  const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
+  const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+
+  const handleYoutubeRecapLookup = async () => {
+    setIsLookingUpRecaps(true);
+    setRecapResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("youtube-recap-lookup", {
+        body: null,
+      });
+      if (error) throw error;
+      if (data?.ok && data.data) {
+        setRecapResult(data.data);
+        toast.success(`Found ${data.data.found} recaps (${data.data.remaining} remaining)`);
+        if (data.data.errors?.length) {
+          toast.warning(`${data.data.errors.length} errors`);
+          console.warn("Recap lookup errors:", data.data.errors);
+        }
+      } else {
+        throw new Error(data?.error?.message || "Unknown error");
+      }
+    } catch (err: any) {
+      toast.error(`Recap lookup failed: ${err.message}`);
+    } finally {
+      setIsLookingUpRecaps(false);
+    }
+  };
+
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImportingGames, setIsImportingGames] = useState(false);
@@ -699,6 +727,32 @@ export default function CommissionerPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* YouTube Recaps */}
+      <div className="bg-card border rounded-sm p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Youtube className="h-5 w-5 text-destructive" />
+          <h3 className="font-heading font-bold text-lg uppercase">YouTube Recaps</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Auto-populate YouTube recap video IDs for all finished games missing a recap.
+          Uses the YouTube Data API to search for "Motion Station" recaps.
+        </p>
+        <Button
+          onClick={handleYoutubeRecapLookup}
+          disabled={isLookingUpRecaps}
+          className="w-full"
+        >
+          <Youtube className="h-4 w-4 mr-2" />
+          {isLookingUpRecaps ? "Looking up recaps…" : "Populate YouTube Recaps"}
+        </Button>
+        {recapResult && (
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <CheckCircle2 className="h-4 w-4" />
+            Found {recapResult.found}/{recapResult.processed} recaps · {recapResult.remaining} remaining
+          </div>
+        )}
       </div>
       <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
