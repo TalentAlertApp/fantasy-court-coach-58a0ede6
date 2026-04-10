@@ -1,37 +1,44 @@
 
 
-## Plan: Import Game Data for GW1 (Days 1-5) + Add GW25 Schedule (Days 4-6)
+## Plan: Insert GW1 Game Data + Enhance Box Score UI
 
-### Two tasks
+### Task 1: Insert GW1 Day 1 game data via script
 
-**Task 1: Import the attached TSV (GW1 days 1-5)**
-The commissioner page already supports TSV game data import. You just need to:
-- Go to `/commissioner`
-- Turn **OFF** the "Full replace" toggle (so existing GW2-25 data is preserved)
-- Upload the attached `NBA_fantasy_API_-_1.1-1.5.tsv` file
+Two games need inserting into `schedule_games` and `player_game_logs`:
 
-No code changes needed for this.
+- **OKC @ HOU** — Game ID `2250001`, Oct 21 2025, 19:00 Lisbon (18:00 UTC, since Oct = WEST/UTC+1), Final 125-124
+- **GSW @ LAL** — Game ID `2250002`, Oct 21 2025, 22:30 Lisbon (21:30 UTC), Final 119-109
 
-**Task 2: Insert GW25 Days 4, 5, 6 schedule games from screenshots**
-These games don't exist in the database yet. I'll insert them via a script that calls the Supabase client directly. Based on the screenshots:
+Wait — the data shows `LAL @ GSW` (LAL away, GSW home) for the second game based on the column order (Home=GSW, Away=LAL). And for game 1: Home=OKC, Away=HOU.
 
-- **Day 4** (Apr 10, 2026) — 6 games, times are Lisbon local. Some have scores (FINAL), some are scheduled:
-  - MIA @ TOR (26-32, FINAL), CHI @ WAS (34-26, FINAL), IND @ BKN (4-3, appears in-progress/FINAL), BOS @ NYK (0-0, FINAL)
-  - PHI @ HOU (01:00, SCHEDULED), LAL @ GSW (03:00, SCHEDULED)
+Actually looking at the data more carefully: columns are `Week Day Date DayName Time HomeTeam AwayTeam HomeScore AwayScore Status GameID ID Player PTS MP PS R A B S`
 
-- **Day 5** (Apr 11, 2026) — 15 games, all SCHEDULED (times in Lisbon timezone)
+Game 1: Home=OKC, Away=HOU, 125-124, game_id=2250001
+Game 2: Home=GSW, Away=LAL, 119-109, game_id=2250002
 
-- **Day 6** (Apr 12-13, 2026) — 15 games, all SCHEDULED
+I'll run a script to:
+1. Upsert 2 rows into `schedule_games` (gw=1, day=1)
+2. Upsert ~28 rows into `player_game_logs`
+3. Update `player_last_game` for these players
 
-Game IDs will continue sequentially from 22501165.
+### Task 2: Add team abbreviation to box score rows
 
-### Implementation
-Write and execute a script that upserts ~36 `schedule_games` rows for GW25 days 4-6 with correct tipoff times (converted from Lisbon local to UTC — Lisbon is UTC+1 in April due to WEST), game IDs, team abbreviations, scores where applicable, and correct statuses.
+- **Edge function** (`game-boxscore/index.ts`): Add `team` to the player select query (`id, name, fc_bc, photo, team`) and include it in the response
+- **Contract** (`contracts.ts`): Add `team: z.string()` to `GameBoxscorePlayerSchema`
+- **Component** (`ScheduleList.tsx`): Display team abbreviation after the player name as a muted text span
+
+### Task 3: Sortable stat columns in box score
+
+- Add `sortKey` and `sortDir` state to `GameBoxScore` component
+- Make header cells clickable with sort indicators (▲/▼)
+- Sort the players array by the selected column before rendering
+- Default sort: FP descending (matches current behavior)
 
 ### Files changed
 | File | Action |
 |------|--------|
-| Script (one-off) | Insert GW25 day 4/5/6 schedule_games via Supabase |
-
-No permanent code changes needed — just a data insertion script and the manual TSV upload.
+| Script (one-off) | Insert 2 schedule_games + ~28 player_game_logs for GW1 Day 1 |
+| `supabase/functions/game-boxscore/index.ts` | Add `team` field to response |
+| `src/lib/contracts.ts` | Add `team` to `GameBoxscorePlayerSchema` |
+| `src/components/ScheduleList.tsx` | Show team abbr after name + sortable column headers |
 
