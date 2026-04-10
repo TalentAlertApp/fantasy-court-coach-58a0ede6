@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot, Shield } from "lucide-react";
+import { Home, Users, BarChart3, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ const navItems = [
   { to: "/stats", label: "Stats", icon: BarChart3 },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/players", label: "Waiver Wire", icon: Users },
+  { to: "/teams", label: "Teams", icon: Shirt },
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/ai", label: "AI Hub", icon: Bot },
   { to: "/commissioner", label: "Commissioner", icon: Shield },
