@@ -185,7 +185,6 @@ export default function PlayersPage() {
 
   const renderPerformanceTab = () => {
     const allItems = playersData?.items ?? [];
-    // Sort by FP per game descending
     const perfFiltered = allItems
       .filter((p) => p.season.gp > 0)
       .sort((a, b) => b.season.fp - a.season.fp);
@@ -217,7 +216,12 @@ export default function PlayersPage() {
           <TableBody>
             {perfFiltered.slice(0, 100).map((p) => {
               const gp = p.season.gp || 1;
-              const fmt = (v: number) => perfMode === "total" ? (v * gp).toFixed(0) : v.toFixed(1);
+              const s = p.season as any;
+              const fmtPg = (v: number) => v.toFixed(1);
+              const fmtTot = (key: string) => {
+                const totalKey = `total_${key}`;
+                return s[totalKey] !== undefined ? Math.round(s[totalKey]).toString() : (s[key] !== undefined ? Math.round(s[key] * gp).toString() : "0");
+              };
               const teamLogo = getTeamLogo(p.core.team);
               return (
                 <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30" onClick={() => setSelectedPlayerId(p.core.id)}>
@@ -238,13 +242,27 @@ export default function PlayersPage() {
                     </div>
                   </td>
                   <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">{fmt(p.season.pts)}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">{fmt(p.season.mpg)}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">{fmt(p.season.reb)}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">{fmt(p.season.ast)}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">{fmt(p.season.stl)}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">{fmt(p.season.blk)}</td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">{fmt(p.season.fp)}</td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">
+                    {perfMode === "total" ? fmtTot("pts") : fmtPg(p.season.pts)}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono">
+                    {perfMode === "total" ? fmtTot("mp") : fmtPg(p.season.mpg)}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono">
+                    {perfMode === "total" ? fmtTot("reb") : fmtPg(p.season.reb)}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono">
+                    {perfMode === "total" ? fmtTot("ast") : fmtPg(p.season.ast)}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono">
+                    {perfMode === "total" ? fmtTot("stl") : fmtPg(p.season.stl)}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono">
+                    {perfMode === "total" ? fmtTot("blk") : fmtPg(p.season.blk)}
+                  </td>
+                  <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">
+                    {perfMode === "total" ? fmtTot("fp") : fmtPg(p.season.fp)}
+                  </td>
                 </TableRow>
               );
             })}

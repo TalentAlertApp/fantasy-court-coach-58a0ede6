@@ -7,55 +7,38 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Play } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 
 /* ---------- Recap Video Embed ---------- */
 function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
   if (youtubeVideoId) {
     return (
-      <div className="overflow-hidden rounded-sm border border-border bg-black flex flex-col h-full">
-        <div className="w-full aspect-video overflow-hidden">
-          <iframe
-            src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
-            title={title}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-            loading="lazy"
-          />
-        </div>
-        {url && (
-          <div className="flex items-center justify-between border-t border-border bg-background px-3 py-2">
-            <span className="text-xs text-muted-foreground">YouTube recap</span>
-            <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
-              Open on NBA.com
-            </a>
-          </div>
-        )}
+      <div className="w-full h-full overflow-hidden rounded-sm bg-black">
+        <iframe
+          src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
+          title={title}
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          loading="lazy"
+        />
       </div>
     );
   }
 
   if (url) {
     return (
-      <div className="flex aspect-video flex-col items-center justify-center gap-3 rounded-sm border border-border bg-black/80">
-        <button
-          onClick={() => window.open(url, "_blank")}
-          className="flex flex-col items-center gap-2 group cursor-pointer"
-        >
-          <Play className="h-10 w-10 text-white/70 group-hover:text-white transition-colors" />
-          <span className="text-[11px] font-heading uppercase text-white/70 group-hover:text-white">Watch Recap</span>
-        </button>
+      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-sm bg-black/80">
         <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
-          Open on NBA.com
+          Watch on NBA.com
         </a>
       </div>
     );
   }
 
   return (
-    <div className="flex aspect-video items-center justify-center rounded-sm border border-border bg-muted/30 text-sm text-muted-foreground">
+    <div className="flex w-full h-full items-center justify-center rounded-sm bg-muted/30 text-sm text-muted-foreground">
       Recap unavailable
     </div>
   );
@@ -132,7 +115,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
   };
 
   return (
-    <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto]">
+    <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       {/* Left: stats table */}
       <div className="min-w-0">
         <div className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
@@ -183,8 +166,8 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
           })}
         </div>
       </div>
-      {/* Right: recap video — self-stretch to fill card height */}
-      <div className="w-[480px] shrink-0 border-l flex flex-col p-3 bg-muted/10 self-stretch">
+      {/* Right: recap video — stretch to full table height, aspect-video only */}
+      <div className="w-[480px] shrink-0 border-l aspect-video self-stretch">
         <RecapVideoEmbed
           youtubeVideoId={youtubeRecapId}
           url={recapUrl}
@@ -301,10 +284,10 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       {formatTipoff(g.tipoff_utc)}
                     </span>
                   )}
-                  {/* Action icons — direct links */}
+                  {/* Action icons */}
                   {isFinal && (
                     <span
-                      onClick={(e) => { e.stopPropagation(); if (hasYoutubeRecap || g.game_recap_url) setExpandedId(isExpanded ? null : g.game_id); }}
+                      onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
                       className={`p-0.5 cursor-pointer transition-colors ${hasYoutubeRecap ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
                       title="Game Recap"
                     >
