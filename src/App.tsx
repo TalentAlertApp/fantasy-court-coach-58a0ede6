@@ -10,7 +10,7 @@ import PlayersPage from "@/pages/PlayersPage";
 import TransactionsPage from "@/pages/TransactionsPage";
 import TeamsPage from "@/pages/TeamsPage";
 import SchedulePage from "@/pages/SchedulePage";
-import StatsPage from "@/pages/StatsPage";
+
 import AIHubPage from "@/pages/AIHubPage";
 import CommissionerPage from "@/pages/CommissionerPage";
 import NotFound from "@/pages/NotFound";
@@ -32,7 +32,7 @@ const App = () => (
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/teams" element={<TeamsPage />} />
               <Route path="/schedule" element={<SchedulePage />} />
-              <Route path="/stats" element={<StatsPage />} />
+              
               <Route path="/ai" element={<AIHubPage />} />
               <Route path="/commissioner" element={<CommissionerPage />} />
             </Route>

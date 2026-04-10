@@ -40,7 +40,7 @@ export default function PlayerPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); } }}>
-      <DialogContent className="max-w-md max-h-[80vh] flex flex-col rounded-sm">
+      <DialogContent className="max-w-md max-h-[80vh] flex flex-col rounded-sm overflow-hidden">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="font-heading">{title}</DialogTitle>
