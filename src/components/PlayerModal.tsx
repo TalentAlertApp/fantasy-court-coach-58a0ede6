@@ -56,7 +56,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
-        <DialogContent className="max-w-lg rounded-sm overflow-hidden">
+        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] overflow-hidden flex flex-col">
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
@@ -114,8 +114,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </div>
               </div>
 
-              <Tabs defaultValue="stats">
-                <TabsList className="rounded-sm">
+              <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
+                <TabsList className="rounded-sm shrink-0">
                   <TabsTrigger value="stats" className="font-heading text-xs uppercase rounded-sm">Stats</TabsTrigger>
                   <TabsTrigger value="history" className="font-heading text-xs uppercase rounded-sm">History</TabsTrigger>
                   <TabsTrigger value="schedule" className="font-heading text-xs uppercase rounded-sm">Schedule</TabsTrigger>
