@@ -27,10 +27,13 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
     }
 
     const playing = playersData.items.filter((p) => teamsPlaying.has(p.core.team));
-    const fc = playing.filter((p) => p.core.fc_bc === "FC").sort((a, b) => b.season.fp_pg5 - a.season.fp_pg5).slice(0, 5);
-    const bc = playing.filter((p) => p.core.fc_bc === "BC").sort((a, b) => b.season.fp_pg5 - a.season.fp_pg5).slice(0, 5);
-    return { topFC: fc, topBC: bc };
+    const getFp = (p: any) => p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0;
+    const fc = playing.filter((p) => p.core.fc_bc === "FC").sort((a, b) => getFp(b) - getFp(a)).slice(0, 5);
+    const bc = playing.filter((p) => p.core.fc_bc === "BC").sort((a, b) => getFp(b) - getFp(a)).slice(0, 5);
+    return { topFC: fc, topBC: bc, getFp };
   }, [weekGames, playersData, day]);
+
+  const { getFp } = useMemo(() => ({ getFp: (p: any) => p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0 }), []);
 
   if (topFC.length === 0 && topBC.length === 0) return null;
 
@@ -45,7 +48,7 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
         <div className="flex items-center gap-1">
           {getTeamLogo(p.core.team) && <img src={getTeamLogo(p.core.team)} alt="" className="w-3 h-3" />}
           <span className="text-[9px] text-muted-foreground">{p.core.team}</span>
-          <span className="text-[9px] font-mono font-bold text-primary">{p.season.fp_pg5.toFixed(1)}</span>
+          <span className="text-[9px] font-mono font-bold text-primary">{(p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0).toFixed(1)}</span>
         </div>
       </div>
     </div>
