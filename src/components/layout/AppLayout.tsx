@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
+import { Home, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -14,7 +14,6 @@ const navItems = [
   { to: "/", label: "Home", icon: Home, end: true },
   
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/players", label: "Players", icon: Users },
   { to: "/teams", label: "Teams", icon: Shirt },
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/ai", label: "AI Hub", icon: Bot },

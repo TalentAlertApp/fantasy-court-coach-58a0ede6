@@ -1,37 +1,73 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerModal from "@/components/PlayerModal";
+import FiltersPanel from "@/components/FiltersPanel";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
+
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, "All"] as const;
+type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
+
+type SortKey = "fp5" | "salary" | "value5" | "lastFp";
 
 export default function PlayersPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [perfMode, setPerfMode] = useState<"pg" | "total">("pg");
+
+  // Filter state
+  const [fcBc, setFcBc] = useState("ALL");
+  const [sort, setSort] = useState<SortKey>("fp5");
   const [search, setSearch] = useState("");
+  const [maxSalary, setMaxSalary] = useState(50);
+  const [team, setTeam] = useState("ALL");
+
+  // Pagination
+  const [pageSize, setPageSize] = useState<PageSizeOption>(20);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Table column sort (for the stats columns)
   const [sortCol, setSortCol] = useState<string>("fp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { data: playersData, isLoading } = usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 });
+  const allPlayers = playersData?.items ?? [];
 
-  const perfFiltered = useMemo(() => {
-    let items = (playersData?.items ?? []).filter((p) => p.season.gp > 0);
+  const maxSalaryLimit = useMemo(() => {
+    if (allPlayers.length === 0) return 50;
+    return Math.ceil(Math.max(...allPlayers.map((p) => p.core.salary)));
+  }, [allPlayers]);
+
+  useEffect(() => {
+    if (maxSalaryLimit > 0) setMaxSalary(maxSalaryLimit);
+  }, [maxSalaryLimit]);
+
+  // Reset page on filter change
+  useEffect(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, team]);
+
+  const filtered = useMemo(() => {
+    let items = allPlayers.filter((p) => p.season.gp > 0);
+    if (fcBc !== "ALL") items = items.filter((p) => p.core.fc_bc === fcBc);
     if (search.trim()) {
       const q = search.toLowerCase();
       items = items.filter((p) =>
         p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
       );
     }
-    // Sort
+    items = items.filter((p) => p.core.salary <= maxSalary);
+    if (team !== "ALL") items = items.filter((p) => p.core.team === team);
+
+    // Sort by table column
     items.sort((a, b) => {
       const getVal = (p: PlayerListItem): number => {
         const gp = p.season.gp || 1;
@@ -50,7 +86,7 @@ export default function PlayersPage() {
       return sortDir === "desc" ? bv - av : av - bv;
     });
     return items;
-  }, [playersData, search, sortCol, sortDir, perfMode]);
+  }, [allPlayers, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) {
@@ -60,6 +96,14 @@ export default function PlayersPage() {
       setSortDir("desc");
     }
   };
+
+  // Pagination
+  const totalItems = filtered.length;
+  const effectivePageSize = pageSize === "All" ? totalItems : pageSize;
+  const totalPages = effectivePageSize > 0 ? Math.ceil(totalItems / effectivePageSize) : 1;
+  const paginatedItems = pageSize === "All"
+    ? filtered
+    : filtered.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
 
   const columns = [
     { key: "pts", label: "PTS" },
@@ -74,91 +118,126 @@ export default function PlayersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
-        <h2 className="text-xl font-heading font-bold">Players</h2>
+        <h2 className="text-xl font-heading font-bold">Transactions</h2>
         <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
           <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-sm h-8">Per Game</ToggleGroupItem>
           <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-sm h-8">Totals</ToggleGroupItem>
         </ToggleGroup>
-        <div className="relative ml-auto w-56">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search player or team…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 rounded-sm h-9 text-sm"
-          />
-        </div>
-        <span className="text-xs text-muted-foreground">{perfFiltered.length} players</span>
+        <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-xs">Player</TableHead>
-              <TableHead className="text-xs">Team</TableHead>
-              <TableHead
-                className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`}
-                onClick={() => handleSort("gp")}
-              >GP</TableHead>
-              {columns.map((c) => (
-                <TableHead
-                  key={c.key}
-                  className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`}
-                  onClick={() => handleSort(c.key)}
-                >{c.label}</TableHead>
-              ))}
-              <TableHead
-                className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`}
-                onClick={() => handleSort("salary")}
-              >$</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {perfFiltered.slice(0, 200).map((p) => {
-              const gp = p.season.gp || 1;
-              const s = p.season as any;
-              const fmtPg = (key: string) => {
-                const tk = `total_${key}`;
-                return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0";
-              };
-              const fmtTot = (key: string) => {
-                const tk = `total_${key}`;
-                return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0";
-              };
-              const teamLogo = getTeamLogo(p.core.team);
-              return (
-                <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
-                  <td className="px-2 py-1.5 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
-                        {p.core.photo && <AvatarImage src={p.core.photo} />}
-                        <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
-                      </Avatar>
-                      <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-sm">{p.core.fc_bc}</Badge>
-                      <span className="font-medium whitespace-nowrap">{p.core.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-1.5 text-xs">
-                    <div className="flex items-center gap-1">
-                      {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
-                      <span>{p.core.team}</span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
+        <div className="flex gap-4">
+          {/* Table */}
+          <div className="flex-1 min-w-0 space-y-3">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Player</TableHead>
+                  <TableHead className="text-xs">Team</TableHead>
+                  <TableHead
+                    className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`}
+                    onClick={() => handleSort("gp")}
+                  >GP</TableHead>
                   {columns.map((c) => (
-                    <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
-                      {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
-                    </td>
+                    <TableHead
+                      key={c.key}
+                      className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`}
+                      onClick={() => handleSort(c.key)}
+                    >{c.label}</TableHead>
                   ))}
-                  <td className="px-2 py-1.5 text-xs text-right font-mono">${p.core.salary}</td>
+                  <TableHead
+                    className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`}
+                    onClick={() => handleSort("salary")}
+                  >$</TableHead>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+              </TableHeader>
+              <TableBody>
+                {paginatedItems.map((p) => {
+                  const gp = p.season.gp || 1;
+                  const s = p.season as any;
+                  const fmtPg = (key: string) => {
+                    const tk = `total_${key}`;
+                    return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0";
+                  };
+                  const fmtTot = (key: string) => {
+                    const tk = `total_${key}`;
+                    return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0";
+                  };
+                  const teamLogo = getTeamLogo(p.core.team);
+                  return (
+                    <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
+                      <td className="px-2 py-1.5 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
+                            {p.core.photo && <AvatarImage src={p.core.photo} />}
+                            <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
+                          </Avatar>
+                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-sm">{p.core.fc_bc}</Badge>
+                          <span className="font-medium whitespace-nowrap">{p.core.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5 text-xs">
+                        <div className="flex items-center gap-1">
+                          {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
+                          <span>{p.core.team}</span>
+                        </div>
+                      </td>
+                      <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
+                      {columns.map((c) => (
+                        <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
+                          {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
+                        </td>
+                      ))}
+                      <td className="px-2 py-1.5 text-xs text-right font-mono">${p.core.salary}</td>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between border-t pt-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Show</span>
+                <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(v === "All" ? "All" : Number(v) as any); setCurrentPage(1); }}>
+                  <SelectTrigger className="w-[70px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((opt) => (
+                      <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">of {totalItems} players</span>
+              </div>
+              {pageSize !== "All" && totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs text-muted-foreground px-2">{currentPage} / {totalPages}</span>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Filters sidebar */}
+          <div className="w-56 flex-shrink-0">
+            <FiltersPanel
+              fcBc={fcBc} onFcBcChange={setFcBc}
+              sort={sort} onSortChange={(v) => setSort(v as SortKey)}
+              search={search} onSearchChange={setSearch}
+              maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary}
+              maxSalaryLimit={maxSalaryLimit}
+              team={team} onTeamChange={setTeam}
+            />
+          </div>
+        </div>
       )}
 
       <PlayerModal
