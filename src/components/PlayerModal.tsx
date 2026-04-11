@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -100,25 +100,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </div>
               </div>
 
-              {/* Last Game FP Breakdown */}
-              <div className="bg-muted rounded-sm p-3 border shrink-0">
-                <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">Last Game FP Breakdown</p>
-                <div className="grid grid-cols-6 gap-2 text-center text-xs">
-                  {[
-                    { label: "PTS", val: data.player.lastGame.pts, mult: 1 },
-                    { label: "REB", val: data.player.lastGame.reb, mult: 1 },
-                    { label: "AST", val: data.player.lastGame.ast, mult: 2 },
-                    { label: "STL", val: data.player.lastGame.stl, mult: 3 },
-                    { label: "BLK", val: data.player.lastGame.blk, mult: 3 },
-                    { label: "FP", val: data.player.lastGame.fp, mult: 0 },
-                  ].map(({ label, val, mult }) => (
-                    <div key={label}>
-                      <p className="text-muted-foreground font-heading text-[10px]">{label}{mult > 1 ? ` ×${mult}` : ""}</p>
-                      <p className="font-mono font-bold">{mult > 0 ? val * mult : val.toFixed(1)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* FP Breakdown — toggle between Last Game and Full Season */}
+              <BreakdownCard data={data} />
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
                 <TabsList className="rounded-sm shrink-0">
@@ -134,6 +117,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     {[
                       { l: "Season FP/G", v: data.player.season.fp.toFixed(1) },
                       { l: "Last 5 FP/G", v: data.player.last5.fp5.toFixed(1) },
+                      { l: "MPG (season)", v: data.player.season.mpg?.toFixed(1) ?? "—" },
+                      { l: "MPG (L5)", v: data.player.last5.mpg5?.toFixed(1) ?? "—" },
                       { l: "Value (season)", v: data.player.computed.value.toFixed(2) },
                       { l: "Value (L5)", v: data.player.computed.value5.toFixed(2) },
                       { l: "Stocks (L5)", v: data.player.computed.stocks5.toFixed(1) },
