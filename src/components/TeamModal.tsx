@@ -109,7 +109,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <div className="flex items-center gap-3">
               {team && <img src={team.logo} alt={team.name} className="w-10 h-10" />}
@@ -118,10 +118,10 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
           </DialogHeader>
 
           <Tabs defaultValue="played" className="flex-1 min-h-0 flex flex-col">
-            <TabsList className="rounded-sm shrink-0">
-              <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-sm">Played ({played.length})</TabsTrigger>
-              <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-sm">Upcoming ({upcoming.length})</TabsTrigger>
-              <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-sm">Roster ({sortedRoster.length})</TabsTrigger>
+            <TabsList className="rounded-lg shrink-0">
+              <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-lg">Played ({played.length})</TabsTrigger>
+              <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-lg">Upcoming ({upcoming.length})</TabsTrigger>
+              <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-lg">Roster ({sortedRoster.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="played" className="flex-1 min-h-0">
@@ -138,7 +138,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           <div
                             className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm"
                           >
-                            <Badge variant={won ? "default" : "destructive"} className="rounded-sm text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
+                            <Badge variant={won ? "default" : "destructive"} className="rounded-lg text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
                             {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
                             <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
                             <span className="ml-auto font-mono text-xs font-bold">
@@ -180,7 +180,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                             <div className="px-3 py-2 border-b border-border/40 bg-muted/30">
                               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                                 <iframe
-                                  className="absolute inset-0 w-full h-full rounded-sm"
+                                  className="absolute inset-0 w-full h-full rounded-lg"
                                   src={`https://www.youtube.com/embed/${g.youtube_recap_id}`}
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                   allowFullScreen
@@ -242,7 +242,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           {p.photo && <AvatarImage src={p.photo} />}
                           <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
                         </Avatar>
-                        <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-sm">{p.fc_bc}</Badge>
+                        <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.fc_bc}</Badge>
                         <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
                         <span className="w-12 text-right text-xs font-mono text-muted-foreground">{p.mpg.toFixed(1)}</span>
                         <span className="w-12 text-right text-xs font-mono">{p.ppg.toFixed(1)}</span>

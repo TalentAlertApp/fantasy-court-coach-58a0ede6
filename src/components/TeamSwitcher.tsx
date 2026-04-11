@@ -88,7 +88,7 @@ export default function TeamSwitcher() {
           if (v === "__new__") setCreateOpen(true);
           else setSelectedTeamId(v);
         }}>
-          <SelectTrigger className="w-[150px] h-7 bg-white/10 border-white/20 text-white text-xs font-heading uppercase rounded-sm">
+          <SelectTrigger className="w-[150px] h-7 bg-white/10 border-white/20 text-white text-xs font-heading uppercase rounded-lg">
             <SelectValue placeholder="Select team" />
           </SelectTrigger>
           <SelectContent>
@@ -128,9 +128,9 @@ export default function TeamSwitcher() {
       </div>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-sm">
+        <DialogContent className="rounded-lg">
           <DialogHeader><DialogTitle className="font-heading">Create New Team</DialogTitle></DialogHeader>
-          <Input placeholder="Team name..." value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} className="rounded-sm" />
+          <Input placeholder="Team name..." value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} className="rounded-lg" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={creating || !newName.trim()}>{creating ? "Creating..." : "Create"}</Button>
@@ -139,9 +139,9 @@ export default function TeamSwitcher() {
       </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent className="rounded-sm">
+        <DialogContent className="rounded-lg">
           <DialogHeader><DialogTitle className="font-heading">Rename Team</DialogTitle></DialogHeader>
-          <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleRename()} className="rounded-sm" />
+          <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleRename()} className="rounded-lg" />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
             <Button onClick={handleRename} disabled={renaming || !renameName.trim()}>{renaming ? "Saving..." : "Save"}</Button>
@@ -150,7 +150,7 @@ export default function TeamSwitcher() {
       </Dialog>
 
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <AlertDialogContent className="rounded-sm">
+        <AlertDialogContent className="rounded-lg">
           <AlertDialogHeader>
             <AlertDialogTitle className="font-heading">Delete Team?</AlertDialogTitle>
             <AlertDialogDescription>This will permanently delete the team and its roster.</AlertDialogDescription>

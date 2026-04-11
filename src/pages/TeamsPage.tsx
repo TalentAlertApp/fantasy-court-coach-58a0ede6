@@ -112,13 +112,13 @@ export default function TeamsPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-heading font-bold uppercase tracking-wider">NBA Teams</h1>
-        <div className="inline-flex bg-muted rounded-sm p-0.5 gap-0.5">
+        <div className="inline-flex bg-muted rounded-lg p-0.5 gap-0.5">
           {TABS.map((t) => (
             <button
               key={t.value}
               onClick={() => setTab(t.value)}
               className={cn(
-                "px-3 py-1 text-xs font-heading uppercase rounded-sm transition-colors",
+                "px-3 py-1 text-xs font-heading uppercase rounded-lg transition-colors",
                 tab === t.value
                   ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground"
@@ -145,7 +145,7 @@ export default function TeamsPage() {
                 return (
                   <Card
                     key={t.tricode}
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-sm border-2 group"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-lg border-2 group"
                     style={{ borderColor: `${t.primaryColor}40` }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = t.primaryColor; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}40`; }}
@@ -161,7 +161,7 @@ export default function TeamsPage() {
                         <span className="font-mono text-sm font-bold">{t.wins}-{t.losses}</span>
                         <span className="text-[10px] text-muted-foreground">({wp}%)</span>
                       </div>
-                      <Badge variant="outline" className="text-[9px] rounded-sm">{t.activePlayers} players</Badge>
+                      <Badge variant="outline" className="text-[9px] rounded-lg">{t.activePlayers} players</Badge>
                     </CardContent>
                   </Card>
                 );
