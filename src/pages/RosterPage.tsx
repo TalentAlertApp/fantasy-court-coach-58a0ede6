@@ -22,8 +22,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart } from "lucide-react";
 import AICoachModal from "@/components/AICoachModal";
+import WishlistModal from "@/components/WishlistModal";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -62,6 +63,7 @@ export default function RosterPage() {
   const [chipAllStar, setChipAllStar] = useState(false);
   const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
