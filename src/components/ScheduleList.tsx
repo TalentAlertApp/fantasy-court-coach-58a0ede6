@@ -664,6 +664,18 @@ export default function ScheduleList({ games }: ScheduleListProps) {
         open={selectedPlayerId !== null}
         onOpenChange={(open) => !open && setSelectedPlayerId(null)}
       />
+
+      <TeamModal
+        tricode={selectedTeamTricode}
+        open={selectedTeamTricode !== null}
+        onOpenChange={(open) => !open && setSelectedTeamTricode(null)}
+      />
+
+      <GameDetailDialog
+        game={selectedLast5Game}
+        open={selectedLast5Game !== null}
+        onOpenChange={(open) => !open && setSelectedLast5Game(null)}
+      />
     </div>
   );
 }
