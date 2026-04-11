@@ -162,20 +162,20 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                   </div>
                 </div>
                 {/* Action buttons */}
-                <div className="flex flex-col gap-1 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setCompareOpen(true)}
+                    className="p-2 rounded-sm bg-primary/20 hover:bg-primary/30 transition-colors"
+                    title="Compare"
+                  >
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                  </button>
                   <button
                     onClick={() => playerId && toggleWishlist(playerId)}
-                    className="p-1.5 rounded-sm hover:bg-muted transition-colors"
+                    className="p-2 rounded-sm bg-muted hover:bg-muted/80 transition-colors"
                     title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                   >
                     <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
-                  </button>
-                  <button
-                    onClick={() => setCompareOpen(true)}
-                    className="p-1.5 rounded-sm hover:bg-muted transition-colors"
-                    title="Compare"
-                  >
-                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>
               </div>

@@ -86,15 +86,15 @@ export default function PlayerCard({
         )}
 
         <div className="flex items-center gap-2 px-2 py-1.5">
-          {/* Team logo */}
-          {teamLogo && <img src={teamLogo} alt={core.team} className="w-5 h-5 shrink-0" />}
+          {/* Team logo — larger to fill vertical space */}
+          {teamLogo && <img src={teamLogo} alt={core.team} className="w-7 h-7 shrink-0" />}
 
           {/* Name + position + salary */}
           <div className="flex-1 min-w-0">
+            <p className="text-xs font-heading font-bold truncate leading-tight mb-0.5">
+              {formatShortName(core.name)}
+            </p>
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-heading font-bold truncate leading-tight">
-                {formatShortName(core.name)}
-              </p>
               <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5 shrink-0">
                 {core.fc_bc}
               </Badge>

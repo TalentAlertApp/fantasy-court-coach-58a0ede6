@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { z } from "zod";
 import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,10 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
+import { format } from "date-fns";
 
 /* ---------- Recap Video Embed ---------- */
 function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
@@ -247,6 +251,176 @@ function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
   );
 }
 
+/* ---------- Upcoming Game Preview (expandable) ---------- */
+
+interface Last5Game {
+  won: boolean;
+  date: string;
+  opp: string;
+  venue: "H" | "A";
+}
+
+interface TeamFormData {
+  tricode: string;
+  w: number;
+  l: number;
+  pct: string;
+  gb: string;
+  homeRec: string;
+  awayRec: string;
+  last5: Last5Game[];
+}
+
+function useTeamFormData(teams: string[], enabled: boolean) {
+  return useQuery({
+    queryKey: ["team-form", ...teams],
+    queryFn: async () => {
+      // Fetch all final games
+      const { data, error } = await supabase
+        .from("schedule_games")
+        .select("home_team, away_team, home_pts, away_pts, status, tipoff_utc")
+        .ilike("status", "%FINAL%")
+        .order("tipoff_utc", { ascending: true });
+      if (error) throw error;
+      if (!data) return {};
+
+      const result: Record<string, TeamFormData> = {};
+
+      // Build standings from all final games
+      const acc: Record<string, { w: number; l: number; homeW: number; homeL: number; awayW: number; awayL: number; games: { won: boolean; date: string; opp: string; venue: "H" | "A" }[] }> = {};
+      const ensure = (t: string) => { if (!acc[t]) acc[t] = { w: 0, l: 0, homeW: 0, homeL: 0, awayW: 0, awayL: 0, games: [] }; };
+
+      for (const g of data) {
+        ensure(g.home_team);
+        ensure(g.away_team);
+        const homeWon = g.home_pts > g.away_pts;
+        const dateStr = g.tipoff_utc ? format(new Date(g.tipoff_utc), "dd/MM/yy") : "—";
+
+        if (homeWon) {
+          acc[g.home_team].w++; acc[g.home_team].homeW++;
+          acc[g.away_team].l++; acc[g.away_team].awayL++;
+        } else {
+          acc[g.home_team].l++; acc[g.home_team].homeL++;
+          acc[g.away_team].w++; acc[g.away_team].awayW++;
+        }
+
+        acc[g.home_team].games.push({ won: homeWon, date: dateStr, opp: g.away_team, venue: "H" });
+        acc[g.away_team].games.push({ won: !homeWon, date: dateStr, opp: g.home_team, venue: "A" });
+      }
+
+      // Find league leader for GB
+      let bestDiff = -Infinity;
+      for (const t of Object.values(acc)) {
+        const diff = t.w - t.l;
+        if (diff > bestDiff) bestDiff = diff;
+      }
+
+      for (const tricode of teams) {
+        const t = acc[tricode];
+        if (!t) {
+          result[tricode] = { tricode, w: 0, l: 0, pct: ".000", gb: "-", homeRec: "0-0", awayRec: "0-0", last5: [] };
+          continue;
+        }
+        const gp = t.w + t.l;
+        const pct = gp > 0 ? (t.w / gp).toFixed(3).replace(/^0/, "") : ".000";
+        const gbVal = (bestDiff - (t.w - t.l)) / 2;
+        const gb = gbVal === 0 ? "-" : gbVal.toFixed(1);
+        const last5 = t.games.slice(-5);
+        result[tricode] = {
+          tricode,
+          w: t.w,
+          l: t.l,
+          pct,
+          gb,
+          homeRec: `${t.homeW}-${t.homeL}`,
+          awayRec: `${t.awayW}-${t.awayL}`,
+          last5,
+        };
+      }
+
+      return result;
+    },
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTeam: string }) {
+  const { data, isLoading } = useTeamFormData([awayTeam, homeTeam], true);
+
+  if (isLoading) return <div className="p-3"><Skeleton className="h-16" /></div>;
+  if (!data) return null;
+
+  const away = data[awayTeam];
+  const home = data[homeTeam];
+  if (!away || !home) return null;
+
+  return (
+    <div className="border-t bg-muted/20 px-4 py-3">
+      <div className="grid grid-cols-2 gap-4">
+        {[away, home].map((team) => {
+          const logo = getTeamLogo(team.tricode);
+          const meta = NBA_TEAM_META[team.tricode];
+          return (
+            <div key={team.tricode} className="space-y-2">
+              <div className="flex items-center gap-2">
+                {logo && <img src={logo} alt={team.tricode} className="w-5 h-5" />}
+                <span className="font-heading font-bold text-xs uppercase">{team.tricode}</span>
+                {meta && <span className="text-[9px] text-muted-foreground">{meta.conference}</span>}
+              </div>
+              {/* Standings */}
+              <div className="grid grid-cols-4 gap-1 text-[10px]">
+                <div>
+                  <span className="text-muted-foreground">W-L</span>
+                  <p className="font-mono font-bold">{team.w}-{team.l}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">PCT</span>
+                  <p className="font-mono font-bold">{team.pct}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">HOME</span>
+                  <p className="font-mono">{team.homeRec}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">AWAY</span>
+                  <p className="font-mono">{team.awayRec}</p>
+                </div>
+              </div>
+              {/* Last 5 */}
+              <div>
+                <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
+                <div className="space-y-0.5">
+                  {team.last5.map((g, i) => {
+                    const oppLogo = getTeamLogo(g.opp);
+                    return (
+                      <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                        <Badge
+                          variant={g.won ? "default" : "destructive"}
+                          className="text-[8px] px-1.5 py-0 rounded-sm h-4 min-w-[18px] justify-center font-heading font-bold"
+                        >
+                          {g.won ? "W" : "L"}
+                        </Badge>
+                        <span className="text-muted-foreground font-mono w-14">{g.date}</span>
+                        <div className="flex items-center gap-0.5">
+                          {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
+                          <span className="font-heading font-bold">{g.opp}</span>
+                        </div>
+                        <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
+                      </div>
+                    );
+                  })}
+                  {team.last5.length === 0 && <span className="text-[10px] text-muted-foreground">No games played</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -265,6 +439,8 @@ export default function ScheduleList({ games }: ScheduleListProps) {
       {games.map((g) => {
         const isFinal = isGameFinal(g.status);
         const isLive = isGameLive(g.status);
+        const isScheduled = !isFinal && !isLive;
+        const isExpandable = isFinal || isScheduled;
         const isExpanded = expandedId === g.game_id;
         const hasYoutubeRecap = !!g.youtube_recap_id;
 
@@ -272,12 +448,12 @@ export default function ScheduleList({ games }: ScheduleListProps) {
           <Collapsible
             key={g.game_id}
             open={isExpanded}
-            onOpenChange={() => isFinal && setExpandedId(isExpanded ? null : g.game_id)}
+            onOpenChange={() => isExpandable && setExpandedId(isExpanded ? null : g.game_id)}
           >
-            <CollapsibleTrigger asChild disabled={!isFinal}>
+            <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
                 className={`bg-card rounded-sm border border-l-4 ${getStatusBorder(g.status)} flex items-center justify-between px-4 py-3 ${
-                  isFinal ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
+                  isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
                 {/* Teams */}
@@ -357,15 +533,15 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   )}
-                  {isFinal && (
+                  {isExpandable && (
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   )}
                 </div>
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
-                {isExpanded && (
+              <div className={`bg-card border border-t-0 border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-b-sm overflow-hidden`}>
+                {isExpanded && isFinal && (
                   <GameBoxScore
                     gameId={g.game_id}
                     awayTeam={g.away_team}
@@ -374,6 +550,9 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                     youtubeRecapId={g.youtube_recap_id}
                     onPlayerClick={setSelectedPlayerId}
                   />
+                )}
+                {isExpanded && isScheduled && (
+                  <UpcomingGamePreview awayTeam={g.away_team} homeTeam={g.home_team} />
                 )}
               </div>
             </CollapsibleContent>

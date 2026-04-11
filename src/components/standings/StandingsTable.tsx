@@ -103,7 +103,7 @@ export default function StandingsTable({ rows, title, showCutoffs = false, compa
                     <div className="flex items-center gap-2">
                       <img src={r.logo} alt={r.name} className="w-5 h-5" loading="lazy" />
                       <span className="font-heading font-bold uppercase text-xs">{r.tricode}</span>
-                      <span className="text-[10px] text-muted-foreground hidden md:inline">{r.name}</span>
+                      {!compact && <span className="text-[10px] text-muted-foreground hidden md:inline">{r.name}</span>}
                     </div>
                   </td>
                   <td className="px-2 py-1.5 text-right font-mono">{r.gp}</td>
