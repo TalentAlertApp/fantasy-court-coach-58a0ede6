@@ -26,8 +26,8 @@ export default function StandingsPanel({ standings, onTeamClick }: Props) {
 
       {view === "conference" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <StandingsTable rows={east} title="Eastern Conference" showCutoffs onTeamClick={onTeamClick} />
-          <StandingsTable rows={west} title="Western Conference" showCutoffs onTeamClick={onTeamClick} />
+          <StandingsTable rows={east} title="Eastern Conference" showCutoffs compact onTeamClick={onTeamClick} />
+          <StandingsTable rows={west} title="Western Conference" showCutoffs compact onTeamClick={onTeamClick} />
         </div>
       )}
 
@@ -35,7 +35,7 @@ export default function StandingsPanel({ standings, onTeamClick }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {DIVISIONS.map((div) => {
             const divTeams = standings.filter((r) => r.division === div).sort((a, b) => b.pct - a.pct || b.w - a.w);
-            return <StandingsTable key={div} rows={divTeams} title={div} onTeamClick={onTeamClick} />;
+            return <StandingsTable key={div} rows={divTeams} title={div} compact onTeamClick={onTeamClick} />;
           })}
         </div>
       )}

@@ -175,7 +175,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
               onClick={() => handleSort(key)}
               className={`text-right hover:text-foreground transition-colors cursor-pointer ${
                 sortKey === key ? "font-bold text-foreground" : ""
-              } ${highlight ? "text-amber-400" : ""}`}
+              } ${highlight ? "text-red-500 font-bold" : ""}`}
             >
               {label}
             </button>
@@ -204,8 +204,8 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
                   <span className="text-xs font-medium whitespace-nowrap">{p.name}</span>
                 </div>
                 <span className="text-right font-mono text-xs font-bold">{p.fp}</span>
-                <span className="text-right font-mono text-xs text-amber-400">{(p as any).salary ?? 0}</span>
-                <span className="text-right font-mono text-xs text-amber-400 font-bold">{p.value.toFixed(1)}</span>
+                <span className="text-right font-mono text-xs text-red-500">{(p as any).salary ?? 0}</span>
+                <span className="text-right font-mono text-xs text-red-500">{p.value.toFixed(1)}</span>
                 <span className="text-right font-mono text-xs text-muted-foreground">{p.mp}</span>
                 <span className="text-right font-mono text-xs">{p.ps}</span>
                 <span className="text-right font-mono text-xs">{p.ast}</span>
