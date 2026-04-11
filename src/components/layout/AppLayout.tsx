@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Basketball } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -20,15 +20,11 @@ const navItems = [
 ];
 
 /** Check if now is past 6:00 AM Lisbon time and we haven't synced today */
-
-/** Check if now is past 6:00 AM Lisbon time and we haven't synced today */
 function shouldAutoSync(): boolean {
   const LS_KEY = "nba_last_auto_sync_date";
   const lastDate = localStorage.getItem(LS_KEY);
   const now = new Date();
-  // Get Lisbon date/time
   const lisbonStr = now.toLocaleString("en-CA", { timeZone: "Europe/Lisbon", hour12: false });
-  // Format: "YYYY-MM-DD, HH:MM:SS"
   const [datePart, timePart] = lisbonStr.split(", ");
   const hour = parseInt(timePart?.split(":")[0] ?? "0", 10);
   if (hour >= 6 && datePart !== lastDate) {
@@ -44,9 +40,25 @@ export default function AppLayout() {
     localStorage.getItem("nba_auto_refresh") === "true"
   );
   const [syncStep, setSyncStep] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [dark, setDark] = useState(() =>
+    localStorage.getItem("nba_theme") === "dark" ||
+    (!localStorage.getItem("nba_theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Poll sync status every 60s
+  // Apply dark class to <html>
+  useEffect(() => {
+    const html = document.documentElement;
+    if (dark) {
+      html.classList.add("dark");
+      localStorage.setItem("nba_theme", "dark");
+    } else {
+      html.classList.remove("dark");
+      localStorage.setItem("nba_theme", "light");
+    }
+  }, [dark]);
+
   const { data: syncStatus } = useQuery({
     queryKey: ["sync-status"],
     queryFn: () => fetchSyncStatus(),
@@ -122,36 +134,92 @@ export default function AppLayout() {
 
   const isSyncing = isSyncingFlag;
 
-  // Daily 6AM Lisbon auto-refresh
   useEffect(() => {
     localStorage.setItem("nba_auto_refresh", String(autoRefresh));
     if (!autoRefresh) return;
-    // Check every 60s if we should auto-sync
     const interval = setInterval(() => {
-      if (!isSyncing && shouldAutoSync()) {
-        handleSync();
-      }
+      if (!isSyncing && shouldAutoSync()) handleSync();
     }, 60_000);
-    // Also check immediately
-    if (!isSyncing && shouldAutoSync()) {
-      handleSync();
-    }
+    if (!isSyncing && shouldAutoSync()) handleSync();
     return () => clearInterval(interval);
   }, [autoRefresh, isSyncing, handleSync]);
 
-  // Cleanup polling on unmount
   useEffect(() => () => stopPolling(), [stopPolling]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header — deep navy */}
-      <header className="bg-nba-navy text-white">
-        <div className="container mx-auto px-4 py-2.5 flex items-center justify-between">
-          <h1 className="text-xl font-heading font-bold tracking-widest">🏀 NBA FANTASY MANAGER</h1>
+    <div className="app-shell">
+      {/* ── LEFT SIDEBAR ─────────────────────────────── */}
+      <aside className={`sidebar${collapsed ? " collapsed" : ""} animate-slide-in-left`}>
+        {/* Brand */}
+        <div className="flex items-center gap-2.5 px-4 py-4 border-b" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
+          <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
+               style={{ background: "hsl(var(--sidebar-primary))", color: "hsl(var(--sidebar-primary-foreground))" }}>
+            🏀
+          </div>
+          {!collapsed && (
+            <span className="text-sm font-heading font-bold uppercase tracking-widest truncate"
+                  style={{ color: "hsl(var(--sidebar-foreground))" }}>
+              NBA Fantasy
+            </span>
+          )}
+        </div>
 
-          {/* Sync controls */}
+        {/* Nav */}
+        <nav className="flex-1 py-3 flex flex-col gap-0.5 overflow-y-auto">
+          {navItems.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `nav-item${isActive ? " active" : ""}`
+              }
+              title={collapsed ? label : undefined}
+            >
+              <Icon className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && <span className="truncate">{label}</span>}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* Bottom controls */}
+        <div className="flex flex-col gap-2 p-3 border-t" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
+          {/* Theme toggle */}
+          <button
+            onClick={() => setDark(d => !d)}
+            className="theme-toggle w-full"
+            title={dark ? "Switch to Light" : "Switch to Dark"}
+          >
+            {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            {!collapsed && (
+              <span className="ml-2 text-[10px] uppercase tracking-wider">
+                {dark ? "Light" : "Dark"}
+              </span>
+            )}
+          </button>
+
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="theme-toggle w-full"
+            title={collapsed ? "Expand" : "Collapse"}
+          >
+            {collapsed
+              ? <ChevronRight className="h-3.5 w-3.5" />
+              : <ChevronLeft className="h-3.5 w-3.5" />}
+            {!collapsed && (
+              <span className="ml-2 text-[10px] uppercase tracking-wider">Collapse</span>
+            )}
+          </button>
+        </div>
+      </aside>
+
+      {/* ── MAIN CONTENT ─────────────────────────────── */}
+      <div className="main-content">
+        {/* Top bar */}
+        <header className="topbar">
           <div className="flex items-center gap-3">
-            {/* Sync Status Card */}
+            {/* Sync Status */}
             <SyncStatusCard
               lastSuccessAt={syncStatus?.last_success_at ?? null}
               source={syncStatus?.source}
@@ -162,59 +230,35 @@ export default function AppLayout() {
               isStale={syncStatus?.is_stale ?? false}
               lastType={syncStatus?.last_type ?? null}
             />
-
-            {/* Auto-refresh toggle — daily 6AM */}
+            {/* 6AM auto-refresh */}
             <div className="hidden md:flex items-center gap-1.5">
-              <span className="text-[10px] text-white/50 uppercase">6AM</span>
+              <span className="text-[10px] opacity-50 uppercase">6AM</span>
               <Switch
                 checked={autoRefresh}
                 onCheckedChange={setAutoRefresh}
                 className="scale-75"
               />
             </div>
+          </div>
 
-            {/* Sync Button */}
+          <div className="flex items-center gap-2">
             <SplitSyncButton
               isSyncing={isSyncing}
               syncStep={syncStep}
               onSync={handleSync}
             />
-
             <TeamSwitcher />
             <HowToPlayModal />
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Navigation — white bar with yellow active indicator */}
-      <nav className="bg-card border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide">
-            {navItems.map(({ to, label, icon: Icon, end }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-2.5 text-sm font-heading font-semibold uppercase tracking-wide whitespace-nowrap transition-colors border-b-[3px] ${
-                    isActive
-                      ? "border-accent text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
-                  }`
-                }
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </NavLink>
-            ))}
+        {/* Page */}
+        <main className="page-scroll">
+          <div className="animate-fade-in w-full h-full">
+            <Outlet />
           </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="flex-1 container mx-auto px-4 py-4">
-        <Outlet />
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
