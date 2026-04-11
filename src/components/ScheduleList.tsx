@@ -7,8 +7,10 @@ import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
+import TeamModal from "@/components/TeamModal";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
@@ -258,6 +260,17 @@ interface Last5Game {
   date: string;
   opp: string;
   venue: "H" | "A";
+  game_id: string;
+  game_boxscore_url: string | null;
+  game_charts_url: string | null;
+  game_playbyplay_url: string | null;
+  game_recap_url: string | null;
+  nba_game_url: string | null;
+  youtube_recap_id: string | null;
+  home_team: string;
+  away_team: string;
+  home_pts: number;
+  away_pts: number;
 }
 
 interface TeamFormData {
@@ -278,7 +291,7 @@ function useTeamFormData(teams: string[], enabled: boolean) {
       // Fetch all final games
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("home_team, away_team, home_pts, away_pts, status, tipoff_utc")
+        .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
         .ilike("status", "%FINAL%")
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
@@ -287,7 +300,7 @@ function useTeamFormData(teams: string[], enabled: boolean) {
       const result: Record<string, TeamFormData> = {};
 
       // Build standings from all final games
-      const acc: Record<string, { w: number; l: number; homeW: number; homeL: number; awayW: number; awayL: number; games: { won: boolean; date: string; opp: string; venue: "H" | "A" }[] }> = {};
+      const acc: Record<string, { w: number; l: number; homeW: number; homeL: number; awayW: number; awayL: number; games: Last5Game[] }> = {};
       const ensure = (t: string) => { if (!acc[t]) acc[t] = { w: 0, l: 0, homeW: 0, homeL: 0, awayW: 0, awayL: 0, games: [] }; };
 
       for (const g of data) {
@@ -295,6 +308,12 @@ function useTeamFormData(teams: string[], enabled: boolean) {
         ensure(g.away_team);
         const homeWon = g.home_pts > g.away_pts;
         const dateStr = g.tipoff_utc ? format(new Date(g.tipoff_utc), "dd/MM/yy") : "—";
+        const shared = {
+          game_id: g.game_id, game_boxscore_url: g.game_boxscore_url, game_charts_url: g.game_charts_url,
+          game_playbyplay_url: g.game_playbyplay_url, game_recap_url: g.game_recap_url,
+          nba_game_url: g.nba_game_url, youtube_recap_id: g.youtube_recap_id,
+          home_team: g.home_team, away_team: g.away_team, home_pts: g.home_pts, away_pts: g.away_pts,
+        };
 
         if (homeWon) {
           acc[g.home_team].w++; acc[g.home_team].homeW++;
@@ -304,8 +323,8 @@ function useTeamFormData(teams: string[], enabled: boolean) {
           acc[g.away_team].w++; acc[g.away_team].awayW++;
         }
 
-        acc[g.home_team].games.push({ won: homeWon, date: dateStr, opp: g.away_team, venue: "H" });
-        acc[g.away_team].games.push({ won: !homeWon, date: dateStr, opp: g.home_team, venue: "A" });
+        acc[g.home_team].games.push({ won: homeWon, date: dateStr, opp: g.away_team, venue: "H", ...shared });
+        acc[g.away_team].games.push({ won: !homeWon, date: dateStr, opp: g.home_team, venue: "A", ...shared });
       }
 
       // Find league leader for GB
@@ -345,7 +364,83 @@ function useTeamFormData(teams: string[], enabled: boolean) {
   });
 }
 
-function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTeam: string }) {
+/* ---------- Game Detail Dialog (for Last 5 game click) ---------- */
+function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const [showRecap, setShowRecap] = useState(false);
+  if (!game) return null;
+  const awayLogo = getTeamLogo(game.away_team);
+  const homeLogo = getTeamLogo(game.home_team);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm rounded-sm p-4">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-sm uppercase">Game Detail</DialogTitle>
+        </DialogHeader>
+        <div className="flex items-center justify-center gap-3 py-2">
+          <div className="flex items-center gap-1.5 text-right">
+            {awayLogo && <img src={awayLogo} alt="" className="w-6 h-6" />}
+            <span className="font-heading font-bold text-sm">{game.away_team}</span>
+          </div>
+          <div className="text-center">
+            <span className="font-mono font-black text-lg">{game.away_pts} - {game.home_pts}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-heading font-bold text-sm">{game.home_team}</span>
+            {homeLogo && <img src={homeLogo} alt="" className="w-6 h-6" />}
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-2 py-1">
+          {game.game_boxscore_url && (
+            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Box Score">
+              <Table2 className="h-3.5 w-3.5" /> BoxScore
+            </a>
+          )}
+          {game.game_charts_url && (
+            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Charts">
+              <BarChart3 className="h-3.5 w-3.5" /> Charts
+            </a>
+          )}
+          {game.game_playbyplay_url && (
+            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Play-by-Play">
+              <Mic className="h-3.5 w-3.5" /> PbP
+            </a>
+          )}
+          {game.nba_game_url && (
+            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="NBA.com">
+              <ExternalLink className="h-3.5 w-3.5" /> NBA
+            </a>
+          )}
+        </div>
+        {game.youtube_recap_id && (
+          <div>
+            <button
+              onClick={() => setShowRecap(!showRecap)}
+              className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400 transition-colors mx-auto py-1"
+            >
+              <Tv2 className="h-3.5 w-3.5" /> {showRecap ? "Hide" : "Watch"} Recap
+            </button>
+            {showRecap && (
+              <div className="relative w-full mt-1" style={{ paddingBottom: "56.25%" }}>
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-sm"
+                  src={`https://www.youtube.com/embed/${game.youtube_recap_id}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
+  awayTeam: string; homeTeam: string;
+  onGameClick: (game: Last5Game) => void;
+  onTeamClick: (tricode: string) => void;
+}) {
   const { data, isLoading } = useTeamFormData([awayTeam, homeTeam], true);
 
   if (isLoading) return <div className="p-3"><Skeleton className="h-16" /></div>;
@@ -395,17 +490,19 @@ function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTea
                     const oppLogo = getTeamLogo(g.opp);
                     return (
                       <div key={i} className="flex items-center gap-1.5 text-[10px]">
-                        <Badge
-                          variant={g.won ? "default" : "destructive"}
-                          className="text-[8px] px-1.5 py-0 rounded-sm h-4 min-w-[18px] justify-center font-heading font-bold"
-                        >
-                          {g.won ? "W" : "L"}
-                        </Badge>
+                        <button onClick={() => onGameClick(g)}>
+                          <Badge
+                            variant={g.won ? "default" : "destructive"}
+                            className="text-[8px] px-1.5 py-0 rounded-sm h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                          >
+                            {g.won ? "W" : "L"}
+                          </Badge>
+                        </button>
                         <span className="text-muted-foreground font-mono w-14">{g.date}</span>
-                        <div className="flex items-center gap-0.5">
+                        <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
                           {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
                           <span className="font-heading font-bold">{g.opp}</span>
-                        </div>
+                        </button>
                         <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
                       </div>
                     );
@@ -424,6 +521,8 @@ function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTea
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
+  const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
 
   if (games.length === 0) {
     return (
@@ -552,7 +651,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                   />
                 )}
                 {isExpanded && isScheduled && (
-                  <UpcomingGamePreview awayTeam={g.away_team} homeTeam={g.home_team} />
+                  <UpcomingGamePreview awayTeam={g.away_team} homeTeam={g.home_team} onGameClick={setSelectedLast5Game} onTeamClick={setSelectedTeamTricode} />
                 )}
               </div>
             </CollapsibleContent>
@@ -564,6 +663,18 @@ export default function ScheduleList({ games }: ScheduleListProps) {
         playerId={selectedPlayerId}
         open={selectedPlayerId !== null}
         onOpenChange={(open) => !open && setSelectedPlayerId(null)}
+      />
+
+      <TeamModal
+        tricode={selectedTeamTricode}
+        open={selectedTeamTricode !== null}
+        onOpenChange={(open) => !open && setSelectedTeamTricode(null)}
+      />
+
+      <GameDetailDialog
+        game={selectedLast5Game}
+        open={selectedLast5Game !== null}
+        onOpenChange={(open) => !open && setSelectedLast5Game(null)}
       />
     </div>
   );
