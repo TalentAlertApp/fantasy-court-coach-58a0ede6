@@ -26,6 +26,9 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
       }
     }
 
+    // No games on this day → no top players
+    if (teamsPlaying.size === 0) return { topFC: [], topBC: [] };
+
     const playing = playersData.items.filter((p) => teamsPlaying.has(p.core.team));
     const getFp = (p: any) => p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0;
     const fc = playing.filter((p) => p.core.fc_bc === "FC").sort((a, b) => getFp(b) - getFp(a)).slice(0, 5);

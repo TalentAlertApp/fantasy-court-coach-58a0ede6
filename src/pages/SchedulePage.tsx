@@ -1,10 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
 import ScheduleList from "@/components/ScheduleList";
 import TopPlayersStrip from "@/components/TopPlayersStrip";
-import AdvancedScheduleGrid from "@/components/AdvancedScheduleGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3 } from "lucide-react";
@@ -48,7 +48,7 @@ export default function SchedulePage() {
   const current = useMemo(() => getCurrentGameday(), []);
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
-  const [showGrid, setShowGrid] = useState(false);
+  const navigate = useNavigate();
   const { data, isLoading } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
   const { data: lastPlayed } = useLastPlayedDay();
@@ -95,7 +95,7 @@ export default function SchedulePage() {
               <button
                 key={w}
                 data-gw={w}
-                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); setShowGrid(false); }}
+                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
                 className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-sm transition-all ${
                   isSelected
                     ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
@@ -116,17 +116,14 @@ export default function SchedulePage() {
           <span className="opacity-30">|</span>
           <span className="text-xs opacity-60 font-body">{dateRange}</span>
           <button
-            onClick={() => setShowGrid((v) => !v)}
-            className={`ml-1 p-1 rounded-sm transition-colors ${showGrid ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))]" : "bg-white/10 text-white/70 hover:bg-white/20"}`}
+            onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
+            className="ml-1 p-1 rounded-sm transition-colors bg-white/10 text-white/70 hover:bg-white/20"
             title="Advanced Schedule Grid"
           >
             <Grid3X3 className="h-4 w-4" />
           </button>
         </div>
       </div>
-
-      {/* Advanced Grid Overlay */}
-      {showGrid && <AdvancedScheduleGrid gw={gw} onClose={() => setShowGrid(false)} />}
 
       {/* Day Navigator — compact */}
       <div className="bg-card border-x border-b flex items-center">
