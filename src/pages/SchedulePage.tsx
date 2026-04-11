@@ -242,6 +242,8 @@ export default function SchedulePage() {
       ) : (
         <ScheduleList games={data?.games ?? []} />
       )}
+
+      <TeamOfTheWeekModal open={totwOpen} onOpenChange={setTotwOpen} gw={gw} />
     </div>
   );
 }
