@@ -8,29 +8,31 @@ interface Props {
   rows: StandingRow[];
   title?: string;
   showCutoffs?: boolean;
+  compact?: boolean;
   onTeamClick?: (tricode: string) => void;
 }
 
-const COLS: { key: SortKey | null; label: string; className?: string }[] = [
+const ALL_COLS: { key: SortKey | null; label: string; className?: string; compactHide?: boolean }[] = [
   { key: null, label: "#", className: "w-8 text-center" },
-  { key: null, label: "Team", className: "min-w-[140px]" },
+  { key: null, label: "Team", className: "min-w-[100px]" },
   { key: "gp", label: "GP", className: "w-10 text-right" },
   { key: "w", label: "W", className: "w-10 text-right" },
   { key: "l", label: "L", className: "w-10 text-right" },
   { key: "pct", label: "PCT", className: "w-14 text-right" },
   { key: "gb", label: "GB", className: "w-12 text-right" },
-  { key: null, label: "HOME", className: "w-16 text-right" },
-  { key: null, label: "AWAY", className: "w-16 text-right" },
-  { key: null, label: "CONF", className: "w-16 text-right" },
-  { key: null, label: "DIV", className: "w-14 text-right" },
-  { key: "ppg", label: "PPG", className: "w-14 text-right" },
-  { key: "oppPpg", label: "OPP", className: "w-14 text-right" },
-  { key: "diff", label: "DIFF", className: "w-14 text-right" },
-  { key: null, label: "L10", className: "w-14 text-right" },
-  { key: null, label: "STRK", className: "w-14 text-right" },
+  { key: null, label: "HOME", className: "w-14 text-right" },
+  { key: null, label: "AWAY", className: "w-14 text-right" },
+  { key: null, label: "CONF", className: "w-14 text-right", compactHide: true },
+  { key: null, label: "DIV", className: "w-14 text-right", compactHide: true },
+  { key: "ppg", label: "PPG", className: "w-14 text-right", compactHide: true },
+  { key: "oppPpg", label: "OPP", className: "w-14 text-right", compactHide: true },
+  { key: "diff", label: "DIFF", className: "w-14 text-right", compactHide: true },
+  { key: null, label: "L10", className: "w-14 text-right", compactHide: true },
+  { key: null, label: "STRK", className: "w-14 text-right", compactHide: true },
 ];
 
-export default function StandingsTable({ rows, title, showCutoffs = false, onTeamClick }: Props) {
+export default function StandingsTable({ rows, title, showCutoffs = false, compact = false, onTeamClick }: Props) {
+  const COLS = compact ? ALL_COLS.filter((c) => !c.compactHide) : ALL_COLS;
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -111,17 +113,17 @@ export default function StandingsTable({ rows, title, showCutoffs = false, onTea
                   <td className="px-2 py-1.5 text-right font-mono text-muted-foreground">{r.gb === 0 ? "-" : r.gb.toFixed(1)}</td>
                   <td className="px-2 py-1.5 text-right font-mono">{r.homeW}-{r.homeL}</td>
                   <td className="px-2 py-1.5 text-right font-mono">{r.awayW}-{r.awayL}</td>
-                  <td className="px-2 py-1.5 text-right font-mono">{r.confW}-{r.confL}</td>
-                  <td className="px-2 py-1.5 text-right font-mono">{r.divW}-{r.divL}</td>
-                  <td className="px-2 py-1.5 text-right font-mono">{r.ppg.toFixed(1)}</td>
-                  <td className="px-2 py-1.5 text-right font-mono">{r.oppPpg.toFixed(1)}</td>
-                  <td className={cn("px-2 py-1.5 text-right font-mono font-bold", r.diff > 0 ? "text-green-500" : r.diff < 0 ? "text-destructive" : "")}>
+                  {!compact && <td className="px-2 py-1.5 text-right font-mono">{r.confW}-{r.confL}</td>}
+                  {!compact && <td className="px-2 py-1.5 text-right font-mono">{r.divW}-{r.divL}</td>}
+                  {!compact && <td className="px-2 py-1.5 text-right font-mono">{r.ppg.toFixed(1)}</td>}
+                  {!compact && <td className="px-2 py-1.5 text-right font-mono">{r.oppPpg.toFixed(1)}</td>}
+                  {!compact && <td className={cn("px-2 py-1.5 text-right font-mono font-bold", r.diff > 0 ? "text-green-500" : r.diff < 0 ? "text-destructive" : "")}>
                     {r.diff > 0 ? "+" : ""}{r.diff.toFixed(1)}
-                  </td>
-                  <td className="px-2 py-1.5 text-right font-mono">{r.l10W}-{r.l10L}</td>
-                  <td className={cn("px-2 py-1.5 text-right font-mono font-bold", r.strk.startsWith("W") ? "text-green-500" : r.strk.startsWith("L") ? "text-destructive" : "")}>
+                  </td>}
+                  {!compact && <td className="px-2 py-1.5 text-right font-mono">{r.l10W}-{r.l10L}</td>}
+                  {!compact && <td className={cn("px-2 py-1.5 text-right font-mono font-bold", r.strk.startsWith("W") ? "text-green-500" : r.strk.startsWith("L") ? "text-destructive" : "")}>
                     {r.strk}
-                  </td>
+                  </td>}
                 </tr>
               );
             })}

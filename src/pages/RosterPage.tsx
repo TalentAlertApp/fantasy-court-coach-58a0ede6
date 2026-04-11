@@ -387,9 +387,6 @@ export default function RosterPage() {
 
           {starters.length > 0 && (
             <BottomActionBar
-              starters={starters}
-              captainId={captainId}
-              onCaptainChange={setCaptainId}
               onSave={handleSave}
               saving={saveMutation.isPending}
               gamedaysRemaining={gamedaysRemaining}
