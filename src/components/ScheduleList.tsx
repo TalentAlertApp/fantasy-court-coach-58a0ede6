@@ -258,6 +258,17 @@ interface Last5Game {
   date: string;
   opp: string;
   venue: "H" | "A";
+  game_id: string;
+  game_boxscore_url: string | null;
+  game_charts_url: string | null;
+  game_playbyplay_url: string | null;
+  game_recap_url: string | null;
+  nba_game_url: string | null;
+  youtube_recap_id: string | null;
+  home_team: string;
+  away_team: string;
+  home_pts: number;
+  away_pts: number;
 }
 
 interface TeamFormData {
