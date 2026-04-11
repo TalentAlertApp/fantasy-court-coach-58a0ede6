@@ -2,80 +2,246 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   LIGHT THEME (default :root)
+   ===================================================== */
 @layer base {
   :root {
     --background: 218 29% 96%;
     --foreground: 214 70% 14%;
-
     --card: 0 0% 100%;
     --card-foreground: 214 70% 14%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 214 70% 14%;
-
     --primary: 220 65% 33%;
     --primary-foreground: 0 0% 100%;
-
     --secondary: 218 20% 90%;
     --secondary-foreground: 220 65% 33%;
-
     --muted: 218 20% 92%;
     --muted-foreground: 218 15% 47%;
-
-    --accent: 43 100% 59%;
-    --accent-foreground: 214 70% 14%;
-
+    --accent: 43 100% 52%;
+    --accent-foreground: 214 70% 10%;
     --destructive: 351 85% 42%;
     --destructive-foreground: 0 0% 100%;
-
     --border: 218 20% 85%;
     --input: 218 20% 85%;
     --ring: 220 65% 33%;
-
     --radius: 0.375rem;
-
     --nba-blue: 220 65% 33%;
     --nba-red: 351 85% 42%;
-    --nba-yellow: 43 100% 59%;
+    --nba-yellow: 43 100% 52%;
     --nba-navy: 214 70% 14%;
+    --sidebar-background: 214 70% 10%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 43 100% 52%;
+    --sidebar-primary-foreground: 214 70% 10%;
+    --sidebar-accent: 214 62% 18%;
+    --sidebar-accent-foreground: 0 0% 92%;
+    --sidebar-border: 214 50% 20%;
+    --sidebar-ring: 43 100% 52%;
+    --sidebar-width: 220px;
+  }
 
-    --sidebar-background: 214 70% 14%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 43 100% 59%;
-    --sidebar-primary-foreground: 214 70% 14%;
-    --sidebar-accent: 214 70% 20%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 214 70% 20%;
-    --sidebar-ring: 43 100% 59%;
+  /* DARK THEME */
+  .dark {
+    --background: 222 28% 7%;
+    --foreground: 213 20% 90%;
+    --card: 222 25% 11%;
+    --card-foreground: 213 20% 90%;
+    --popover: 222 25% 11%;
+    --popover-foreground: 213 20% 90%;
+    --primary: 43 100% 52%;
+    --primary-foreground: 222 28% 7%;
+    --secondary: 222 20% 16%;
+    --secondary-foreground: 213 20% 80%;
+    --muted: 222 20% 14%;
+    --muted-foreground: 218 12% 52%;
+    --accent: 43 100% 52%;
+    --accent-foreground: 222 28% 7%;
+    --destructive: 351 78% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 18% 18%;
+    --input: 222 18% 18%;
+    --ring: 43 100% 52%;
+    --nba-blue: 220 65% 55%;
+    --nba-red: 351 78% 55%;
+    --nba-yellow: 43 100% 52%;
+    --nba-navy: 222 28% 7%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
+
+  html { height: 100%; overflow: hidden; }
 
   body {
     @apply bg-background text-foreground;
-    font-family: "Inter", sans-serif;
+    font-family: 'Inter', sans-serif;
     font-weight: 400;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Barlow Condensed", "Oswald", sans-serif;
+    font-family: 'Barlow Condensed', 'Oswald', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 700;
   }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--accent)); }
 }
 
 @layer components {
-  .section-bar {
-    @apply bg-muted px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b;
-    font-family: "Barlow Condensed", "Oswald", sans-serif;
+  .app-shell {
+    @apply flex h-screen w-screen overflow-hidden bg-background text-foreground;
   }
 
-  .drag-over {
-    @apply ring-2 ring-accent ring-offset-1;
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground));
+    border-right: 1px solid hsl(var(--sidebar-border));
+    transition: width 0.2s ease;
+    overflow: hidden;
+  }
+  .sidebar.collapsed { width: 60px; }
+
+  .nav-item {
+    @apply flex items-center gap-3 px-4 py-2.5 text-sm font-heading font-semibold uppercase tracking-wide
+           transition-colors duration-150 rounded-none border-l-[3px] border-transparent
+           hover:bg-white/5;
+    color: hsl(var(--sidebar-foreground) / 0.6);
+  }
+  .nav-item:hover { color: hsl(var(--sidebar-foreground)); }
+  .nav-item.active {
+    background: hsl(var(--sidebar-accent));
+    color: hsl(var(--sidebar-foreground));
+    border-left-color: hsl(var(--sidebar-primary));
+  }
+  .sidebar.collapsed .nav-item { @apply px-0 justify-center gap-0; }
+
+  .main-content { @apply flex-1 flex flex-col overflow-hidden; }
+
+  .topbar {
+    @apply flex-shrink-0 flex items-center justify-between px-5 py-2.5
+           border-b;
+    background: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground));
+    border-color: hsl(var(--sidebar-border));
+  }
+
+  .page-scroll { @apply flex-1 overflow-y-auto overflow-x-hidden; }
+
+  .glass-card { @apply rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm; }
+
+  .gold-card {
+    @apply rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm;
+    border-color: hsl(var(--accent) / 0.4);
+    box-shadow: 0 0 12px hsl(var(--accent) / 0.12);
+  }
+
+  .stat-tile {
+    @apply flex flex-col items-center justify-center rounded-lg px-3 py-2
+           bg-muted/60 border text-center min-w-[56px];
+  }
+  .stat-tile-value { @apply text-base font-heading font-bold text-foreground; }
+  .stat-tile-label { @apply text-[9px] font-semibold uppercase tracking-wider text-muted-foreground; }
+
+  .nba-badge { @apply inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide; }
+  .nba-badge-gold  { @apply nba-badge bg-amber-400/20 text-amber-400; }
+  .nba-badge-red   { @apply nba-badge bg-red-500/20 text-red-400; }
+  .nba-badge-blue  { @apply nba-badge bg-blue-500/20 text-blue-400; }
+  .nba-badge-green { @apply nba-badge bg-emerald-500/20 text-emerald-400; }
+  .nba-badge-muted { @apply nba-badge bg-muted text-muted-foreground; }
+
+  .section-bar {
+    @apply bg-muted px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b;
+    font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  }
+
+  .roster-section { @apply rounded-xl border bg-card shadow-sm overflow-hidden; }
+  .roster-section-header {
+    @apply flex items-center gap-2 px-4 py-2.5 border-b text-sm font-heading font-bold uppercase tracking-wide;
+    font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+  }
+  .empty-slot {
+    @apply rounded-lg border-2 border-dashed border-border/40 bg-muted/20
+           flex items-center justify-center text-[11px] text-muted-foreground/40
+           uppercase tracking-widest min-h-[80px];
+  }
+
+  .captain-glow {
+    box-shadow: 0 0 0 2px hsl(var(--accent)), 0 0 16px hsl(var(--accent) / 0.35);
+  }
+
+  .drag-over { @apply ring-2 ring-accent ring-offset-1; }
+
+  .glow-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--accent) / 0.6) 30%, hsl(var(--accent) / 0.8) 50%, hsl(var(--accent) / 0.6) 70%, transparent 100%);
+    margin: 0.5rem 0;
+  }
+
+  .pulse-dot {
+    @apply inline-block w-2 h-2 rounded-full bg-emerald-400;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  .page-title {
+    font-family: 'Barlow Condensed', 'Oswald', sans-serif;
+    @apply text-3xl font-bold uppercase tracking-wider text-foreground;
+  }
+
+  .theme-toggle {
+    @apply flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer
+           transition-colors border;
+    background: hsl(var(--sidebar-accent) / 0.4);
+    color: hsl(var(--sidebar-foreground) / 0.7);
+    border-color: hsl(var(--sidebar-border) / 0.4);
+  }
+  .theme-toggle:hover {
+    background: hsl(var(--sidebar-accent) / 0.8);
+    color: hsl(var(--sidebar-foreground));
   }
 }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px hsl(var(--accent) / 0.3); }
+  50%       { box-shadow: 0 0 18px hsl(var(--accent) / 0.7); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.75); }
+}
+
+.animate-fade-in       { animation: fade-in 0.25s ease forwards; }
+.animate-slide-in-left { animation: slide-in-left 0.2s ease forwards; }
+.animate-glow-pulse    { animation: glow-pulse 2.5s ease-in-out infinite; }
