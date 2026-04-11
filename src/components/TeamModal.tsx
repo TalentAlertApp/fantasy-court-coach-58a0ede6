@@ -10,7 +10,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table2, BarChart3, Mic, ExternalLink, Tv2 } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
-import NBAGameModal from "@/components/NBAGameModal";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -24,7 +23,6 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const team = tricode ? getTeamByTricode(tricode) : null;
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
-  const [selectedGame, setSelectedGame] = useState<any>(null);
   const [expandedRecap, setExpandedRecap] = useState<string | null>(null);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
@@ -169,15 +167,14 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                                   <ExternalLink className="h-3.5 w-3.5" />
                                 </a>
                               )}
-                              {g.youtube_recap_id && (
-                                <button
-                                  className="text-green-500 hover:text-green-400 transition-colors p-0.5"
-                                  onClick={(e) => { e.stopPropagation(); setExpandedRecap(expandedRecap === g.game_id ? null : g.game_id); }}
-                                  title="Video Recap"
-                                >
-                                  <Tv2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
+                              <button
+                                className={`${g.youtube_recap_id ? "text-green-500 hover:text-green-400 cursor-pointer" : "text-muted-foreground/30 cursor-default"} transition-colors p-0.5`}
+                                onClick={(e) => { e.stopPropagation(); if (g.youtube_recap_id) setExpandedRecap(expandedRecap === g.game_id ? null : g.game_id); }}
+                                title="Video Recap"
+                                disabled={!g.youtube_recap_id}
+                              >
+                                <Tv2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           </div>
                           {expandedRecap === g.game_id && g.youtube_recap_id && (
@@ -268,18 +265,6 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
         onOpenChange={(o) => { if (!o) setSelectedPlayerId(null); }}
       />
 
-      <NBAGameModal
-        open={selectedGame !== null}
-        onOpenChange={(o) => { if (!o) setSelectedGame(null); }}
-        defaultTab="boxscore"
-        urls={{
-          game_recap_url: selectedGame?.game_recap_url,
-          game_boxscore_url: selectedGame?.game_boxscore_url,
-          game_charts_url: selectedGame?.game_charts_url,
-          game_playbyplay_url: selectedGame?.game_playbyplay_url,
-        }}
-        title={selectedGame ? `${selectedGame.home_team} vs ${selectedGame.away_team}` : undefined}
-      />
     </>
   );
 }

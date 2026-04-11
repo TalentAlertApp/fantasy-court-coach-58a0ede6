@@ -316,8 +316,6 @@ export default function RosterPage() {
               <div className="hidden sm:flex items-center gap-2 ml-3 text-[10px] font-heading uppercase text-muted-foreground">
                 <Badge variant="destructive" className="rounded-sm text-[9px]">FC:{fcStarters}</Badge>
                 <Badge className="rounded-sm text-[9px]">BC:{bcStarters}</Badge>
-                <span className="font-mono">Bank: ${roster?.bank_remaining?.toFixed(1) ?? "—"}</span>
-                <span className="font-mono">Trans: {roster?.free_transfers_remaining ?? "—"}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">

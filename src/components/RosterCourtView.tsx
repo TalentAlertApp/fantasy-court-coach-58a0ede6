@@ -196,7 +196,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
       </div>
 
       {/* Bench + ROSTER INFO — vertical column on the right */}
-      <div className="w-64 shrink-0">
+      <div className="w-64 shrink-0 flex flex-col">
         <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 rounded-lg mb-2">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -209,9 +209,9 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
           {bench.length < 5 && Array.from({ length: 5 - bench.length }).map((_, i) => emptySlot(i + 10))}
         </div>
 
-        {/* ROSTER INFO below bench */}
+        {/* ROSTER INFO aligned to bottom of court */}
         {sidebarProps && (
-          <div className="mt-3">
+          <div className="mt-auto">
             <RosterSidebar {...sidebarProps} />
           </div>
         )}

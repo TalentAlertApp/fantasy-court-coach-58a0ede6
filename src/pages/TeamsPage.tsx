@@ -161,10 +161,7 @@ export default function TeamsPage() {
                         <span className="font-mono text-sm font-bold">{t.wins}-{t.losses}</span>
                         <span className="text-[10px] text-muted-foreground">({wp}%)</span>
                       </div>
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className="text-[9px] rounded-sm">{t.activePlayers} players</Badge>
-                        <Badge variant="secondary" className="text-[9px] rounded-sm">{t.gamesRemaining} remaining</Badge>
-                      </div>
+                      <Badge variant="outline" className="text-[9px] rounded-sm">{t.activePlayers} players</Badge>
                     </CardContent>
                   </Card>
                 );
