@@ -376,27 +376,44 @@ export default function RosterPage() {
           </div>
 
           {/* ── Layout ── */}
-          <div className="flex flex-col gap-4">
-            <div className="min-w-0">
-              {viewMode === "court" ? (
-                <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} upcomingByTeam={upcomingByTeam} />
-              ) : (
-                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-              )}
-            </div>
-
-            <div className="w-full">
-              <RosterSidebar
-                gw={currentGameday.gw}
-                day={currentGameday.day}
-                teamId={selectedTeamId ?? undefined}
-                bankRemaining={roster?.bank_remaining ?? 0}
-                freeTransfers={roster?.free_transfers_remaining ?? 0}
-                fcStarters={fcStarters}
-                bcStarters={bcStarters}
-                totalSalary={totalSalary}
+          <div className="min-w-0">
+            {viewMode === "court" ? (
+              <RosterCourtView
+                starters={starters}
+                bench={bench}
+                captainId={captainId}
+                onPlayerClick={setSelectedPlayerId}
+                onSwap={handleSwapRequest}
+                onDnDSwap={handleDnDSwap}
+                upcomingByTeam={upcomingByTeam}
+                sidebarProps={{
+                  gw: currentGameday.gw,
+                  day: currentGameday.day,
+                  teamId: selectedTeamId ?? undefined,
+                  bankRemaining: roster?.bank_remaining ?? 0,
+                  freeTransfers: roster?.free_transfers_remaining ?? 0,
+                  fcStarters,
+                  bcStarters,
+                  totalSalary,
+                }}
               />
-            </div>
+            ) : (
+              <>
+                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
+                <div className="mt-4">
+                  <RosterSidebar
+                    gw={currentGameday.gw}
+                    day={currentGameday.day}
+                    teamId={selectedTeamId ?? undefined}
+                    bankRemaining={roster?.bank_remaining ?? 0}
+                    freeTransfers={roster?.free_transfers_remaining ?? 0}
+                    fcStarters={fcStarters}
+                    bcStarters={bcStarters}
+                    totalSalary={totalSalary}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
 
