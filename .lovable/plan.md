@@ -2,88 +2,71 @@
 
 ## Plan
 
-### 1. Court layout: FC at top, BC at bottom; bench below court
+### A. My Roster Page Changes
 
+#### A1. Decrease court size, remove "Starting 5" bar, add watermark
 **File:** `src/components/RosterCourtView.tsx`
+- Remove the "Starting 5" header bar (the red `AlertTriangle` div above the court)
+- Add a "Starting 5" text watermark centered on the court using absolute positioning with `text-white/10 text-2xl font-heading uppercase tracking-widest`
+- Reduce court width slightly (e.g., `max-w-[75%]` or similar constraint) while keeping the 5/3 aspect ratio
 
-- Swap FC/BC positions: FC rows use `top: "28%"` (near basket/top), BC rows use `top: "72%"` (bottom/perimeter)
-- Move bench from right column to below the court — change from `flex-row` to `flex-col` layout
-- Bench rendered as a horizontal row of 5 cards (same size as court cards) below the court
-- Remove the `lg:w-[200px]` sidebar layout; bench becomes `grid grid-cols-5 gap-2` below the court
-- Court width can now span wider since bench is below, not beside it
-
-### 2. Rounded edges on all player cards
-
+#### A2. Increase player card sizes for Starting 5
 **File:** `src/components/PlayerCard.tsx`
+- Add a new `variant` prop: `"court"` | `"bench"` (replacing the boolean `compact`)
+- **Court variant**: larger photo (`w-12 h-12`), larger text (`text-[10px]` for name), larger opponent badges (`w-5 h-5`), bigger FC/BC badges
+- **Bench variant**: no player photo, show only team logo + tricode + name + FC/BC badge + salary + Next + Upcoming with larger opponent badges (`w-5 h-5`). Stacked vertically (one on top of another)
 
-- Replace all `rounded-sm` with `rounded-lg` on the outer card container (both compact and non-compact variants)
-- Replace `rounded-sm` on inner elements (badges, buttons) with `rounded-md`
-- This applies to both Starting 5 (court) and Bench cards
-
-### 3. Bench cards same size as court cards
-
-**File:** `src/components/PlayerCard.tsx`
-
-- Remove the separate non-compact variant entirely — use the same compact layout for both court and bench
-- Both use identical sizing (photo, text, badges, upcoming section)
-
+#### A3. Move Bench to right side, stacked vertically
 **File:** `src/components/RosterCourtView.tsx`
+- Change layout from `flex-col` (court + bench below) to `flex-row` (court on left, bench on right)
+- Bench rendered as a vertical column (`flex flex-col gap-2`) on the right side, above (or alongside) the ROSTER INFO card
+- Bench cards are stacked one on top of another
+- Support drag-and-drop between bench cards for reordering within bench
 
-- Pass `compact={true}` to all cards (starters and bench)
-- Bench cards displayed in a horizontal grid-cols-5 row below the court
+**File:** `src/pages/RosterPage.tsx`
+- Adjust the two-column layout: the right column now contains the Bench cards above the ROSTER INFO sidebar
 
-### 4. Box score column alignment fix
+### B. Playing Time Trends — Fix Decreased
+**File:** `src/hooks/usePlayingTimeTrends.ts`
+- The `players.mpg` column is 0 for all players, making every delta positive
+- Fix: compute season average from `player_game_logs` directly — fetch all logs for each player and calculate `total_mp / gp` as the season average
+- Query all game logs (not just last 7 days) grouped by player to get season totals, then compare with the 7-day window
+- This will produce both increased and decreased lists
 
-**File:** `src/components/ScheduleList.tsx`
+### C. Team of the Week on /schedule
 
-The header has `overflowY: "scroll"` with `scrollbarGutter: "stable"` but the scrollbar gutter may not match between header and body. Fix by:
-- Remove `overflowY: "scroll"` from the header div (it doesn't scroll)
-- Add `paddingRight` to the header equal to the scrollbar width, or use `overflow-y: overlay` on the data container
-- Simplest fix: add `overflow-y: hidden` on header and keep `scrollbar-gutter: stable` on both — ensuring the gutter space is consistent
+#### C1. Add icon button next to the Grid icon
+**File:** `src/pages/SchedulePage.tsx`
+- Add a Trophy (or Medal) icon button right after the Grid3X3 icon button
+- Clicking opens a `TeamOfTheWeekModal`
 
-### 5. Playing Time Trends on /advanced
+#### C2. New modal component
+**New file:** `src/components/TeamOfTheWeekModal.tsx`
+- Modal uses the court background image (`src/assets/court-bg.png`)
+- Displays 5 players with the highest FP per game for the selected gameweek
+- Enforces 2BC/3FC or 3BC/2FC composition:
+  - Sort all players by FP/game descending
+  - Pick top players while respecting that the final 5 must have at least 2 FC and 2 BC
+  - Algorithm: greedily pick top players, but reserve slots to ensure min 2 of each position
+- Uses the same `PlayerCard` component (court variant) positioned on the court like the roster view
+- Data source: query `player_game_logs` for the selected GW's date range, aggregate FP per player, join with `players` for name/team/photo/fc_bc
 
-**New file:** `src/pages/AdvancedPage.tsx` — complete rewrite
-
-- Fetch data from Supabase: query `player_game_logs` joined with `players` table
-- For "last 7 days": get games where `game_date >= (today - 7 days)`, compute per-player avg MP
-- For "season avg": use `players.mpg` field (already stored)
-- Compute delta = last7avg - seasonAvg
-- Split into two lists: positive delta (increased) and negative delta (decreased)
-- Sort increased descending by delta, decreased descending by absolute delta
-
-Layout: two side-by-side panels (grid-cols-2 on desktop, stacked on mobile)
-
-Each table columns: PLAYER (photo + name + team badge) | GP | SEASON AVG | PAST 7 DAYS | INCREASE or DECREASE
-
-- "Last updated" timestamp shown at top
-- Dark theme styling matching existing app
-- Compact rows with alternating background
-
-**New hook:** `src/hooks/usePlayingTimeTrends.ts`
-
-Queries Supabase directly:
-```sql
-SELECT p.id, p.name, p.team, p.photo, p.mpg as season_avg,
-       COUNT(pgl.id) as gp_7d,
-       AVG(pgl.mp) as avg_7d
-FROM players p
-JOIN player_game_logs pgl ON pgl.player_id = p.id
-JOIN games g ON g.game_id = pgl.game_id
-WHERE g.game_date >= current_date - 7
-  AND pgl.mp > 0
-GROUP BY p.id, p.name, p.team, p.photo, p.mpg
-```
-
-Returns `{ increased: TrendRow[], decreased: TrendRow[], updatedAt: string }`.
+#### C3. New hook for Team of the Week
+**New file:** `src/hooks/useTeamOfTheWeek.ts`
+- Takes `gw` as parameter
+- Queries `player_game_logs` joined with `schedule_games` (to filter by GW) or uses date ranges from `DEADLINES`
+- Aggregates FP per player, computes FP/game
+- Returns top 5 with position constraints
 
 ### Files Summary
 
 | File | Change |
 |------|--------|
-| `src/components/RosterCourtView.tsx` | FC top / BC bottom; bench below court as horizontal row |
-| `src/components/PlayerCard.tsx` | Rounded edges (`rounded-lg`); unify compact/bench sizing |
-| `src/components/ScheduleList.tsx` | Fix header/data scrollbar alignment |
-| `src/hooks/usePlayingTimeTrends.ts` | New — fetch playing time trend data |
-| `src/pages/AdvancedPage.tsx` | Rewrite — Playing Time Trends with two side-by-side tables |
+| `src/components/RosterCourtView.tsx` | Remove Starting 5 bar, add watermark, bench to right side vertical |
+| `src/components/PlayerCard.tsx` | Add court/bench variants; court: bigger; bench: no photo, stacked |
+| `src/pages/RosterPage.tsx` | Adjust layout — bench in right column above ROSTER INFO |
+| `src/hooks/usePlayingTimeTrends.ts` | Compute season avg from game logs instead of players.mpg |
+| `src/pages/SchedulePage.tsx` | Add Team of the Week icon button |
+| `src/components/TeamOfTheWeekModal.tsx` | New — court-based modal showing top 5 FP players |
+| `src/hooks/useTeamOfTheWeek.ts` | New — fetch and compute top 5 with position constraints |
 
