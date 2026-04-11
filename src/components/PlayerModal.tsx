@@ -12,7 +12,64 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
-interface PlayerModalProps {
+function BreakdownCard({ data }: { data: any }) {
+  const [view, setView] = useState<"season" | "lastGame">("season");
+  const season = data.player.season;
+  const lastGame = data.player.lastGame;
+
+  const seasonItems = [
+    { label: "PTS", val: Number(season.pts ?? 0).toFixed(1) },
+    { label: "REB", val: Number(season.reb ?? 0).toFixed(1) },
+    { label: "AST", val: Number(season.ast ?? 0).toFixed(1) },
+    { label: "STL", val: Number(season.stl ?? 0).toFixed(1) },
+    { label: "BLK", val: Number(season.blk ?? 0).toFixed(1) },
+    { label: "FP", val: Number(season.fp ?? 0).toFixed(1) },
+  ];
+
+  const lastGameItems = [
+    { label: "PTS", val: String(lastGame.pts * 1) },
+    { label: "REB", val: String(lastGame.reb * 1) },
+    { label: "AST ×2", val: String(lastGame.ast * 2) },
+    { label: "STL ×3", val: String(lastGame.stl * 3) },
+    { label: "BLK ×3", val: String(lastGame.blk * 3) },
+    { label: "FP", val: Number(lastGame.fp).toFixed(1) },
+  ];
+
+  const items = view === "season" ? seasonItems : lastGameItems;
+
+  return (
+    <div className="bg-muted rounded-sm p-3 border shrink-0">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground">
+          {view === "season" ? "Full Season Stats" : "Last Game FP Breakdown"}
+        </p>
+        <div className="flex gap-0.5">
+          <button
+            onClick={() => setView("season")}
+            className={`text-[8px] font-heading font-bold px-1.5 py-0.5 rounded-sm border transition-colors ${view === "season" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >
+            Season
+          </button>
+          <button
+            onClick={() => setView("lastGame")}
+            className={`text-[8px] font-heading font-bold px-1.5 py-0.5 rounded-sm border transition-colors ${view === "lastGame" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >
+            Last Game
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-6 gap-2 text-center text-xs">
+        {items.map(({ label, val }) => (
+          <div key={label}>
+            <p className="text-muted-foreground font-heading text-[10px]">{label}</p>
+            <p className="font-mono font-bold">{val}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
   playerId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
