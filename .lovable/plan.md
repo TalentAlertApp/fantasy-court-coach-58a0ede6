@@ -1,78 +1,42 @@
 
 
-## Plan: Nav Rename, Schedule Enhancements, Transactions Add/Remove, Advanced Calendar Grid
+## Plan: Fix Top Players Strip + Full-Page Advanced Schedule Grid
 
-### 1. Rename HOME → MY ROSTER
-**File:** `src/components/layout/AppLayout.tsx`
-- Change `label: "Home"` → `"My Roster"`, icon from `Home` → `ClipboardList` (or `Users`)
-- Route stays `/`
+### 1. TopPlayersStrip — Hide when no games on selected day
+**File:** `src/components/TopPlayersStrip.tsx`
+- The strip already returns `null` when `topFC` and `topBC` are empty, but this depends on player data existing. Add an explicit early check: if no games exist for the selected day (i.e., `teamsPlaying.size === 0`), return empty arrays immediately — ensuring no strip renders.
 
-### 2. Schedule — Reduce Day Nav Height
-**File:** `src/pages/SchedulePage.tsx`
-- Reduce day button padding from `py-2` to `py-1`, shrink font sizes
-- Remove the `Day X` sub-label and reduce overall height of each day cell
+### 2. Advanced Schedule Grid — Full page instead of overlay
+**Files:** `src/pages/ScheduleGridPage.tsx` (new), `src/App.tsx`, `src/pages/SchedulePage.tsx`, `src/components/AdvancedScheduleGrid.tsx`
 
-### 3. Schedule — Top FP Players Strip
-**File:** `src/pages/SchedulePage.tsx` + new `src/components/TopPlayersStrip.tsx`
-- After the day navigator and before the date header, add a horizontal strip showing top 5 FC + top 5 BC by FP for the selected day
-- Query `schedule_games` for the selected gw/day to get which teams are playing, then cross-reference with `usePlayersQuery` to find players on those teams
-- Sort by `season.fp` descending, take top 5 FC and top 5 BC
-- Each entry: circular photo (32px) + name (truncated) + team tricode + FP value
-- Two sections side by side: "Top FC" and "Top BC", separated by a divider
-- Scrollable horizontally on mobile
+- Create a new route `/schedule/grid` with a dedicated full-page component
+- The grid icon in SchedulePage navigates to `/schedule/grid?gw=X` instead of toggling a modal
+- Remove the `showGrid` state and inline `<AdvancedScheduleGrid>` from SchedulePage
 
-### 4. Transactions — Add/Remove Players to Roster
-**File:** `src/pages/PlayersPage.tsx`
-- Add an action column with a "+" button (or green add icon) for players not on roster, and a "−" button (or red remove icon) for players already on roster
-- Use the existing `transactions-commit` API (adds/drops) to execute
-- Need to fetch current roster via `useRosterQuery` to know which players are on roster
-- Enforce max 2 per team rule: disable add if team already has 2 players
-- Show confirmation toast on success, invalidate roster query
+**ScheduleGridPage layout (full page):**
+- Full navy header with "Advanced Schedule Grid · GW X" title and a back button (← Back to Schedule)
+- Left sidebar panel: "Show teams playing on:" with checkbox for each day of the week (day name + date). Selecting days filters the table to only show teams that play on ALL/ANY selected days. Columns for selected days get highlighted with yellow accent.
+- Main area: full-width table with sticky Team column, G (games) column, and one column per day
+- Each cell shows opponent tricode (home = plain, away = `@OPP`)
+- Totals row below header showing game count per day
+- Team rows: logo + tricode, color-coded game count (green ≥4, red ≤2), cells with games get subtle background tint
+- Responsive: table scrolls horizontally, sidebar collapses on mobile
 
-### 5. Advanced Calendar Grid (Schedule Grid Overlay)
-**Files:** New `src/components/AdvancedScheduleGrid.tsx`, update `src/pages/SchedulePage.tsx`
+**Premium styling:**
+- Full-height layout using the page space properly
+- Larger text (12-13px for cells vs current 10px)
+- Row hover highlight
+- Selected day columns get a subtle yellow column highlight through all rows
+- Sticky left column for team names
+- Clean navy/yellow color scheme consistent with app
 
-**Trigger:** A grid icon button placed next to the date range text (e.g., "Apr 6 – Apr 12") in the week navigator bar. Clicking toggles an overlay panel that slides down over the game list.
-
-**Data source:** Query `schedule_games` for the entire selected week (all days of selected gw) via Supabase direct query. Group by team.
-
-**Grid layout (like hashtagbasketball):**
-- Header row: TEAM | GAMES | MON | TUE | WED | THU | FRI | SAT | SUN
-- "# Games Played" summary row showing total games per day
-- One row per NBA team (30 rows), sorted alphabetically
-- Each cell shows opponent tricode. Home games show tricode in normal text, away games prefixed with "@"
-- GAMES column shows total games for that team in the week
-
-**Day filter:** Checkboxes on the left (or top) for each day of the week — when checked, only teams playing on those days are highlighted/shown. This helps the user see which teams play on specific days.
-
-**Styling:**
-- Navy header, yellow accents for active day filters
-- Team logo + name in the first column
-- Cells with games get a subtle background tint; cells with no game are empty/grey
-- Premium glassmorphic card overlay with backdrop blur
-- Close button (X) to dismiss
-
-**Hook:** New `src/hooks/useScheduleWeekGames.ts` — fetches all games for a GW:
-```ts
-supabase.from("schedule_games").select("away_team, home_team, day, gw").eq("gw", gw)
-```
-Then client-side: map each game to the day-of-week column using the DEADLINES lookup (day → weekday).
-
-### Files Changed
+### Files
 
 | File | Change |
 |------|--------|
-| `src/components/layout/AppLayout.tsx` | Rename Home → My Roster, new icon |
-| `src/pages/SchedulePage.tsx` | Reduce day nav height, add top players strip, add grid toggle button |
-| `src/components/TopPlayersStrip.tsx` | New — top 5 FC + top 5 BC display |
-| `src/pages/PlayersPage.tsx` | Add/remove player action column |
-| `src/components/AdvancedScheduleGrid.tsx` | New — full advanced calendar grid overlay |
-| `src/hooks/useScheduleWeekGames.ts` | New — fetch all games for a GW |
-
-### Implementation Order
-1. Rename nav item
-2. Reduce day nav height
-3. Build TopPlayersStrip + wire it
-4. Add/remove column in PlayersPage
-5. Build AdvancedScheduleGrid + hook + wire it
+| `src/components/TopPlayersStrip.tsx` | Early return when no games on selected day |
+| `src/pages/ScheduleGridPage.tsx` | New full-page grid with sidebar day filter |
+| `src/App.tsx` | Add `/schedule/grid` route |
+| `src/pages/SchedulePage.tsx` | Grid icon navigates to `/schedule/grid?gw=X` instead of modal toggle; remove `showGrid` state and `AdvancedScheduleGrid` import |
+| `src/components/AdvancedScheduleGrid.tsx` | Can be deleted (logic moves into ScheduleGridPage) |
 
