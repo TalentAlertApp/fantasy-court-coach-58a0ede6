@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
 import { format } from "date-fns";
+import TeamModal from "@/components/TeamModal";
 
 function buildWeekDayToDate(): Record<string, string> {
   const map: Record<string, string> = {};
@@ -24,6 +25,7 @@ export default function ScheduleGridPage() {
   const gw = parseInt(searchParams.get("gw") ?? "1", 10);
   const { data: games, isLoading } = useScheduleWeekGames(gw);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   const weekDays = useMemo(() => {
     return DEADLINES
@@ -258,10 +260,13 @@ export default function ScheduleGridPage() {
                       className="border-b border-border/40 hover:bg-accent/30 transition-colors"
                     >
                       <td className="px-3 py-2 sticky left-0 bg-card z-10 border-r border-border/40">
-                        <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSelectedTeam(team.tricode)}
+                          className="flex items-center gap-2 hover:opacity-80 cursor-pointer"
+                        >
                           <img src={team.logo} alt="" className="w-5 h-5" />
-                          <span className="font-heading font-bold text-xs">{team.tricode}</span>
-                        </div>
+                          <span className="font-heading font-bold text-xs hover:text-primary hover:underline">{team.tricode}</span>
+                        </button>
                       </td>
                       <td className="px-2 py-2 text-center border-r border-border/40">
                         <span
@@ -324,6 +329,11 @@ export default function ScheduleGridPage() {
           )}
         </div>
       </div>
+      <TeamModal
+        tricode={selectedTeam}
+        open={selectedTeam !== null}
+        onOpenChange={(open) => { if (!open) setSelectedTeam(null); }}
+      />
     </div>
   );
 }
