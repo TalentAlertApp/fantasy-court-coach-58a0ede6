@@ -219,6 +219,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
                   ) : (
                     <ScrollArea className="h-[40vh]">
+                      <div className="pr-4">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -268,6 +269,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                           })}
                         </TableBody>
                       </Table>
+                      </div>
                     </ScrollArea>
                   )}
                 </TabsContent>
@@ -278,6 +280,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     <p className="text-sm text-muted-foreground py-4 text-center">No upcoming games</p>
                   ) : (
                     <ScrollArea className="h-[40vh]">
+                      <div className="pr-4">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -310,6 +313,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                           })}
                         </TableBody>
                       </Table>
+                      </div>
                     </ScrollArea>
                   )}
                 </TabsContent>
