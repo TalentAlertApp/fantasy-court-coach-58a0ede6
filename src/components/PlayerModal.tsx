@@ -70,6 +70,7 @@ function BreakdownCard({ data }: { data: any }) {
   );
 }
 
+interface PlayerModalProps {
   playerId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
