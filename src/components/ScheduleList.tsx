@@ -362,7 +362,83 @@ function useTeamFormData(teams: string[], enabled: boolean) {
   });
 }
 
-function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTeam: string }) {
+/* ---------- Game Detail Dialog (for Last 5 game click) ---------- */
+function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const [showRecap, setShowRecap] = useState(false);
+  if (!game) return null;
+  const awayLogo = getTeamLogo(game.away_team);
+  const homeLogo = getTeamLogo(game.home_team);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm rounded-sm p-4">
+        <DialogHeader>
+          <DialogTitle className="font-heading text-sm uppercase">Game Detail</DialogTitle>
+        </DialogHeader>
+        <div className="flex items-center justify-center gap-3 py-2">
+          <div className="flex items-center gap-1.5 text-right">
+            {awayLogo && <img src={awayLogo} alt="" className="w-6 h-6" />}
+            <span className="font-heading font-bold text-sm">{game.away_team}</span>
+          </div>
+          <div className="text-center">
+            <span className="font-mono font-black text-lg">{game.away_pts} - {game.home_pts}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="font-heading font-bold text-sm">{game.home_team}</span>
+            {homeLogo && <img src={homeLogo} alt="" className="w-6 h-6" />}
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-2 py-1">
+          {game.game_boxscore_url && (
+            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Box Score">
+              <Table2 className="h-3.5 w-3.5" /> BoxScore
+            </a>
+          )}
+          {game.game_charts_url && (
+            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Charts">
+              <BarChart3 className="h-3.5 w-3.5" /> Charts
+            </a>
+          )}
+          {game.game_playbyplay_url && (
+            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Play-by-Play">
+              <Mic className="h-3.5 w-3.5" /> PbP
+            </a>
+          )}
+          {game.nba_game_url && (
+            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="NBA.com">
+              <ExternalLink className="h-3.5 w-3.5" /> NBA
+            </a>
+          )}
+        </div>
+        {game.youtube_recap_id && (
+          <div>
+            <button
+              onClick={() => setShowRecap(!showRecap)}
+              className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400 transition-colors mx-auto py-1"
+            >
+              <Tv2 className="h-3.5 w-3.5" /> {showRecap ? "Hide" : "Watch"} Recap
+            </button>
+            {showRecap && (
+              <div className="relative w-full mt-1" style={{ paddingBottom: "56.25%" }}>
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-sm"
+                  src={`https://www.youtube.com/embed/${game.youtube_recap_id}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
+  awayTeam: string; homeTeam: string;
+  onGameClick: (game: Last5Game) => void;
+  onTeamClick: (tricode: string) => void;
+}) {
   const { data, isLoading } = useTeamFormData([awayTeam, homeTeam], true);
 
   if (isLoading) return <div className="p-3"><Skeleton className="h-16" /></div>;
@@ -412,17 +488,19 @@ function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTea
                     const oppLogo = getTeamLogo(g.opp);
                     return (
                       <div key={i} className="flex items-center gap-1.5 text-[10px]">
-                        <Badge
-                          variant={g.won ? "default" : "destructive"}
-                          className="text-[8px] px-1.5 py-0 rounded-sm h-4 min-w-[18px] justify-center font-heading font-bold"
-                        >
-                          {g.won ? "W" : "L"}
-                        </Badge>
+                        <button onClick={() => onGameClick(g)}>
+                          <Badge
+                            variant={g.won ? "default" : "destructive"}
+                            className="text-[8px] px-1.5 py-0 rounded-sm h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                          >
+                            {g.won ? "W" : "L"}
+                          </Badge>
+                        </button>
                         <span className="text-muted-foreground font-mono w-14">{g.date}</span>
-                        <div className="flex items-center gap-0.5">
+                        <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
                           {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
                           <span className="font-heading font-bold">{g.opp}</span>
-                        </div>
+                        </button>
                         <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
                       </div>
                     );
@@ -433,6 +511,10 @@ function UpcomingGamePreview({ awayTeam, homeTeam }: { awayTeam: string; homeTea
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
       </div>
     </div>
   );
