@@ -275,13 +275,23 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
-          <Button
-            size="sm"
-            onClick={() => setAiCoachOpen(true)}
-            className="ml-auto rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
-          </Button>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              size="sm"
+              onClick={() => setAiCoachOpen(true)}
+              className="rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setWishlistOpen(true)}
+              className="rounded-sm font-heading uppercase text-xs"
+            >
+              <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
+            </Button>
+          </div>
         </div>
       </div>
 
