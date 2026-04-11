@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerCard from "./PlayerCard";
+import RosterSidebar from "./RosterSidebar";
 import React, { useState } from "react";
 import { Users } from "lucide-react";
 import courtBg from "@/assets/court-bg.png";
@@ -17,6 +18,16 @@ interface RosterCourtViewProps {
   onSwap?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
   upcomingByTeam?: UpcomingByTeam;
+  sidebarProps?: {
+    gw: number;
+    day: number;
+    teamId?: string;
+    bankRemaining: number;
+    freeTransfers: number;
+    fcStarters: number;
+    bcStarters: number;
+    totalSalary: number;
+  };
 }
 
 function getRowPositions(count: number, topPct: string): { top: string; left: string }[] {
@@ -37,7 +48,6 @@ function getFormationPositions(starters: PlayerListItem[]) {
   const fcs = starters.filter((p) => p.core.fc_bc === "FC");
   const bcs = starters.filter((p) => p.core.fc_bc === "BC");
 
-  // FC at top, BC at bottom
   const fcPositions = getRowPositions(fcs.length, "28%");
   const bcPositions = getRowPositions(bcs.length, "72%");
 
@@ -61,7 +71,7 @@ function getFormationPositions(starters: PlayerListItem[]) {
   return positioned;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onDnDSwap, upcomingByTeam }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
@@ -185,7 +195,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         </div>
       </div>
 
-      {/* Bench — vertical column on the right */}
+      {/* Bench + ROSTER INFO — vertical column on the right */}
       <div className="w-64 shrink-0">
         <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 rounded-lg mb-2">
           <div className="flex items-center gap-2">
@@ -198,6 +208,13 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
           {bench.map((p) => renderBenchCard(p))}
           {bench.length < 5 && Array.from({ length: 5 - bench.length }).map((_, i) => emptySlot(i + 10))}
         </div>
+
+        {/* ROSTER INFO below bench */}
+        {sidebarProps && (
+          <div className="mt-3">
+            <RosterSidebar {...sidebarProps} />
+          </div>
+        )}
       </div>
     </div>
   );

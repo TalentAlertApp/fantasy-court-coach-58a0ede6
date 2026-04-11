@@ -22,8 +22,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart } from "lucide-react";
 import AICoachModal from "@/components/AICoachModal";
+import WishlistModal from "@/components/WishlistModal";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -62,6 +63,7 @@ export default function RosterPage() {
   const [chipAllStar, setChipAllStar] = useState(false);
   const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -273,13 +275,23 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
-          <Button
-            size="sm"
-            onClick={() => setAiCoachOpen(true)}
-            className="ml-auto rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
-          >
-            <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
-          </Button>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              size="sm"
+              onClick={() => setAiCoachOpen(true)}
+              className="rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setWishlistOpen(true)}
+              className="rounded-sm font-heading uppercase text-xs"
+            >
+              <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -364,27 +376,44 @@ export default function RosterPage() {
           </div>
 
           {/* ── Layout ── */}
-          <div className="flex flex-col gap-4">
-            <div className="min-w-0">
-              {viewMode === "court" ? (
-                <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} upcomingByTeam={upcomingByTeam} />
-              ) : (
-                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-              )}
-            </div>
-
-            <div className="w-full">
-              <RosterSidebar
-                gw={currentGameday.gw}
-                day={currentGameday.day}
-                teamId={selectedTeamId ?? undefined}
-                bankRemaining={roster?.bank_remaining ?? 0}
-                freeTransfers={roster?.free_transfers_remaining ?? 0}
-                fcStarters={fcStarters}
-                bcStarters={bcStarters}
-                totalSalary={totalSalary}
+          <div className="min-w-0">
+            {viewMode === "court" ? (
+              <RosterCourtView
+                starters={starters}
+                bench={bench}
+                captainId={captainId}
+                onPlayerClick={setSelectedPlayerId}
+                onSwap={handleSwapRequest}
+                onDnDSwap={handleDnDSwap}
+                upcomingByTeam={upcomingByTeam}
+                sidebarProps={{
+                  gw: currentGameday.gw,
+                  day: currentGameday.day,
+                  teamId: selectedTeamId ?? undefined,
+                  bankRemaining: roster?.bank_remaining ?? 0,
+                  freeTransfers: roster?.free_transfers_remaining ?? 0,
+                  fcStarters,
+                  bcStarters,
+                  totalSalary,
+                }}
               />
-            </div>
+            ) : (
+              <>
+                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
+                <div className="mt-4">
+                  <RosterSidebar
+                    gw={currentGameday.gw}
+                    day={currentGameday.day}
+                    teamId={selectedTeamId ?? undefined}
+                    bankRemaining={roster?.bank_remaining ?? 0}
+                    freeTransfers={roster?.free_transfers_remaining ?? 0}
+                    fcStarters={fcStarters}
+                    bcStarters={bcStarters}
+                    totalSalary={totalSalary}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
 
@@ -400,6 +429,7 @@ export default function RosterPage() {
             onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
             title={swapPlayerId ? "Swap Player" : "Add Player"}
           />
+          <WishlistModal open={wishlistOpen} onOpenChange={setWishlistOpen} onPlayerClick={setSelectedPlayerId} />
         </>
       )}
     </div>
