@@ -92,15 +92,14 @@ export default function PlayerCard({
           {/* Name + position + salary */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <p className="text-[10px] font-heading font-bold truncate leading-tight">
+              <p className="text-xs font-heading font-bold truncate leading-tight">
                 {formatShortName(core.name)}
               </p>
-              <Badge variant={isFc ? "destructive" : "default"} className="text-[6px] px-1 py-0 rounded-md h-3 shrink-0">
+              <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5 shrink-0">
                 {core.fc_bc}
               </Badge>
-              <span className="text-[8px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
+              <span className="text-[9px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
             </div>
-            <span className="text-[7px] font-heading text-muted-foreground">{core.team}</span>
           </div>
 
           {/* Next */}
@@ -156,10 +155,10 @@ export default function PlayerCard({
         </button>
       )}
 
-      {/* Header: team logo + tricode */}
+      {/* Header: team logo */}
       <div className="flex items-center justify-between px-1.5 pt-1">
         <div className="flex items-center gap-0.5">
-          {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
+          {teamLogo && <img src={teamLogo} alt={core.team} className="w-5 h-5" />}
         </div>
         <span className="text-[8px] font-heading font-bold text-muted-foreground">{core.team}</span>
       </div>
@@ -167,25 +166,25 @@ export default function PlayerCard({
       {/* Photo */}
       <div className="flex justify-center py-0.5">
         {core.photo ? (
-          <img src={core.photo} alt={core.name} className="w-12 h-12 rounded-full object-cover bg-muted" />
+          <img src={core.photo} alt={core.name} className="w-14 h-14 rounded-full object-cover bg-muted" />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
+          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center text-xs font-heading font-bold text-muted-foreground">
             {core.name.substring(0, 2).toUpperCase()}
           </div>
         )}
       </div>
 
       {/* Name */}
-      <p className="text-[10px] font-heading font-bold text-center truncate px-0.5 leading-tight">
+      <p className="text-xs font-heading font-bold text-center truncate px-0.5 leading-tight">
         {formatShortName(core.name)}
       </p>
 
       {/* FC/BC badge + salary */}
       <div className="flex items-center justify-center gap-1 py-0.5">
-        <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5">
+        <Badge variant={isFc ? "destructive" : "default"} className="text-[8px] px-1 py-0 rounded-md h-4">
           {core.fc_bc}
         </Badge>
-        <span className="text-[8px] text-muted-foreground font-mono">${core.salary}</span>
+        <span className="text-[9px] text-muted-foreground font-mono">${core.salary}</span>
       </div>
 
       {/* Next opponent */}
@@ -201,7 +200,7 @@ export default function PlayerCard({
         <div className="border-t border-border/50 px-0.5 py-0.5">
           <div className="grid grid-cols-6 gap-0">
             {upcomingDays.map((day, i) => (
-              <div key={i} className="flex items-center justify-center h-4">
+              <div key={i} className="flex items-center justify-center h-5">
                 {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
               </div>
             ))}

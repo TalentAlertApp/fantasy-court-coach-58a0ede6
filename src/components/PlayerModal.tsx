@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlayerDetail, fetchGameBoxscore, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Loader2 } from "lucide-react";
+import { Bot, Loader2, BarChart3, Heart } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
+import PlayerCompareModal from "@/components/PlayerCompareModal";
+import { useWishlist } from "@/hooks/useWishlist";
 
 function BreakdownCard({ data }: { data: any }) {
   const [view, setView] = useState<"season" | "lastGame">("season");
@@ -87,6 +89,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [aiLoading, setAiLoading] = useState(false);
   const [boxscoreGameId, setBoxscoreGameId] = useState<string | null>(null);
   const [boxscorePlayerId, setBoxscorePlayerId] = useState<number | null>(null);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const { isInWishlist, toggleWishlist } = useWishlist();
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
@@ -116,6 +120,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   if (!open) return null;
 
   const teamLogo = data ? getTeamLogo(data.player.core.team) : undefined;
+  const wishlisted = playerId ? isInWishlist(playerId) : false;
 
   return (
     <>
@@ -143,7 +148,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     {data.player.core.name.substring(0, 2).toUpperCase()}
                   </div>
                 )}
-                <div>
+                <div className="flex-1">
                   <p className="font-heading font-bold uppercase">{data.player.core.name}</p>
                   <div className="flex items-center gap-1.5">
                     {teamLogo && <img src={teamLogo} alt={data.player.core.team} className="w-4 h-4" />}
@@ -156,9 +161,26 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     <span className="text-sm font-mono">${data.player.core.salary}</span>
                   </div>
                 </div>
+                {/* Action buttons */}
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button
+                    onClick={() => playerId && toggleWishlist(playerId)}
+                    className="p-1.5 rounded-sm hover:bg-muted transition-colors"
+                    title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                  >
+                    <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+                  </button>
+                  <button
+                    onClick={() => setCompareOpen(true)}
+                    className="p-1.5 rounded-sm hover:bg-muted transition-colors"
+                    title="Compare"
+                  >
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </div>
               </div>
 
-              {/* FP Breakdown — toggle between Last Game and Full Season */}
+              {/* FP Breakdown */}
               <BreakdownCard data={data} />
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
@@ -405,6 +427,24 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
           playerId={boxscorePlayerId}
           open={!!boxscorePlayerId}
           onOpenChange={(o) => { if (!o) setBoxscorePlayerId(null); }}
+        />
+      )}
+
+      {/* Compare modal */}
+      {data && compareOpen && (
+        <PlayerCompareModal
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          playerA={{
+            id: data.player.core.id,
+            name: data.player.core.name,
+            team: data.player.core.team,
+            photo: data.player.core.photo,
+            fc_bc: data.player.core.fc_bc,
+            salary: data.player.core.salary,
+            season: data.player.season,
+            computed: data.player.computed,
+          }}
         />
       )}
     </>

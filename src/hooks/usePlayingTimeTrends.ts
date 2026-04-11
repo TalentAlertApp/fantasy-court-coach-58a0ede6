@@ -12,6 +12,27 @@ export interface TrendRow {
   delta: number;
 }
 
+async function fetchAllGameLogs() {
+  const PAGE_SIZE = 1000;
+  let offset = 0;
+  const allLogs: { player_id: number; mp: number; game_date: string | null }[] = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("player_game_logs")
+      .select("player_id, mp, game_date")
+      .gt("mp", 0)
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (error) throw error;
+    if (data) allLogs.push(...data);
+    if (!data || data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return allLogs;
+}
+
 export function usePlayingTimeTrends() {
   return useQuery({
     queryKey: ["playing-time-trends"],
@@ -21,19 +42,13 @@ export function usePlayingTimeTrends() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const cutoff = sevenDaysAgo.toISOString().slice(0, 10);
 
-      // Get ALL game logs to compute real season averages
-      const { data: allLogs, error: allErr } = await supabase
-        .from("player_game_logs")
-        .select("player_id, mp, game_date")
-        .gt("mp", 0);
-
-      if (allErr) throw allErr;
+      const allLogs = await fetchAllGameLogs();
 
       // Aggregate season totals and last-7-day totals per player
       const seasonAgg: Record<number, { totalMp: number; gp: number }> = {};
       const recentAgg: Record<number, { totalMp: number; gp: number }> = {};
 
-      for (const l of allLogs ?? []) {
+      for (const l of allLogs) {
         const pid = l.player_id;
         const mp = Number(l.mp);
 
