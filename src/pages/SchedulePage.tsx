@@ -3,9 +3,11 @@ import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
 import ScheduleList from "@/components/ScheduleList";
+import TopPlayersStrip from "@/components/TopPlayersStrip";
+import AdvancedScheduleGrid from "@/components/AdvancedScheduleGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -46,6 +48,7 @@ export default function SchedulePage() {
   const current = useMemo(() => getCurrentGameday(), []);
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
+  const [showGrid, setShowGrid] = useState(false);
   const { data, isLoading } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
   const { data: lastPlayed } = useLastPlayedDay();
@@ -63,7 +66,6 @@ export default function SchedulePage() {
 
   const deadline = DEADLINES.find((d) => d.gw === gw && d.day === day);
 
-  // Auto-scroll week pills to current
   const weekScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = weekScrollRef.current?.querySelector(`[data-gw="${gw}"]`);
@@ -72,7 +74,7 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-0">
-      {/* Week Navigator — navy gradient bar */}
+      {/* Week Navigator */}
       <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-sm px-3 py-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] font-heading font-bold uppercase tracking-[0.2em] opacity-60">
@@ -93,7 +95,7 @@ export default function SchedulePage() {
               <button
                 key={w}
                 data-gw={w}
-                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
+                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); setShowGrid(false); }}
                 className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-sm transition-all ${
                   isSelected
                     ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
@@ -113,62 +115,64 @@ export default function SchedulePage() {
           <span className="font-heading font-bold text-base">GW {gw}</span>
           <span className="opacity-30">|</span>
           <span className="text-xs opacity-60 font-body">{dateRange}</span>
+          <button
+            onClick={() => setShowGrid((v) => !v)}
+            className={`ml-1 p-1 rounded-sm transition-colors ${showGrid ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))]" : "bg-white/10 text-white/70 hover:bg-white/20"}`}
+            title="Advanced Schedule Grid"
+          >
+            <Grid3X3 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      {/* Day Navigator */}
+      {/* Advanced Grid Overlay */}
+      {showGrid && <AdvancedScheduleGrid gw={gw} onClose={() => setShowGrid(false)} />}
+
+      {/* Day Navigator — compact */}
       <div className="bg-card border-x border-b flex items-center">
         <Button
           variant="ghost"
           size="icon"
-          className="h-14 w-8 shrink-0 rounded-none"
+          className="h-10 w-7 shrink-0 rounded-none"
           disabled={gw <= MIN_WEEK && day <= (weekDays[0]?.day ?? 1)}
           onClick={() => {
             const idx = weekDays.findIndex((d) => d.day === day);
-            if (idx > 0) {
-              setDay(weekDays[idx - 1].day);
-            } else if (gw > MIN_WEEK) {
-              const prevDays = getDaysForWeek(gw - 1);
-              setGw(gw - 1);
-              setDay(prevDays[prevDays.length - 1]?.day ?? 1);
-            }
+            if (idx > 0) setDay(weekDays[idx - 1].day);
+            else if (gw > MIN_WEEK) { const pd = getDaysForWeek(gw - 1); setGw(gw - 1); setDay(pd[pd.length - 1]?.day ?? 1); }
           }}
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
 
         <div className="flex-1 flex overflow-x-auto scrollbar-hide">
           {weekDays.map((wd) => {
             const isSelected = wd.day === day;
             const isDayToday = wd.date === todayStr;
-            const dayLabel = wd.date
-              ? format(parse(wd.date, "yyyy-MM-dd", new Date()), "EEE").toUpperCase()
-              : "";
+            const dayLabel = wd.date ? format(parse(wd.date, "yyyy-MM-dd", new Date()), "EEE").toUpperCase() : "";
             const dayNum = wd.dateObj.getDate();
             const gameCount = weekCounts?.[wd.day] ?? 0;
             return (
               <button
                 key={wd.day}
                 onClick={() => setDay(wd.day)}
-                className={`flex-1 min-w-[56px] py-2 px-1 text-center transition-all border-b-2 ${
+                className={`flex-1 min-w-[48px] py-1 px-1 text-center transition-all border-b-2 ${
                   isSelected
                     ? "bg-primary text-primary-foreground border-[hsl(var(--nba-yellow))]"
                     : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 }`}
               >
-                <div className={`text-[9px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</div>
-                <div className={`text-sm font-mono font-bold ${isSelected ? "" : ""}`}>{dayNum}</div>
-                <div className={`text-[9px] font-heading mt-0.5 ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                  Day {wd.day}
+                <div className={`text-[8px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</div>
+                <div className={`text-xs font-mono font-bold leading-tight`}>{dayNum}</div>
+                <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                  {isDayToday && (
+                    <div className={`w-1 h-1 rounded-full ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
+                  )}
+                  {gameCount > 0 && (
+                    <span className={`text-[8px] font-mono ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      {gameCount}G
+                    </span>
+                  )}
                 </div>
-                {isDayToday && (
-                  <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-0.5 ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
-                )}
-                {gameCount > 0 && (
-                  <div className={`text-[9px] font-mono mt-0.5 ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
-                    {gameCount}G
-                  </div>
-                )}
               </button>
             );
           })}
@@ -177,72 +181,50 @@ export default function SchedulePage() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-14 w-8 shrink-0 rounded-none"
+          className="h-10 w-7 shrink-0 rounded-none"
           disabled={gw >= MAX_WEEK && day >= (weekDays[weekDays.length - 1]?.day ?? 1)}
           onClick={() => {
             const idx = weekDays.findIndex((d) => d.day === day);
-            if (idx < weekDays.length - 1) {
-              setDay(weekDays[idx + 1].day);
-            } else if (gw < MAX_WEEK) {
-              const nextDays = getDaysForWeek(gw + 1);
-              setGw(gw + 1);
-              setDay(nextDays[0]?.day ?? 1);
-            }
+            if (idx < weekDays.length - 1) setDay(weekDays[idx + 1].day);
+            else if (gw < MAX_WEEK) { const nd = getDaysForWeek(gw + 1); setGw(gw + 1); setDay(nd[0]?.day ?? 1); }
           }}
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </Button>
       </div>
 
-      {/* Date header + Deadline inline + Today button */}
+      {/* Top Players Strip */}
+      <TopPlayersStrip gw={gw} day={day} />
+
+      {/* Date header + Deadline */}
       <div className="px-1 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-heading font-bold text-sm uppercase">
-              {selectedDateLabel}
-            </h3>
-            <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-sm">
-              Day {day}
-            </span>
-            {isToday && (
-              <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">
-                TODAY
-              </Badge>
-            )}
+            <h3 className="font-heading font-bold text-sm uppercase">{selectedDateLabel}</h3>
+            <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-sm">Day {day}</span>
+            {isToday && <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">TODAY</Badge>}
             {deadline && (
               <>
                 <span className="text-muted-foreground">·</span>
                 <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  <span className="font-heading">
-                    Deadline <span className="font-bold text-foreground">{formatDeadline(deadline.deadline_utc)}</span>
-                  </span>
+                  <span className="font-heading">Deadline <span className="font-bold text-foreground">{formatDeadline(deadline.deadline_utc)}</span></span>
                 </div>
               </>
             )}
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             {lastPlayed && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20"
+              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20"
                 disabled={gw === lastPlayed.gw && day === lastPlayed.day}
-                onClick={() => { setGw(lastPlayed.gw); setDay(lastPlayed.day); }}
-              >
-                <CircleCheckBig className="h-3 w-3" />
-                Last Played
+                onClick={() => { setGw(lastPlayed.gw); setDay(lastPlayed.day); }}>
+                <CircleCheckBig className="h-3 w-3" />Last Played
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1 text-xs shrink-0"
+            <Button variant="outline" size="sm" className="h-7 gap-1 text-xs shrink-0"
               disabled={gw === current.gw && day === current.day}
-              onClick={() => { setGw(current.gw); setDay(current.day); }}
-            >
-              <CalendarDays className="h-3 w-3" />
-              Today
+              onClick={() => { setGw(current.gw); setDay(current.day); }}>
+              <CalendarDays className="h-3 w-3" />Today
             </Button>
           </div>
         </div>
