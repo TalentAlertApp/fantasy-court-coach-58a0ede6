@@ -651,7 +651,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                   />
                 )}
                 {isExpanded && isScheduled && (
-                  <UpcomingGamePreview awayTeam={g.away_team} homeTeam={g.home_team} />
+                  <UpcomingGamePreview awayTeam={g.away_team} homeTeam={g.home_team} onGameClick={setSelectedLast5Game} onTeamClick={setSelectedTeamTricode} />
                 )}
               </div>
             </CollapsibleContent>
