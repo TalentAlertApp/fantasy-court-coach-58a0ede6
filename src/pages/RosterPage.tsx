@@ -429,6 +429,7 @@ export default function RosterPage() {
             onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
             title={swapPlayerId ? "Swap Player" : "Add Player"}
           />
+          <WishlistModal open={wishlistOpen} onOpenChange={setWishlistOpen} onPlayerClick={setSelectedPlayerId} />
         </>
       )}
     </div>
