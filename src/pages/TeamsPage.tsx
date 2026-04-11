@@ -139,22 +139,22 @@ export default function TeamsPage() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {teams.map((t) => {
                 const wp = t.wins + t.losses > 0 ? ((t.wins / (t.wins + t.losses)) * 100).toFixed(1) : "0.0";
                 return (
                   <Card
                     key={t.tricode}
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-lg border-2 group"
-                    style={{ borderColor: `${t.primaryColor}40` }}
+                    className="cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-xl border group overflow-hidden"
+                    style={{ borderColor: `${t.primaryColor}30` }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = t.primaryColor; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}40`; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}30`; }}
                     onClick={() => setSelectedTeam(t.tricode)}
                   >
-                    <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                      <img src={t.logo} alt={t.name} className="w-12 h-12 transition-transform duration-200 group-hover:scale-110" />
+                    <CardContent className="p-5 flex flex-col items-center gap-2.5 text-center">
+                      <img src={t.logo} alt={t.name} className="w-14 h-14 transition-transform duration-300 group-hover:scale-110" />
                       <div>
-                        <p className="font-heading font-bold text-sm uppercase">{t.tricode}</p>
+                        <p className="font-heading font-bold text-sm uppercase tracking-wider">{t.tricode}</p>
                         <p className="text-[10px] text-muted-foreground">{t.name}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
