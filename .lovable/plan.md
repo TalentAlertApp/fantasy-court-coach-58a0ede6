@@ -1,42 +1,55 @@
 
 
-## Plan: Fix Top Players Strip + Full-Page Advanced Schedule Grid
+## Plan: Fix Top Players Strip + Schedule Grid Filtering + Linking
 
-### 1. TopPlayersStrip — Hide when no games on selected day
+### 1. TopPlayersStrip — Query actual game-day FP from `player_game_logs`
 **File:** `src/components/TopPlayersStrip.tsx`
-- The strip already returns `null` when `topFC` and `topBC` are empty, but this depends on player data existing. Add an explicit early check: if no games exist for the selected day (i.e., `teamsPlaying.size === 0`), return empty arrays immediately — ensuring no strip renders.
 
-### 2. Advanced Schedule Grid — Full page instead of overlay
-**Files:** `src/pages/ScheduleGridPage.tsx` (new), `src/App.tsx`, `src/pages/SchedulePage.tsx`, `src/components/AdvancedScheduleGrid.tsx`
+The current approach fetches season-average FP from the players API, which is wrong. The strip should show players who actually scored the highest FP on that specific day.
 
-- Create a new route `/schedule/grid` with a dedicated full-page component
-- The grid icon in SchedulePage navigates to `/schedule/grid?gw=X` instead of toggling a modal
-- Remove the `showGrid` state and inline `<AdvancedScheduleGrid>` from SchedulePage
+**New approach:**
+- Get game IDs for the selected day from `weekGames` (filter by `g.day === day` AND `g.status === "Final"`)
+- If no Final games exist for that day → return `null` (hides strip entirely)
+- Query `player_game_logs` joined with `players` for those game IDs, ordered by `fp DESC`, limit 10 per position
+- Join with `players` table to get `fc_bc`, `name`, `photo`, `team`
+- Display actual `fp` from `player_game_logs` (not season average)
+- Create a new Supabase query inside the component (or a small hook) that fetches: `player_game_logs` rows where `game_id IN (...)`, joined to `players` for `fc_bc`/`name`/`photo`/`team`
 
-**ScheduleGridPage layout (full page):**
-- Full navy header with "Advanced Schedule Grid · GW X" title and a back button (← Back to Schedule)
-- Left sidebar panel: "Show teams playing on:" with checkbox for each day of the week (day name + date). Selecting days filters the table to only show teams that play on ALL/ANY selected days. Columns for selected days get highlighted with yellow accent.
-- Main area: full-width table with sticky Team column, G (games) column, and one column per day
-- Each cell shows opponent tricode (home = plain, away = `@OPP`)
-- Totals row below header showing game count per day
-- Team rows: logo + tricode, color-coded game count (green ≥4, red ≤2), cells with games get subtle background tint
-- Responsive: table scrolls horizontally, sidebar collapses on mobile
+**Layout fix (no scrolling):**
+- Remove `min-w-[140px]` from each player card → reduce to `min-w-0`
+- Reduce gaps between players, use tighter spacing (`gap-0.5`, smaller padding)
+- Use `flex-1` or `flex-shrink` so players compress to fit without scrolling
 
-**Premium styling:**
-- Full-height layout using the page space properly
-- Larger text (12-13px for cells vs current 10px)
-- Row hover highlight
-- Selected day columns get a subtle yellow column highlight through all rows
-- Sticky left column for team names
-- Clean navy/yellow color scheme consistent with app
+**Player name linking:**
+- Wrap player name in a clickable element that opens `PlayerModal` (add state for `selectedPlayerId` and render `<PlayerModal>`)
+
+### 2. ScheduleGridPage — AND logic for day filters
+**File:** `src/pages/ScheduleGridPage.tsx`
+
+Current `isTeamVisible` uses OR logic (`if (dayMap.has(d)) return true`). Change to AND logic:
+
+```typescript
+const isTeamVisible = (tricode: string) => {
+  if (!hasFilter) return true;
+  const dayMap = teamGrid.get(tricode);
+  if (!dayMap) return false;
+  for (const d of selectedDays) {
+    if (!dayMap.has(d)) return false; // must play on ALL selected days
+  }
+  return true;
+};
+```
+
+### 3. ScheduleGridPage — Wire team names to TeamModal
+**File:** `src/pages/ScheduleGridPage.tsx`
+
+- Add state `selectedTeam` and render `<TeamModal>` at bottom
+- Make team tricode in the first column clickable → sets `selectedTeam`
 
 ### Files
 
 | File | Change |
 |------|--------|
-| `src/components/TopPlayersStrip.tsx` | Early return when no games on selected day |
-| `src/pages/ScheduleGridPage.tsx` | New full-page grid with sidebar day filter |
-| `src/App.tsx` | Add `/schedule/grid` route |
-| `src/pages/SchedulePage.tsx` | Grid icon navigates to `/schedule/grid?gw=X` instead of modal toggle; remove `showGrid` state and `AdvancedScheduleGrid` import |
-| `src/components/AdvancedScheduleGrid.tsx` | Can be deleted (logic moves into ScheduleGridPage) |
+| `src/components/TopPlayersStrip.tsx` | Rewrite to query `player_game_logs` for actual game-day FP; hide when no Final games; tighter layout; link player names to PlayerModal |
+| `src/pages/ScheduleGridPage.tsx` | AND filter logic; wire teams to TeamModal |
 
