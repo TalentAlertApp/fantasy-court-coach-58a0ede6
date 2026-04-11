@@ -1,75 +1,57 @@
 
 
-## Plan: Multi-Feature Update (A–F)
+## Plan: Standings Tab in /teams + Salary & Value Columns in Box Score
 
-### A. Schedule Game Card — Team & FC/BC Filters in Box Score
+### 1. Standings Tab inside TeamsPage
+
+**File:** `src/pages/TeamsPage.tsx`
+
+Add a tab bar at the top with two tabs: "Teams" (current grid view) and "Standings". The Standings tab renders a `<StandingsPanel />`.
+
+**New files:**
+
+- `src/types/standings.ts` — `StandingRow` type with fields: tricode, name, logo, primaryColor, gp, w, l, pct, gb, homeW, homeL, awayW, awayL, confW, confL, divW, divL, ppg, oppPpg, diff, l10W, l10L, strk, conference, division
+- `src/data/nbaTeamsFallback.ts` — Static mapping of all 30 teams to their conference/division
+- `src/hooks/useNBAStandings.ts` — Hook that computes standings from `schedule_games` data already fetched in TeamsPage. Calculates W/L, PCT, GB, home/away splits, conference/division records, PPG, OPP PPG, DIFF, L10, streak. Uses `NBA_TEAMS` for logos/colors and the fallback file for conference/division assignments.
+- `src/components/standings/StandingsPanel.tsx` — Panel with sub-tabs: League | Conference | Division
+- `src/components/standings/StandingsTable.tsx` — Reusable sortable table with columns: #, Team, GP, W, L, PCT, GB, HOME, AWAY, CONF, DIV, PPG, OPP, DIFF, L10, STRK. Sticky header, alternating rows, hover. Playoff cutoff lines after position 6 (Play-In) and 10 (Eliminated). Clinch badges (z/y/x/e). Team logo + name clickable → opens TeamModal.
+- `src/components/standings/StandingsFilters.tsx` — Sub-tab selector for League/Conference/Division views
+
+**Conference view:** Side-by-side tables (East | West) on desktop, stacked on mobile.
+**Division view:** 6 mini-tables grouped by division.
+
+Data source: Entirely from `schedule_games` table (already queried). No external NBA Stats API needed — all W/L/home/away/conf/div records can be computed from game results + the static conference/division mapping.
+
+### 2. Box Score — Add $ (Salary) and V (Value) Columns
+
+**File:** `supabase/functions/game-boxscore/index.ts`
+
+Add `salary` to the player select: `.select("id, name, fc_bc, photo, team, salary")` and include `salary: Number(p.salary)` in the response.
+
+**File:** `src/lib/contracts.ts`
+
+Add `salary: NumSchema` to `GameBoxscorePlayerSchema`. Remove `.strict()` or add the field.
 
 **File:** `src/components/ScheduleList.tsx`
 
-In the `GameBoxScore` component, add inline filter buttons right after "PLAYER" in the table header:
-- Two clickable team badges (away logo + home logo) that filter the box score to only show players from that team
-- Two FC/BC toggle buttons that filter by position
-- All four filters sit inline in the header row after "Player"
-- State: `filterTeam: string | null`, `filterFcBc: string | null` — when set, filter the `sorted` array before rendering
-
-Pass `awayTeam` and `homeTeam` props into `GameBoxScore`.
-
-### B. AI Hub → AI Coach Modal in Roster Header
-
-**Files:** `src/components/layout/AppLayout.tsx`, `src/pages/RosterPage.tsx`, `src/App.tsx`, `src/components/AICoachModal.tsx` (new)
-
-1. Remove the AI Hub nav item from `navItems` in AppLayout
-2. Remove the `/ai` route from App.tsx (keep AIHubPage import for the modal content)
-3. Create `AICoachModal.tsx` — a Dialog with 5 tabs (Analyze Roster, Best Captain, Suggest Transfers, Injury Monitor, Explain Player), reusing the logic from `AIHubPage.tsx`
-4. In `RosterPage.tsx`, add an "AI COACH" button at the far right of the blue header banner (the `bg-primary` div), which opens this modal
-
-### C. Remove AI Coach Card from Roster Sidebar
-
-**File:** `src/components/RosterSidebar.tsx`
-
-- Remove the entire AI Coach collapsible section (the `<div>` with `Bot` icon, suggest moves, captain buttons, and their results)
-- Keep only the "Roster Info" card
-- The sidebar will be shorter and the Roster Info card moves up naturally
-
-### D. Add "Advanced" Tab
-
-**Files:** `src/components/layout/AppLayout.tsx`, `src/App.tsx`, `src/pages/AdvancedPage.tsx` (new)
-
-- Add a new nav item `{ to: "/advanced", label: "Advanced", icon: Gauge }` after Schedule
-- Create a placeholder `AdvancedPage.tsx` with a title and "Coming soon" message
-- Add the route in App.tsx
-
-### E. Info Tooltips on Transactions Table Headers
-
-**File:** `src/pages/PlayersPage.tsx`
-
-- Add info icon tooltips to the column headers (PTS, MP, REB, AST, STL, BLK, FP)
-- Per Game tab: tooltips explain "Points per game", "Minutes per game", etc.
-- Totals tab: tooltips explain "Total points scored this season", etc.
-- Use the existing `Tooltip` component from shadcn
-
-### F. Player Modal — Add MPG to Stats + Full Season Stats Toggle
-
-**File:** `src/components/PlayerModal.tsx`
-
-1. **Stats tab**: Add "MPG (season)" and "MPG (L5)" rows to the stats grid — values from `data.player.season.mpg` and `data.player.last5.mpg5`
-2. **FP Breakdown card**: Add a toggle (two small buttons: "Last Game" / "Full Season") that switches between:
-   - Current "Last Game FP Breakdown" (PTS, REB, AST×2, STL×3, BLK×3, FP from lastGame)
-   - "Full Season Stats" showing season per-game averages (PTS, REB, AST, STL, BLK, FP from season data)
-   - Default to "Full Season Stats"
+- Add two new columns after FP: `$` (salary) and `V` (value = fp/salary)
+- Update `SORT_COLUMNS` to include `{ key: "salary", label: "$" }` and `{ key: "value", label: "V" }`
+- Update grid template from `repeat(7,40px)` to `repeat(9,40px)`
+- Style the `$` and `V` headers with a distinct color (e.g., `text-amber-400`)
+- Compute value inline: `(p.fp / (p.salary || 1)).toFixed(1)`
 
 ### Files Summary
 
 | File | Change |
 |------|--------|
-| `src/components/ScheduleList.tsx` | Add team/FC/BC filter buttons in box score header |
-| `src/components/AICoachModal.tsx` | New — 5-tab AI Coach dialog |
-| `src/pages/RosterPage.tsx` | Add AI Coach button in header, remove AI Coach from sidebar dependency |
-| `src/components/RosterSidebar.tsx` | Remove AI Coach section |
-| `src/components/layout/AppLayout.tsx` | Remove AI Hub nav, add Advanced nav |
-| `src/App.tsx` | Remove /ai route, add /advanced route |
-| `src/pages/AdvancedPage.tsx` | New placeholder page |
-| `src/pages/PlayersPage.tsx` | Add info tooltips to table headers |
-| `src/components/PlayerModal.tsx` | Add MPG to stats, add season/last-game toggle on breakdown card |
-| `src/components/TopPlayersStrip.tsx` | Add Value layer with vertical FP/Value toggle |
+| `src/pages/TeamsPage.tsx` | Add Teams/Standings tab bar |
+| `src/types/standings.ts` | New — StandingRow type |
+| `src/data/nbaTeamsFallback.ts` | New — conference/division mapping for 30 teams |
+| `src/hooks/useNBAStandings.ts` | New — compute standings from schedule_games |
+| `src/components/standings/StandingsPanel.tsx` | New — top-level panel with sub-tabs |
+| `src/components/standings/StandingsTable.tsx` | New — sortable standings table |
+| `src/components/standings/StandingsFilters.tsx` | New — League/Conference/Division selector |
+| `supabase/functions/game-boxscore/index.ts` | Add salary to response |
+| `src/lib/contracts.ts` | Add salary to GameBoxscorePlayerSchema |
+| `src/components/ScheduleList.tsx` | Add $ and V columns with distinct header color |
 
