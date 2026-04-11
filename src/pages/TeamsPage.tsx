@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import TeamModal from "@/components/TeamModal";
+import { useNBAStandings } from "@/hooks/useNBAStandings";
+import StandingsPanel from "@/components/standings/StandingsPanel";
+import { cn } from "@/lib/utils";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -18,8 +21,11 @@ interface NbaTeamSummary {
   gamesRemaining: number;
 }
 
+type Tab = "teams" | "standings";
+
 export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("teams");
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["nba-teams-schedule-stats"],
@@ -36,13 +42,11 @@ export default function TeamsPage() {
   const { data: playerCounts, isLoading: playersLoading } = useQuery({
     queryKey: ["nba-teams-active-players"],
     queryFn: async () => {
-      // Count players who played at least 1 minute in any game
       const { data, error } = await supabase
         .from("player_game_logs")
         .select("player_id, mp")
         .gt("mp", 0);
       if (error) throw error;
-      // Get player team mapping
       const { data: players, error: pErr } = await supabase
         .from("players")
         .select("id, team");
@@ -62,6 +66,8 @@ export default function TeamsPage() {
     },
     staleTime: 120_000,
   });
+
+  const standings = useNBAStandings(scheduleData ?? undefined);
 
   const teams = useMemo<NbaTeamSummary[]>(() => {
     const records: Record<string, { w: number; l: number; remaining: number }> = {};
@@ -97,56 +103,83 @@ export default function TeamsPage() {
 
   const isLoading = schedLoading || playersLoading;
 
+  const TABS: { value: Tab; label: string }[] = [
+    { value: "teams", label: "Teams" },
+    { value: "standings", label: "Standings" },
+  ];
+
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-heading font-bold uppercase tracking-wider">NBA Teams</h1>
-
-      {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {Array.from({ length: 30 }).map((_, i) => (
-            <Skeleton key={i} className="h-32" />
+      <div className="flex items-center gap-4">
+        <h1 className="text-xl font-heading font-bold uppercase tracking-wider">NBA Teams</h1>
+        <div className="inline-flex bg-muted rounded-sm p-0.5 gap-0.5">
+          {TABS.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setTab(t.value)}
+              className={cn(
+                "px-3 py-1 text-xs font-heading uppercase rounded-sm transition-colors",
+                tab === t.value
+                  ? "bg-background text-foreground shadow-sm font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {teams.map((t) => {
-            const wp = t.wins + t.losses > 0 ? ((t.wins / (t.wins + t.losses)) * 100).toFixed(1) : "0.0";
-            return (
-              <Card
-                key={t.tricode}
-                className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-sm border-2 group"
-                style={{ borderColor: `${t.primaryColor}40` }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = t.primaryColor; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}40`; }}
-                onClick={() => setSelectedTeam(t.tricode)}
-              >
-                <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                  <img
-                    src={t.logo}
-                    alt={t.name}
-                    className="w-12 h-12 transition-transform duration-200 group-hover:scale-110"
-                  />
-                  <div>
-                    <p className="font-heading font-bold text-sm uppercase">{t.tricode}</p>
-                    <p className="text-[10px] text-muted-foreground">{t.name}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-sm font-bold">{t.wins}-{t.losses}</span>
-                    <span className="text-[10px] text-muted-foreground">({wp}%)</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant="outline" className="text-[9px] rounded-sm">
-                      {t.activePlayers} players
-                    </Badge>
-                    <Badge variant="secondary" className="text-[9px] rounded-sm">
-                      {t.gamesRemaining} remaining
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+      </div>
+
+      {tab === "teams" && (
+        <>
+          {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {Array.from({ length: 30 }).map((_, i) => (
+                <Skeleton key={i} className="h-32" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              {teams.map((t) => {
+                const wp = t.wins + t.losses > 0 ? ((t.wins / (t.wins + t.losses)) * 100).toFixed(1) : "0.0";
+                return (
+                  <Card
+                    key={t.tricode}
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-sm border-2 group"
+                    style={{ borderColor: `${t.primaryColor}40` }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = t.primaryColor; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}40`; }}
+                    onClick={() => setSelectedTeam(t.tricode)}
+                  >
+                    <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+                      <img src={t.logo} alt={t.name} className="w-12 h-12 transition-transform duration-200 group-hover:scale-110" />
+                      <div>
+                        <p className="font-heading font-bold text-sm uppercase">{t.tricode}</p>
+                        <p className="text-[10px] text-muted-foreground">{t.name}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-sm font-bold">{t.wins}-{t.losses}</span>
+                        <span className="text-[10px] text-muted-foreground">({wp}%)</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-[9px] rounded-sm">{t.activePlayers} players</Badge>
+                        <Badge variant="secondary" className="text-[9px] rounded-sm">{t.gamesRemaining} remaining</Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "standings" && (
+        isLoading ? (
+          <div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
+        ) : (
+          <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} />
+        )
       )}
 
       <TeamModal

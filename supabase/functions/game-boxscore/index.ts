@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     const playerIds = logs.map((l: any) => l.player_id);
     const { data: players, error: pErr } = await sb
       .from("players")
-      .select("id, name, fc_bc, photo, team")
+      .select("id, name, fc_bc, photo, team, salary")
       .in("id", playerIds);
 
     if (pErr) return errorResponse("DB_ERROR", pErr.message);
@@ -48,13 +48,14 @@ Deno.serve(async (req) => {
         fc_bc: p.fc_bc,
         photo: p.photo,
         mp: l.mp,
-        ps: l.pts,  // points scored
-        fp: Number(l.fp), // fantasy points (PTS in our system)
+        ps: l.pts,
+        fp: Number(l.fp),
         reb: l.reb,
         ast: l.ast,
         blk: l.blk,
         stl: l.stl,
         home_away: l.home_away,
+        salary: Number(p.salary ?? 0),
       };
     });
 
