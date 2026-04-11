@@ -82,8 +82,8 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
 
   if (!topPlayers || (topPlayers.topFC.length === 0 && topPlayers.topBC.length === 0)) return null;
 
-  const fcList = mode === "fp" ? topPlayers.topFC : topPlayers.topFCVal;
-  const bcList = mode === "fp" ? topPlayers.topBC : topPlayers.topBCVal;
+  const fcList = mode === "fp" ? (topPlayers.topFC ?? []) : (topPlayers.topFCVal ?? []);
+  const bcList = mode === "fp" ? (topPlayers.topBC ?? []) : (topPlayers.topBCVal ?? []);
 
   const renderPlayer = (p: TopPlayer) => (
     <div key={p.id} className="flex items-center gap-1 flex-1 min-w-0 px-1 py-0.5">
