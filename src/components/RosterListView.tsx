@@ -70,13 +70,13 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   return (
     <div className="space-y-4">
       <div>
-        <div className="section-bar mb-1 rounded-sm">STARTING 5</div>
+        <div className="section-bar mb-1 rounded-lg">STARTING 5</div>
         <Table>{header}
           <TableBody>{starters.map(renderRow)}</TableBody>
         </Table>
       </div>
       <div>
-        <div className="section-bar mb-1 rounded-sm">BENCH</div>
+        <div className="section-bar mb-1 rounded-lg">BENCH</div>
         <Table>{header}
           <TableBody>{bench.map(renderRow)}</TableBody>
         </Table>

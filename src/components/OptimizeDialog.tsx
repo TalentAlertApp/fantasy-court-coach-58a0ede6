@@ -13,7 +13,7 @@ interface OptimizeDialogProps {
 export default function OptimizeDialog({ open, onOpenChange, result, onApply, applying }: OptimizeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="rounded-sm">
+      <DialogContent className="rounded-lg">
         <DialogHeader>
           <DialogTitle className="font-heading">Lineup Optimizer</DialogTitle>
         </DialogHeader>
@@ -27,7 +27,7 @@ export default function OptimizeDialog({ open, onOpenChange, result, onApply, ap
               <>
                 <div className="space-y-2">
                   {result.swaps.map((s, i) => (
-                    <div key={i} className="flex items-center justify-between bg-muted rounded-sm p-3 border">
+                    <div key={i} className="flex items-center justify-between bg-muted rounded-lg p-3 border">
                       <div className="text-sm font-body">
                         <span className="text-destructive font-semibold">↓ {s.starterPlayer.name}</span>
                         <span className="mx-2 text-muted-foreground">→</span>

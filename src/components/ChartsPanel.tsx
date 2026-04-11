@@ -36,7 +36,7 @@ export default function ChartsPanel({ starters, bench, allRoster }: ChartsPanelP
   }));
 
   const chartCard = (title: string, children: React.ReactNode) => (
-    <div className="bg-card border rounded-sm overflow-hidden">
+    <div className="bg-card border rounded-lg overflow-hidden">
       <div className="section-bar">{title}</div>
       <div className="p-3">{children}</div>
     </div>

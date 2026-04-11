@@ -112,13 +112,13 @@ export default function TeamsPage() {
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <h1 className="text-xl font-heading font-bold uppercase tracking-wider">NBA Teams</h1>
-        <div className="inline-flex bg-muted rounded-sm p-0.5 gap-0.5">
+        <div className="inline-flex bg-muted rounded-lg p-0.5 gap-0.5">
           {TABS.map((t) => (
             <button
               key={t.value}
               onClick={() => setTab(t.value)}
               className={cn(
-                "px-3 py-1 text-xs font-heading uppercase rounded-sm transition-colors",
+                "px-3 py-1 text-xs font-heading uppercase rounded-lg transition-colors",
                 tab === t.value
                   ? "bg-background text-foreground shadow-sm font-bold"
                   : "text-muted-foreground hover:text-foreground"
@@ -139,29 +139,29 @@ export default function TeamsPage() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {teams.map((t) => {
                 const wp = t.wins + t.losses > 0 ? ((t.wins / (t.wins + t.losses)) * 100).toFixed(1) : "0.0";
                 return (
                   <Card
                     key={t.tricode}
-                    className="cursor-pointer hover:shadow-lg transition-all duration-200 rounded-sm border-2 group"
-                    style={{ borderColor: `${t.primaryColor}40` }}
+                    className="cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-xl border group overflow-hidden"
+                    style={{ borderColor: `${t.primaryColor}30` }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.borderColor = t.primaryColor; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}40`; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.borderColor = `${t.primaryColor}30`; }}
                     onClick={() => setSelectedTeam(t.tricode)}
                   >
-                    <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                      <img src={t.logo} alt={t.name} className="w-12 h-12 transition-transform duration-200 group-hover:scale-110" />
+                    <CardContent className="p-5 flex flex-col items-center gap-2.5 text-center">
+                      <img src={t.logo} alt={t.name} className="w-14 h-14 transition-transform duration-300 group-hover:scale-110" />
                       <div>
-                        <p className="font-heading font-bold text-sm uppercase">{t.tricode}</p>
+                        <p className="font-heading font-bold text-sm uppercase tracking-wider">{t.tricode}</p>
                         <p className="text-[10px] text-muted-foreground">{t.name}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-sm font-bold">{t.wins}-{t.losses}</span>
                         <span className="text-[10px] text-muted-foreground">({wp}%)</span>
                       </div>
-                      <Badge variant="outline" className="text-[9px] rounded-sm">{t.activePlayers} players</Badge>
+                      <Badge variant="outline" className="text-[9px] rounded-lg">{t.activePlayers} players</Badge>
                     </CardContent>
                   </Card>
                 );

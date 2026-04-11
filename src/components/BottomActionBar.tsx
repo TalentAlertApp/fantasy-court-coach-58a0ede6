@@ -28,7 +28,7 @@ export default function BottomActionBar({ onSave, saving, gamedaysRemaining }: B
           <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-primary-foreground/70 hidden sm:inline">
             Gamedays Remaining
           </span>
-          <Badge className="bg-accent text-accent-foreground rounded-sm text-sm font-bold px-2.5 py-0.5">
+          <Badge className="bg-accent text-accent-foreground rounded-lg text-sm font-bold px-2.5 py-0.5">
             {gamedaysRemaining}
           </Badge>
         </div>

@@ -65,7 +65,7 @@ export default function PlayerCard({
         onDrop={onDrop}
         onDragEnd={onDragEnd}
         onClick={onClick}
-        className={`bg-card/95 backdrop-blur-sm border-l-2 ${accentColor} rounded-lg cursor-pointer hover:ring-1 hover:ring-accent transition-all relative group overflow-hidden`}
+        className={`bg-card/95 backdrop-blur-sm border-l-2 ${accentColor} rounded-xl cursor-pointer hover:ring-1 hover:ring-accent/50 hover:shadow-lg transition-all duration-200 relative group overflow-hidden`}
       >
         {isCaptain && <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>}
 
@@ -133,7 +133,7 @@ export default function PlayerCard({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       onClick={onClick}
-      className={`bg-card/95 backdrop-blur-sm border-t-2 ${accentColor} rounded-lg cursor-pointer hover:ring-1 hover:ring-accent transition-all relative group overflow-hidden`}
+      className={`bg-card/95 backdrop-blur-sm border-t-2 ${accentColor} rounded-xl cursor-pointer hover:ring-1 hover:ring-accent/50 hover:shadow-lg transition-all duration-200 relative group overflow-hidden`}
       style={{ minWidth: 0 }}
     >
       {isCaptain && <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xs z-10" title="Captain">⭐</span>}

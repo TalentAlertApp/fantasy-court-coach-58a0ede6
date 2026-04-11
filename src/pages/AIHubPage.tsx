@@ -113,7 +113,7 @@ export default function AIHubPage() {
   };
 
   const sectionCard = (icon: React.ReactNode, title: string, desc: string, btnLabel: string, onAction: () => void, loading: boolean, children?: React.ReactNode) => (
-    <div className="bg-card border rounded-sm overflow-hidden">
+    <div className="bg-card border rounded-lg overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/50">
         {icon}
         <div className="flex-1">
@@ -132,7 +132,7 @@ export default function AIHubPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-4 pb-8">
       {/* Dark navy header */}
-      <div className="bg-nba-navy text-white rounded-sm px-4 py-3 flex items-center gap-3">
+      <div className="bg-nba-navy text-white rounded-lg px-4 py-3 flex items-center gap-3">
         <Bot className="h-8 w-8 text-accent" />
         <div>
           <h2 className="text-lg font-heading font-bold tracking-wider">{teamName} — AI COACH</h2>
@@ -163,14 +163,14 @@ export default function AIHubPage() {
               <div>
                 <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-1">Quick Wins</p>
                 {analyzeResult.quick_wins.map((qw: any, i: number) => (
-                  <div key={i} className="bg-muted rounded-sm p-2 mb-1 border">
+                  <div key={i} className="bg-muted rounded-lg p-2 mb-1 border">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-xs">{qw.title}</span>
-                      <Badge variant="outline" className="text-[9px] rounded-sm">{Math.round(qw.confidence * 100)}%</Badge>
+                      <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(qw.confidence * 100)}%</Badge>
                     </div>
                     <ul className="list-disc pl-4 text-[10px] mt-1">{qw.why.map((w: string, j: number) => <li key={j}>{w}</li>)}</ul>
                     {qw.risk_flags?.length > 0 && (
-                      <div className="flex gap-1 mt-1">{qw.risk_flags.map((f: string, j: number) => <Badge key={j} variant="destructive" className="text-[9px] rounded-sm">{f}</Badge>)}</div>
+                      <div className="flex gap-1 mt-1">{qw.risk_flags.map((f: string, j: number) => <Badge key={j} variant="destructive" className="text-[9px] rounded-lg">{f}</Badge>)}</div>
                     )}
                   </div>
                 ))}
@@ -178,7 +178,7 @@ export default function AIHubPage() {
             )}
             {analyzeResult.recommended_actions?.length > 0 && (
               <div>{analyzeResult.recommended_actions.map((a: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-xs"><Badge className="rounded-sm text-[9px]">{a.type}</Badge><span>{a.note}</span></div>
+                <div key={i} className="flex items-center gap-2 text-xs"><Badge className="rounded-lg text-[9px]">{a.type}</Badge><span>{a.note}</span></div>
               ))}</div>
             )}
             {analyzeResult.notes?.length > 0 && <p className="text-[10px] text-muted-foreground italic">{analyzeResult.notes.join(" · ")}</p>}
@@ -194,7 +194,7 @@ export default function AIHubPage() {
             <div className="flex items-center gap-3">
               <div>
                 <p className="font-heading font-bold uppercase text-sm">Captain: {getPlayerName(captainResult.captain_id)}</p>
-                <Badge variant="outline" className="text-[9px] rounded-sm">{Math.round(captainResult.confidence * 100)}% confidence</Badge>
+                <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(captainResult.confidence * 100)}% confidence</Badge>
               </div>
               <Button size="sm" className="ml-auto" onClick={handleApplyCaptain} disabled={applyingCaptain}>
                 {applyingCaptain ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Captain"}
@@ -217,11 +217,11 @@ export default function AIHubPage() {
         transfersResult && (
           <>
             {transfersResult.moves.map((move: any, idx: number) => (
-              <div key={idx} className="bg-muted rounded-sm p-3 space-y-2 border">
+              <div key={idx} className="bg-muted rounded-lg p-3 space-y-2 border">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className="bg-green-600 text-white rounded-sm text-[9px]">ADD {getPlayerName(move.add)}</Badge>
-                  <Badge variant="destructive" className="rounded-sm text-[9px]">DROP {getPlayerName(move.drop)}</Badge>
-                  <Badge variant="outline" className="text-[9px] rounded-sm">{Math.round(move.confidence * 100)}%</Badge>
+                  <Badge className="bg-green-600 text-white rounded-lg text-[9px]">ADD {getPlayerName(move.add)}</Badge>
+                  <Badge variant="destructive" className="rounded-lg text-[9px]">DROP {getPlayerName(move.drop)}</Badge>
+                  <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(move.confidence * 100)}%</Badge>
                 </div>
                 <ul className="list-disc pl-4 text-[10px] space-y-0.5">{move.reason_bullets.map((b: string, i: number) => <li key={i}>{b}</li>)}</ul>
                 <div className="flex gap-2 text-[10px] font-mono">
@@ -229,7 +229,7 @@ export default function AIHubPage() {
                   <span>ΔStocks5: {move.expected_delta.proj_stocks5 >= 0 ? "+" : ""}{move.expected_delta.proj_stocks5.toFixed(1)}</span>
                 </div>
                 {move.risk_flags?.length > 0 && (
-                  <div className="flex gap-1 flex-wrap">{move.risk_flags.map((f: string, i: number) => <Badge key={i} variant="destructive" className="text-[9px] rounded-sm"><AlertTriangle className="h-3 w-3 mr-0.5" />{f}</Badge>)}</div>
+                  <div className="flex gap-1 flex-wrap">{move.risk_flags.map((f: string, i: number) => <Badge key={i} variant="destructive" className="text-[9px] rounded-lg"><AlertTriangle className="h-3 w-3 mr-0.5" />{f}</Badge>)}</div>
                 )}
                 <div className="flex gap-2">
                   {!simResults[idx] ? (
@@ -262,11 +262,11 @@ export default function AIHubPage() {
         injuryResult && (
           <>
             {injuryResult.items.map((item: any) => (
-              <div key={item.player_id} className="bg-muted rounded-sm p-2 space-y-1 border">
+              <div key={item.player_id} className="bg-muted rounded-lg p-2 space-y-1 border">
                 <div className="flex items-center gap-2">
                   <span className="font-heading font-bold uppercase text-xs">{getPlayerName(item.player_id)}</span>
-                  <Badge variant={statusColor(item.status) as any} className="rounded-sm text-[9px]">{item.status}</Badge>
-                  <Badge variant="outline" className="text-[9px] rounded-sm">{item.impact} impact</Badge>
+                  <Badge variant={statusColor(item.status) as any} className="rounded-lg text-[9px]">{item.status}</Badge>
+                  <Badge variant="outline" className="text-[9px] rounded-lg">{item.impact} impact</Badge>
                 </div>
                 {item.headline && <p className="text-[10px]">{item.headline}</p>}
                 <div className="text-[10px]"><span className="font-semibold">Action: </span>{item.recommended_move.action}</div>
@@ -284,7 +284,7 @@ export default function AIHubPage() {
       )}
 
       {/* 5. Explain Player */}
-      <div className="bg-card border rounded-sm overflow-hidden">
+      <div className="bg-card border rounded-lg overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/50">
           <HelpCircle className="h-5 w-5 text-primary" />
           <div className="flex-1">
@@ -294,7 +294,7 @@ export default function AIHubPage() {
         </div>
         <div className="p-4 space-y-3">
           <div className="flex gap-2">
-            <Input placeholder="Search player name..." value={explainSearch} onChange={(e) => setExplainSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleExplain()} className="rounded-sm flex-1" />
+            <Input placeholder="Search player name..." value={explainSearch} onChange={(e) => setExplainSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleExplain()} className="rounded-lg flex-1" />
             <Button size="sm" onClick={handleExplain} disabled={explainLoading}>
               {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
             </Button>
@@ -307,8 +307,8 @@ export default function AIHubPage() {
                 <p className="text-[10px] font-heading font-bold text-muted-foreground uppercase mb-1">Scoring Factors</p>
                 {explainResult.why_it_scores.map((f: any, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-xs mb-1">
-                    <Badge variant="outline" className="rounded-sm text-[9px]">{f.factor}</Badge>
-                    <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-sm text-[9px]">{f.impact}</Badge>
+                    <Badge variant="outline" className="rounded-lg text-[9px]">{f.factor}</Badge>
+                    <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-lg text-[9px]">{f.impact}</Badge>
                     <span>{f.note}</span>
                   </div>
                 ))}
@@ -318,14 +318,14 @@ export default function AIHubPage() {
                   <p className="text-[10px] font-heading font-bold text-muted-foreground uppercase mb-1">Trends</p>
                   {explainResult.trend_flags.map((t: any, i: number) => (
                     <div key={i} className="text-xs flex gap-1 items-center mb-1">
-                      <Badge variant="outline" className="rounded-sm text-[9px]">{t.type}</Badge>
+                      <Badge variant="outline" className="rounded-lg text-[9px]">{t.type}</Badge>
                       <span>{t.detail}</span>
                     </div>
                   ))}
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <Badge variant={explainResult.recommendation.action === "add" ? "default" : explainResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-sm">
+                <Badge variant={explainResult.recommendation.action === "add" ? "default" : explainResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-lg">
                   {explainResult.recommendation.action.toUpperCase()}
                 </Badge>
                 <span className="text-xs">{explainResult.recommendation.rationale}</span>

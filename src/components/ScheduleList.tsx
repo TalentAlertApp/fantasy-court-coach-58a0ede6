@@ -20,7 +20,7 @@ import { format } from "date-fns";
 function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
   if (youtubeVideoId) {
     return (
-      <div className="w-full h-full overflow-hidden rounded-sm bg-black">
+      <div className="w-full h-full overflow-hidden rounded-lg bg-black">
         <iframe
           src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
           title={title}
@@ -35,7 +35,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
 
   if (url) {
     return (
-      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-sm bg-black/80">
+      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-lg bg-black/80">
         <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
           Watch on NBA.com
         </a>
@@ -44,7 +44,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
   }
 
   return (
-    <div className="flex w-full h-full items-center justify-center rounded-sm bg-muted/30 text-sm text-muted-foreground">
+    <div className="flex w-full h-full items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
       Recap unavailable
     </div>
   );
@@ -148,27 +148,27 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
             <span>Player</span>
             <button
               onClick={() => setFilterTeam(filterTeam === awayTeam ? null : awayTeam)}
-              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterTeam === awayTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === awayTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
             >
               {awayLogo && <img src={awayLogo} alt="" className="w-3 h-3" />}
               {awayTeam}
             </button>
             <button
               onClick={() => setFilterTeam(filterTeam === homeTeam ? null : homeTeam)}
-              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterTeam === homeTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === homeTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
             >
               {homeLogo && <img src={homeLogo} alt="" className="w-3 h-3" />}
               {homeTeam}
             </button>
             <button
               onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
-              className={`px-1.5 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+              className={`px-1.5 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
             >
               FC
             </button>
             <button
               onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
-              className={`px-1.5 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+              className={`px-1.5 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
             >
               BC
             </button>
@@ -201,7 +201,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
                   </Avatar>
                   <Badge
                     variant={isFc ? "destructive" : "default"}
-                    className="text-[7px] px-0.5 py-0 shrink-0 rounded-sm font-heading min-w-[18px] justify-center"
+                    className="text-[7px] px-0.5 py-0 shrink-0 rounded-lg font-heading min-w-[18px] justify-center"
                   >
                     {p.fc_bc}
                   </Badge>
@@ -372,7 +372,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   const homeLogo = getTeamLogo(game.home_team);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm rounded-sm p-4">
+      <DialogContent className="max-w-sm rounded-lg p-4">
         <DialogHeader>
           <DialogTitle className="font-heading text-sm uppercase">Game Detail</DialogTitle>
         </DialogHeader>
@@ -391,22 +391,22 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
         </div>
         <div className="flex items-center justify-center gap-2 py-1">
           {game.game_boxscore_url && (
-            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Box Score">
+            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="Box Score">
               <Table2 className="h-3.5 w-3.5" /> BoxScore
             </a>
           )}
           {game.game_charts_url && (
-            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Charts">
+            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="Charts">
               <BarChart3 className="h-3.5 w-3.5" /> Charts
             </a>
           )}
           {game.game_playbyplay_url && (
-            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="Play-by-Play">
+            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="Play-by-Play">
               <Mic className="h-3.5 w-3.5" /> PbP
             </a>
           )}
           {game.nba_game_url && (
-            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-sm border" title="NBA.com">
+            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="NBA.com">
               <ExternalLink className="h-3.5 w-3.5" /> NBA
             </a>
           )}
@@ -422,7 +422,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
             {showRecap && (
               <div className="relative w-full mt-1" style={{ paddingBottom: "56.25%" }}>
                 <iframe
-                  className="absolute inset-0 w-full h-full rounded-sm"
+                  className="absolute inset-0 w-full h-full rounded-lg"
                   src={`https://www.youtube.com/embed/${game.youtube_recap_id}`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -493,7 +493,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                         <button onClick={() => onGameClick(g)}>
                           <Badge
                             variant={g.won ? "default" : "destructive"}
-                            className="text-[8px] px-1.5 py-0 rounded-sm h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                            className="text-[8px] px-1.5 py-0 rounded-lg h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
                           >
                             {g.won ? "W" : "L"}
                           </Badge>
@@ -557,7 +557,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`bg-card rounded-sm border border-l-4 ${getStatusBorder(g.status)} flex items-center justify-between px-4 py-3 ${
+                className={`bg-card rounded-lg border border-l-4 ${getStatusBorder(g.status)} flex items-center justify-between px-4 py-3 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
@@ -596,21 +596,21 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="inline-block"
                     >
-                      <Badge className="bg-destructive text-destructive-foreground text-[9px] rounded-sm px-1.5 py-0 font-heading font-bold animate-pulse">
+                      <Badge className="bg-destructive text-destructive-foreground text-[9px] rounded-lg px-1.5 py-0 font-heading font-bold animate-pulse">
                         LIVE
                       </Badge>
                     </a>
                   )}
                   <Badge
                     variant={isFinal ? "secondary" : "outline"}
-                    className={`text-[10px] rounded-sm font-heading ${
+                    className={`text-[10px] rounded-lg font-heading ${
                       isFinal ? "bg-green-500/10 text-green-700 border-green-500/30" : ""
                     }`}
                   >
                     {g.status}
                   </Badge>
                   {g.tipoff_utc && (
-                    <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded-sm font-bold">
+                    <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded-lg font-bold">
                       {formatTipoff(g.tipoff_utc)}
                     </span>
                   )}

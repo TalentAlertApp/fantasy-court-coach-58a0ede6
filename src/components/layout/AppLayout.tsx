@@ -6,9 +6,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { triggerSync, fetchSyncStatus } from "@/lib/api";
 import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
-import SyncStatusCard from "@/components/layout/SyncStatusCard";
-import SplitSyncButton from "@/components/layout/SplitSyncButton";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 const navItems = [
   { to: "/", label: "My Roster", icon: ClipboardList, end: true },
@@ -36,10 +34,6 @@ function shouldAutoSync(): boolean {
 
 export default function AppLayout() {
   const queryClient = useQueryClient();
-  const [autoRefresh, setAutoRefresh] = useState(() =>
-    localStorage.getItem("nba_auto_refresh") === "true"
-  );
-  const [syncStep, setSyncStep] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(() =>
     localStorage.getItem("nba_theme") === "dark" ||
@@ -87,13 +81,10 @@ export default function AppLayout() {
     pollRef.current = setInterval(async () => {
       try {
         const status = await fetchSyncStatus(runId);
-        const step = (status as any).step ?? null;
-        setSyncStep(step);
         if (status.status === "SUCCESS" || status.status === "PARTIAL" || status.status === "FAILED") {
           stopPolling();
           const counts = (status as any).counts ?? {};
           toast.success(`Synced: ${counts.players ?? 0} players, ${counts.last_games ?? 0} last games`);
-          setSyncStep(null);
           setIsSyncingFlag(false);
           invalidateAll();
         }
@@ -106,43 +97,30 @@ export default function AppLayout() {
   const handleSync = useCallback(async (type: "FULL" | "SALARY" | "GAMES" | "SCHEDULE" = "FULL") => {
     if (isSyncingFlag) return;
     setIsSyncingFlag(true);
-    setSyncStep(`Syncing ${type.toLowerCase()}…`);
     try {
       const result = await triggerSync({ type });
       if (result.run_id && result.status === "RUNNING") {
         startPolling(result.run_id);
       } else {
-        const counts = result.counts ?? {};
-        const parts: string[] = [];
-        if (counts.games) parts.push(`${counts.games} games`);
-        if (counts.game_logs) parts.push(`${counts.game_logs} logs`);
-        if (counts.salary_updated) parts.push(`${counts.salary_updated} salaries`);
-        if (counts.schedule_games) parts.push(`${counts.schedule_games} scheduled`);
-        if (counts.players_updated) parts.push(`${counts.players_updated} players updated`);
-        toast.success(`Synced: ${parts.join(", ") || "done"}`);
-        setSyncStep(null);
+        toast.success("Sync complete");
         setIsSyncingFlag(false);
         invalidateAll();
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Sync failed: ${msg}`);
-      setSyncStep(null);
       setIsSyncingFlag(false);
     }
   }, [isSyncingFlag, startPolling, invalidateAll]);
 
-  const isSyncing = isSyncingFlag;
-
+  // Auto-sync at 6AM Lisbon
   useEffect(() => {
-    localStorage.setItem("nba_auto_refresh", String(autoRefresh));
-    if (!autoRefresh) return;
     const interval = setInterval(() => {
-      if (!isSyncing && shouldAutoSync()) handleSync();
+      if (!isSyncingFlag && shouldAutoSync()) handleSync();
     }, 60_000);
-    if (!isSyncing && shouldAutoSync()) handleSync();
+    if (!isSyncingFlag && shouldAutoSync()) handleSync();
     return () => clearInterval(interval);
-  }, [autoRefresh, isSyncing, handleSync]);
+  }, [isSyncingFlag, handleSync]);
 
   useEffect(() => () => stopPolling(), [stopPolling]);
 
@@ -150,16 +128,13 @@ export default function AppLayout() {
     <div className="app-shell">
       {/* ── LEFT SIDEBAR ─────────────────────────────── */}
       <aside className={`sidebar${collapsed ? " collapsed" : ""} animate-slide-in-left`}>
-        {/* Brand */}
-        <div className="flex items-center gap-2.5 px-4 py-4 border-b" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
-          <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
-               style={{ background: "hsl(var(--sidebar-primary))", color: "hsl(var(--sidebar-primary-foreground))" }}>
-            🏀
-          </div>
+        {/* Brand — NBA Logo */}
+        <div className="flex items-center gap-3 px-4 py-5 border-b" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
+          <img src={nbaLogo} alt="NBA" className="h-8 w-auto flex-shrink-0" />
           {!collapsed && (
-            <span className="text-sm font-heading font-bold uppercase tracking-widest truncate"
+            <span className="text-sm font-heading font-bold uppercase tracking-[0.2em] truncate"
                   style={{ color: "hsl(var(--sidebar-foreground))" }}>
-              NBA Fantasy
+              Fantasy
             </span>
           )}
         </div>
@@ -181,6 +156,16 @@ export default function AppLayout() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Team Switcher + Help — above separator */}
+        <div className="px-3 pb-2 flex flex-col gap-2" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
+          {!collapsed && <TeamSwitcher />}
+          {!collapsed && (
+            <div className="flex justify-end">
+              <HowToPlayModal />
+            </div>
+          )}
+        </div>
 
         {/* Bottom controls */}
         <div className="flex flex-col gap-2 p-3 border-t" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
@@ -216,43 +201,7 @@ export default function AppLayout() {
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="main-content">
-        {/* Top bar */}
-        <header className="topbar">
-          <div className="flex items-center gap-3">
-            {/* Sync Status */}
-            <SyncStatusCard
-              lastSuccessAt={syncStatus?.last_success_at ?? null}
-              source={syncStatus?.source}
-              durationMs={syncStatus?.duration_ms}
-              playerCount={syncStatus?.counts?.players ?? 0}
-              errorCount={syncStatus?.error_count ?? 0}
-              errors={syncStatus?.errors ?? []}
-              isStale={syncStatus?.is_stale ?? false}
-              lastType={syncStatus?.last_type ?? null}
-            />
-            {/* 6AM auto-refresh */}
-            <div className="hidden md:flex items-center gap-1.5">
-              <span className="text-[10px] opacity-50 uppercase">6AM</span>
-              <Switch
-                checked={autoRefresh}
-                onCheckedChange={setAutoRefresh}
-                className="scale-75"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <SplitSyncButton
-              isSyncing={isSyncing}
-              syncStep={syncStep}
-              onSync={handleSync}
-            />
-            <TeamSwitcher />
-            <HowToPlayModal />
-          </div>
-        </header>
-
-        {/* Page */}
+        {/* Page — no topbar */}
         <main className="page-scroll">
           <div className="animate-fade-in w-full h-full">
             <Outlet />

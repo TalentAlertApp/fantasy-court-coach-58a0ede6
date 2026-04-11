@@ -256,7 +256,7 @@ export default function RosterPage() {
   return (
     <div className="pb-20">
       {/* ── Full-width Header Banner ── */}
-      <div className="bg-primary rounded-sm mb-4 px-5 py-4">
+      <div className="bg-primary mb-4 px-5 py-4" style={{ borderRadius: "var(--radius)" }}>
         <p className="text-destructive font-heading text-[11px] font-bold uppercase tracking-widest mb-0.5">
           {teamName}
         </p>
@@ -271,7 +271,7 @@ export default function RosterPage() {
             </span>
           </div>
           {countdown && (
-            <Badge className={`rounded-sm text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
+            <Badge className={`rounded-md text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
               {countdown}
             </Badge>
           )}
@@ -279,7 +279,7 @@ export default function RosterPage() {
             <Button
               size="sm"
               onClick={() => setAiCoachOpen(true)}
-              className="rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+              className="rounded-lg font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
             </Button>
@@ -287,7 +287,7 @@ export default function RosterPage() {
               size="sm"
               variant="outline"
               onClick={() => setWishlistOpen(true)}
-              className="rounded-sm font-heading uppercase text-xs"
+              className="rounded-lg font-heading uppercase text-xs"
             >
               <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
             </Button>
@@ -306,16 +306,16 @@ export default function RosterPage() {
           <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "court" | "list")}>
-                <ToggleGroupItem value="court" className="font-heading text-xs uppercase rounded-sm">
+                <ToggleGroupItem value="court" className="font-heading text-xs uppercase rounded-lg">
                   <LayoutGrid className="h-4 w-4 mr-1" />Court
                 </ToggleGroupItem>
-                <ToggleGroupItem value="list" className="font-heading text-xs uppercase rounded-sm">
+                <ToggleGroupItem value="list" className="font-heading text-xs uppercase rounded-lg">
                   <List className="h-4 w-4 mr-1" />List
                 </ToggleGroupItem>
               </ToggleGroup>
               <div className="hidden sm:flex items-center gap-2 ml-3 text-[10px] font-heading uppercase text-muted-foreground">
-                <Badge variant="destructive" className="rounded-sm text-[9px]">FC:{fcStarters}</Badge>
-                <Badge className="rounded-sm text-[9px]">BC:{bcStarters}</Badge>
+                <Badge variant="destructive" className="rounded-lg text-[9px]">FC:{fcStarters}</Badge>
+                <Badge className="rounded-lg text-[9px]">BC:{bcStarters}</Badge>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -324,7 +324,7 @@ export default function RosterPage() {
                 onClick={() => setChipCaptain(!chipCaptain)}
                 variant={chipCaptain ? "default" : "outline"}
                 size="sm"
-                className={`rounded-sm font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`rounded-lg font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
               >
                 <Star className="h-3.5 w-3.5 mr-1" />Captain
               </Button>
@@ -332,7 +332,7 @@ export default function RosterPage() {
                 onClick={() => setChipAllStar(!chipAllStar)}
                 variant={chipAllStar ? "default" : "outline"}
                 size="sm"
-                className={`rounded-sm font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`rounded-lg font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
               </Button>
@@ -340,22 +340,22 @@ export default function RosterPage() {
                 onClick={() => setChipWildcard(!chipWildcard)}
                 variant={chipWildcard ? "default" : "outline"}
                 size="sm"
-                className={`rounded-sm font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`rounded-lg font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
               </Button>
 
               {starters.length + bench.length < 10 && (
-                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
+                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-lg font-heading uppercase text-xs">
                   <Plus className="h-4 w-4 mr-1" />Add Player
                 </Button>
               )}
-              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs">
+              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-lg font-heading uppercase text-xs">
                 <Zap className="h-4 w-4 mr-1" />Optimize
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-sm font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Button variant="outline" size="sm" className="rounded-lg font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
                     <RotateCcw className="h-4 w-4 mr-1" />Reset
                   </Button>
                 </AlertDialogTrigger>

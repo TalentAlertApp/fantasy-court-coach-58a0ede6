@@ -118,23 +118,23 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
         <div className="flex flex-col gap-0.5 mr-1 shrink-0">
           <button
             onClick={() => setMode("fp")}
-            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-sm border transition-colors ${mode === "fp" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-lg border transition-colors ${mode === "fp" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
           >
             FP
           </button>
           <button
             onClick={() => setMode("value")}
-            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-sm border transition-colors ${mode === "value" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-lg border transition-colors ${mode === "value" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
           >
             VAL
           </button>
         </div>
-        <Badge variant="destructive" className="text-[7px] px-1 py-0 rounded-sm shrink-0 mr-0.5">FC</Badge>
+        <Badge variant="destructive" className="text-[7px] px-1 py-0 rounded-lg shrink-0 mr-0.5">FC</Badge>
         <div className="flex items-center flex-1 min-w-0">
           {fcList.map(renderPlayer)}
         </div>
         <div className="w-px h-5 bg-border mx-1 shrink-0" />
-        <Badge className="text-[7px] px-1 py-0 rounded-sm shrink-0 mr-0.5">BC</Badge>
+        <Badge className="text-[7px] px-1 py-0 rounded-lg shrink-0 mr-0.5">BC</Badge>
         <div className="flex items-center flex-1 min-w-0">
           {bcList.map(renderPlayer)}
         </div>
