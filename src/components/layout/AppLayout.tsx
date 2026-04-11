@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -11,7 +11,7 @@ import SyncStatusCard from "@/components/layout/SyncStatusCard";
 import SplitSyncButton from "@/components/layout/SplitSyncButton";
 
 const navItems = [
-  { to: "/", label: "Home", icon: Home, end: true },
+  { to: "/", label: "My Roster", icon: ClipboardList, end: true },
   
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/teams", label: "Teams", icon: Shirt },
