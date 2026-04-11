@@ -504,6 +504,12 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                           <span className="font-heading font-bold">{g.opp}</span>
                         </button>
                         <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
+                        <div className="flex items-center gap-0 ml-auto">
+                          {g.game_boxscore_url && <a href={g.game_boxscore_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Box Score"><Table2 className="h-3 w-3" /></a>}
+                          {g.game_charts_url && <a href={g.game_charts_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Charts"><BarChart3 className="h-3 w-3" /></a>}
+                          {g.game_playbyplay_url && <a href={g.game_playbyplay_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Play-by-Play"><Mic className="h-3 w-3" /></a>}
+                          <span className={`p-0.5 ${g.youtube_recap_id ? "text-green-500" : "text-muted-foreground/30"}`} title="Recap"><Tv2 className="h-3 w-3" /></span>
+                        </div>
                       </div>
                     );
                   })}
