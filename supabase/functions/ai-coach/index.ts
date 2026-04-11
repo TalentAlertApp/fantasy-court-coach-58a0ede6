@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
     const { team_id, team_name } = await resolveTeam(req, sb);
     const ctx = await fetchContext(sb, team_id);
 
-    const rosterPlayerIds = new Set(ctx.roster.map((r: any) => r.player_id));
+    const rosterPlayerIds = new Set<number>(ctx.roster.map((r: any) => r.player_id));
     const rosterSlots = ctx.roster.map((r: any) => ({
       player_id: r.player_id,
       slot: r.slot,
