@@ -16,7 +16,7 @@ export default function KpiTiles({ gw, day, deadline, bankRemaining, freeTransfe
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-0 border border-border rounded-sm overflow-hidden">
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-0 border border-border rounded-lg overflow-hidden">
       {tiles.map(({ label, value, accent }) => (
         <div key={label} className="bg-card border-r last:border-r-0 px-3 py-2.5 text-center">
           <p className="text-[10px] font-heading font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>

@@ -20,7 +20,7 @@ export default function HowToPlayModal() {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg h-[min(85vh,50rem)] flex flex-col rounded-sm overflow-hidden">
+        <DialogContent className="max-w-lg h-[min(85vh,50rem)] flex flex-col rounded-lg overflow-hidden">
           <DialogHeader className="pr-10">
             <DialogTitle className="font-heading text-lg">🏀 How To Play</DialogTitle>
           </DialogHeader>
@@ -28,7 +28,7 @@ export default function HowToPlayModal() {
             <Accordion type="multiple" defaultValue={["roster"]} className="w-full">
 
               <AccordionItem value="roster">
-                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-sm hover:no-underline">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   📋 Selecting Your Initial Roster
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
@@ -40,7 +40,7 @@ export default function HowToPlayModal() {
               </AccordionItem>
 
               <AccordionItem value="management">
-                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-sm hover:no-underline">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   ⚙️ Managing Your Team
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
@@ -52,7 +52,7 @@ export default function HowToPlayModal() {
               </AccordionItem>
 
               <AccordionItem value="deadlines">
-                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-sm hover:no-underline">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   ⏰ Deadlines
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
@@ -64,7 +64,7 @@ export default function HowToPlayModal() {
               </AccordionItem>
 
               <AccordionItem value="chips">
-                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-sm hover:no-underline">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   🃏 Chips
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-3 font-body">
@@ -84,12 +84,12 @@ export default function HowToPlayModal() {
               </AccordionItem>
 
               <AccordionItem value="scoring">
-                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-sm hover:no-underline">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   📊 Scoring
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
                   <p>Fantasy Points (FP) are calculated per game using this formula:</p>
-                  <div className="bg-muted rounded-sm p-3 font-mono text-xs text-center">
+                  <div className="bg-muted rounded-lg p-3 font-mono text-xs text-center">
                     FP = PTS×1 + REB×1 + AST×2 + BLK×3 + STL×3
                   </div>
                   <p>Only <strong>starters</strong> (or auto-subbed bench players) score points for your team each gameday.</p>
@@ -98,7 +98,7 @@ export default function HowToPlayModal() {
               </AccordionItem>
 
               <AccordionItem value="faq">
-                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-sm hover:no-underline">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   ❓ FAQ
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-3 font-body">

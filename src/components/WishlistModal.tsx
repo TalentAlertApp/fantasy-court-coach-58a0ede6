@@ -21,7 +21,7 @@ export default function WishlistModal({ open, onOpenChange, onPlayerClick }: Wis
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm rounded-sm max-h-[70vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-sm rounded-lg max-h-[70vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wider text-sm">
             <Heart className="h-4 w-4 text-destructive" />
@@ -41,7 +41,7 @@ export default function WishlistModal({ open, onOpenChange, onPlayerClick }: Wis
                 return (
                   <div
                     key={p.core.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent/50 cursor-pointer group"
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer group"
                     onClick={() => { onPlayerClick(p.core.id); onOpenChange(false); }}
                   >
                     {p.core.photo ? (
@@ -51,7 +51,7 @@ export default function WishlistModal({ open, onOpenChange, onPlayerClick }: Wis
                     )}
                     {logo && <img src={logo} alt="" className="w-4 h-4" />}
                     <span className="text-xs font-medium flex-1">{p.core.name}</span>
-                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-sm">{p.core.fc_bc}</Badge>
+                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg">{p.core.fc_bc}</Badge>
                     <span className="text-[10px] font-mono text-muted-foreground">${p.core.salary}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFromWishlist(p.core.id); }}

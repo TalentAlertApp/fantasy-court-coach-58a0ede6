@@ -18,7 +18,7 @@ export default function RosterSidebar({
   return (
     <div className="space-y-3">
       {/* ROSTER INFO */}
-      <div className="bg-card border rounded-sm overflow-hidden">
+      <div className="bg-card border rounded-lg overflow-hidden">
         <div className="px-3 py-2 bg-nba-navy text-primary-foreground flex items-center gap-2">
           <Shield className="h-4 w-4 text-accent" />
           <span className="text-xs font-heading font-bold uppercase tracking-wider">Roster Info</span>
@@ -29,11 +29,11 @@ export default function RosterSidebar({
           <div className="border-t pt-2 space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground font-heading uppercase text-[10px]">FC Starters</span>
-              <Badge variant="destructive" className="rounded-sm text-[9px] px-1.5">{fcStarters}</Badge>
+              <Badge variant="destructive" className="rounded-lg text-[9px] px-1.5">{fcStarters}</Badge>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground font-heading uppercase text-[10px]">BC Starters</span>
-              <Badge className="rounded-sm text-[9px] px-1.5">{bcStarters}</Badge>
+              <Badge className="rounded-lg text-[9px] px-1.5">{bcStarters}</Badge>
             </div>
           </div>
           <div className="border-t pt-2">

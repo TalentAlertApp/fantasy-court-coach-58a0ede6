@@ -28,16 +28,16 @@ export default function TransactionsTable({ simulation, onCommit, committing }: 
   return (
     <div className="space-y-4">
       {simulation.errors.length > 0 && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-sm p-3">
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
           {simulation.errors.map((e, i) => <p key={i} className="text-sm text-destructive">{e}</p>)}
         </div>
       )}
       {simulation.warnings.length > 0 && (
-        <div className="bg-accent/10 border border-accent/30 rounded-sm p-3">
+        <div className="bg-accent/10 border border-accent/30 rounded-lg p-3">
           {simulation.warnings.map((w, i) => <p key={i} className="text-sm">{w}</p>)}
         </div>
       )}
-      <div className="grid grid-cols-3 gap-0 border rounded-sm overflow-hidden">
+      <div className="grid grid-cols-3 gap-0 border rounded-lg overflow-hidden">
         {[
           { title: "Before", data: simulation.before },
           { title: "After", data: simulation.after },
@@ -63,7 +63,7 @@ export default function TransactionsTable({ simulation, onCommit, committing }: 
         ))}
       </div>
       <div className="flex items-center gap-3">
-        <Badge variant={simulation.is_valid ? "default" : "destructive"} className="rounded-sm font-heading">
+        <Badge variant={simulation.is_valid ? "default" : "destructive"} className="rounded-lg font-heading">
           {simulation.is_valid ? "Valid" : "Invalid"}
         </Badge>
         <Button onClick={onCommit} disabled={!simulation.is_valid || committing}>

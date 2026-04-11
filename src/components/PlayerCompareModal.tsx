@@ -80,7 +80,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
         <div className="flex items-center gap-1">
           {logo && <img src={logo} alt={team} className="w-4 h-4" />}
           <span className="text-[10px] text-muted-foreground">{team}</span>
-          <Badge variant={fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-sm h-3.5">{fc_bc}</Badge>
+          <Badge variant={fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5">{fc_bc}</Badge>
         </div>
         <span className="text-xs font-mono">${salary}</span>
       </div>
@@ -89,7 +89,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setSelectedId(null); setSearch(""); } }}>
-      <DialogContent className="max-w-lg rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="font-heading uppercase tracking-wider text-sm">Player Comparison</DialogTitle>
         </DialogHeader>
@@ -101,7 +101,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
               placeholder="Search player name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="rounded-sm"
+              className="rounded-lg"
             />
             {searchResults && search.length >= 2 && (
               <ScrollArea className="max-h-60">
@@ -113,7 +113,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
                       return (
                         <div
                           key={p.core.id}
-                          className="flex items-center gap-2 px-2 py-1.5 rounded-sm hover:bg-accent/50 cursor-pointer"
+                          className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer"
                           onClick={() => { setSelectedId(p.core.id); setSearch(""); }}
                         >
                           {p.core.photo ? (
@@ -123,7 +123,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
                           )}
                           {logo && <img src={logo} alt="" className="w-4 h-4" />}
                           <span className="text-xs font-medium">{p.core.name}</span>
-                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-sm">{p.core.fc_bc}</Badge>
+                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg">{p.core.fc_bc}</Badge>
                         </div>
                       );
                     })}

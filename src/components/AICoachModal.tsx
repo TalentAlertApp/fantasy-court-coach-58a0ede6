@@ -120,7 +120,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-2xl rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading">
             <Bot className="h-5 w-5 text-accent" />
@@ -129,12 +129,12 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </DialogHeader>
 
         <Tabs defaultValue="analyze" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="rounded-sm shrink-0 grid grid-cols-5">
-            <TabsTrigger value="analyze" className="font-heading text-[10px] uppercase rounded-sm"><Activity className="h-3 w-3 mr-1" />Analyze</TabsTrigger>
-            <TabsTrigger value="captain" className="font-heading text-[10px] uppercase rounded-sm"><Star className="h-3 w-3 mr-1" />Captain</TabsTrigger>
-            <TabsTrigger value="transfers" className="font-heading text-[10px] uppercase rounded-sm"><ArrowLeftRight className="h-3 w-3 mr-1" />Transfers</TabsTrigger>
-            <TabsTrigger value="injuries" className="font-heading text-[10px] uppercase rounded-sm"><Shield className="h-3 w-3 mr-1" />Injuries</TabsTrigger>
-            <TabsTrigger value="explain" className="font-heading text-[10px] uppercase rounded-sm"><HelpCircle className="h-3 w-3 mr-1" />Explain</TabsTrigger>
+          <TabsList className="rounded-lg shrink-0 grid grid-cols-5">
+            <TabsTrigger value="analyze" className="font-heading text-[10px] uppercase rounded-lg"><Activity className="h-3 w-3 mr-1" />Analyze</TabsTrigger>
+            <TabsTrigger value="captain" className="font-heading text-[10px] uppercase rounded-lg"><Star className="h-3 w-3 mr-1" />Captain</TabsTrigger>
+            <TabsTrigger value="transfers" className="font-heading text-[10px] uppercase rounded-lg"><ArrowLeftRight className="h-3 w-3 mr-1" />Transfers</TabsTrigger>
+            <TabsTrigger value="injuries" className="font-heading text-[10px] uppercase rounded-lg"><Shield className="h-3 w-3 mr-1" />Injuries</TabsTrigger>
+            <TabsTrigger value="explain" className="font-heading text-[10px] uppercase rounded-lg"><HelpCircle className="h-3 w-3 mr-1" />Explain</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 space-y-3">
@@ -173,7 +173,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-3">
                     <p className="font-heading font-bold uppercase">Captain: {getPlayerName(captainResult.captain_id)}</p>
-                    <Badge variant="outline" className="text-[9px] rounded-sm">{Math.round(captainResult.confidence * 100)}%</Badge>
+                    <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(captainResult.confidence * 100)}%</Badge>
                     <Button size="sm" className="ml-auto" onClick={handleApplyCaptain} disabled={applyingCaptain}>
                       {applyingCaptain ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
                     </Button>
@@ -191,15 +191,15 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               </Button>
               {transfersLoading && <Skeleton className="h-20 w-full" />}
               {transfersResult?.moves?.map((move: any, idx: number) => (
-                <div key={idx} className="bg-muted rounded-sm p-3 space-y-2 border">
+                <div key={idx} className="bg-muted rounded-lg p-3 space-y-2 border">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className="bg-green-600 text-white rounded-sm text-[9px]">ADD {getPlayerName(move.add)}</Badge>
-                    <Badge variant="destructive" className="rounded-sm text-[9px]">DROP {getPlayerName(move.drop)}</Badge>
-                    <Badge variant="outline" className="text-[9px] rounded-sm">{Math.round(move.confidence * 100)}%</Badge>
+                    <Badge className="bg-green-600 text-white rounded-lg text-[9px]">ADD {getPlayerName(move.add)}</Badge>
+                    <Badge variant="destructive" className="rounded-lg text-[9px]">DROP {getPlayerName(move.drop)}</Badge>
+                    <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(move.confidence * 100)}%</Badge>
                   </div>
                   <ul className="list-disc pl-4 text-[10px] space-y-0.5">{move.reason_bullets?.map((b: string, i: number) => <li key={i}>{b}</li>)}</ul>
                   {move.risk_flags?.length > 0 && (
-                    <div className="flex gap-1 flex-wrap">{move.risk_flags.map((f: string, i: number) => <Badge key={i} variant="destructive" className="text-[9px] rounded-sm"><AlertTriangle className="h-3 w-3 mr-0.5" />{f}</Badge>)}</div>
+                    <div className="flex gap-1 flex-wrap">{move.risk_flags.map((f: string, i: number) => <Badge key={i} variant="destructive" className="text-[9px] rounded-lg"><AlertTriangle className="h-3 w-3 mr-0.5" />{f}</Badge>)}</div>
                   )}
                   <div className="flex gap-2">
                     {!simResults[idx] ? (
@@ -231,11 +231,11 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               </Button>
               {injuryLoading && <Skeleton className="h-20 w-full" />}
               {injuryResult?.items?.map((item: any) => (
-                <div key={item.player_id} className="bg-muted rounded-sm p-2 space-y-1 border">
+                <div key={item.player_id} className="bg-muted rounded-lg p-2 space-y-1 border">
                   <div className="flex items-center gap-2">
                     <span className="font-heading font-bold uppercase text-xs">{getPlayerName(item.player_id)}</span>
-                    <Badge variant={statusColor(item.status) as any} className="rounded-sm text-[9px]">{item.status}</Badge>
-                    <Badge variant="outline" className="text-[9px] rounded-sm">{item.impact} impact</Badge>
+                    <Badge variant={statusColor(item.status) as any} className="rounded-lg text-[9px]">{item.status}</Badge>
+                    <Badge variant="outline" className="text-[9px] rounded-lg">{item.impact} impact</Badge>
                   </div>
                   {item.headline && <p className="text-[10px]">{item.headline}</p>}
                   <div className="text-[10px]"><span className="font-semibold">Action: </span>{item.recommended_move?.action}</div>
@@ -246,7 +246,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
               <div className="flex gap-2">
-                <Input placeholder="Search player name..." value={explainSearch} onChange={(e) => setExplainSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleExplain()} className="rounded-sm flex-1" />
+                <Input placeholder="Search player name..." value={explainSearch} onChange={(e) => setExplainSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleExplain()} className="rounded-lg flex-1" />
                 <Button size="sm" onClick={handleExplain} disabled={explainLoading}>
                   {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
                 </Button>
@@ -257,14 +257,14 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                   <p className="font-semibold">{explainResult.summary}</p>
                   {explainResult.why_it_scores?.map((f: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-xs mb-1">
-                      <Badge variant="outline" className="rounded-sm text-[9px]">{f.factor}</Badge>
-                      <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-sm text-[9px]">{f.impact}</Badge>
+                      <Badge variant="outline" className="rounded-lg text-[9px]">{f.factor}</Badge>
+                      <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-lg text-[9px]">{f.impact}</Badge>
                       <span>{f.note}</span>
                     </div>
                   ))}
                   {explainResult.recommendation && (
                     <div className="flex items-center gap-2">
-                      <Badge variant={explainResult.recommendation.action === "add" ? "default" : explainResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-sm">
+                      <Badge variant={explainResult.recommendation.action === "add" ? "default" : explainResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-lg">
                         {explainResult.recommendation.action.toUpperCase()}
                       </Badge>
                       <span className="text-xs">{explainResult.recommendation.rationale}</span>

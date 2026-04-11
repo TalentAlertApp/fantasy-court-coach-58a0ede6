@@ -49,14 +49,14 @@ export default function PlayerPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); } }}>
-      <DialogContent className="max-w-md h-[min(80vh,42rem)] flex flex-col rounded-sm overflow-hidden">
+      <DialogContent className="max-w-md h-[min(80vh,42rem)] flex flex-col rounded-lg overflow-hidden">
         <DialogHeader className="pr-10">
           <div className="flex items-center justify-between gap-3">
             <DialogTitle className="font-heading">{title}</DialogTitle>
             <ToggleGroup type="single" value={fcBcFilter} onValueChange={(v) => v && setFcBcFilter(v as "ALL" | "FC" | "BC")}>
-              <ToggleGroupItem value="ALL" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">All</ToggleGroupItem>
-              <ToggleGroupItem value="FC" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">FC</ToggleGroupItem>
-              <ToggleGroupItem value="BC" className="text-[10px] font-heading uppercase rounded-sm h-7 px-2">BC</ToggleGroupItem>
+              <ToggleGroupItem value="ALL" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2">All</ToggleGroupItem>
+              <ToggleGroupItem value="FC" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2">FC</ToggleGroupItem>
+              <ToggleGroupItem value="BC" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2">BC</ToggleGroupItem>
             </ToggleGroup>
           </div>
         </DialogHeader>
@@ -66,7 +66,7 @@ export default function PlayerPickerDialog({
             placeholder="Search player or team..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 rounded-sm"
+            className="pl-8 rounded-lg"
           />
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2">
@@ -101,7 +101,7 @@ export default function PlayerPickerDialog({
                   <div className="flex-1 min-w-0 relative z-10">
                     <div className="flex items-center gap-1.5">
                       <p className="text-sm font-heading font-semibold uppercase truncate">{p.core.name}</p>
-                      <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-sm shrink-0">
+                      <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded-lg shrink-0">
                         {p.core.fc_bc}
                       </Badge>
                       {teamFull && (

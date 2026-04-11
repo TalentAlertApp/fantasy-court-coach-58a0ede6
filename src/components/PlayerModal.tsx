@@ -40,7 +40,7 @@ function BreakdownCard({ data }: { data: any }) {
   const items = view === "season" ? seasonItems : lastGameItems;
 
   return (
-    <div className="bg-muted rounded-sm p-3 border shrink-0">
+    <div className="bg-muted rounded-lg p-3 border shrink-0">
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground">
           {view === "season" ? "Full Season Stats" : "Last Game FP Breakdown"}
@@ -48,13 +48,13 @@ function BreakdownCard({ data }: { data: any }) {
         <div className="flex gap-0.5">
           <button
             onClick={() => setView("season")}
-            className={`text-[8px] font-heading font-bold px-1.5 py-0.5 rounded-sm border transition-colors ${view === "season" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            className={`text-[8px] font-heading font-bold px-1.5 py-0.5 rounded-lg border transition-colors ${view === "season" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
           >
             Season
           </button>
           <button
             onClick={() => setView("lastGame")}
-            className={`text-[8px] font-heading font-bold px-1.5 py-0.5 rounded-sm border transition-colors ${view === "lastGame" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+            className={`text-[8px] font-heading font-bold px-1.5 py-0.5 rounded-lg border transition-colors ${view === "lastGame" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
           >
             Last Game
           </button>
@@ -125,7 +125,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
-        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
@@ -142,9 +142,9 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
               {/* Core Info */}
               <div className="flex items-center gap-3 shrink-0">
                 {data.player.core.photo ? (
-                  <img src={data.player.core.photo} alt="" className="w-14 h-14 rounded-sm object-cover bg-muted" />
+                  <img src={data.player.core.photo} alt="" className="w-14 h-14 rounded-lg object-cover bg-muted" />
                 ) : (
-                  <div className="w-14 h-14 rounded-sm bg-muted flex items-center justify-center text-lg font-heading font-bold text-muted-foreground">
+                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-lg font-heading font-bold text-muted-foreground">
                     {data.player.core.name.substring(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -155,7 +155,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     <p className="text-sm text-muted-foreground">{data.player.core.team} · #{data.player.core.jersey} · {data.player.core.pos}</p>
                   </div>
                   <div className="flex gap-2 mt-1">
-                    <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-sm">
+                    <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg">
                       {data.player.core.fc_bc}
                     </Badge>
                     <span className="text-sm font-mono">${data.player.core.salary}</span>
@@ -165,14 +165,14 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setCompareOpen(true)}
-                    className="p-2 rounded-sm bg-primary/20 hover:bg-primary/30 transition-colors"
+                    className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors"
                     title="Compare"
                   >
                     <BarChart3 className="h-4 w-4 text-primary" />
                   </button>
                   <button
                     onClick={() => playerId && toggleWishlist(playerId)}
-                    className="p-2 rounded-sm bg-muted hover:bg-muted/80 transition-colors"
+                    className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
                     title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                   >
                     <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
@@ -184,11 +184,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
               <BreakdownCard data={data} />
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
-                <TabsList className="rounded-sm shrink-0">
-                  <TabsTrigger value="stats" className="font-heading text-xs uppercase rounded-sm">Stats</TabsTrigger>
-                  <TabsTrigger value="history" className="font-heading text-xs uppercase rounded-sm">History</TabsTrigger>
-                  <TabsTrigger value="schedule" className="font-heading text-xs uppercase rounded-sm">Schedule</TabsTrigger>
-                  <TabsTrigger value="ai" className="font-heading text-xs uppercase rounded-sm">AI Explain</TabsTrigger>
+                <TabsList className="rounded-lg shrink-0">
+                  <TabsTrigger value="stats" className="font-heading text-xs uppercase rounded-lg">Stats</TabsTrigger>
+                  <TabsTrigger value="history" className="font-heading text-xs uppercase rounded-lg">History</TabsTrigger>
+                  <TabsTrigger value="schedule" className="font-heading text-xs uppercase rounded-lg">Schedule</TabsTrigger>
+                  <TabsTrigger value="ai" className="font-heading text-xs uppercase rounded-lg">AI Explain</TabsTrigger>
                 </TabsList>
 
                 {/* Stats Tab */}
@@ -353,8 +353,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                           <p className="text-[10px] font-heading font-bold text-muted-foreground uppercase mb-1">Scoring Factors</p>
                           {aiResult.why_it_scores.map((f: any, i: number) => (
                             <div key={i} className="flex items-center gap-2 text-xs mb-1">
-                              <Badge variant="outline" className="rounded-sm text-[9px]">{f.factor}</Badge>
-                              <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-sm text-[9px]">{f.impact}</Badge>
+                              <Badge variant="outline" className="rounded-lg text-[9px]">{f.factor}</Badge>
+                              <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-lg text-[9px]">{f.impact}</Badge>
                               <span>{f.note}</span>
                             </div>
                           ))}
@@ -364,14 +364,14 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             <p className="text-[10px] font-heading font-bold text-muted-foreground uppercase mb-1">Trends</p>
                             {aiResult.trend_flags.map((t: any, i: number) => (
                               <div key={i} className="text-xs flex gap-1 items-center mb-1">
-                                <Badge variant="outline" className="rounded-sm text-[9px]">{t.type}</Badge>
+                                <Badge variant="outline" className="rounded-lg text-[9px]">{t.type}</Badge>
                                 <span>{t.detail}</span>
                               </div>
                             ))}
                           </div>
                         )}
                         <div className="flex items-center gap-2">
-                          <Badge variant={aiResult.recommendation.action === "add" ? "default" : aiResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-sm">
+                          <Badge variant={aiResult.recommendation.action === "add" ? "default" : aiResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-lg">
                             {aiResult.recommendation.action.toUpperCase()}
                           </Badge>
                           <span className="text-xs">{aiResult.recommendation.rationale}</span>
@@ -388,7 +388,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
 
       {/* Game Boxscore Dialog */}
       <Dialog open={!!boxscoreGameId} onOpenChange={(o) => { if (!o) setBoxscoreGameId(null); }}>
-        <DialogContent className="max-w-lg rounded-sm max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle className="font-heading">Game Box Score</DialogTitle>
           </DialogHeader>
@@ -424,7 +424,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             <div className="w-5 h-5 rounded-full bg-muted" />
                           )}
                           <span className="font-medium whitespace-nowrap">{p.name}</span>
-                          <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="rounded-sm text-[8px] px-1 py-0">{p.fc_bc}</Badge>
+                          <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg text-[8px] px-1 py-0">{p.fc_bc}</Badge>
                         </div>
                       </TableCell>
                       <TableCell className="px-1.5 py-1 text-xs font-bold font-mono text-right">{p.fp.toFixed(1)}</TableCell>

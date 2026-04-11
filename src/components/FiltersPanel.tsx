@@ -30,13 +30,13 @@ export default function FiltersPanel({
   );
 
   return (
-    <div className="space-y-4 p-3 bg-card border rounded-sm">
+    <div className="space-y-4 p-3 bg-card border rounded-lg">
       <div>
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Position</Label>
         <ToggleGroup type="single" value={fcBc} onValueChange={(v) => v && onFcBcChange(v)} className="justify-start">
-          <ToggleGroupItem value="ALL" className="text-xs font-heading uppercase rounded-sm">All</ToggleGroupItem>
-          <ToggleGroupItem value="FC" className="text-xs font-heading uppercase rounded-sm">FC</ToggleGroupItem>
-          <ToggleGroupItem value="BC" className="text-xs font-heading uppercase rounded-sm">BC</ToggleGroupItem>
+          <ToggleGroupItem value="ALL" className="text-xs font-heading uppercase rounded-lg">All</ToggleGroupItem>
+          <ToggleGroupItem value="FC" className="text-xs font-heading uppercase rounded-lg">FC</ToggleGroupItem>
+          <ToggleGroupItem value="BC" className="text-xs font-heading uppercase rounded-lg">BC</ToggleGroupItem>
         </ToggleGroup>
       </div>
 
@@ -44,7 +44,7 @@ export default function FiltersPanel({
         <div>
           <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Team</Label>
           <Select value={team ?? "ALL"} onValueChange={onTeamChange}>
-            <SelectTrigger className="rounded-sm"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Teams</SelectItem>
               {sortedTeams.map((t) => (
@@ -58,7 +58,7 @@ export default function FiltersPanel({
       <div>
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Sort By</Label>
         <Select value={sort} onValueChange={onSortChange}>
-          <SelectTrigger className="rounded-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="fp5">FP5</SelectItem>
             <SelectItem value="salary">Salary</SelectItem>
@@ -70,7 +70,7 @@ export default function FiltersPanel({
       </div>
       <div>
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Search</Label>
-        <Input placeholder="Name or team…" value={search} onChange={(e) => onSearchChange(e.target.value)} className="rounded-sm" />
+        <Input placeholder="Name or team…" value={search} onChange={(e) => onSearchChange(e.target.value)} className="rounded-lg" />
       </div>
       <div>
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Max Salary: ${maxSalary}</Label>

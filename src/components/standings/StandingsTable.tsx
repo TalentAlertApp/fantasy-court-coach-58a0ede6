@@ -60,7 +60,7 @@ export default function StandingsTable({ rows, title, showCutoffs = false, compa
   return (
     <div>
       {title && <h3 className="text-sm font-heading font-bold uppercase mb-2 text-muted-foreground">{title}</h3>}
-      <div className="overflow-x-auto rounded-sm border">
+      <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-xs">
           <thead className="bg-muted/60 sticky top-0 z-10">
             <tr>

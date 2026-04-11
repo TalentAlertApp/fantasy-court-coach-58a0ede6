@@ -44,9 +44,9 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
             <img src={teamLogo} alt={core.team} className="w-5 h-5 flex-shrink-0 opacity-60" />
           )}
           {core.photo ? (
-            <img src={core.photo} alt={core.name} className="w-7 h-7 rounded-sm object-cover bg-muted" />
+            <img src={core.photo} alt={core.name} className="w-7 h-7 rounded-lg object-cover bg-muted" />
           ) : (
-            <div className="w-7 h-7 rounded-sm bg-muted flex items-center justify-center text-[9px] font-heading font-bold text-muted-foreground">
+            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[9px] font-heading font-bold text-muted-foreground">
               {core.name.substring(0, 2).toUpperCase()}
             </div>
           )}
@@ -57,7 +57,7 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
         </div>
       </TableCell>
       <TableCell>
-        <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-sm">
+        <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-lg">
           {core.fc_bc}
         </Badge>
       </TableCell>
