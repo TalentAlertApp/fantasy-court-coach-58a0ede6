@@ -236,7 +236,8 @@ export const GameBoxscorePlayerSchema = z.object({
   blk: IntSchema,
   stl: IntSchema,
   home_away: z.string().nullable(),
-}).strict();
+  salary: NumSchema.optional().default(0),
+});
 
 export const GameBoxscorePayloadSchema = z.object({
   game_id: z.string(),
