@@ -6,6 +6,7 @@ import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerModal from "@/components/PlayerModal";
 import FiltersPanel from "@/components/FiltersPanel";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -14,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -108,6 +109,16 @@ export default function PlayersPage() {
   const totalPages = effectivePageSize > 0 ? Math.ceil(totalItems / effectivePageSize) : 1;
   const paginatedItems = pageSize === "All" ? filtered : filtered.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
 
+  const columnTooltips: Record<string, { pg: string; total: string }> = {
+    pts: { pg: "Points per game", total: "Total points scored" },
+    mp: { pg: "Minutes per game", total: "Total minutes played" },
+    reb: { pg: "Rebounds per game", total: "Total rebounds" },
+    ast: { pg: "Assists per game", total: "Total assists" },
+    stl: { pg: "Steals per game", total: "Total steals" },
+    blk: { pg: "Blocks per game", total: "Total blocks" },
+    fp: { pg: "Fantasy points per game", total: "Total fantasy points" },
+  };
+
   const columns = [
     { key: "pts", label: "PTS" },
     { key: "mp", label: "MP" },
@@ -181,7 +192,19 @@ export default function PlayersPage() {
                   <TableHead className="text-xs">Team</TableHead>
                   <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`} onClick={() => handleSort("gp")}>GP</TableHead>
                   {columns.map((c) => (
-                    <TableHead key={c.key} className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`} onClick={() => handleSort(c.key)}>{c.label}</TableHead>
+                    <TableHead key={c.key} className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`} onClick={() => handleSort(c.key)}>
+                      <span className="inline-flex items-center gap-0.5">
+                        {c.label}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground inline" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="text-xs">
+                            {perfMode === "pg" ? columnTooltips[c.key]?.pg : columnTooltips[c.key]?.total}
+                          </TooltipContent>
+                        </Tooltip>
+                      </span>
+                    </TableHead>
                   ))}
                   <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`} onClick={() => handleSort("salary")}>$</TableHead>
                 </TableRow>

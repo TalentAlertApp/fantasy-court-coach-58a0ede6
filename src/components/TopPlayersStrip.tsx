@@ -12,11 +12,13 @@ interface TopPlayersStripProps {
   day: number;
 }
 
+type TopPlayer = { id: number; name: string; team: string; fc_bc: string; photo: string | null; fp: number; salary: number };
+
 export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
   const { data: weekGames } = useScheduleWeekGames(gw);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [mode, setMode] = useState<"fp" | "value">("fp");
 
-  // Get game IDs for Final games on this day (status can be "Final" or "FINAL")
   const finalGameIds = useMemo(() => {
     if (!weekGames) return [];
     return weekGames
@@ -24,13 +26,11 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
       .map((g) => g.game_id);
   }, [weekGames, day]);
 
-  // Query player_game_logs for those game IDs, joined with players
   const { data: topPlayers } = useQuery({
     queryKey: ["top-players-day", gw, day, finalGameIds],
     queryFn: async () => {
-      if (finalGameIds.length === 0) return { topFC: [], topBC: [] };
+      if (finalGameIds.length === 0) return { topFC: [], topBC: [], topFCVal: [], topBCVal: [] };
 
-      // Fetch top game logs for these games
       const { data: logs, error } = await supabase
         .from("player_game_logs")
         .select("player_id, fp, game_id")
@@ -40,22 +40,19 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
         .limit(200);
 
       if (error) throw error;
-      if (!logs || logs.length === 0) return { topFC: [], topBC: [] };
+      if (!logs || logs.length === 0) return { topFC: [], topBC: [], topFCVal: [], topBCVal: [] };
 
-      // Get unique player IDs
       const playerIds = [...new Set(logs.map((l) => l.player_id))];
 
-      // Fetch player details
       const { data: players, error: pErr } = await supabase
         .from("players")
-        .select("id, name, team, fc_bc, photo")
+        .select("id, name, team, fc_bc, photo, salary")
         .in("id", playerIds);
 
       if (pErr) throw pErr;
 
       const playerMap = new Map(players?.map((p) => [p.id, p]) ?? []);
 
-      // For each player, take their best FP across the day's games
       const bestByPlayer = new Map<number, { fp: number; player_id: number }>();
       for (const l of logs) {
         const existing = bestByPlayer.get(l.player_id);
@@ -68,14 +65,16 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
         .map((entry) => {
           const p = playerMap.get(entry.player_id);
           if (!p) return null;
-          return { ...p, fp: entry.fp };
+          return { ...p, fp: entry.fp, salary: Number(p.salary) || 1 } as TopPlayer;
         })
-        .filter(Boolean) as { id: number; name: string; team: string; fc_bc: string; photo: string | null; fp: number }[];
+        .filter(Boolean) as TopPlayer[];
 
       const topFC = enriched.filter((p) => p.fc_bc === "FC").sort((a, b) => b.fp - a.fp).slice(0, 5);
       const topBC = enriched.filter((p) => p.fc_bc === "BC").sort((a, b) => b.fp - a.fp).slice(0, 5);
+      const topFCVal = enriched.filter((p) => p.fc_bc === "FC").sort((a, b) => (b.fp / (b.salary || 1)) - (a.fp / (a.salary || 1))).slice(0, 5);
+      const topBCVal = enriched.filter((p) => p.fc_bc === "BC").sort((a, b) => (b.fp / (b.salary || 1)) - (a.fp / (a.salary || 1))).slice(0, 5);
 
-      return { topFC, topBC };
+      return { topFC, topBC, topFCVal, topBCVal };
     },
     enabled: finalGameIds.length > 0,
     staleTime: 300_000,
@@ -83,7 +82,10 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
 
   if (!topPlayers || (topPlayers.topFC.length === 0 && topPlayers.topBC.length === 0)) return null;
 
-  const renderPlayer = (p: { id: number; name: string; team: string; photo: string | null; fp: number }) => (
+  const fcList = mode === "fp" ? topPlayers.topFC : topPlayers.topFCVal;
+  const bcList = mode === "fp" ? topPlayers.topBC : topPlayers.topBCVal;
+
+  const renderPlayer = (p: TopPlayer) => (
     <div key={p.id} className="flex items-center gap-1 flex-1 min-w-0 px-1 py-0.5">
       <Avatar className="h-6 w-6 shrink-0">
         {p.photo && <AvatarImage src={p.photo} />}
@@ -99,7 +101,11 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
         <div className="flex items-center gap-0.5">
           {getTeamLogo(p.team) && <img src={getTeamLogo(p.team)} alt="" className="w-2.5 h-2.5" />}
           <span className="text-[8px] text-muted-foreground">{p.team}</span>
-          <span className="text-[9px] font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
+          {mode === "fp" ? (
+            <span className="text-[9px] font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
+          ) : (
+            <span className="text-[9px] font-mono font-bold text-primary">{(p.fp / (p.salary || 1)).toFixed(1)}</span>
+          )}
         </div>
       </div>
     </div>
@@ -108,14 +114,29 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
   return (
     <>
       <div className="bg-card border-x border-b px-1 py-1 flex items-center gap-0">
+        {/* Vertical FP/Value toggle */}
+        <div className="flex flex-col gap-0.5 mr-1 shrink-0">
+          <button
+            onClick={() => setMode("fp")}
+            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-sm border transition-colors ${mode === "fp" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >
+            FP
+          </button>
+          <button
+            onClick={() => setMode("value")}
+            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-sm border transition-colors ${mode === "value" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
+          >
+            VAL
+          </button>
+        </div>
         <Badge variant="destructive" className="text-[7px] px-1 py-0 rounded-sm shrink-0 mr-0.5">FC</Badge>
         <div className="flex items-center flex-1 min-w-0">
-          {topPlayers.topFC.map(renderPlayer)}
+          {fcList.map(renderPlayer)}
         </div>
         <div className="w-px h-5 bg-border mx-1 shrink-0" />
         <Badge className="text-[7px] px-1 py-0 rounded-sm shrink-0 mr-0.5">BC</Badge>
         <div className="flex items-center flex-1 min-w-0">
-          {topPlayers.topBC.map(renderPlayer)}
+          {bcList.map(renderPlayer)}
         </div>
       </div>
       <PlayerModal

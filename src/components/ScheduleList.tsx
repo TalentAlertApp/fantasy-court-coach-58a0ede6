@@ -89,10 +89,19 @@ const SORT_COLUMNS: { key: SortKey; label: string }[] = [
   { key: "stl", label: "S" },
 ];
 
-function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gameId: string; recapUrl?: string | null; youtubeRecapId?: string | null; onPlayerClick: (playerId: number) => void }) {
+function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, onPlayerClick }: {
+  gameId: string;
+  awayTeam: string;
+  homeTeam: string;
+  recapUrl?: string | null;
+  youtubeRecapId?: string | null;
+  onPlayerClick: (playerId: number) => void;
+}) {
   const { data, isLoading } = useGameBoxscoreQuery(gameId);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [filterTeam, setFilterTeam] = useState<string | null>(null);
+  const [filterFcBc, setFilterFcBc] = useState<string | null>(null);
 
   if (isLoading) {
     return <div className="p-3 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>;
@@ -103,7 +112,11 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
     return <p className="p-3 text-sm text-muted-foreground">No player data available</p>;
   }
 
-  const sorted = [...players].sort((a, b) => {
+  let filtered = [...players];
+  if (filterTeam) filtered = filtered.filter((p) => p.team === filterTeam);
+  if (filterFcBc) filtered = filtered.filter((p) => p.fc_bc === filterFcBc);
+
+  const sorted = filtered.sort((a, b) => {
     const av = a[sortKey] ?? 0;
     const bv = b[sortKey] ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
@@ -114,12 +127,45 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
     else { setSortKey(key); setSortDir("desc"); }
   };
 
+  const awayLogo = getTeamLogo(awayTeam);
+  const homeLogo = getTeamLogo(homeTeam);
+
   return (
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       {/* Left: stats table */}
       <div className="min-w-0">
         <div className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
-          <span className="pr-3">Player</span>
+          <div className="pr-3 flex items-center gap-1.5">
+            <span>Player</span>
+            {/* Team filter badges */}
+            <button
+              onClick={() => setFilterTeam(filterTeam === awayTeam ? null : awayTeam)}
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterTeam === awayTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            >
+              {awayLogo && <img src={awayLogo} alt="" className="w-3 h-3" />}
+              {awayTeam}
+            </button>
+            <button
+              onClick={() => setFilterTeam(filterTeam === homeTeam ? null : homeTeam)}
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterTeam === homeTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            >
+              {homeLogo && <img src={homeLogo} alt="" className="w-3 h-3" />}
+              {homeTeam}
+            </button>
+            {/* FC/BC filter buttons */}
+            <button
+              onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
+              className={`px-1.5 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+            >
+              FC
+            </button>
+            <button
+              onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
+              className={`px-1.5 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            >
+              BC
+            </button>
+          </div>
           {SORT_COLUMNS.map(({ key, label }) => (
             <button
               key={key}
@@ -166,7 +212,7 @@ function GameBoxScore({ gameId, recapUrl, youtubeRecapId, onPlayerClick }: { gam
           })}
         </div>
       </div>
-      {/* Right: recap video — stretch to full table height, aspect-video only */}
+      {/* Right: recap video */}
       <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
         <RecapVideoEmbed
           youtubeVideoId={youtubeRecapId}
@@ -316,7 +362,16 @@ export default function ScheduleList({ games }: ScheduleListProps) {
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className="bg-card border border-t-0 border-l-4 border-l-green-500 rounded-b-sm overflow-hidden">
-                {isExpanded && <GameBoxScore gameId={g.game_id} recapUrl={g.game_recap_url} youtubeRecapId={g.youtube_recap_id} onPlayerClick={setSelectedPlayerId} />}
+                {isExpanded && (
+                  <GameBoxScore
+                    gameId={g.game_id}
+                    awayTeam={g.away_team}
+                    homeTeam={g.home_team}
+                    recapUrl={g.game_recap_url}
+                    youtubeRecapId={g.youtube_recap_id}
+                    onPlayerClick={setSelectedPlayerId}
+                  />
+                )}
               </div>
             </CollapsibleContent>
           </Collapsible>
