@@ -363,9 +363,9 @@ export default function RosterPage() {
             </div>
           </div>
 
-          {/* ── Two-Column Layout ── */}
-          <div className="flex gap-4">
-            <div className="flex-1 min-w-0">
+          {/* ── Layout ── */}
+          <div className="flex flex-col gap-4">
+            <div className="min-w-0">
               {viewMode === "court" ? (
                 <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} upcomingByTeam={upcomingByTeam} />
               ) : (
@@ -373,7 +373,7 @@ export default function RosterPage() {
               )}
             </div>
 
-            <div className="hidden lg:block w-64 shrink-0">
+            <div className="w-full">
               <RosterSidebar
                 gw={currentGameday.gw}
                 day={currentGameday.day}
