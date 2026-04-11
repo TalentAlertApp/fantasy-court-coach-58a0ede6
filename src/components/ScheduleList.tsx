@@ -521,6 +521,8 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
+  const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
 
   if (games.length === 0) {
     return (
