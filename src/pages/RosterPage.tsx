@@ -11,7 +11,7 @@ import { getCurrentGameday, getGamedaysRemaining, formatDeadline } from "@/lib/d
 import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
 import RosterSidebar from "@/components/RosterSidebar";
-import BottomActionBar from "@/components/BottomActionBar";
+
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
 import PlayerPickerDialog from "@/components/PlayerPickerDialog";
@@ -385,13 +385,6 @@ export default function RosterPage() {
             </div>
           </div>
 
-          {starters.length > 0 && (
-            <BottomActionBar
-              onSave={handleSave}
-              saving={saveMutation.isPending}
-              gamedaysRemaining={gamedaysRemaining}
-            />
-          )}
 
           <OptimizeDialog open={optimizeOpen} onOpenChange={setOptimizeOpen} result={optimizerResult} onApply={handleApplyOptimization} applying={saveMutation.isPending} />
           <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />

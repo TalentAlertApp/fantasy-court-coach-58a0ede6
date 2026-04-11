@@ -137,7 +137,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       {/* Left: stats table */}
       <div className="min-w-0">
-        <div className="grid grid-cols-[auto_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
+        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
           <div className="pr-3 flex items-center gap-1.5">
             <span>Player</span>
             {/* Team filter badges */}
@@ -188,7 +188,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
               <div
                 key={p.player_id}
                 onClick={() => onPlayerClick(p.player_id)}
-                className="grid grid-cols-[auto_repeat(9,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-1.5 pr-3">
                   <Avatar className="h-5 w-5 shrink-0">
