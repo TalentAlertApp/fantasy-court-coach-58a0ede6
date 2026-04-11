@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Table2 } from "lucide-react";
+import { Table2, BarChart3, Mic, ExternalLink, Tv2 } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
 import NBAGameModal from "@/components/NBAGameModal";
@@ -25,6 +25,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
   const [selectedGame, setSelectedGame] = useState<any>(null);
+  const [expandedRecap, setExpandedRecap] = useState<string | null>(null);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
     queryKey: ["team-games", tricode],
@@ -135,22 +136,61 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       const oppLogo = getTeamLogo(opp);
                       const won = isHome ? g.home_pts > g.away_pts : g.away_pts > g.home_pts;
                       return (
-                        <div
-                          key={g.game_id}
-                          className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
-                          onClick={() => setSelectedGame(g)}
-                        >
-                          <Badge variant={won ? "default" : "destructive"} className="rounded-sm text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
-                          {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
-                          <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
-                          <span className="ml-auto font-mono text-xs font-bold">
-                            {isHome ? g.home_pts : g.away_pts}-{isHome ? g.away_pts : g.home_pts}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground font-mono">GW{g.gw}.{g.day}</span>
-                          {g.game_boxscore_url && (
-                            <a href={g.game_boxscore_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" onClick={(e) => e.stopPropagation()} title="Box Score">
-                              <Table2 className="h-3.5 w-3.5" />
-                            </a>
+                        <div key={g.game_id}>
+                          <div
+                            className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
+                            onClick={() => setSelectedGame(g)}
+                          >
+                            <Badge variant={won ? "default" : "destructive"} className="rounded-sm text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
+                            {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
+                            <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
+                            <span className="ml-auto font-mono text-xs font-bold">
+                              {isHome ? g.home_pts : g.away_pts}-{isHome ? g.away_pts : g.home_pts}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">GW{g.gw}.{g.day}</span>
+                            <div className="flex items-center gap-0.5">
+                              {g.game_boxscore_url && (
+                                <a href={g.game_boxscore_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" onClick={(e) => e.stopPropagation()} title="Box Score">
+                                  <Table2 className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                              {g.game_charts_url && (
+                                <a href={g.game_charts_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" onClick={(e) => e.stopPropagation()} title="Charts">
+                                  <BarChart3 className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                              {g.game_playbyplay_url && (
+                                <a href={g.game_playbyplay_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" onClick={(e) => e.stopPropagation()} title="Play-by-Play">
+                                  <Mic className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                              {g.nba_game_url && (
+                                <a href={g.nba_game_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" onClick={(e) => e.stopPropagation()} title="NBA.com">
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                              {g.youtube_recap_id && (
+                                <button
+                                  className="text-green-500 hover:text-green-400 transition-colors p-0.5"
+                                  onClick={(e) => { e.stopPropagation(); setExpandedRecap(expandedRecap === g.game_id ? null : g.game_id); }}
+                                  title="Video Recap"
+                                >
+                                  <Tv2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {expandedRecap === g.game_id && g.youtube_recap_id && (
+                            <div className="px-3 py-2 border-b border-border/40 bg-muted/30">
+                              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                                <iframe
+                                  className="absolute inset-0 w-full h-full rounded-sm"
+                                  src={`https://www.youtube.com/embed/${g.youtube_recap_id}`}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
+                            </div>
                           )}
                         </div>
                       );
