@@ -298,7 +298,7 @@ function useTeamFormData(teams: string[], enabled: boolean) {
       const result: Record<string, TeamFormData> = {};
 
       // Build standings from all final games
-      const acc: Record<string, { w: number; l: number; homeW: number; homeL: number; awayW: number; awayL: number; games: { won: boolean; date: string; opp: string; venue: "H" | "A" }[] }> = {};
+      const acc: Record<string, { w: number; l: number; homeW: number; homeL: number; awayW: number; awayL: number; games: Last5Game[] }> = {};
       const ensure = (t: string) => { if (!acc[t]) acc[t] = { w: 0, l: 0, homeW: 0, homeL: 0, awayW: 0, awayL: 0, games: [] }; };
 
       for (const g of data) {
@@ -306,6 +306,12 @@ function useTeamFormData(teams: string[], enabled: boolean) {
         ensure(g.away_team);
         const homeWon = g.home_pts > g.away_pts;
         const dateStr = g.tipoff_utc ? format(new Date(g.tipoff_utc), "dd/MM/yy") : "—";
+        const shared = {
+          game_id: g.game_id, game_boxscore_url: g.game_boxscore_url, game_charts_url: g.game_charts_url,
+          game_playbyplay_url: g.game_playbyplay_url, game_recap_url: g.game_recap_url,
+          nba_game_url: g.nba_game_url, youtube_recap_id: g.youtube_recap_id,
+          home_team: g.home_team, away_team: g.away_team, home_pts: g.home_pts, away_pts: g.away_pts,
+        };
 
         if (homeWon) {
           acc[g.home_team].w++; acc[g.home_team].homeW++;
@@ -315,8 +321,8 @@ function useTeamFormData(teams: string[], enabled: boolean) {
           acc[g.away_team].w++; acc[g.away_team].awayW++;
         }
 
-        acc[g.home_team].games.push({ won: homeWon, date: dateStr, opp: g.away_team, venue: "H" });
-        acc[g.away_team].games.push({ won: !homeWon, date: dateStr, opp: g.home_team, venue: "A" });
+        acc[g.home_team].games.push({ won: homeWon, date: dateStr, opp: g.away_team, venue: "H", ...shared });
+        acc[g.away_team].games.push({ won: !homeWon, date: dateStr, opp: g.home_team, venue: "A", ...shared });
       }
 
       // Find league leader for GB
