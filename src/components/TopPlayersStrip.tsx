@@ -16,11 +16,11 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
   const { data: weekGames } = useScheduleWeekGames(gw);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
-  // Get game IDs for Final games on this day
+  // Get game IDs for Final games on this day (status can be "Final" or "FINAL")
   const finalGameIds = useMemo(() => {
     if (!weekGames) return [];
     return weekGames
-      .filter((g) => g.day === day && g.status === "Final")
+      .filter((g) => g.day === day && (g.status ?? "").toUpperCase().includes("FINAL"))
       .map((g) => g.game_id);
   }, [weekGames, day]);
 
