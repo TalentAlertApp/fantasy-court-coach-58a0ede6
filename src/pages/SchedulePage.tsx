@@ -1,13 +1,14 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
+import TeamOfTheWeekModal from "@/components/TeamOfTheWeekModal";
 import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
 import ScheduleList from "@/components/ScheduleList";
 import TopPlayersStrip from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -48,6 +49,7 @@ export default function SchedulePage() {
   const current = useMemo(() => getCurrentGameday(), []);
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
+  const [totwOpen, setTotwOpen] = useState(false);
   const navigate = useNavigate();
   const { data, isLoading } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
@@ -121,6 +123,13 @@ export default function SchedulePage() {
             title="Advanced Schedule Grid"
           >
             <Grid3X3 className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setTotwOpen(true)}
+            className="p-1 rounded-sm transition-colors bg-white/10 text-white/70 hover:bg-white/20"
+            title="Team of the Week"
+          >
+            <Trophy className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -233,6 +242,8 @@ export default function SchedulePage() {
       ) : (
         <ScheduleList games={data?.games ?? []} />
       )}
+
+      <TeamOfTheWeekModal open={totwOpen} onOpenChange={setTotwOpen} gw={gw} />
     </div>
   );
 }
