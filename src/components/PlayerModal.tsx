@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlayerDetail, fetchGameBoxscore, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Loader2, BarChart3, Heart } from "lucide-react";
+import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2 } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -232,6 +232,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">A</TableHead>
                             <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">B</TableHead>
                             <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">S</TableHead>
+                            <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-center">Links</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -244,8 +245,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             return (
                               <TableRow
                                 key={i}
-                                className="cursor-pointer hover:bg-accent/50"
-                                onClick={() => setBoxscoreGameId(h.game_id)}
+                                className="hover:bg-accent/50"
                               >
                                 <TableCell className="px-1.5 py-1 text-xs font-bold font-mono whitespace-nowrap">
                                   GW{h.gw}.{h.day}
@@ -264,6 +264,26 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                 <TableCell className="px-1.5 py-1 text-xs font-mono text-right">{h.ast}</TableCell>
                                 <TableCell className="px-1.5 py-1 text-xs font-mono text-right">{h.blk}</TableCell>
                                 <TableCell className="px-1.5 py-1 text-xs font-mono text-right">{h.stl}</TableCell>
+                                <TableCell className="px-1.5 py-1">
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    <button onClick={() => setBoxscoreGameId(h.game_id)} className="text-muted-foreground hover:text-primary transition-colors p-0.5" title="Box Score">
+                                      <Table2 className="h-3 w-3" />
+                                    </button>
+                                    {h.game_charts_url && (
+                                      <a href={h.game_charts_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" title="Charts">
+                                        <BarChart3 className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                    {h.game_playbyplay_url && (
+                                      <a href={h.game_playbyplay_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary transition-colors p-0.5" title="Play-by-Play">
+                                        <Mic className="h-3 w-3" />
+                                      </a>
+                                    )}
+                                    <span className={`p-0.5 ${h.game_recap_url ? "text-green-500" : "text-muted-foreground/30"}`} title="Video Recap">
+                                      <Tv2 className="h-3 w-3" />
+                                    </span>
+                                  </div>
+                                </TableCell>
                               </TableRow>
                             );
                           })}
