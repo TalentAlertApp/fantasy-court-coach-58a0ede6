@@ -137,10 +137,9 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       {/* Left: stats table */}
       <div className="min-w-0">
-        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
+        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "scroll", scrollbarGutter: "stable" }}>
           <div className="pr-3 flex items-center gap-1.5">
             <span>Player</span>
-            {/* Team filter badges */}
             <button
               onClick={() => setFilterTeam(filterTeam === awayTeam ? null : awayTeam)}
               className={`flex items-center gap-0.5 px-1 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterTeam === awayTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
@@ -155,7 +154,6 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
               {homeLogo && <img src={homeLogo} alt="" className="w-3 h-3" />}
               {homeTeam}
             </button>
-            {/* FC/BC filter buttons */}
             <button
               onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
               className={`px-1.5 py-0.5 rounded-sm border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
@@ -181,7 +179,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
             </button>
           ))}
         </div>
-        <div className="max-h-[360px] overflow-y-auto">
+        <div className="max-h-[360px] overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
           {sorted.map((p) => {
             const isFc = p.fc_bc === "FC";
             return (
