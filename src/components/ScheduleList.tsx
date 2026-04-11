@@ -137,7 +137,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       {/* Left: stats table */}
       <div className="min-w-0">
-        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "scroll", scrollbarGutter: "stable" }}>
+        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "hidden", scrollbarGutter: "stable" }}>
           <div className="pr-3 flex items-center gap-1.5">
             <span>Player</span>
             <button

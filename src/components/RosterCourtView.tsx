@@ -19,18 +19,18 @@ interface RosterCourtViewProps {
   upcomingByTeam?: UpcomingByTeam;
 }
 
-/* Landscape court positions — FC on left (near basket), BC on right (perimeter) */
-function getRowPositions(count: number, leftPct: string): { top: string; left: string }[] {
+/* Landscape court positions — FC at top (near basket), BC at bottom (perimeter) */
+function getRowPositions(count: number, topPct: string): { top: string; left: string }[] {
   if (count === 3) {
     return [
-      { top: "18%", left: leftPct },
-      { top: "50%", left: leftPct },
-      { top: "82%", left: leftPct },
+      { top: topPct, left: "20%" },
+      { top: topPct, left: "50%" },
+      { top: topPct, left: "80%" },
     ];
   }
   return [
-    { top: "30%", left: leftPct },
-    { top: "70%", left: leftPct },
+    { top: topPct, left: "33%" },
+    { top: topPct, left: "67%" },
   ];
 }
 
@@ -115,10 +115,10 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
   );
 
   return (
-    <div className="flex flex-col lg:flex-row gap-4">
-      {/* LEFT — Landscape Court with Starting 5 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-sm mb-2">
+    <div className="flex flex-col gap-4">
+      {/* Court with Starting 5 */}
+      <div className="w-full">
+        <div className="flex items-center justify-between bg-destructive/10 border border-destructive/20 px-3 py-2 rounded-lg mb-2">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
             <span className="text-xs font-heading font-bold uppercase tracking-wider text-destructive">Starting 5</span>
@@ -126,7 +126,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
           <span className="text-[10px] text-muted-foreground font-body italic">Drag to reorder</span>
         </div>
         <div
-          className="relative w-full rounded-sm overflow-hidden"
+          className="relative w-full rounded-lg overflow-hidden"
           style={{
             aspectRatio: "5/3",
             backgroundImage: `url(${courtBg})`,
@@ -165,17 +165,17 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         </div>
       </div>
 
-      {/* RIGHT — Bench */}
-      <div className="w-full lg:w-[200px] xl:w-[220px] shrink-0">
-        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 rounded-sm mb-2">
+      {/* Bench — horizontal row below court */}
+      <div>
+        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 rounded-lg mb-2">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Bench</span>
           </div>
           <span className="text-[10px] text-muted-foreground font-body italic">5 subs</span>
         </div>
-        <div className="flex flex-col gap-2">
-          {bench.map((p) => renderCard(p, false))}
+        <div className="grid grid-cols-5 gap-2">
+          {bench.map((p) => renderCard(p, true))}
           {bench.length < 5 && Array.from({ length: 5 - bench.length }).map((_, i) => emptySlot(i + 10))}
         </div>
       </div>
