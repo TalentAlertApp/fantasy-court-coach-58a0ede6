@@ -256,7 +256,7 @@ export default function RosterPage() {
   return (
     <div className="pb-20">
       {/* ── Full-width Header Banner ── */}
-      <div className="bg-primary rounded-sm mb-4 px-5 py-4">
+      <div className="bg-primary mb-4 px-5 py-4" style={{ borderRadius: "var(--radius)" }}>
         <p className="text-destructive font-heading text-[11px] font-bold uppercase tracking-widest mb-0.5">
           {teamName}
         </p>
@@ -271,7 +271,7 @@ export default function RosterPage() {
             </span>
           </div>
           {countdown && (
-            <Badge className={`rounded-sm text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
+            <Badge className={`rounded-md text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
               {countdown}
             </Badge>
           )}
@@ -279,7 +279,7 @@ export default function RosterPage() {
             <Button
               size="sm"
               onClick={() => setAiCoachOpen(true)}
-              className="rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+              className="rounded-lg font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
             </Button>
@@ -287,7 +287,7 @@ export default function RosterPage() {
               size="sm"
               variant="outline"
               onClick={() => setWishlistOpen(true)}
-              className="rounded-sm font-heading uppercase text-xs"
+              className="rounded-lg font-heading uppercase text-xs"
             >
               <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
             </Button>

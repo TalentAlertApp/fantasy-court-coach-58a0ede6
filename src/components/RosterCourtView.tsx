@@ -149,9 +149,11 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
       {/* Court with Starting 5 */}
       <div className="flex-1 min-w-0">
         <div
-          className="relative w-full rounded-lg overflow-hidden"
+          className="relative w-full overflow-hidden"
           style={{
             aspectRatio: "5/3",
+            maxHeight: "62vh",
+            borderRadius: "var(--radius)",
             backgroundImage: `url(${courtBg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
@@ -197,7 +199,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
 
       {/* Bench + ROSTER INFO — vertical column on the right */}
       <div className="w-64 shrink-0 flex flex-col">
-        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 rounded-lg mb-2">
+        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 mb-2" style={{ borderRadius: "var(--radius)" }}>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Bench</span>
