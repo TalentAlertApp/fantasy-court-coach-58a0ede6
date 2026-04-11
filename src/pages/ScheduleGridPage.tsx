@@ -136,7 +136,7 @@ export default function ScheduleGridPage() {
                 return (
                   <label
                     key={wd.day}
-                    className={`flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors ${
                       checked
                         ? "bg-[hsl(var(--nba-yellow))]/15 border border-[hsl(var(--nba-yellow))]/40"
                         : "hover:bg-muted border border-transparent"
@@ -181,7 +181,7 @@ export default function ScheduleGridPage() {
               <button
                 key={wd.day}
                 onClick={() => toggleDay(wd.day)}
-                className={`shrink-0 px-2 py-1 rounded-sm text-[10px] font-heading font-bold transition-colors ${
+                className={`shrink-0 px-2 py-1 rounded-lg text-[10px] font-heading font-bold transition-colors ${
                   checked
                     ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))]"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"

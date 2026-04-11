@@ -525,7 +525,7 @@ export default function CommissionerPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Upload Card */}
-        <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="bg-card border rounded-lg overflow-hidden">
           <div className="section-bar">Upload Player Database</div>
           <div className="p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
@@ -558,7 +558,7 @@ export default function CommissionerPage() {
         </div>
 
         {/* Download Card */}
-        <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="bg-card border rounded-lg overflow-hidden">
           <div className="section-bar">Download Player Database</div>
           <div className="p-4 space-y-3">
             <p className="text-xs text-muted-foreground">
@@ -579,14 +579,14 @@ export default function CommissionerPage() {
 
       {/* Preview Table */}
       {preview && (
-        <div className="bg-card border rounded-sm overflow-hidden">
+        <div className="bg-card border rounded-lg overflow-hidden">
           <div className="section-bar flex items-center gap-2">
             <Eye className="h-4 w-4" />
             Preview — Verify Names Before Import
           </div>
           <div className="p-4 space-y-3">
             {corruptCount > 0 && (
-              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-sm p-2">
+              <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>
                   <strong>{corruptCount} names contain '?' characters</strong> — likely encoding issue.
@@ -648,7 +648,7 @@ export default function CommissionerPage() {
       )}
 
       {/* Game Data Import Card */}
-      <div className="bg-card border rounded-sm overflow-hidden">
+      <div className="bg-card border rounded-lg overflow-hidden">
         <div className="section-bar flex items-center gap-2">
           <Database className="h-4 w-4" />
           Import Game Data
@@ -689,7 +689,7 @@ export default function CommissionerPage() {
       </div>
 
       {/* Schedule Import Card */}
-      <div className="bg-card border rounded-sm overflow-hidden">
+      <div className="bg-card border rounded-lg overflow-hidden">
         <div className="section-bar flex items-center gap-2">
           <Calendar className="h-4 w-4" />
           Import Schedule
@@ -730,7 +730,7 @@ export default function CommissionerPage() {
       </div>
 
       {/* YouTube Recaps */}
-      <div className="bg-card border rounded-sm p-4 space-y-3">
+      <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Youtube className="h-5 w-5 text-destructive" />
           <h3 className="font-heading font-bold text-lg uppercase">YouTube Recaps</h3>
@@ -754,7 +754,7 @@ export default function CommissionerPage() {
           </div>
         )}
       </div>
-      <div className="flex items-start gap-2 bg-muted/50 border rounded-sm p-3">
+      <div className="flex items-start gap-2 bg-muted/50 border rounded-lg p-3">
         <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-xs text-muted-foreground space-y-1">
           <p><strong>Full replace mode:</strong> uploading a TSV wipes the entire players table and replaces it with the file contents.</p>

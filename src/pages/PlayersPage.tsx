@@ -173,8 +173,8 @@ export default function PlayersPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <h2 className="text-xl font-heading font-bold">Transactions</h2>
         <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
-          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-sm h-8">Per Game</ToggleGroupItem>
-          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-sm h-8">Totals</ToggleGroupItem>
+          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-lg h-8">Per Game</ToggleGroupItem>
+          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-lg h-8">Totals</ToggleGroupItem>
         </ToggleGroup>
         <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
       </div>
@@ -239,9 +239,9 @@ export default function PlayersPage() {
                             {p.core.photo && <AvatarImage src={p.core.photo} />}
                             <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
                           </Avatar>
-                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-sm">{p.core.fc_bc}</Badge>
+                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.core.fc_bc}</Badge>
                           <span className="font-medium whitespace-nowrap">{p.core.name}</span>
-                          {isOnRoster && <Badge variant="outline" className="text-[7px] px-1 py-0 rounded-sm border-green-500/50 text-green-600">ROSTER</Badge>}
+                          {isOnRoster && <Badge variant="outline" className="text-[7px] px-1 py-0 rounded-lg border-green-500/50 text-green-600">ROSTER</Badge>}
                         </div>
                       </td>
                       <td className="px-2 py-1.5 text-xs">

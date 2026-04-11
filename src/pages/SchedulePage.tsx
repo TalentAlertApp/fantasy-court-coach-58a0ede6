@@ -83,7 +83,7 @@ export default function SchedulePage() {
             NBA Fantasy · Season 2025-26
           </p>
           {isCurrentWeek && (
-            <Badge className="bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] text-[9px] rounded-sm px-1.5 py-0 font-heading font-bold">
+            <Badge className="bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] text-[9px] rounded-lg px-1.5 py-0 font-heading font-bold">
               CURRENT WEEK
             </Badge>
           )}
@@ -98,7 +98,7 @@ export default function SchedulePage() {
                 key={w}
                 data-gw={w}
                 onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
-                className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-sm transition-all ${
+                className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-lg transition-all ${
                   isSelected
                     ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
                     : isPast
@@ -119,14 +119,14 @@ export default function SchedulePage() {
           <span className="text-xs opacity-60 font-body">{dateRange}</span>
           <button
             onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
-            className="ml-1 p-1 rounded-sm transition-colors bg-white/10 text-white/70 hover:bg-white/20"
+            className="ml-1 p-1 rounded-lg transition-colors bg-white/10 text-white/70 hover:bg-white/20"
             title="Advanced Schedule Grid"
           >
             <Grid3X3 className="h-4 w-4" />
           </button>
           <button
             onClick={() => setTotwOpen(true)}
-            className="p-1 rounded-sm transition-colors bg-white/10 text-white/70 hover:bg-white/20"
+            className="p-1 rounded-lg transition-colors bg-white/10 text-white/70 hover:bg-white/20"
             title="Team of the Week"
           >
             <Trophy className="h-4 w-4" />
@@ -207,8 +207,8 @@ export default function SchedulePage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-heading font-bold text-sm uppercase">{selectedDateLabel}</h3>
-            <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-sm">Day {day}</span>
-            {isToday && <Badge variant="destructive" className="text-[9px] rounded-sm px-1.5 py-0">TODAY</Badge>}
+            <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-lg">Day {day}</span>
+            {isToday && <Badge variant="destructive" className="text-[9px] rounded-lg px-1.5 py-0">TODAY</Badge>}
             {deadline && (
               <>
                 <span className="text-muted-foreground">·</span>
@@ -238,7 +238,7 @@ export default function SchedulePage() {
 
       {/* Games */}
       {isLoading ? (
-        <div className="space-y-2 px-1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-sm" />)}</div>
+        <div className="space-y-2 px-1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
       ) : (
         <ScheduleList games={data?.games ?? []} />
       )}
