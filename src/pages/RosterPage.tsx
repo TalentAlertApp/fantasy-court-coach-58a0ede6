@@ -21,7 +21,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot } from "lucide-react";
+import AICoachModal from "@/components/AICoachModal";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -55,10 +56,10 @@ export default function RosterPage() {
   const [swapPlayerId, setSwapPlayerId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Chips state (visual toggles for now)
   const [chipCaptain, setChipCaptain] = useState(false);
   const [chipAllStar, setChipAllStar] = useState(false);
   const [chipWildcard, setChipWildcard] = useState(false);
+  const [aiCoachOpen, setAiCoachOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -270,6 +271,13 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
+          <Button
+            size="sm"
+            onClick={() => setAiCoachOpen(true)}
+            className="ml-auto rounded-sm font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+          >
+            <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
+          </Button>
         </div>
       </div>
 
@@ -373,7 +381,6 @@ export default function RosterPage() {
                 fcStarters={fcStarters}
                 bcStarters={bcStarters}
                 totalSalary={totalSalary}
-                allPlayers={allPlayers}
               />
             </div>
           </div>
@@ -391,6 +398,7 @@ export default function RosterPage() {
 
           <OptimizeDialog open={optimizeOpen} onOpenChange={setOptimizeOpen} result={optimizerResult} onApply={handleApplyOptimization} applying={saveMutation.isPending} />
           <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
+          <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
           <PlayerPickerDialog
             open={pickerOpen}
             onOpenChange={setPickerOpen}

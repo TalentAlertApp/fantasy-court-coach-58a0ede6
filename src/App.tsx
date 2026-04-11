@@ -13,6 +13,7 @@ import ScheduleGridPage from "@/pages/ScheduleGridPage";
 
 import AIHubPage from "@/pages/AIHubPage";
 import CommissionerPage from "@/pages/CommissionerPage";
+import AdvancedPage from "@/pages/AdvancedPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +34,7 @@ const App = () => (
               <Route path="/teams" element={<TeamsPage />} />
               <Route path="/schedule" element={<SchedulePage />} />
               <Route path="/schedule/grid" element={<ScheduleGridPage />} />
-              
+              <Route path="/advanced" element={<AdvancedPage />} />
               <Route path="/ai" element={<AIHubPage />} />
               <Route path="/commissioner" element={<CommissionerPage />} />
             </Route>
