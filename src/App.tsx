@@ -7,7 +7,6 @@ import { TeamProvider } from "@/contexts/TeamContext";
 import AppLayout from "@/components/layout/AppLayout";
 import RosterPage from "@/pages/RosterPage";
 import PlayersPage from "@/pages/PlayersPage";
-import TransactionsPage from "@/pages/TransactionsPage";
 import TeamsPage from "@/pages/TeamsPage";
 import SchedulePage from "@/pages/SchedulePage";
 
@@ -28,8 +27,8 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/" element={<RosterPage />} />
               <Route path="/roster" element={<Navigate to="/" replace />} />
-              <Route path="/players" element={<PlayersPage />} />
-              <Route path="/transactions" element={<TransactionsPage />} />
+              <Route path="/transactions" element={<PlayersPage />} />
+              <Route path="/players" element={<Navigate to="/transactions" replace />} />
               <Route path="/teams" element={<TeamsPage />} />
               <Route path="/schedule" element={<SchedulePage />} />
               

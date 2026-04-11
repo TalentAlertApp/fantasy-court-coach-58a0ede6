@@ -14,7 +14,6 @@ const navItems = [
   { to: "/", label: "Home", icon: Home, end: true },
   
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
-  { to: "/players", label: "Players", icon: Users },
   { to: "/teams", label: "Teams", icon: Shirt },
   { to: "/schedule", label: "Schedule", icon: Calendar },
   { to: "/ai", label: "AI Hub", icon: Bot },
