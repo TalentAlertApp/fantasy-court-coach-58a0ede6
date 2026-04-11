@@ -87,9 +87,9 @@ export default function ScheduleGridPage() {
     const dayMap = teamGrid.get(tricode);
     if (!dayMap) return false;
     for (const d of selectedDays) {
-      if (dayMap.has(d)) return true;
+      if (!dayMap.has(d)) return false; // must play on ALL selected days
     }
-    return false;
+    return true;
   };
 
   const totalGamesWeek = games?.length ?? 0;

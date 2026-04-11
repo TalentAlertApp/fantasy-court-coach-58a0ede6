@@ -1,9 +1,11 @@
-import { useMemo } from "react";
-import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
+import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getTeamLogo } from "@/lib/nba-teams";
+import PlayerModal from "@/components/PlayerModal";
 
 interface TopPlayersStripProps {
   gw: number;
@@ -12,62 +14,115 @@ interface TopPlayersStripProps {
 
 export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
   const { data: weekGames } = useScheduleWeekGames(gw);
-  const { data: playersData } = usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 });
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
-  const { topFC, topBC } = useMemo(() => {
-    if (!weekGames || !playersData?.items) return { topFC: [], topBC: [] };
+  // Get game IDs for Final games on this day
+  const finalGameIds = useMemo(() => {
+    if (!weekGames) return [];
+    return weekGames
+      .filter((g) => g.day === day && g.status === "Final")
+      .map((g) => g.game_id);
+  }, [weekGames, day]);
 
-    // Get teams playing on this day
-    const teamsPlaying = new Set<string>();
-    for (const g of weekGames) {
-      if (g.day === day) {
-        teamsPlaying.add(g.home_team);
-        teamsPlaying.add(g.away_team);
+  // Query player_game_logs for those game IDs, joined with players
+  const { data: topPlayers } = useQuery({
+    queryKey: ["top-players-day", gw, day, finalGameIds],
+    queryFn: async () => {
+      if (finalGameIds.length === 0) return { topFC: [], topBC: [] };
+
+      // Fetch top game logs for these games
+      const { data: logs, error } = await supabase
+        .from("player_game_logs")
+        .select("player_id, fp, game_id")
+        .in("game_id", finalGameIds)
+        .gt("fp", 0)
+        .order("fp", { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+      if (!logs || logs.length === 0) return { topFC: [], topBC: [] };
+
+      // Get unique player IDs
+      const playerIds = [...new Set(logs.map((l) => l.player_id))];
+
+      // Fetch player details
+      const { data: players, error: pErr } = await supabase
+        .from("players")
+        .select("id, name, team, fc_bc, photo")
+        .in("id", playerIds);
+
+      if (pErr) throw pErr;
+
+      const playerMap = new Map(players?.map((p) => [p.id, p]) ?? []);
+
+      // For each player, take their best FP across the day's games
+      const bestByPlayer = new Map<number, { fp: number; player_id: number }>();
+      for (const l of logs) {
+        const existing = bestByPlayer.get(l.player_id);
+        if (!existing || l.fp > existing.fp) {
+          bestByPlayer.set(l.player_id, { fp: l.fp, player_id: l.player_id });
+        }
       }
-    }
 
-    // No games on this day → no top players
-    if (teamsPlaying.size === 0) return { topFC: [], topBC: [] };
+      const enriched = [...bestByPlayer.values()]
+        .map((entry) => {
+          const p = playerMap.get(entry.player_id);
+          if (!p) return null;
+          return { ...p, fp: entry.fp };
+        })
+        .filter(Boolean) as { id: number; name: string; team: string; fc_bc: string; photo: string | null; fp: number }[];
 
-    const playing = playersData.items.filter((p) => teamsPlaying.has(p.core.team));
-    const getFp = (p: any) => p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0;
-    const fc = playing.filter((p) => p.core.fc_bc === "FC").sort((a, b) => getFp(b) - getFp(a)).slice(0, 5);
-    const bc = playing.filter((p) => p.core.fc_bc === "BC").sort((a, b) => getFp(b) - getFp(a)).slice(0, 5);
-    return { topFC: fc, topBC: bc, getFp };
-  }, [weekGames, playersData, day]);
+      const topFC = enriched.filter((p) => p.fc_bc === "FC").sort((a, b) => b.fp - a.fp).slice(0, 5);
+      const topBC = enriched.filter((p) => p.fc_bc === "BC").sort((a, b) => b.fp - a.fp).slice(0, 5);
 
-  const { getFp } = useMemo(() => ({ getFp: (p: any) => p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0 }), []);
+      return { topFC, topBC };
+    },
+    enabled: finalGameIds.length > 0,
+    staleTime: 300_000,
+  });
 
-  if (topFC.length === 0 && topBC.length === 0) return null;
+  if (!topPlayers || (topPlayers.topFC.length === 0 && topPlayers.topBC.length === 0)) return null;
 
-  const renderPlayer = (p: typeof topFC[0]) => (
-    <div key={p.core.id} className="flex items-center gap-1.5 min-w-[140px] px-2 py-1">
-      <Avatar className="h-7 w-7 shrink-0">
-        {p.core.photo && <AvatarImage src={p.core.photo} />}
-        <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
+  const renderPlayer = (p: { id: number; name: string; team: string; photo: string | null; fp: number }) => (
+    <div key={p.id} className="flex items-center gap-1 flex-1 min-w-0 px-1 py-0.5">
+      <Avatar className="h-6 w-6 shrink-0">
+        {p.photo && <AvatarImage src={p.photo} />}
+        <AvatarFallback className="text-[7px]">{p.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      <div className="min-w-0">
-        <div className="text-[10px] font-heading font-bold truncate max-w-[90px]">{p.core.name}</div>
-        <div className="flex items-center gap-1">
-          {getTeamLogo(p.core.team) && <img src={getTeamLogo(p.core.team)} alt="" className="w-3 h-3" />}
-          <span className="text-[9px] text-muted-foreground">{p.core.team}</span>
-          <span className="text-[9px] font-mono font-bold text-primary">{(p.season.fp_pg5 ?? p.season.fp_pg_t ?? 0).toFixed(1)}</span>
+      <div className="min-w-0 flex-1">
+        <button
+          onClick={() => setSelectedPlayerId(p.id)}
+          className="text-[9px] font-heading font-bold truncate block max-w-full text-left hover:text-primary hover:underline cursor-pointer"
+        >
+          {p.name}
+        </button>
+        <div className="flex items-center gap-0.5">
+          {getTeamLogo(p.team) && <img src={getTeamLogo(p.team)} alt="" className="w-2.5 h-2.5" />}
+          <span className="text-[8px] text-muted-foreground">{p.team}</span>
+          <span className="text-[9px] font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="bg-card border-x border-b px-2 py-1.5 flex items-center gap-0 overflow-x-auto scrollbar-hide">
-      <Badge variant="destructive" className="text-[8px] px-1 py-0 rounded-sm shrink-0 mr-1">FC</Badge>
-      <div className="flex items-center">
-        {topFC.map(renderPlayer)}
+    <>
+      <div className="bg-card border-x border-b px-1 py-1 flex items-center gap-0">
+        <Badge variant="destructive" className="text-[7px] px-1 py-0 rounded-sm shrink-0 mr-0.5">FC</Badge>
+        <div className="flex items-center flex-1 min-w-0">
+          {topPlayers.topFC.map(renderPlayer)}
+        </div>
+        <div className="w-px h-5 bg-border mx-1 shrink-0" />
+        <Badge className="text-[7px] px-1 py-0 rounded-sm shrink-0 mr-0.5">BC</Badge>
+        <div className="flex items-center flex-1 min-w-0">
+          {topPlayers.topBC.map(renderPlayer)}
+        </div>
       </div>
-      <div className="w-px h-6 bg-border mx-2 shrink-0" />
-      <Badge className="text-[8px] px-1 py-0 rounded-sm shrink-0 mr-1">BC</Badge>
-      <div className="flex items-center">
-        {topBC.map(renderPlayer)}
-      </div>
-    </div>
+      <PlayerModal
+        playerId={selectedPlayerId}
+        open={selectedPlayerId !== null}
+        onOpenChange={(open) => { if (!open) setSelectedPlayerId(null); }}
+      />
+    </>
   );
 }
