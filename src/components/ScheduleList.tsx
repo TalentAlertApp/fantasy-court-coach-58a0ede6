@@ -76,11 +76,13 @@ function isGameLive(status: string) {
   return s === "LIVE" || s === "IN_PROGRESS";
 }
 
-type SortKey = "fp" | "mp" | "ps" | "ast" | "reb" | "blk" | "stl";
+type SortKey = "fp" | "mp" | "ps" | "ast" | "reb" | "blk" | "stl" | "salary" | "value";
 type SortDir = "asc" | "desc";
 
-const SORT_COLUMNS: { key: SortKey; label: string }[] = [
+const SORT_COLUMNS: { key: SortKey; label: string; highlight?: boolean }[] = [
   { key: "fp", label: "FP" },
+  { key: "salary", label: "$", highlight: true },
+  { key: "value", label: "V", highlight: true },
   { key: "mp", label: "MP" },
   { key: "ps", label: "PS" },
   { key: "ast", label: "A" },
@@ -116,9 +118,10 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
   if (filterTeam) filtered = filtered.filter((p) => p.team === filterTeam);
   if (filterFcBc) filtered = filtered.filter((p) => p.fc_bc === filterFcBc);
 
-  const sorted = filtered.sort((a, b) => {
-    const av = a[sortKey] ?? 0;
-    const bv = b[sortKey] ?? 0;
+  const withValue = filtered.map((p) => ({ ...p, value: p.fp / ((p as any).salary || 1) }));
+  const sorted = withValue.sort((a, b) => {
+    const av = (a as any)[sortKey] ?? 0;
+    const bv = (b as any)[sortKey] ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
   });
 
@@ -134,7 +137,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       {/* Left: stats table */}
       <div className="min-w-0">
-        <div className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
+        <div className="grid grid-cols-[auto_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
           <div className="pr-3 flex items-center gap-1.5">
             <span>Player</span>
             {/* Team filter badges */}
@@ -166,13 +169,13 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
               BC
             </button>
           </div>
-          {SORT_COLUMNS.map(({ key, label }) => (
+          {SORT_COLUMNS.map(({ key, label, highlight }) => (
             <button
               key={key}
               onClick={() => handleSort(key)}
               className={`text-right hover:text-foreground transition-colors cursor-pointer ${
                 sortKey === key ? "font-bold text-foreground" : ""
-              }`}
+              } ${highlight ? "text-amber-400" : ""}`}
             >
               {label}
             </button>
@@ -185,7 +188,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
               <div
                 key={p.player_id}
                 onClick={() => onPlayerClick(p.player_id)}
-                className="grid grid-cols-[auto_repeat(7,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+                className="grid grid-cols-[auto_repeat(9,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
               >
                 <div className="flex items-center gap-1.5 pr-3">
                   <Avatar className="h-5 w-5 shrink-0">
@@ -201,6 +204,8 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
                   <span className="text-xs font-medium whitespace-nowrap">{p.name}</span>
                 </div>
                 <span className="text-right font-mono text-xs font-bold">{p.fp}</span>
+                <span className="text-right font-mono text-xs text-amber-400">{(p as any).salary ?? 0}</span>
+                <span className="text-right font-mono text-xs text-amber-400 font-bold">{p.value.toFixed(1)}</span>
                 <span className="text-right font-mono text-xs text-muted-foreground">{p.mp}</span>
                 <span className="text-right font-mono text-xs">{p.ps}</span>
                 <span className="text-right font-mono text-xs">{p.ast}</span>
