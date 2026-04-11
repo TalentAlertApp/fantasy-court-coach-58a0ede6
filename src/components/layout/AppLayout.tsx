@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Home, Users, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
+import { Home, ArrowLeftRight, Calendar, Bot, Shield, Shirt } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect, useCallback, useRef } from "react";
