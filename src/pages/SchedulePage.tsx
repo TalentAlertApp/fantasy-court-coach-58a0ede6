@@ -95,7 +95,7 @@ export default function SchedulePage() {
               <button
                 key={w}
                 data-gw={w}
-                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); setShowGrid(false); }}
+                onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
                 className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-sm transition-all ${
                   isSelected
                     ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
