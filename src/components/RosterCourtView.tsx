@@ -4,6 +4,8 @@ import PlayerCard from "./PlayerCard";
 import React, { useState } from "react";
 import { AlertTriangle, Users } from "lucide-react";
 import courtBg from "@/assets/court-bg.png";
+import type { UpcomingByTeam } from "@/hooks/useUpcomingByTeam";
+import { getTeamUpcoming } from "@/hooks/useUpcomingByTeam";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -14,23 +16,21 @@ interface RosterCourtViewProps {
   onPlayerClick: (id: number) => void;
   onSwap?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
+  upcomingByTeam?: UpcomingByTeam;
 }
 
-/* Landscape court positions (percentage-based).
-   Left side: FC spots (near the basket / paint area)
-   Right side: BC spots (near midcourt / perimeter) */
-
-function getRowPositions(count: number, topPct: string): { top: string; left: string }[] {
+/* Landscape court positions — FC on left (near basket), BC on right (perimeter) */
+function getRowPositions(count: number, leftPct: string): { top: string; left: string }[] {
   if (count === 3) {
     return [
-      { top: "20%", left: topPct },
-      { top: "50%", left: topPct },
-      { top: "80%", left: topPct },
+      { top: "18%", left: leftPct },
+      { top: "50%", left: leftPct },
+      { top: "82%", left: leftPct },
     ];
   }
   return [
-    { top: "33%", left: topPct },
-    { top: "67%", left: topPct },
+    { top: "30%", left: leftPct },
+    { top: "70%", left: leftPct },
   ];
 }
 
@@ -44,31 +44,25 @@ function getFormationPositions(starters: PlayerListItem[]) {
   const positioned: { player: PlayerListItem; style: { top: string; left: string } }[] = [];
 
   fcs.forEach((p, i) => {
-    if (i < fcPositions.length) {
-      positioned.push({ player: p, style: fcPositions[i] });
-    }
+    if (i < fcPositions.length) positioned.push({ player: p, style: fcPositions[i] });
   });
   bcs.forEach((p, i) => {
-    if (i < bcPositions.length) {
-      positioned.push({ player: p, style: bcPositions[i] });
-    }
+    if (i < bcPositions.length) positioned.push({ player: p, style: bcPositions[i] });
   });
 
   // Overflow fallback
   const usedIds = new Set(positioned.map((pp) => pp.player.core.id));
   const remaining = starters.filter((p) => !usedIds.has(p.core.id));
   const allSpots = [...fcPositions, ...bcPositions];
-  const usedSpots = positioned.length;
   remaining.forEach((p, i) => {
-    if (usedSpots + i < allSpots.length) {
-      positioned.push({ player: p, style: allSpots[usedSpots + i] });
-    }
+    const idx = positioned.length + i;
+    if (idx < allSpots.length) positioned.push({ player: p, style: allSpots[idx] });
   });
 
   return positioned;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onDnDSwap }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onDnDSwap, upcomingByTeam }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
@@ -86,16 +80,14 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
     e.preventDefault();
     setDragOverId(null);
     const sourceId = Number(e.dataTransfer.getData("text/plain"));
-    if (sourceId && sourceId !== targetId && onDnDSwap) {
-      onDnDSwap(sourceId, targetId);
-    }
+    if (sourceId && sourceId !== targetId && onDnDSwap) onDnDSwap(sourceId, targetId);
   };
 
   const handleDragEnd = () => setDragOverId(null);
 
   const formation = getFormationPositions(starters);
 
-  const renderCard = (p: PlayerListItem) => (
+  const renderCard = (p: PlayerListItem, compact: boolean) => (
     <div
       key={p.core.id}
       className={dragOverId === p.core.id ? "ring-2 ring-accent ring-offset-1 rounded-sm" : ""}
@@ -110,13 +102,14 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         onDragOver={(e) => handleDragOver(e, p.core.id)}
         onDrop={(e) => handleDrop(e, p.core.id)}
         onDragEnd={handleDragEnd}
-        compact
+        compact={compact}
+        upcoming={getTeamUpcoming(upcomingByTeam, p.core.team)}
       />
     </div>
   );
 
   const emptySlot = (i: number) => (
-    <div key={`empty-${i}`} className="bg-muted/50 border-2 border-dashed border-muted-foreground/20 rounded-sm p-4 flex items-center justify-center text-muted-foreground/40 text-[10px] font-heading uppercase tracking-wider">
+    <div key={`empty-${i}`} className="bg-muted/50 border-2 border-dashed border-muted-foreground/20 rounded-sm p-3 flex items-center justify-center text-muted-foreground/40 text-[10px] font-heading uppercase tracking-wider">
       Empty
     </div>
   );
@@ -130,7 +123,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
             <AlertTriangle className="h-4 w-4 text-destructive" />
             <span className="text-xs font-heading font-bold uppercase tracking-wider text-destructive">Starting 5</span>
           </div>
-          <span className="text-[10px] text-muted-foreground font-body italic">Drag players to reorder</span>
+          <span className="text-[10px] text-muted-foreground font-body italic">Drag to reorder</span>
         </div>
         <div
           className="relative w-full rounded-sm overflow-hidden"
@@ -144,25 +137,25 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
           {formation.map(({ player, style }) => (
             <div
               key={player.core.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 w-[18%] md:w-[16%] lg:w-[15%]"
+              className="absolute -translate-x-1/2 -translate-y-1/2 w-[17%] md:w-[15%] lg:w-[14%]"
               style={{ top: style.top, left: style.left }}
             >
-              {renderCard(player)}
+              {renderCard(player, true)}
             </div>
           ))}
           {starters.length < 5 &&
             Array.from({ length: 5 - starters.length }).map((_, i) => {
               const fcs = starters.filter((p) => p.core.fc_bc === "FC");
               const bcs = starters.filter((p) => p.core.fc_bc === "BC");
-              const fcPos = getRowPositions(fcs.length, "28%");
-              const bcPos = getRowPositions(bcs.length, "72%");
+              const fcPos = getRowPositions(fcs.length || 2, "28%");
+              const bcPos = getRowPositions(bcs.length || 2, "72%");
               const allSpots = [...fcPos, ...bcPos];
               const spot = allSpots[starters.length + i];
               if (!spot) return null;
               return (
                 <div
                   key={`empty-court-${i}`}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[18%] md:w-[16%] lg:w-[15%]"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[17%] md:w-[15%] lg:w-[14%]"
                   style={{ top: spot.top, left: spot.left }}
                 >
                   {emptySlot(i)}
@@ -173,16 +166,16 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
       </div>
 
       {/* RIGHT — Bench */}
-      <div className="w-full lg:w-[220px] xl:w-[240px] shrink-0">
+      <div className="w-full lg:w-[200px] xl:w-[220px] shrink-0">
         <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 rounded-sm mb-2">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Bench</span>
           </div>
-          <span className="text-[10px] text-muted-foreground font-body italic">5 substitutes</span>
+          <span className="text-[10px] text-muted-foreground font-body italic">5 subs</span>
         </div>
         <div className="flex flex-col gap-2">
-          {bench.map((p) => renderCard(p))}
+          {bench.map((p) => renderCard(p, false))}
           {bench.length < 5 && Array.from({ length: 5 - bench.length }).map((_, i) => emptySlot(i + 10))}
         </div>
       </div>

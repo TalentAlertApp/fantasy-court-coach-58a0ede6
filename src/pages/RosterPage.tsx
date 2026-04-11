@@ -11,6 +11,7 @@ import { getCurrentGameday, getGamedaysRemaining, formatDeadline } from "@/lib/d
 import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
 import RosterSidebar from "@/components/RosterSidebar";
+import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
@@ -47,6 +48,7 @@ export default function RosterPage() {
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 500 });
+  const { data: upcomingByTeam } = useUpcomingByTeam();
 
   const [viewMode, setViewMode] = useState<"court" | "list">("court");
   const [captainId, setCaptainId] = useState<number>(0);
@@ -365,7 +367,7 @@ export default function RosterPage() {
           <div className="flex gap-4">
             <div className="flex-1 min-w-0">
               {viewMode === "court" ? (
-                <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
+                <RosterCourtView starters={starters} bench={bench} captainId={captainId} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} upcomingByTeam={upcomingByTeam} />
               ) : (
                 <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
               )}
