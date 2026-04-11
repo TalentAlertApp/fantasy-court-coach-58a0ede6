@@ -2,32 +2,49 @@
 
 ## Plan
 
-### 1. Player Modal — Fix scrollbar hiding table content
-**File:** `src/components/PlayerModal.tsx`
-
-The History tab table columns are being clipped by the ScrollArea scrollbar on the right. Fix by adding right padding to the table container inside the ScrollArea so the last column (`S` / STL) isn't hidden behind the scrollbar. Add `pr-3` to the table wrapper or reduce column widths slightly. The simplest fix: wrap the `<Table>` in a `<div className="pr-4">` inside the ScrollArea to give space for the scrollbar.
-
-### 2. Team Modal — Add game action icons to played game rows
+### 1. Team Modal — Show Tv2 icon for all games, remove NBAGameModal
 **File:** `src/components/TeamModal.tsx`
 
-Currently only shows a `Table2` (BoxScore) icon. Add icons for:
-- **Charts** (`BarChart3`) — links to `game_charts_url`, opens in new tab
-- **Play-by-Play** (`Mic`) — links to `game_playbyplay_url`, opens in new tab  
-- **Game URL** (`ExternalLink`) — links to `nba_game_url`, opens in new tab
-- **YouTube Recap** (`Youtube` or `Tv2`) — shown in **green** only when `youtube_recap_id` exists. On click, instead of opening a new tab, expand an inline YouTube embed (`iframe`) below the game row using `https://www.youtube.com/embed/{youtube_recap_id}`
+- Show the `Tv2` icon on every played game row, but style it differently: `text-green-500` when `youtube_recap_id` exists, `text-muted-foreground/30` (greyed out, non-clickable) when it doesn't
+- Remove the `onClick={() => setSelectedGame(g)}` from the game row div — rows should no longer open the NBAGameModal
+- Remove the `selectedGame` state, the `NBAGameModal` import, and the `<NBAGameModal>` render at the bottom
+- Keep all the individual icon links (BoxScore, Charts, PbP, NBA.com, Recap) as the primary interaction
 
-Implementation:
-- Add state `expandedRecap: string | null` tracking which game_id has its recap expanded
-- Each game row gets the additional icons after the existing BoxScore icon (all with `e.stopPropagation()` to not trigger the NBAGameModal)
-- The YouTube recap icon uses `Tv2` with `text-green-500` coloring when `youtube_recap_id` is present, hidden otherwise
-- Clicking the recap icon toggles `expandedRecap` to that game_id
-- Below the game row, conditionally render a `<div>` with an embedded YouTube iframe (16:9 aspect ratio, ~full width of the list)
-- Import `BarChart3`, `Mic`, `ExternalLink`, `Tv2` from lucide-react
+### 2. Player Modal History — Add game action icons
+**File:** `src/components/PlayerModal.tsx`
+
+- Each history row currently opens a boxscore dialog on click. Add small action icons at the end of each row (after the STL column):
+  - `Table2` (BoxScore) — keep the existing click-to-boxscore behavior via this icon
+  - `BarChart3` (Charts) — link to `h.game_charts_url`, new tab
+  - `Mic` (Play-by-Play) — link to `h.game_playbyplay_url`, new tab
+  - `Tv2` (Video Recap) — green when `h.youtube_recap_id` exists, grey otherwise
+- Add a new column header "Links" to the table
+- The row itself should no longer trigger boxscore on click (move that to the Table2 icon)
+- Import `Table2, Mic, ExternalLink, Tv2` from lucide-react
+
+### 3. Teams Page — Remove "remaining" badge
+**File:** `src/pages/TeamsPage.tsx`
+
+- Line 166: remove the `<Badge>` showing `{t.gamesRemaining} remaining` — it shows games remaining in the season which isn't meaningful for this context
+
+### 4. Roster Page — Align ROSTER INFO to court bottom, remove Bank/Trans from toolbar
+**File:** `src/components/RosterCourtView.tsx`
+
+- Make the right column (bench + roster info) use `flex flex-col` with the column height matching the court height
+- Use `flex-1` on the bench section and push ROSTER INFO to the bottom with `mt-auto`
+- This ensures the ROSTER INFO card aligns with the bottom of the court
+
+**File:** `src/pages/RosterPage.tsx`
+
+- Remove the `Bank: $...` and `Trans: ...` text from the toolbar row (lines 319-320) since this info is already in ROSTER INFO
 
 ### Files Summary
 
 | File | Change |
 |------|--------|
-| `src/components/PlayerModal.tsx` | Add `pr-4` padding inside ScrollArea for History and Schedule tabs |
-| `src/components/TeamModal.tsx` | Add Charts, Play-by-Play, Game URL, YouTube Recap icons to played game rows; inline YouTube embed on recap click |
+| `src/components/TeamModal.tsx` | Show Tv2 on all rows (green/grey), remove NBAGameModal, remove row click |
+| `src/components/PlayerModal.tsx` | Add game action icons to history rows, move boxscore trigger to icon |
+| `src/pages/TeamsPage.tsx` | Remove "remaining" badge |
+| `src/components/RosterCourtView.tsx` | Align ROSTER INFO to bottom of court |
+| `src/pages/RosterPage.tsx` | Remove Bank/Trans from toolbar |
 
