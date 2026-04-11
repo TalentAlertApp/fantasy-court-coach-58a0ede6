@@ -1,55 +1,39 @@
 
+Root cause confirmed:
+- The strip is not missing because of bad data; it is blocked by a frontend logic bug.
+- In `src/components/TopPlayersStrip.tsx`, completed games are filtered with `g.status === "Final"`.
+- Live `schedule_games.status` values are uppercase (`FINAL`), so `finalGameIds` is always empty, the top-player query never runs, and the component always returns `null`.
+- I verified live data exists: GW25 has FINAL games on days 1–4, and `player_game_logs` has non-zero FP rows for those games.
 
-## Plan: Fix Top Players Strip + Schedule Grid Filtering + Linking
+Implementation plan:
 
-### 1. TopPlayersStrip — Query actual game-day FP from `player_game_logs`
-**File:** `src/components/TopPlayersStrip.tsx`
+1. Fix completed-game detection in `src/components/TopPlayersStrip.tsx`
+- Replace the exact status check with the same normalization pattern already used elsewhere in the app:
+  - `const isFinalStatus = (status?: string) => (status ?? "").toUpperCase().includes("FINAL")`
+- Build `finalGameIds` from games matching:
+  - selected `day`
+  - `isFinalStatus(g.status)`
 
-The current approach fetches season-average FP from the players API, which is wrong. The strip should show players who actually scored the highest FP on that specific day.
+2. Keep the strip hidden only when appropriate
+- If `weekGames` is still loading, render nothing.
+- If the selected day has zero final games, return `null`.
+- If the selected day has final games, run the existing `player_game_logs` + `players` fetch and render the strip.
 
-**New approach:**
-- Get game IDs for the selected day from `weekGames` (filter by `g.day === day` AND `g.status === "Final"`)
-- If no Final games exist for that day → return `null` (hides strip entirely)
-- Query `player_game_logs` joined with `players` for those game IDs, ordered by `fp DESC`, limit 10 per position
-- Join with `players` table to get `fc_bc`, `name`, `photo`, `team`
-- Display actual `fp` from `player_game_logs` (not season average)
-- Create a new Supabase query inside the component (or a small hook) that fetches: `player_game_logs` rows where `game_id IN (...)`, joined to `players` for `fc_bc`/`name`/`photo`/`team`
+3. Keep the data strictly “top players from that day only”
+- Continue querying `player_game_logs` using only the selected day’s final `game_id`s.
+- Keep `fp > 0` so the strip never shows `0.0` players.
+- Keep top 5 FC and top 5 BC based on actual game-day `fp`, not season averages.
 
-**Layout fix (no scrolling):**
-- Remove `min-w-[140px]` from each player card → reduce to `min-w-0`
-- Reduce gaps between players, use tighter spacing (`gap-0.5`, smaller padding)
-- Use `flex-1` or `flex-shrink` so players compress to fit without scrolling
+4. Add one small robustness pass
+- Guard formatting with `Number(p.fp ?? 0).toFixed(1)` even though the query already filters positive FP.
+- Keep the current player-name click behavior that opens `PlayerModal`.
 
-**Player name linking:**
-- Wrap player name in a clickable element that opens `PlayerModal` (add state for `selectedPlayerId` and render `<PlayerModal>`)
+QA after implementation:
+- Open `/schedule` on a completed day (for example GW25 day 4) and confirm the strip appears with non-zero FP values.
+- Switch to a scheduled-only day (for example GW25 day 5 or day 6) and confirm the strip is hidden.
+- Click a player name in the strip and confirm the Player Modal opens.
 
-### 2. ScheduleGridPage — AND logic for day filters
-**File:** `src/pages/ScheduleGridPage.tsx`
+Files to update:
+- `src/components/TopPlayersStrip.tsx`
 
-Current `isTeamVisible` uses OR logic (`if (dayMap.has(d)) return true`). Change to AND logic:
-
-```typescript
-const isTeamVisible = (tricode: string) => {
-  if (!hasFilter) return true;
-  const dayMap = teamGrid.get(tricode);
-  if (!dayMap) return false;
-  for (const d of selectedDays) {
-    if (!dayMap.has(d)) return false; // must play on ALL selected days
-  }
-  return true;
-};
-```
-
-### 3. ScheduleGridPage — Wire team names to TeamModal
-**File:** `src/pages/ScheduleGridPage.tsx`
-
-- Add state `selectedTeam` and render `<TeamModal>` at bottom
-- Make team tricode in the first column clickable → sets `selectedTeam`
-
-### Files
-
-| File | Change |
-|------|--------|
-| `src/components/TopPlayersStrip.tsx` | Rewrite to query `player_game_logs` for actual game-day FP; hide when no Final games; tighter layout; link player names to PlayerModal |
-| `src/pages/ScheduleGridPage.tsx` | AND filter logic; wire teams to TeamModal |
-
+No database changes are needed.
