@@ -289,7 +289,7 @@ function useTeamFormData(teams: string[], enabled: boolean) {
       // Fetch all final games
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("home_team, away_team, home_pts, away_pts, status, tipoff_utc")
+        .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
         .ilike("status", "%FINAL%")
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
