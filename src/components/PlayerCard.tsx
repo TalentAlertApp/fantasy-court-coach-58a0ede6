@@ -85,41 +85,40 @@ export default function PlayerCard({
           </button>
         )}
 
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          {/* Team logo — larger to fill vertical space */}
-          {teamLogo && <img src={teamLogo} alt={core.team} className="w-7 h-7 shrink-0" />}
+        <div className="px-2 py-1.5 space-y-1">
+          {/* Player name — full width, never truncated */}
+          <p className="text-xs font-heading font-bold leading-tight">
+            {formatShortName(core.name)}
+          </p>
 
-          {/* Name + position + salary */}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-heading font-bold truncate leading-tight mb-0.5">
-              {formatShortName(core.name)}
-            </p>
-            <div className="flex items-center gap-1.5">
-              <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5 shrink-0">
-                {core.fc_bc}
-              </Badge>
-              <span className="text-[9px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
-            </div>
+          {/* Second row: team logo + FC/BC + salary + Next + upcoming */}
+          <div className="flex items-center gap-2">
+            {teamLogo && <img src={teamLogo} alt={core.team} className="w-7 h-7 shrink-0" />}
+
+            <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5 shrink-0">
+              {core.fc_bc}
+            </Badge>
+            <span className="text-[9px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
+
+            {/* Next */}
+            {upcoming && (
+              <div className="flex items-center gap-1 shrink-0">
+                <span className="text-[6px] font-heading font-bold text-muted-foreground uppercase">Next</span>
+                {nextGame ? <OpponentBadge tricode={nextGame.opponent} size="md" /> : <span className="text-[7px] text-muted-foreground">—</span>}
+              </div>
+            )}
+
+            {/* Upcoming 6 days */}
+            {upcoming && upcomingDays.length > 0 && (
+              <div className="flex items-center gap-0.5 shrink-0">
+                {upcomingDays.map((day, i) => (
+                  <div key={i} className="flex items-center justify-center w-5 h-5">
+                    {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* Next */}
-          {upcoming && (
-            <div className="flex items-center gap-1 shrink-0">
-              <span className="text-[6px] font-heading font-bold text-muted-foreground uppercase">Next</span>
-              {nextGame ? <OpponentBadge tricode={nextGame.opponent} size="md" /> : <span className="text-[7px] text-muted-foreground">—</span>}
-            </div>
-          )}
-
-          {/* Upcoming 6 days */}
-          {upcoming && upcomingDays.length > 0 && (
-            <div className="flex items-center gap-0.5 shrink-0">
-              {upcomingDays.map((day, i) => (
-                <div key={i} className="flex items-center justify-center w-5 h-5">
-                  {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     );
