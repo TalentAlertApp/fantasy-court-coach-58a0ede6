@@ -136,8 +136,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       return (
                         <div key={g.game_id}>
                           <div
-                            className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
-                            onClick={() => setSelectedGame(g)}
+                            className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm"
                           >
                             <Badge variant={won ? "default" : "destructive"} className="rounded-sm text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
                             {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}

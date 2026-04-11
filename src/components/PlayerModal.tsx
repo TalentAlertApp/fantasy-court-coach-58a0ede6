@@ -232,6 +232,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">A</TableHead>
                             <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">B</TableHead>
                             <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-right">S</TableHead>
+                            <TableHead className="text-[10px] font-heading uppercase px-1.5 h-8 text-center">Links</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
