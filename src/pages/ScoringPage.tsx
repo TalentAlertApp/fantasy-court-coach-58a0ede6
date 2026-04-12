@@ -348,9 +348,11 @@ export default function ScoringPage() {
       )}
 
       {/* Team Modal */}
-      {teamModalTeam && (
-        <TeamModal team={teamModalTeam} onClose={() => setTeamModalTeam(null)} />
-      )}
+      <TeamModal
+        tricode={teamModalTeam}
+        open={!!teamModalTeam}
+        onOpenChange={(open) => { if (!open) setTeamModalTeam(null); }}
+      />
     </div>
   );
 }
