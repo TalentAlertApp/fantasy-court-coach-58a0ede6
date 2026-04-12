@@ -369,7 +369,7 @@ export default function RosterPage() {
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Button variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10" title="Remove all players from roster">
                     <RotateCcw className="h-4 w-4 mr-1" />Reset
                   </Button>
                 </AlertDialogTrigger>
