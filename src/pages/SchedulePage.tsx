@@ -78,30 +78,15 @@ export default function SchedulePage() {
     <div className="flex flex-col h-full">
       {/* ── Sticky header area ── */}
       <div className="sticky top-0 z-20 bg-background pb-0 space-y-0">
-        {/* Week Navigator */}
-        <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-3">
-          <div className="flex items-center gap-2 mb-2">
-            {/* Grid + Trophy icons inline */}
-            <button
-              onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
-              className="p-1.5 rounded-xl transition-colors bg-white/10 text-white/70 hover:bg-white/20"
-              title="Advanced Schedule Grid"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setTotwOpen(true)}
-              className="p-1.5 rounded-xl transition-colors bg-white/10 text-white/70 hover:bg-white/20"
-              title="Team of the Week"
-            >
-              <Trophy className="h-4 w-4" />
-            </button>
-
-            <p className="text-[10px] font-heading font-bold uppercase tracking-[0.2em] opacity-60 ml-2">
-              NBA Fantasy · Season 2025-26
-            </p>
+        {/* Week strip with GW info */}
+        <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-2">
+          {/* GW label */}
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="font-heading font-bold text-base dark:text-[hsl(var(--nba-yellow))]">GW {gw}</span>
+            <span className="opacity-30">|</span>
+            <span className="text-xs opacity-60 font-body dark:text-[hsl(var(--nba-yellow))/0.8]">{dateRange}</span>
           </div>
-          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide pb-1">
+          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide">
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
               const isCurrent = w === current.gw;
@@ -126,14 +111,9 @@ export default function SchedulePage() {
               );
             })}
           </div>
-          <div className="flex items-center gap-2 mt-2 text-sm">
-            <span className="font-heading font-bold text-base">GW {gw}</span>
-            <span className="opacity-30">|</span>
-            <span className="text-xs opacity-60 font-body">{dateRange}</span>
-          </div>
         </div>
 
-        {/* Day Navigator — compact */}
+        {/* Day Navigator — directly below week strip */}
         <div className="bg-card border-x border-b flex items-center">
           <Button
             variant="ghost"
@@ -198,10 +178,12 @@ export default function SchedulePage() {
           </Button>
         </div>
 
-        {/* Top Players Strip */}
-        <TopPlayersStrip gw={gw} day={day} />
+        {/* Top Players Strip — now has more vertical room */}
+        <div className="py-1">
+          <TopPlayersStrip gw={gw} day={day} />
+        </div>
 
-        {/* Date header + Deadline */}
+        {/* Date header + Deadline + Grid/Trophy icons */}
         <div className="px-1 py-3 bg-background">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
@@ -217,16 +199,31 @@ export default function SchedulePage() {
                   </div>
                 </>
               )}
+              {/* Grid + Trophy icons inline with date */}
+              <button
+                onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Advanced Schedule Grid"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setTotwOpen(true)}
+                className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors p-1"
+                title="Team of the Week"
+              >
+                <Trophy className="h-4 w-4" />
+              </button>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {lastPlayed && (
-                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20 rounded-xl"
+                <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20 rounded-xl min-w-[120px] justify-center"
                   disabled={gw === lastPlayed.gw && day === lastPlayed.day}
                   onClick={() => { setGw(lastPlayed.gw); setDay(lastPlayed.day); }}>
                   <CircleCheckBig className="h-3 w-3" />Last Played
                 </Button>
               )}
-              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs shrink-0 rounded-xl"
+              <Button variant="outline" size="sm" className="h-7 gap-1 text-xs shrink-0 rounded-xl min-w-[120px] justify-center"
                 disabled={gw === current.gw && day === current.day}
                 onClick={() => { setGw(current.gw); setDay(current.day); }}>
                 <CalendarDays className="h-3 w-3" />Today

@@ -6,6 +6,15 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { NBA_TEAMS, getTeamLogo } from "@/lib/nba-teams";
 import { useMemo } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
+import { TrendingUp, DollarSign, Gem, BarChart3, ArrowUpDown } from "lucide-react";
+
+const SORT_OPTIONS = [
+  { value: "fp5", label: "FP5", icon: TrendingUp },
+  { value: "salary", label: "Salary", icon: DollarSign },
+  { value: "value5", label: "Value5", icon: Gem },
+  { value: "stocks5", label: "Stocks5", icon: BarChart3 },
+  { value: "delta_fp", label: "Delta FP", icon: ArrowUpDown },
+];
 
 interface FiltersPanelProps {
   fcBc: string;
@@ -37,8 +46,14 @@ export default function FiltersPanel({
           <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Position</Label>
           <ToggleGroup type="single" value={fcBc} onValueChange={(v) => v && onFcBcChange(v)} className="justify-start">
             <ToggleGroupItem value="ALL" className="text-xs font-heading uppercase rounded-xl">All</ToggleGroupItem>
-            <ToggleGroupItem value="FC" className="text-xs font-heading uppercase rounded-xl">FC</ToggleGroupItem>
-            <ToggleGroupItem value="BC" className="text-xs font-heading uppercase rounded-xl">BC</ToggleGroupItem>
+            <ToggleGroupItem
+              value="FC"
+              className={`text-xs font-heading uppercase rounded-xl ${fcBc === "FC" ? "!bg-destructive !text-destructive-foreground" : ""}`}
+            >FC</ToggleGroupItem>
+            <ToggleGroupItem
+              value="BC"
+              className={`text-xs font-heading uppercase rounded-xl ${fcBc === "BC" ? "!bg-[hsl(var(--nba-yellow))] !text-[hsl(var(--nba-navy))]" : ""}`}
+            >BC</ToggleGroupItem>
           </ToggleGroup>
         </div>
 
@@ -53,9 +68,15 @@ export default function FiltersPanel({
                   const logo = getTeamLogo(t.tricode);
                   return (
                     <SelectItem key={t.tricode} value={t.tricode}>
-                      <div className="flex items-center justify-between w-full gap-2">
+                      <div className="relative flex items-center w-full gap-2 pr-10">
                         <span>{t.name}</span>
-                        {logo && <img src={logo} alt="" className="w-7 h-7 opacity-30 group-hover:opacity-60 group-hover:scale-110 transition-all ml-auto" />}
+                        {logo && (
+                          <img
+                            src={logo}
+                            alt=""
+                            className="absolute right-0 w-10 h-10 opacity-20 hover:opacity-50 hover:scale-110 transition-all"
+                          />
+                        )}
                       </div>
                     </SelectItem>
                   );
@@ -70,11 +91,14 @@ export default function FiltersPanel({
           <Select value={sort} onValueChange={onSortChange}>
             <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="fp5">FP5</SelectItem>
-              <SelectItem value="salary">Salary</SelectItem>
-              <SelectItem value="value5">Value5</SelectItem>
-              <SelectItem value="stocks5">Stocks5</SelectItem>
-              <SelectItem value="delta_fp">Delta FP</SelectItem>
+              {SORT_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  <div className="flex items-center gap-2">
+                    <opt.icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{opt.label}</span>
+                  </div>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
