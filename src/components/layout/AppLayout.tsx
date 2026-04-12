@@ -41,7 +41,6 @@ export default function AppLayout() {
   );
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Apply dark class to <html>
   useEffect(() => {
     const html = document.documentElement;
     if (dark) {
@@ -128,14 +127,17 @@ export default function AppLayout() {
     <div className="app-shell">
       {/* ── LEFT SIDEBAR ─────────────────────────────── */}
       <aside className={`sidebar${collapsed ? " collapsed" : ""} animate-slide-in-left`}>
-        {/* Brand — NBA Logo */}
+        {/* Brand — NBA Logo + FANTASY + Guide */}
         <div className="flex items-center gap-3 px-4 py-5 border-b" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
           <img src={nbaLogo} alt="NBA" className="h-8 w-auto flex-shrink-0" />
           {!collapsed && (
-            <span className="text-sm font-heading font-bold uppercase tracking-[0.2em] truncate"
-                  style={{ color: "hsl(var(--sidebar-foreground))" }}>
-              Fantasy
-            </span>
+            <>
+              <span className="text-sm font-heading font-bold uppercase tracking-[0.2em] truncate flex-1"
+                    style={{ color: "hsl(var(--sidebar-foreground))" }}>
+                Fantasy
+              </span>
+              <HowToPlayModal iconClassName="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 shrink-0" />
+            </>
           )}
         </div>
 
@@ -157,19 +159,13 @@ export default function AppLayout() {
           ))}
         </nav>
 
-        {/* Team Switcher + Help — above separator */}
+        {/* Team Switcher — above separator */}
         <div className="px-3 pb-2 flex flex-col gap-2" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
           {!collapsed && <TeamSwitcher />}
-          {!collapsed && (
-            <div className="flex justify-end">
-              <HowToPlayModal />
-            </div>
-          )}
         </div>
 
         {/* Bottom controls */}
         <div className="flex flex-col gap-2 p-3 border-t" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
-          {/* Theme toggle */}
           <button
             onClick={() => setDark(d => !d)}
             className="theme-toggle w-full"
@@ -183,7 +179,6 @@ export default function AppLayout() {
             )}
           </button>
 
-          {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(c => !c)}
             className="theme-toggle w-full"
@@ -201,7 +196,6 @@ export default function AppLayout() {
 
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="main-content">
-        {/* Page — no topbar */}
         <main className="page-scroll">
           <div className="animate-fade-in w-full h-full">
             <Outlet />

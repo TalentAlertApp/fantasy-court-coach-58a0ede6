@@ -3,7 +3,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerCard from "./PlayerCard";
 import RosterSidebar from "./RosterSidebar";
 import React, { useState } from "react";
-import { Users } from "lucide-react";
+import { Users, Star } from "lucide-react";
 import courtBg from "@/assets/court-bg.png";
 import type { UpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 import { getTeamUpcoming } from "@/hooks/useUpcomingByTeam";
@@ -99,7 +99,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
   const renderCourtCard = (p: PlayerListItem) => (
     <div
       key={p.core.id}
-      className={dragOverId === p.core.id ? "ring-2 ring-accent ring-offset-1 rounded-lg" : ""}
+      className={dragOverId === p.core.id ? "ring-2 ring-accent ring-offset-1 rounded-xl" : ""}
     >
       <PlayerCard
         player={p}
@@ -120,7 +120,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
   const renderBenchCard = (p: PlayerListItem) => (
     <div
       key={p.core.id}
-      className={dragOverId === p.core.id ? "ring-2 ring-accent ring-offset-1 rounded-lg" : ""}
+      className={dragOverId === p.core.id ? "ring-2 ring-accent ring-offset-1 rounded-xl" : ""}
     >
       <PlayerCard
         player={p}
@@ -139,21 +139,27 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
   );
 
   const emptySlot = (i: number) => (
-    <div key={`empty-${i}`} className="bg-muted/50 border-2 border-dashed border-muted-foreground/20 rounded-lg p-3 flex items-center justify-center text-muted-foreground/40 text-[10px] font-heading uppercase tracking-wider">
+    <div key={`empty-${i}`} className="bg-muted/50 border-2 border-dashed border-muted-foreground/20 rounded-xl p-3 flex items-center justify-center text-muted-foreground/40 text-[10px] font-heading uppercase tracking-wider">
       Empty
     </div>
   );
 
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-4 h-[calc(100vh-13rem)]">
       {/* Court with Starting 5 */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* STARTING 5 header */}
+        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 mb-0 rounded-t-xl">
+          <div className="flex items-center gap-2">
+            <Star className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />
+            <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Starting 5</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground font-body italic">Drag to reorder</span>
+        </div>
+
         <div
-          className="relative w-full overflow-hidden"
+          className="relative w-full flex-1 overflow-hidden rounded-b-xl"
           style={{
-            aspectRatio: "5/3",
-            maxHeight: "62vh",
-            borderRadius: "var(--radius)",
             backgroundImage: `url(${courtBg})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
@@ -169,7 +175,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
           {formation.map(({ player, style }) => (
             <div
               key={player.core.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 w-[17%] md:w-[15%] lg:w-[14%] z-10"
+              className="absolute -translate-x-1/2 -translate-y-1/2 w-[18%] md:w-[16%] lg:w-[15%] z-10"
               style={{ top: style.top, left: style.left }}
             >
               {renderCourtCard(player)}
@@ -187,7 +193,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
               return (
                 <div
                   key={`empty-court-${i}`}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[17%] md:w-[15%] lg:w-[14%] z-10"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[18%] md:w-[16%] lg:w-[15%] z-10"
                   style={{ top: spot.top, left: spot.left }}
                 >
                   {emptySlot(i)}
@@ -198,22 +204,22 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
       </div>
 
       {/* Bench + ROSTER INFO — vertical column on the right */}
-      <div className="w-64 shrink-0 flex flex-col">
-        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 mb-2" style={{ borderRadius: "var(--radius)" }}>
+      <div className="w-72 shrink-0 flex flex-col">
+        <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 mb-2 rounded-xl">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs font-heading font-bold uppercase tracking-wider text-muted-foreground">Bench</span>
           </div>
           <span className="text-[10px] text-muted-foreground font-body italic">Drag to reorder</span>
         </div>
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 flex-1">
           {bench.map((p) => renderBenchCard(p))}
           {bench.length < 5 && Array.from({ length: 5 - bench.length }).map((_, i) => emptySlot(i + 10))}
         </div>
 
-        {/* ROSTER INFO aligned to bottom of court */}
+        {/* ROSTER INFO at bottom */}
         {sidebarProps && (
-          <div className="mt-auto">
+          <div className="mt-auto pt-2">
             <RosterSidebar {...sidebarProps} />
           </div>
         )}
