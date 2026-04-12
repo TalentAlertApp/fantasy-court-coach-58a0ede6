@@ -190,6 +190,8 @@ export default function PlayersPage() {
                     <TableHead className="text-xs">Player</TableHead>
                     <TableHead className="text-xs">Team</TableHead>
                     <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`} onClick={() => handleSort("gp")}>GP</TableHead>
+                    <TableHead className="text-xs text-right font-bold">FP5</TableHead>
+                    <TableHead className="text-xs text-right font-bold">V5</TableHead>
                     {columns.map((c) => (
                       <TableHead key={c.key} className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`} onClick={() => handleSort(c.key)}>
                         <span className="inline-flex items-center gap-0.5">
@@ -250,6 +252,8 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
+                        <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">{(p.last5 as any)?.fp5?.toFixed(1) ?? "0.0"}</td>
+                        <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">{(p.computed as any)?.value5?.toFixed(1) ?? "0.0"}</td>
                         {columns.map((c) => (
                           <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
                             {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
@@ -284,7 +288,7 @@ export default function PlayersPage() {
 
           {/* Sidebar — sticky, non-scrolling */}
           <div className="w-56 flex-shrink-0 sticky top-0 self-start">
-            <FiltersPanel fcBc={fcBc} onFcBcChange={setFcBc} sort={sort} onSortChange={(v) => setSort(v as SortKey)} search={search} onSearchChange={setSearch} maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit} team={team} onTeamChange={setTeam} />
+            <FiltersPanel fcBc={fcBc} onFcBcChange={setFcBc} search={search} onSearchChange={setSearch} maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit} team={team} onTeamChange={setTeam} />
           </div>
         </div>
       )}

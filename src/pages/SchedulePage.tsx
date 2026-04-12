@@ -80,11 +80,11 @@ export default function SchedulePage() {
       <div className="sticky top-0 z-20 bg-background pb-0 space-y-0">
         {/* Week strip with GW info */}
         <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-2">
-          {/* GW label */}
-          <div className="flex items-center gap-2 mb-1.5">
+          {/* GW label — centered */}
+          <div className="flex items-center justify-center gap-2 mb-1.5">
             <span className="font-heading font-bold text-base dark:text-[hsl(var(--nba-yellow))]">GW {gw}</span>
-            <span className="opacity-30">|</span>
-            <span className="text-xs opacity-60 font-body dark:text-[hsl(var(--nba-yellow))/0.8]">{dateRange}</span>
+            <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
+            <span className="text-xs font-body dark:text-[hsl(var(--nba-yellow))]">{dateRange}</span>
           </div>
           <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide">
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
@@ -140,10 +140,10 @@ export default function SchedulePage() {
                 <button
                   key={wd.day}
                   onClick={() => setDay(wd.day)}
-                  className={`flex-1 min-w-[48px] py-1 px-1 text-center transition-all border-b-2 ${
+                  className={`flex-1 min-w-[48px] py-1 px-1 text-center transition-all ${
                     isSelected
-                      ? "bg-primary text-primary-foreground border-[hsl(var(--nba-yellow))]"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      ? "bg-primary text-primary-foreground rounded-xl shadow-md"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
                   }`}
                 >
                   <div className={`text-[8px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</div>
@@ -153,7 +153,7 @@ export default function SchedulePage() {
                       <div className={`w-1 h-1 rounded-full ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
                     )}
                     {gameCount > 0 && (
-                      <span className={`text-[8px] font-mono ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      <span className={`text-[8px] font-mono font-bold ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         {gameCount}G
                       </span>
                     )}
@@ -207,6 +207,7 @@ export default function SchedulePage() {
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
+              <span className="text-muted-foreground/40">|</span>
               <button
                 onClick={() => setTotwOpen(true)}
                 className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors p-1"

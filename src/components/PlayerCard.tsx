@@ -50,8 +50,10 @@ export default function PlayerCard({
   const accentColor = isFc ? "border-destructive" : "border-primary";
   const teamLogo = getTeamLogo(core.team);
 
-  const nextGame = upcoming?.[0] ?? null;
-  const upcomingDays = upcoming?.slice(1, 7) ?? [];
+  // Merge all upcoming into a single chronological row (max 7 slots, left-to-right = soonest first)
+  const allUpcoming = upcoming ?? [];
+  const nextGame = allUpcoming[0] ?? null;
+  const upcomingDays = allUpcoming.slice(0, 7);
 
   const resolvedVariant = variant ?? (compact ? "court" : "court");
 
@@ -190,19 +192,11 @@ export default function PlayerCard({
         <span className="text-[9px] text-muted-foreground font-mono">${core.salary}</span>
       </div>
 
-      {/* Next opponent */}
-      {upcoming && (
-        <div className="border-t border-border/50 px-1 py-0.5 flex items-center justify-between">
-          <span className="text-[7px] font-heading font-bold text-muted-foreground uppercase">Next</span>
-          {nextGame ? <OpponentBadge tricode={nextGame.opponent} size="md" /> : <span className="text-[7px] text-muted-foreground">—</span>}
-        </div>
-      )}
-
-      {/* Upcoming 6 days */}
+      {/* Upcoming games — 7 slots, left-to-right chronological */}
       {upcoming && upcomingDays.length > 0 && (
         <div className="border-t border-border/50 px-0.5 py-0.5">
-          <div className="grid grid-cols-6 gap-0">
-            {upcomingDays.map((day, i) => (
+          <div className="grid grid-cols-7 gap-0">
+            {Array.from({ length: 7 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
               <div key={i} className="flex items-center justify-center h-5">
                 {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
               </div>
