@@ -330,6 +330,7 @@ export default function RosterPage() {
                 variant={chipCaptain ? "default" : "outline"}
                 size="sm"
                 className={`rounded-xl font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                title="Activate Captain chip — doubles captain's FP"
               >
                 <Star className="h-3.5 w-3.5 mr-1" />Captain
               </Button>
@@ -338,6 +339,7 @@ export default function RosterPage() {
                 variant={chipAllStar ? "default" : "outline"}
                 size="sm"
                 className={`rounded-xl font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                title="Activate All-Star chip — boost all starters"
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
               </Button>
@@ -346,6 +348,7 @@ export default function RosterPage() {
                 variant={chipWildcard ? "default" : "outline"}
                 size="sm"
                 className={`rounded-xl font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                title="Activate Wildcard chip — unlimited free transfers"
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
               </Button>
@@ -355,7 +358,13 @@ export default function RosterPage() {
                   <Plus className="h-4 w-4 mr-1" />Add Player
                 </Button>
               )}
-              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs">
+              <Button
+                onClick={handleOptimize}
+                variant="outline"
+                size="sm"
+                className="rounded-xl font-heading uppercase text-xs hover:bg-yellow-400 hover:text-black dark:hover:bg-orange-500 dark:hover:text-white"
+                title="Auto-optimize lineup for maximum FP"
+              >
                 <Zap className="h-4 w-4 mr-1" />Optimize
               </Button>
               <AlertDialog>
