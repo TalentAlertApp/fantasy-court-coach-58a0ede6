@@ -18,15 +18,27 @@ interface PlayerPickerDialogProps {
   rosterTeams?: string[];
   onSelect: (player: PlayerListItem) => void;
   title?: string;
+  bankRemaining?: number;
+  swapPlayerSalary?: number;
+  swapPlayerPosition?: string | null;
 }
 
 export default function PlayerPickerDialog({
   open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
+  bankRemaining, swapPlayerSalary, swapPlayerPosition,
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
 
-  // Count how many roster players per NBA team
+  // When swapping with position lock, force filter
+  const effectiveFilter = swapPlayerPosition ? (swapPlayerPosition as "FC" | "BC") : fcBcFilter;
+  const showToggle = !swapPlayerPosition;
+
+  // Budget available = bankRemaining + salary of player being swapped out
+  const budgetAvailable = bankRemaining != null
+    ? bankRemaining + (swapPlayerSalary ?? 0)
+    : null;
+
   const teamCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const t of rosterTeams) {
@@ -37,27 +49,41 @@ export default function PlayerPickerDialog({
 
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
-    if (fcBcFilter !== "ALL") {
-      filtered = filtered.filter((p) => p.core.fc_bc === fcBcFilter);
+    if (effectiveFilter !== "ALL") {
+      filtered = filtered.filter((p) => p.core.fc_bc === effectiveFilter);
     }
     if (!search.trim()) return filtered;
     const q = search.toLowerCase();
     return filtered.filter((p) =>
       p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
     );
-  }, [allPlayers, rosterIds, search, fcBcFilter]);
+  }, [allPlayers, rosterIds, search, effectiveFilter]);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); } }}>
       <DialogContent className="max-w-md h-[min(80vh,42rem)] flex flex-col rounded-lg overflow-hidden">
         <DialogHeader className="pr-10">
           <div className="flex items-center justify-between gap-3">
-            <DialogTitle className="font-heading">{title}</DialogTitle>
-            <ToggleGroup type="single" value={fcBcFilter} onValueChange={(v) => v && setFcBcFilter(v as "ALL" | "FC" | "BC")}>
-              <ToggleGroupItem value="ALL" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2">All</ToggleGroupItem>
-              <ToggleGroupItem value="FC" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2">FC</ToggleGroupItem>
-              <ToggleGroupItem value="BC" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2">BC</ToggleGroupItem>
-            </ToggleGroup>
+            <div className="flex items-center gap-2">
+              <DialogTitle className="font-heading">{title}</DialogTitle>
+              {budgetAvailable != null && (
+                <Badge variant="outline" className="text-[10px] font-mono rounded-lg">
+                  Budget: ${budgetAvailable.toFixed(1)}M
+                </Badge>
+              )}
+            </div>
+            {showToggle && (
+              <ToggleGroup type="single" value={fcBcFilter} onValueChange={(v) => v && setFcBcFilter(v as "ALL" | "FC" | "BC")}>
+                <ToggleGroupItem value="ALL" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2 dark:data-[state=on]:bg-muted dark:data-[state=on]:text-foreground data-[state=on]:bg-muted data-[state=on]:text-foreground">All</ToggleGroupItem>
+                <ToggleGroupItem value="FC" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2 data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground">FC</ToggleGroupItem>
+                <ToggleGroupItem value="BC" className="text-[10px] font-heading uppercase rounded-lg h-7 px-2 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">BC</ToggleGroupItem>
+              </ToggleGroup>
+            )}
+            {!showToggle && (
+              <Badge variant={swapPlayerPosition === "FC" ? "destructive" : "default"} className="text-[10px] rounded-lg">
+                {swapPlayerPosition} only
+              </Badge>
+            )}
           </div>
         </DialogHeader>
         <div className="relative">
@@ -74,23 +100,23 @@ export default function PlayerPickerDialog({
             {available.map((p) => {
               const teamLogo = getTeamLogo(p.core.team);
               const teamFull = (teamCounts[p.core.team] || 0) >= 2;
+              const overBudget = budgetAvailable != null && p.core.salary > budgetAvailable;
+              const isDisabled = teamFull || overBudget;
               return (
                 <button
                   key={p.core.id}
-                  onClick={() => { if (teamFull) return; onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
-                  disabled={teamFull}
+                  onClick={() => { if (isDisabled) return; onSelect(p); onOpenChange(false); setSearch(""); setFcBcFilter("ALL"); }}
+                  disabled={isDisabled}
                   className={`w-full flex items-center gap-3 px-2 py-2 border-b transition-colors text-left group relative overflow-hidden ${
-                    teamFull ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
+                    isDisabled ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
                   }`}
-                  title={teamFull ? "Max 2 players per NBA team" : undefined}
+                  title={teamFull ? "Max 2 players per NBA team" : overBudget ? "Exceeds budget" : undefined}
                 >
-                  {/* Team watermark */}
                   {teamLogo && (
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07] group-hover:opacity-[0.18] transition-opacity duration-300">
                       <img src={teamLogo} alt="" className="w-14 h-14 transition-transform duration-300 group-hover:scale-125" />
                     </div>
                   )}
-                  {/* Player photo */}
                   {p.core.photo ? (
                     <img src={p.core.photo} alt={p.core.name} className="w-9 h-9 rounded-full object-cover bg-muted relative z-10 transition-transform duration-200 group-hover:scale-110" />
                   ) : (
@@ -106,6 +132,9 @@ export default function PlayerPickerDialog({
                       </Badge>
                       {teamFull && (
                         <span className="text-[8px] text-destructive font-semibold shrink-0">MAX 2</span>
+                      )}
+                      {overBudget && !teamFull && (
+                        <span className="text-[8px] text-destructive font-semibold shrink-0">OVER BUDGET</span>
                       )}
                     </div>
                     <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>

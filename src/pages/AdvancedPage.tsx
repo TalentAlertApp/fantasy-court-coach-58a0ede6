@@ -1,9 +1,17 @@
+import { useState } from "react";
 import { TrendingUp, TrendingDown, Clock } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
+import PlayerModal from "@/components/PlayerModal";
+import TeamModal from "@/components/TeamModal";
 
-function TrendTable({ rows, type }: { rows: TrendRow[]; type: "increase" | "decrease" }) {
+function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
+  rows: TrendRow[];
+  type: "increase" | "decrease";
+  onPlayerClick: (id: number) => void;
+  onTeamClick: (tricode: string) => void;
+}) {
   const isIncrease = type === "increase";
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -28,15 +36,27 @@ function TrendTable({ rows, type }: { rows: TrendRow[]; type: "increase" | "decr
         {rows.map((r, i) => {
           const logo = getTeamLogo(r.team);
           return (
-            <div key={r.id} className={`grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 items-center text-xs border-b border-border/30 ${i % 2 === 0 ? "bg-card" : "bg-muted/20"}`}>
+            <div key={r.id} className={`grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 items-center text-xs border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-card" : "bg-muted/20"}`}>
               <div className="flex items-center gap-2 min-w-0">
                 {r.photo ? (
                   <img src={r.photo} alt="" className="w-6 h-6 rounded-full object-cover bg-muted shrink-0" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-muted shrink-0" />
                 )}
-                <span className="truncate font-medium">{r.name}</span>
-                {logo && <img src={logo} alt={r.team} className="w-4 h-4 shrink-0" />}
+                <span
+                  className="truncate font-medium hover:text-primary hover:underline"
+                  onClick={() => onPlayerClick(r.id)}
+                >
+                  {r.name}
+                </span>
+                {logo && (
+                  <img
+                    src={logo}
+                    alt={r.team}
+                    className="w-4 h-4 shrink-0 cursor-pointer hover:scale-125 transition-transform"
+                    onClick={(e) => { e.stopPropagation(); onTeamClick(r.team); }}
+                  />
+                )}
               </div>
               <span className="text-center text-muted-foreground">{r.gp7d}</span>
               <span className="text-right text-muted-foreground">{r.seasonAvg.toFixed(1)}</span>
@@ -54,6 +74,8 @@ function TrendTable({ rows, type }: { rows: TrendRow[]; type: "increase" | "decr
 
 export default function AdvancedPage() {
   const { data, isLoading } = usePlayingTimeTrends();
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
@@ -76,10 +98,13 @@ export default function AdvancedPage() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          <TrendTable rows={data?.increased ?? []} type="increase" />
-          <TrendTable rows={data?.decreased ?? []} type="decrease" />
+          <TrendTable rows={data?.increased ?? []} type="increase" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
+          <TrendTable rows={data?.decreased ?? []} type="decrease" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
         </div>
       )}
+
+      <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
+      <TeamModal tricode={selectedTeam ?? ""} open={selectedTeam !== null} onOpenChange={(open) => !open && setSelectedTeam(null)} />
     </div>
   );
 }

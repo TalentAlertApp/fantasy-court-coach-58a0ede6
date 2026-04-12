@@ -35,7 +35,7 @@ export default function FiltersPanel({
           <ToggleGroup type="single" value={fcBc} onValueChange={(v) => v && onFcBcChange(v)} className="justify-start">
             <ToggleGroupItem
               value="ALL"
-              className={`text-xs font-heading uppercase rounded-xl ${fcBc === "ALL" ? "!bg-primary !text-primary-foreground" : ""}`}
+              className={`text-xs font-heading uppercase rounded-xl ${fcBc === "ALL" ? "dark:!bg-muted dark:!text-foreground !bg-muted !text-foreground" : ""}`}
             >All</ToggleGroupItem>
             <ToggleGroupItem
               value="FC"
