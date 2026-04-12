@@ -18,9 +18,9 @@ export default function RosterSidebar({
   return (
     <div className="space-y-3">
       <div className="bg-card border rounded-xl overflow-hidden">
-        <div className="px-3 py-2 bg-nba-navy text-primary-foreground flex items-center gap-2">
-          <Shield className="h-4 w-4 text-accent" />
-          <span className="text-xs font-heading font-bold uppercase tracking-wider">Roster Info</span>
+        <div className="px-3 py-2 bg-muted border-b flex items-center gap-2">
+          <Shield className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />
+          <span className="text-xs font-heading font-bold uppercase tracking-wider text-foreground">Roster Info</span>
         </div>
         <div className="p-3 space-y-2.5">
           <InfoRow icon={<Wallet className="h-3.5 w-3.5" />} label="Bank Remaining" value={`$${bankRemaining.toFixed(1)}`} />

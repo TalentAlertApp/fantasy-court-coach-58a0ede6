@@ -113,9 +113,11 @@
     flex-shrink: 0;
     width: var(--sidebar-width);
     height: 100vh;
-    background: hsl(var(--sidebar-background));
+    background: linear-gradient(180deg, hsl(var(--sidebar-background)) 0%, hsl(var(--sidebar-background) / 0.92) 100%);
+    backdrop-filter: blur(16px);
     color: hsl(var(--sidebar-foreground));
     border-right: 1px solid hsl(var(--sidebar-border));
+    box-shadow: inset -1px 0 0 0 hsl(0 0% 100% / 0.05), 2px 0 12px -2px hsl(0 0% 0% / 0.2);
     transition: width 0.2s ease;
     overflow: hidden;
   }

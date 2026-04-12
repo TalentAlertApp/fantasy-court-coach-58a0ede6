@@ -245,7 +245,7 @@ function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
       className={`text-muted-foreground hover:text-primary transition-colors p-0.5 ${extraClass ?? ""}`}
       title={label}
     >
-      <Icon className="h-3.5 w-3.5" />
+      <Icon className="h-4 w-4" />
     </a>
   );
 }
@@ -546,19 +546,23 @@ export default function ScheduleList({ games }: ScheduleListProps) {
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-4 ${
+                className={`bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-3 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
                 {/* Teams */}
-                <div className="flex items-center gap-5 flex-1">
-                  <div className="flex items-center gap-3 min-w-[120px] justify-end text-right">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
-                      {(isFinal || isLive) && <p className="text-2xl font-mono font-black leading-tight">{g.away_pts}</p>}
+                      {(isFinal || isLive) && (
+                        <p className={`text-2xl font-mono leading-tight ${
+                          isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
+                        }`}>{g.away_pts}</p>
+                      )}
                     </div>
                     {getTeamLogo(g.away_team) && (
-                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-10 h-10 transition-transform hover:scale-110" />
+                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-12 h-12 transition-transform hover:scale-110" />
                     )}
                   </div>
 
@@ -579,13 +583,17 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-3 min-w-[120px]">
+                  <div className="flex items-center gap-2 min-w-[100px]">
                     {getTeamLogo(g.home_team) && (
-                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-10 h-10 transition-transform hover:scale-110" />
+                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 transition-transform hover:scale-110" />
                     )}
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.home_team}</p>
-                      {(isFinal || isLive) && <p className="text-2xl font-mono font-black leading-tight">{g.home_pts}</p>}
+                      {(isFinal || isLive) && (
+                        <p className={`text-2xl font-mono leading-tight ${
+                          isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
+                        }`}>{g.home_pts}</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -598,7 +606,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       className={`p-0.5 cursor-pointer transition-colors ${hasYoutubeRecap ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
                       title="Game Recap"
                     >
-                      <Tv2 className="h-3.5 w-3.5" />
+                      <Tv2 className="h-4 w-4" />
                     </span>
                   )}
                   <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
@@ -612,7 +620,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                       onClick={(e) => e.stopPropagation()}
                       className="text-muted-foreground hover:text-primary transition-colors"
                     >
-                      <ExternalLink className="h-3.5 w-3.5" />
+                      <ExternalLink className="h-4 w-4" />
                     </a>
                   )}
                   {isExpandable && (
