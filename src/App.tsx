@@ -10,6 +10,7 @@ import PlayersPage from "@/pages/PlayersPage";
 import TeamsPage from "@/pages/TeamsPage";
 import SchedulePage from "@/pages/SchedulePage";
 import ScheduleGridPage from "@/pages/ScheduleGridPage";
+import ScoringPage from "@/pages/ScoringPage";
 
 import AIHubPage from "@/pages/AIHubPage";
 import CommissionerPage from "@/pages/CommissionerPage";
@@ -29,6 +30,7 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/" element={<RosterPage />} />
               <Route path="/roster" element={<Navigate to="/" replace />} />
+              <Route path="/scoring" element={<ScoringPage />} />
               <Route path="/transactions" element={<PlayersPage />} />
               <Route path="/players" element={<Navigate to="/transactions" replace />} />
               <Route path="/teams" element={<TeamsPage />} />
