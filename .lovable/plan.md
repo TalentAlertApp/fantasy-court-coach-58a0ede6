@@ -1,77 +1,72 @@
 
 
-## Plan: Premium Layout Overhaul Across All Pages
+## Plan: UI Polish, Data Columns, and AI Coach Fixes
 
-This plan covers ~15 files across 5 major areas. All changes maintain existing functionality.
+### 1. Transactions Page (`/transactions`)
 
-### 0. Sidebar — Move Guide icon to top
+**a) Add FP5 and V5 columns** (`src/pages/PlayersPage.tsx`)
+- Add two new columns `FP5` and `V5` right after `GP` in the table header and body
+- `FP5` = `p.last5.fp5` (always per-game, doesn't change with PER GAME/TOTALS toggle)
+- `V5` = `p.computed.value5` (same — always the same value regardless of toggle)
+- Both displayed with 1 decimal place, font-bold
 
-**File: `src/components/layout/AppLayout.tsx`**
-- Move `HowToPlayModal` from sidebar bottom to the brand header row, aligned far-right inline with "FANTASY"
-- Change `HowToPlayModal` icon from `HelpCircle` (?) to `BookOpen` (book)
-- Update `src/components/HowToPlayModal.tsx` to use `BookOpen` icon and accept an optional `iconClassName` prop
+**b) Remove SORT BY dropdown** (`src/components/FiltersPanel.tsx`)
+- Remove the entire "Sort By" section (Label + Select) from FiltersPanel since column headers already allow sorting
+- Remove `sort`/`onSortChange` props from FiltersPanel interface and caller
 
-### 1. Roster Page (`/`)
+### 2. Schedule Page (`/schedule`)
 
-**File: `src/pages/RosterPage.tsx`**
-- a) FC/BC badges below header: increase size from `text-[9px]` to `text-xs`, add `px-2 py-0.5` padding
-- Remove `hidden sm:flex` so they always show
+**a) Center GW title, yellow date range** (`src/pages/SchedulePage.tsx`)
+- Change the GW label row to `justify-center text-center`
+- Make the date range portion (`|Apr 6 – Apr 12`) use `dark:text-[hsl(var(--nba-yellow))]` while GW number stays yellow too
 
-**File: `src/components/RosterSidebar.tsx`**
-- a) Force white bold text in dark mode: add `dark:text-white dark:font-bold` to value spans and labels
-- b) Make ROSTER INFO fixed at bottom of screen, aligned with sidebar: wrap in `fixed bottom-0` container with `left-[var(--sidebar-width)]` and appropriate width
+**b) Separate Grid3X3 and Trophy icons with "|"** (`src/pages/SchedulePage.tsx`)
+- Add a `<span className="text-muted-foreground opacity-40">|</span>` between the two icon buttons
 
-**File: `src/components/RosterCourtView.tsx`**
-- c) Add a "STARTING 5" header bar above the court, matching the BENCH header style (same height, bg-muted, border, icon)
-- Adjust court to fill remaining vertical space: change `maxHeight: 62vh` to `calc(100vh - <header+toolbar height>)` and use `flex-1` approach
-- d) Bench cards: increase player name to match starter size, shift name right so team badge fills full card height, add `hover:scale-110 transition-transform` to team badge
+**c) Selected day rounded background, bold game count** (`src/pages/SchedulePage.tsx`)
+- Change selected day button from square `border-b-2` style to `rounded-xl bg-primary` pill style
+- Add `font-bold` to the game count text (`{gameCount}G`)
 
-**File: `src/components/PlayerCard.tsx`**
-- d) Court variant: increase photo from `w-14 h-14` to `w-18 h-18`, add `group-hover:scale-110 transition-transform` surge effect on photo, increase name from `text-xs` to `text-sm`, increase team badge from `w-5 h-5` to `w-7 h-7`, increase opponent badges from `w-5 h-5` to `w-6 h-6`, allow wider card width (`w-[18%]` instead of `w-[17%]`)
-- f) Bench variant: increase name to `text-sm font-bold`, restructure layout so team logo gets `h-full` (fills card height), add `hover:scale-110 transition-transform` surge on team badge
+### 3. Roster Page — Next game badge order (`/`)
 
-### 2. Transactions Page (`/transactions`)
+**a) Fix upcoming opponent order** (`src/components/PlayerCard.tsx`)
+- Currently `upcoming[0]` is "Next" shown separately, and `upcoming.slice(1,7)` are the subsequent days
+- The 6 slots should fill left-to-right with the soonest game first. The issue: the "Next" game is displayed separately above the 6-slot grid. Instead, merge all upcoming into a single row of 6 slots (remove the separate "Next" display), showing them chronologically left-to-right for the court variant
 
-**File: `src/components/FiltersPanel.tsx`**
-- a) Add team logo as watermark to each `SelectItem` in the TEAM dropdown: render team logo at far-right, large (`w-8 h-8 opacity-30`), with `hover:scale-110 hover:opacity-60` surge effect
-- b) Add NBA logo + "FANTASY" branding fixed at bottom of the right sidebar column
+### 4. Sidebar icon colors (`src/components/layout/AppLayout.tsx`)
+- Add `text-[hsl(var(--nba-yellow))]` to all nav item icons (or add a CSS rule for `.nav-item .lucide { color: hsl(var(--nba-yellow)); }`)
 
-**File: `src/pages/PlayersPage.tsx`**
-- c) Make right sidebar column sticky/fixed, not scrolling, aligned to bottom with sidebar: use `sticky top-0 h-[calc(100vh-...)]` and `overflow-y-auto`
-- d) Make central table column fill available height and scroll independently, aligned at bottom with sidebar: use `h-[calc(100vh-...)] overflow-y-auto`
+### 5. Player Modal — Remove container from Compare/Wishlist icons (`src/components/PlayerModal.tsx`)
+- Remove `bg-primary/20 rounded-lg` from Compare button, and `bg-muted rounded-lg` from Wishlist button
+- Make them plain icon buttons without background containers
 
-### 3. Teams Page (`/teams`, tab TEAMS)
+### 6. Wishlist Modal redesign (`src/components/WishlistModal.tsx`)
+- Move FC/BC badge to far left of each player row
+- Add FP average (`p.season.fp`) to the card
+- Remove the small team badge icon
+- Add team badge as centered watermark (large, low opacity) behind each player row with hover surge
 
-**File: `src/pages/TeamsPage.tsx`**
-- Remove the centered team logo from card content
-- Add team logo as centered watermark behind card content: `absolute inset-0 flex items-center justify-center` with large logo (`w-20 h-20 opacity-15`), add `group-hover:scale-125 group-hover:opacity-30 transition-all duration-500` surge
-- Vertically center remaining elements (tricode, full name, W-L record, players badge)
+### 7. AI Coach fixes (`src/components/AICoachModal.tsx`)
 
-### 4. Schedule Page (`/schedule`)
+**a) Injuries tab — `#id` instead of player name**
+- Root cause: `handleInjury` passes `rosterPlayerIds` as the full array of slot objects (starters/bench), not just player IDs. The `getPlayerName` then receives a slot object ID, not a player ID
+- Fix: Extract actual player IDs from roster slots: `const ids = [...(rosterData.roster.starters ?? []), ...(rosterData.roster.bench ?? [])].map(s => s.player_id).filter(Boolean)`
+- Also: increase `usePlayersQuery` limit to 500 to match the players page, ensuring `getPlayerName` can resolve all players
 
-**File: `src/pages/SchedulePage.tsx`**
-- a) Remove `CURRENT WEEK` badge; instead add a distinct border (`ring-2 ring-[hsl(var(--nba-yellow))]`) to the current week button, and color its number differently (`text-[hsl(var(--nba-yellow))]`) when not selected
-- d) Move Grid3X3 and Trophy icons from below the week strip to inline with it, at the far-left before week buttons
-- e) Make everything above game rows (week nav, day nav, date header) sticky with `sticky top-0 z-20 bg-background`
-
-**File: `src/components/ScheduleList.tsx`**
-- b) Increase team badges from `w-8 h-8` to `w-10 h-10`, add `hover:scale-110 transition-transform` surge
-- c) Move SCHEDULED/FINAL status text to center of the row, remove Badge container, increase font size to `text-sm font-heading font-bold`, style the row with more premium spacing and subtle gradient background
+**b) Explain tab — can't find players**
+- Root cause: `usePlayersQuery()` with no params defaults to limit 200, so many players are missing from the search pool
+- Fix: Change to `usePlayersQuery({ limit: 500 })` so all players are searchable
 
 ### Files Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/layout/AppLayout.tsx` | Move Guide to brand row |
-| `src/components/HowToPlayModal.tsx` | BookOpen icon |
-| `src/pages/RosterPage.tsx` | Bigger FC/BC badges |
-| `src/components/RosterSidebar.tsx` | White text dark mode, fixed bottom |
-| `src/components/RosterCourtView.tsx` | Starting 5 header, fill height, bench card layout |
-| `src/components/PlayerCard.tsx` | Bigger photos/names/badges with surge effects |
-| `src/components/FiltersPanel.tsx` | Team logos in dropdown watermark |
-| `src/pages/PlayersPage.tsx` | Sticky sidebar + table, NBA branding at bottom |
-| `src/pages/TeamsPage.tsx` | Watermark logo, remove centered logo |
-| `src/pages/SchedulePage.tsx` | Current week styling, move icons, sticky header |
-| `src/components/ScheduleList.tsx` | Bigger badges, centered status, premium rows |
-| `src/index.css` | Any supporting utility classes |
+| `src/pages/PlayersPage.tsx` | Add FP5/V5 columns after GP |
+| `src/components/FiltersPanel.tsx` | Remove Sort By section |
+| `src/pages/SchedulePage.tsx` | Center GW title, yellow date range, separator between icons, rounded day buttons, bold game count |
+| `src/components/PlayerCard.tsx` | Fix upcoming badge order (left-to-right chronological) |
+| `src/components/layout/AppLayout.tsx` | Yellow sidebar icons |
+| `src/components/PlayerModal.tsx` | Remove containers from Compare/Wishlist buttons |
+| `src/components/WishlistModal.tsx` | Redesign: badge left, FP avg, watermark team logo |
+| `src/components/AICoachModal.tsx` | Fix injury player_ids extraction, increase query limit to 500 |
 
