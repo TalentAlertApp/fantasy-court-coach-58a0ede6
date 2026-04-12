@@ -439,6 +439,9 @@ export default function RosterPage() {
             rosterTeams={rosterTeams}
             onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
             title={swapPlayerId ? "Swap Player" : "Add Player"}
+            bankRemaining={roster?.bank_remaining ?? 100}
+            swapPlayerSalary={swapPlayerId ? swapPlayerSalary : undefined}
+            swapPlayerPosition={swapPlayerId && totalPlayers >= 10 ? swapPlayerPosition : null}
           />
           <WishlistModal open={wishlistOpen} onOpenChange={setWishlistOpen} onPlayerClick={setSelectedPlayerId} />
         </>
