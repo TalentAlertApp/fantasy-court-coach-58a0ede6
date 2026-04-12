@@ -20,7 +20,7 @@ import { format } from "date-fns";
 function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
   if (youtubeVideoId) {
     return (
-      <div className="w-full h-full overflow-hidden rounded-lg bg-black">
+      <div className="w-full h-full overflow-hidden rounded-xl bg-black">
         <iframe
           src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
           title={title}
@@ -35,7 +35,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
 
   if (url) {
     return (
-      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-lg bg-black/80">
+      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-black/80">
         <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
           Watch on NBA.com
         </a>
@@ -44,7 +44,7 @@ function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtub
   }
 
   return (
-    <div className="flex w-full h-full items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
+    <div className="flex w-full h-full items-center justify-center rounded-xl bg-muted/30 text-sm text-muted-foreground">
       Recap unavailable
     </div>
   );
@@ -141,7 +141,6 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
 
   return (
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
-      {/* Left: stats table */}
       <div className="min-w-0">
         <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "hidden", scrollbarGutter: "stable" }}>
           <div className="pr-3 flex items-center gap-1.5">
@@ -221,7 +220,6 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
           })}
         </div>
       </div>
-      {/* Right: recap video */}
       <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
         <RecapVideoEmbed
           youtubeVideoId={youtubeRecapId}
@@ -233,7 +231,6 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
   );
 }
 
-/** Action icon for direct URL links */
 function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
   icon: typeof Tv2; url: string | null | undefined; label: string;
   className?: string;
@@ -252,8 +249,6 @@ function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
     </a>
   );
 }
-
-/* ---------- Upcoming Game Preview (expandable) ---------- */
 
 interface Last5Game {
   won: boolean;
@@ -288,7 +283,6 @@ function useTeamFormData(teams: string[], enabled: boolean) {
   return useQuery({
     queryKey: ["team-form", ...teams],
     queryFn: async () => {
-      // Fetch all final games
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
@@ -299,7 +293,6 @@ function useTeamFormData(teams: string[], enabled: boolean) {
 
       const result: Record<string, TeamFormData> = {};
 
-      // Build standings from all final games
       const acc: Record<string, { w: number; l: number; homeW: number; homeL: number; awayW: number; awayL: number; games: Last5Game[] }> = {};
       const ensure = (t: string) => { if (!acc[t]) acc[t] = { w: 0, l: 0, homeW: 0, homeL: 0, awayW: 0, awayL: 0, games: [] }; };
 
@@ -327,7 +320,6 @@ function useTeamFormData(teams: string[], enabled: boolean) {
         acc[g.away_team].games.push({ won: !homeWon, date: dateStr, opp: g.home_team, venue: "A", ...shared });
       }
 
-      // Find league leader for GB
       let bestDiff = -Infinity;
       for (const t of Object.values(acc)) {
         const diff = t.w - t.l;
@@ -364,7 +356,6 @@ function useTeamFormData(teams: string[], enabled: boolean) {
   });
 }
 
-/* ---------- Game Detail Dialog (for Last 5 game click) ---------- */
 function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const [showRecap, setShowRecap] = useState(false);
   if (!game) return null;
@@ -372,7 +363,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   const homeLogo = getTeamLogo(game.home_team);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm rounded-lg p-4">
+      <DialogContent className="max-w-sm rounded-xl p-4">
         <DialogHeader>
           <DialogTitle className="font-heading text-sm uppercase">Game Detail</DialogTitle>
         </DialogHeader>
@@ -391,22 +382,22 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
         </div>
         <div className="flex items-center justify-center gap-2 py-1">
           {game.game_boxscore_url && (
-            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="Box Score">
+            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="Box Score">
               <Table2 className="h-3.5 w-3.5" /> BoxScore
             </a>
           )}
           {game.game_charts_url && (
-            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="Charts">
+            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="Charts">
               <BarChart3 className="h-3.5 w-3.5" /> Charts
             </a>
           )}
           {game.game_playbyplay_url && (
-            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="Play-by-Play">
+            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="Play-by-Play">
               <Mic className="h-3.5 w-3.5" /> PbP
             </a>
           )}
           {game.nba_game_url && (
-            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-lg border" title="NBA.com">
+            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="NBA.com">
               <ExternalLink className="h-3.5 w-3.5" /> NBA
             </a>
           )}
@@ -422,7 +413,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
             {showRecap && (
               <div className="relative w-full mt-1" style={{ paddingBottom: "56.25%" }}>
                 <iframe
-                  className="absolute inset-0 w-full h-full rounded-lg"
+                  className="absolute inset-0 w-full h-full rounded-xl"
                   src={`https://www.youtube.com/embed/${game.youtube_recap_id}`}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -463,7 +454,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 <span className="font-heading font-bold text-xs uppercase">{team.tricode}</span>
                 {meta && <span className="text-[9px] text-muted-foreground">{meta.conference}</span>}
               </div>
-              {/* Standings */}
               <div className="grid grid-cols-4 gap-1 text-[10px]">
                 <div>
                   <span className="text-muted-foreground">W-L</span>
@@ -482,7 +472,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                   <p className="font-mono">{team.awayRec}</p>
                 </div>
               </div>
-              {/* Last 5 */}
               <div>
                 <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
                 <div className="space-y-0.5">
@@ -493,7 +482,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                         <button onClick={() => onGameClick(g)}>
                           <Badge
                             variant={g.won ? "default" : "destructive"}
-                            className="text-[8px] px-1.5 py-0 rounded-lg h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                            className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
                           >
                             {g.won ? "W" : "L"}
                           </Badge>
@@ -540,7 +529,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
   }
 
   return (
-    <div className="space-y-1.5 px-1">
+    <div className="space-y-2 px-1">
       {games.map((g) => {
         const isFinal = isGameFinal(g.status);
         const isLive = isGameLive(g.status);
@@ -557,64 +546,52 @@ export default function ScheduleList({ games }: ScheduleListProps) {
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`bg-card rounded-lg border border-l-4 ${getStatusBorder(g.status)} flex items-center justify-between px-4 py-3 ${
+                className={`bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-4 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
                 {/* Teams */}
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="flex items-center gap-2.5 min-w-[110px] justify-end text-right">
+                <div className="flex items-center gap-5 flex-1">
+                  <div className="flex items-center gap-3 min-w-[120px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
-                      {(isFinal || isLive) && <p className="text-xl font-mono font-black leading-tight">{g.away_pts}</p>}
+                      {(isFinal || isLive) && <p className="text-2xl font-mono font-black leading-tight">{g.away_pts}</p>}
                     </div>
                     {getTeamLogo(g.away_team) && (
-                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-8 h-8" />
+                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-10 h-10 transition-transform hover:scale-110" />
                     )}
                   </div>
-                  <div className="flex flex-col items-center">
-                    <span className="text-muted-foreground text-[10px] font-heading font-bold">@</span>
+
+                  {/* Center: status */}
+                  <div className="flex flex-col items-center min-w-[80px]">
+                    <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
+                    {isLive ? (
+                      <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                    ) : (
+                      <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
+                        {g.status}
+                      </span>
+                    )}
+                    {g.tipoff_utc && (
+                      <span className="text-xs font-mono font-bold text-muted-foreground mt-0.5">
+                        {formatTipoff(g.tipoff_utc)}
+                      </span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2.5 min-w-[110px]">
+
+                  <div className="flex items-center gap-3 min-w-[120px]">
                     {getTeamLogo(g.home_team) && (
-                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-8 h-8" />
+                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-10 h-10 transition-transform hover:scale-110" />
                     )}
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.home_team}</p>
-                      {(isFinal || isLive) && <p className="text-xl font-mono font-black leading-tight">{g.home_pts}</p>}
+                      {(isFinal || isLive) && <p className="text-2xl font-mono font-black leading-tight">{g.home_pts}</p>}
                     </div>
                   </div>
                 </div>
 
-                {/* Right info */}
+                {/* Right: action icons */}
                 <div className="flex items-center gap-1.5">
-                  {isLive && (
-                    <a
-                      href={g.game_playbyplay_url || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-block"
-                    >
-                      <Badge className="bg-destructive text-destructive-foreground text-[9px] rounded-lg px-1.5 py-0 font-heading font-bold animate-pulse">
-                        LIVE
-                      </Badge>
-                    </a>
-                  )}
-                  <Badge
-                    variant={isFinal ? "secondary" : "outline"}
-                    className={`text-[10px] rounded-lg font-heading ${
-                      isFinal ? "bg-green-500/10 text-green-700 border-green-500/30" : ""
-                    }`}
-                  >
-                    {g.status}
-                  </Badge>
-                  {g.tipoff_utc && (
-                    <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded-lg font-bold">
-                      {formatTipoff(g.tipoff_utc)}
-                    </span>
-                  )}
-                  {/* Action icons */}
                   {isFinal && (
                     <span
                       onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
@@ -645,7 +622,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className={`bg-card border border-t-0 border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-b-sm overflow-hidden`}>
+              <div className={`bg-card border border-t-0 border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-b-xl overflow-hidden`}>
                 {isExpanded && isFinal && (
                   <GameBoxScore
                     gameId={g.game_id}

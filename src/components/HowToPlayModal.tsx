@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { HelpCircle } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function HowToPlayModal() {
+interface HowToPlayModalProps {
+  iconClassName?: string;
+}
+
+export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -13,14 +17,14 @@ export default function HowToPlayModal() {
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
-        className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-        title="How to Play"
+        className={iconClassName ?? "text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"}
+        title="Guide"
       >
-        <HelpCircle className="h-5 w-5" />
+        <BookOpen className="h-4 w-4" />
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg h-[min(85vh,50rem)] flex flex-col rounded-lg overflow-hidden">
+        <DialogContent className="max-w-lg h-[min(85vh,50rem)] flex flex-col rounded-xl overflow-hidden">
           <DialogHeader className="pr-10">
             <DialogTitle className="font-heading text-lg">🏀 How To Play</DialogTitle>
           </DialogHeader>

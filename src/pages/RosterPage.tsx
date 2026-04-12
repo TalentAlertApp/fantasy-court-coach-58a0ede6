@@ -254,9 +254,9 @@ export default function RosterPage() {
   const isLoading = rosterLoading || playersLoading;
 
   return (
-    <div className="pb-20">
+    <div className="h-full flex flex-col">
       {/* ── Full-width Header Banner ── */}
-      <div className="bg-primary mb-4 px-5 py-4" style={{ borderRadius: "var(--radius)" }}>
+      <div className="bg-primary mb-3 px-5 py-3 rounded-xl shrink-0">
         <p className="text-destructive font-heading text-[11px] font-bold uppercase tracking-widest mb-0.5">
           {teamName}
         </p>
@@ -271,7 +271,7 @@ export default function RosterPage() {
             </span>
           </div>
           {countdown && (
-            <Badge className={`rounded-md text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
+            <Badge className={`rounded-lg text-[10px] font-mono ${countdown === "LOCKED" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"}`}>
               {countdown}
             </Badge>
           )}
@@ -279,7 +279,7 @@ export default function RosterPage() {
             <Button
               size="sm"
               onClick={() => setAiCoachOpen(true)}
-              className="rounded-lg font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+              className="rounded-xl font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
             </Button>
@@ -287,7 +287,7 @@ export default function RosterPage() {
               size="sm"
               variant="outline"
               onClick={() => setWishlistOpen(true)}
-              className="rounded-lg font-heading uppercase text-xs"
+              className="rounded-xl font-heading uppercase text-xs"
             >
               <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
             </Button>
@@ -303,28 +303,27 @@ export default function RosterPage() {
       ) : (
         <>
           {/* ── Toolbar Row ── */}
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
             <div className="flex items-center gap-2">
               <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "court" | "list")}>
-                <ToggleGroupItem value="court" className="font-heading text-xs uppercase rounded-lg">
+                <ToggleGroupItem value="court" className="font-heading text-xs uppercase rounded-xl">
                   <LayoutGrid className="h-4 w-4 mr-1" />Court
                 </ToggleGroupItem>
-                <ToggleGroupItem value="list" className="font-heading text-xs uppercase rounded-lg">
+                <ToggleGroupItem value="list" className="font-heading text-xs uppercase rounded-xl">
                   <List className="h-4 w-4 mr-1" />List
                 </ToggleGroupItem>
               </ToggleGroup>
-              <div className="hidden sm:flex items-center gap-2 ml-3 text-[10px] font-heading uppercase text-muted-foreground">
-                <Badge variant="destructive" className="rounded-lg text-[9px]">FC:{fcStarters}</Badge>
-                <Badge className="rounded-lg text-[9px]">BC:{bcStarters}</Badge>
+              <div className="flex items-center gap-2 ml-3">
+                <Badge variant="destructive" className="rounded-xl text-xs px-2.5 py-0.5 font-heading">FC:{fcStarters}</Badge>
+                <Badge className="rounded-xl text-xs px-2.5 py-0.5 font-heading">BC:{bcStarters}</Badge>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* Chips */}
               <Button
                 onClick={() => setChipCaptain(!chipCaptain)}
                 variant={chipCaptain ? "default" : "outline"}
                 size="sm"
-                className={`rounded-lg font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`rounded-xl font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
               >
                 <Star className="h-3.5 w-3.5 mr-1" />Captain
               </Button>
@@ -332,7 +331,7 @@ export default function RosterPage() {
                 onClick={() => setChipAllStar(!chipAllStar)}
                 variant={chipAllStar ? "default" : "outline"}
                 size="sm"
-                className={`rounded-lg font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`rounded-xl font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
               >
                 <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
               </Button>
@@ -340,26 +339,26 @@ export default function RosterPage() {
                 onClick={() => setChipWildcard(!chipWildcard)}
                 variant={chipWildcard ? "default" : "outline"}
                 size="sm"
-                className={`rounded-lg font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`rounded-xl font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
               >
                 <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
               </Button>
 
               {starters.length + bench.length < 10 && (
-                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-lg font-heading uppercase text-xs">
+                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs">
                   <Plus className="h-4 w-4 mr-1" />Add Player
                 </Button>
               )}
-              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-lg font-heading uppercase text-xs">
+              <Button onClick={handleOptimize} variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs">
                 <Zap className="h-4 w-4 mr-1" />Optimize
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-lg font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
+                  <Button variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10">
                     <RotateCcw className="h-4 w-4 mr-1" />Reset
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="rounded-xl">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Reset Roster?</AlertDialogTitle>
                     <AlertDialogDescription>This will remove all 10 players from your roster. You'll need to re-select them.</AlertDialogDescription>
@@ -374,7 +373,7 @@ export default function RosterPage() {
           </div>
 
           {/* ── Layout ── */}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}
@@ -413,7 +412,6 @@ export default function RosterPage() {
               </>
             )}
           </div>
-
 
           <OptimizeDialog open={optimizeOpen} onOpenChange={setOptimizeOpen} result={optimizerResult} onApply={handleApplyOptimization} applying={saveMutation.isPending} />
           <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />

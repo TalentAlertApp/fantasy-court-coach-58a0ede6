@@ -46,7 +46,6 @@ export default function PlayersPage() {
   const { data: rosterData } = useRosterQuery();
   const allPlayers = playersData?.items ?? [];
 
-  // Build roster lookup
   const rosterPlayerIds = useMemo(() => {
     if (!rosterData?.starters && !rosterData?.bench) return new Set<number>();
     const ids = new Set<number>();
@@ -55,7 +54,6 @@ export default function PlayersPage() {
     return ids;
   }, [rosterData]);
 
-  // Team count for max-2-per-team rule
   const teamCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     if (!rosterData) return counts;
@@ -133,7 +131,6 @@ export default function PlayersPage() {
     e.stopPropagation();
     if (!selectedTeamId) { toast.error("Select a team first"); return; }
     const current = getCurrentGameday();
-    // Find an empty slot
     const starters = rosterData?.starters ?? [];
     const bench = rosterData?.bench ?? [];
     let slot: string | null = null;
@@ -169,12 +166,12 @@ export default function PlayersPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 flex-wrap">
+    <div className="h-full flex flex-col">
+      <div className="flex items-center gap-3 flex-wrap shrink-0 mb-4">
         <h2 className="text-xl font-heading font-bold">Transactions</h2>
         <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
-          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-lg h-8">Per Game</ToggleGroupItem>
-          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-lg h-8">Totals</ToggleGroupItem>
+          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
+          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
         </ToggleGroup>
         <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
       </div>
@@ -182,88 +179,91 @@ export default function PlayersPage() {
       {isLoading ? (
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
-        <div className="flex gap-4">
-          <div className="flex-1 min-w-0 space-y-3">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs w-8"></TableHead>
-                  <TableHead className="text-xs">Player</TableHead>
-                  <TableHead className="text-xs">Team</TableHead>
-                  <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`} onClick={() => handleSort("gp")}>GP</TableHead>
-                  {columns.map((c) => (
-                    <TableHead key={c.key} className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`} onClick={() => handleSort(c.key)}>
-                      <span className="inline-flex items-center gap-0.5">
-                        {c.label}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-muted-foreground inline" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs">
-                            {perfMode === "pg" ? columnTooltips[c.key]?.pg : columnTooltips[c.key]?.total}
-                          </TooltipContent>
-                        </Tooltip>
-                      </span>
-                    </TableHead>
-                  ))}
-                  <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`} onClick={() => handleSort("salary")}>$</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedItems.map((p) => {
-                  const gp = p.season.gp || 1;
-                  const s = p.season as any;
-                  const fmtPg = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0"; };
-                  const fmtTot = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0"; };
-                  const teamLogo = getTeamLogo(p.core.team);
-                  const isOnRoster = rosterPlayerIds.has(p.core.id);
-                  const teamAtMax = (teamCounts[p.core.team] ?? 0) >= 2;
-                  const canAdd = !isOnRoster && !teamAtMax && rosterPlayerIds.size < 10;
+        <div className="flex gap-4 flex-1 min-h-0">
+          {/* Table — scrollable */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead className="text-xs w-8"></TableHead>
+                    <TableHead className="text-xs">Player</TableHead>
+                    <TableHead className="text-xs">Team</TableHead>
+                    <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`} onClick={() => handleSort("gp")}>GP</TableHead>
+                    {columns.map((c) => (
+                      <TableHead key={c.key} className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`} onClick={() => handleSort(c.key)}>
+                        <span className="inline-flex items-center gap-0.5">
+                          {c.label}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3 w-3 text-muted-foreground inline" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              {perfMode === "pg" ? columnTooltips[c.key]?.pg : columnTooltips[c.key]?.total}
+                            </TooltipContent>
+                          </Tooltip>
+                        </span>
+                      </TableHead>
+                    ))}
+                    <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`} onClick={() => handleSort("salary")}>$</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedItems.map((p) => {
+                    const gp = p.season.gp || 1;
+                    const s = p.season as any;
+                    const fmtPg = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0"; };
+                    const fmtTot = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0"; };
+                    const teamLogo = getTeamLogo(p.core.team);
+                    const isOnRoster = rosterPlayerIds.has(p.core.id);
+                    const teamAtMax = (teamCounts[p.core.team] ?? 0) >= 2;
+                    const canAdd = !isOnRoster && !teamAtMax && rosterPlayerIds.size < 10;
 
-                  return (
-                    <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
-                      <td className="px-1 py-1">
-                        {isOnRoster ? (
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={(e) => handleRemovePlayer(p.core.id, e)} title="Remove from roster">
-                            <Minus className="h-3.5 w-3.5" />
-                          </Button>
-                        ) : (
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={teamAtMax ? "Max 2 per team" : "Add to roster"}>
-                            <Plus className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </td>
-                      <td className="px-2 py-1.5 text-xs">
-                        <div className="flex items-center gap-1.5">
-                          <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
-                            {p.core.photo && <AvatarImage src={p.core.photo} />}
-                            <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
-                          </Avatar>
-                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.core.fc_bc}</Badge>
-                          <span className="font-medium whitespace-nowrap">{p.core.name}</span>
-                          {isOnRoster && <Badge variant="outline" className="text-[7px] px-1 py-0 rounded-lg border-green-500/50 text-green-600">ROSTER</Badge>}
-                        </div>
-                      </td>
-                      <td className="px-2 py-1.5 text-xs">
-                        <div className="flex items-center gap-1">
-                          {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
-                          <span>{p.core.team}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
-                      {columns.map((c) => (
-                        <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
-                          {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
+                    return (
+                      <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
+                        <td className="px-1 py-1">
+                          {isOnRoster ? (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={(e) => handleRemovePlayer(p.core.id, e)} title="Remove from roster">
+                              <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                          ) : (
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={teamAtMax ? "Max 2 per team" : "Add to roster"}>
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </td>
-                      ))}
-                      <td className="px-2 py-1.5 text-xs text-right font-mono">${p.core.salary}</td>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <td className="px-2 py-1.5 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
+                              {p.core.photo && <AvatarImage src={p.core.photo} />}
+                              <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
+                            </Avatar>
+                            <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.core.fc_bc}</Badge>
+                            <span className="font-medium whitespace-nowrap">{p.core.name}</span>
+                            {isOnRoster && <Badge variant="outline" className="text-[7px] px-1 py-0 rounded-lg border-green-500/50 text-green-600">ROSTER</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 text-xs">
+                          <div className="flex items-center gap-1">
+                            {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
+                            <span>{p.core.team}</span>
+                          </div>
+                        </td>
+                        <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
+                        {columns.map((c) => (
+                          <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
+                            {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
+                          </td>
+                        ))}
+                        <td className="px-2 py-1.5 text-xs text-right font-mono">${p.core.salary}</td>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
 
-            <div className="flex items-center justify-between border-t pt-3">
+            <div className="flex items-center justify-between border-t pt-3 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Show</span>
                 <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(v === "All" ? "All" : Number(v) as any); setCurrentPage(1); }}>
@@ -282,7 +282,8 @@ export default function PlayersPage() {
             </div>
           </div>
 
-          <div className="w-56 flex-shrink-0">
+          {/* Sidebar — sticky, non-scrolling */}
+          <div className="w-56 flex-shrink-0 sticky top-0 self-start">
             <FiltersPanel fcBc={fcBc} onFcBcChange={setFcBc} sort={sort} onSortChange={(v) => setSort(v as SortKey)} search={search} onSearchChange={setSearch} maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit} team={team} onTeamChange={setTeam} />
           </div>
         </div>
