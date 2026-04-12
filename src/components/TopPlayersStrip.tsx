@@ -6,6 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface TopPlayersStripProps {
   gw: number;
@@ -14,10 +15,8 @@ interface TopPlayersStripProps {
 
 type TopPlayer = { id: number; name: string; team: string; fc_bc: string; photo: string | null; fp: number; salary: number };
 
-export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
+export function useTopPlayersData(gw: number, day: number) {
   const { data: weekGames } = useScheduleWeekGames(gw);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
-  const [mode, setMode] = useState<"fp" | "value">("fp");
 
   const finalGameIds = useMemo(() => {
     if (!weekGames) return [];
@@ -80,65 +79,76 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
     staleTime: 300_000,
   });
 
-  if (!topPlayers || (topPlayers.topFC.length === 0 && topPlayers.topBC.length === 0)) return null;
+  const hasData = !!(topPlayers && (topPlayers.topFC.length > 0 || topPlayers.topBC.length > 0));
+  return { topPlayers, hasData };
+}
 
-  const fcList = mode === "fp" ? (topPlayers.topFC ?? []) : (topPlayers.topFCVal ?? []);
-  const bcList = mode === "fp" ? (topPlayers.topBC ?? []) : (topPlayers.topBCVal ?? []);
+export function TopPlayersPanel({ gw, day }: TopPlayersStripProps) {
+  const { topPlayers } = useTopPlayersData(gw, day);
+  const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
 
-  const renderPlayer = (p: TopPlayer) => (
-    <div key={p.id} className="flex items-center gap-1 flex-1 min-w-0 px-1 py-0.5">
-      <Avatar className="h-6 w-6 shrink-0">
+  if (!topPlayers || (topPlayers.topFC.length === 0 && topPlayers.topBC.length === 0)) {
+    return <p className="text-sm text-muted-foreground text-center py-6">No completed games for this day yet.</p>;
+  }
+
+  const renderPlayer = (p: TopPlayer, mode: "fp" | "value") => (
+    <div key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setSelectedPlayerId(p.id)}>
+      <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 rounded-lg shrink-0">{p.fc_bc}</Badge>
+      <Avatar className="h-8 w-8 shrink-0">
         {p.photo && <AvatarImage src={p.photo} />}
-        <AvatarFallback className="text-[7px]">{p.name.slice(0, 2)}</AvatarFallback>
+        <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      <div className="min-w-0 flex-1">
-        <button
-          onClick={() => setSelectedPlayerId(p.id)}
-          className="text-[9px] font-heading font-bold truncate block max-w-full text-left hover:text-primary hover:underline cursor-pointer"
-        >
-          {p.name}
-        </button>
-        <div className="flex items-center gap-0.5">
-          {getTeamLogo(p.team) && <img src={getTeamLogo(p.team)} alt="" className="w-2.5 h-2.5" />}
-          <span className="text-[8px] text-muted-foreground">{p.team}</span>
-          {mode === "fp" ? (
-            <span className="text-[9px] font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
-          ) : (
-            <span className="text-[9px] font-mono font-bold text-primary">{(p.fp / (p.salary || 1)).toFixed(1)}</span>
-          )}
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-heading font-bold truncate block">{p.name}</span>
+        <div className="flex items-center gap-1">
+          {getTeamLogo(p.team) && <img src={getTeamLogo(p.team)} alt="" className="w-3.5 h-3.5" />}
+          <span className="text-[10px] text-muted-foreground">{p.team}</span>
+          <span className="text-[10px] text-muted-foreground">·</span>
+          <span className="text-[10px] font-mono text-muted-foreground">${p.salary}</span>
         </div>
+      </div>
+      {mode === "fp" ? (
+        <span className="text-sm font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
+      ) : (
+        <span className="text-sm font-mono font-bold text-primary">{(p.fp / (p.salary || 1)).toFixed(1)}</span>
+      )}
+    </div>
+  );
+
+  const renderSection = (label: string, players: TopPlayer[], mode: "fp" | "value", variant: "destructive" | "default") => (
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 mb-1 px-3">
+        <Badge variant={variant} className="text-[8px] px-1.5 py-0 rounded-lg">{label}</Badge>
+        <span className="text-[10px] text-muted-foreground font-heading">Top 5</span>
+      </div>
+      <div className="space-y-0.5">
+        {players.map((p) => renderPlayer(p, mode))}
       </div>
     </div>
   );
 
   return (
     <>
-      <div className="bg-card border-x border-b px-1 py-1 flex items-center gap-0">
-        {/* Vertical FP/Value toggle */}
-        <div className="flex flex-col gap-0.5 mr-1 shrink-0">
-          <button
-            onClick={() => setMode("fp")}
-            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-lg border transition-colors ${mode === "fp" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
-          >
-            FP
-          </button>
-          <button
-            onClick={() => setMode("value")}
-            className={`text-[7px] font-heading font-bold px-1 py-0.5 rounded-lg border transition-colors ${mode === "value" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted"}`}
-          >
-            VAL
-          </button>
-        </div>
-        <Badge variant="destructive" className="text-[7px] px-1 py-0 rounded-lg shrink-0 mr-0.5">FC</Badge>
-        <div className="flex items-center flex-1 min-w-0">
-          {fcList.map(renderPlayer)}
-        </div>
-        <div className="w-px h-5 bg-border mx-1 shrink-0" />
-        <Badge className="text-[7px] px-1 py-0 rounded-lg shrink-0 mr-0.5">BC</Badge>
-        <div className="flex items-center flex-1 min-w-0">
-          {bcList.map(renderPlayer)}
-        </div>
-      </div>
+      <Tabs defaultValue="fp" className="w-full">
+        <TabsList className="w-full grid grid-cols-2 h-8 rounded-t-xl rounded-b-none">
+          <TabsTrigger value="fp" className="text-xs font-heading font-bold rounded-xl">Fantasy Points</TabsTrigger>
+          <TabsTrigger value="value" className="text-xs font-heading font-bold rounded-xl">Value (FP/$)</TabsTrigger>
+        </TabsList>
+        <TabsContent value="fp" className="mt-0 pt-2">
+          <div className="flex gap-2">
+            {renderSection("FC", topPlayers.topFC, "fp", "destructive")}
+            <div className="w-px bg-border shrink-0" />
+            {renderSection("BC", topPlayers.topBC, "fp", "default")}
+          </div>
+        </TabsContent>
+        <TabsContent value="value" className="mt-0 pt-2">
+          <div className="flex gap-2">
+            {renderSection("FC", topPlayers.topFCVal, "value", "destructive")}
+            <div className="w-px bg-border shrink-0" />
+            {renderSection("BC", topPlayers.topBCVal, "value", "default")}
+          </div>
+        </TabsContent>
+      </Tabs>
       <PlayerModal
         playerId={selectedPlayerId}
         open={selectedPlayerId !== null}
@@ -146,4 +156,8 @@ export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
       />
     </>
   );
+}
+
+export default function TopPlayersStrip({ gw, day }: TopPlayersStripProps) {
+  return <TopPlayersPanel gw={gw} day={day} />;
 }

@@ -33,7 +33,10 @@ export default function FiltersPanel({
         <div>
           <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Position</Label>
           <ToggleGroup type="single" value={fcBc} onValueChange={(v) => v && onFcBcChange(v)} className="justify-start">
-            <ToggleGroupItem value="ALL" className="text-xs font-heading uppercase rounded-xl">All</ToggleGroupItem>
+            <ToggleGroupItem
+              value="ALL"
+              className={`text-xs font-heading uppercase rounded-xl ${fcBc === "ALL" ? "!bg-primary !text-primary-foreground" : ""}`}
+            >All</ToggleGroupItem>
             <ToggleGroupItem
               value="FC"
               className={`text-xs font-heading uppercase rounded-xl ${fcBc === "FC" ? "!bg-destructive !text-destructive-foreground" : ""}`}

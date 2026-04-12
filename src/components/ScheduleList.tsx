@@ -142,7 +142,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
   return (
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       <div className="min-w-0">
-        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "hidden", scrollbarGutter: "stable" }}>
+        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-2 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "hidden", scrollbarGutter: "stable" }}>
           <div className="pr-3 flex items-center gap-1.5">
             <span>Player</span>
             <button
@@ -204,17 +204,17 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
                   >
                     {p.fc_bc}
                   </Badge>
-                  <span className="text-xs font-medium whitespace-nowrap">{p.name}</span>
+                  <span className="text-sm font-medium whitespace-nowrap">{p.name}</span>
                 </div>
-                <span className="text-right font-mono text-xs font-bold">{p.fp}</span>
-                <span className="text-right font-mono text-xs text-red-500">{(p as any).salary ?? 0}</span>
-                <span className="text-right font-mono text-xs text-red-500">{p.value.toFixed(1)}</span>
-                <span className="text-right font-mono text-xs text-muted-foreground">{p.mp}</span>
-                <span className="text-right font-mono text-xs">{p.ps}</span>
-                <span className="text-right font-mono text-xs">{p.ast}</span>
-                <span className="text-right font-mono text-xs">{p.reb}</span>
-                <span className="text-right font-mono text-xs">{p.blk}</span>
-                <span className="text-right font-mono text-xs">{p.stl}</span>
+                <span className="text-right font-mono text-sm font-bold">{p.fp}</span>
+                <span className="text-right font-mono text-sm text-red-500">{(p as any).salary ?? 0}</span>
+                <span className="text-right font-mono text-sm text-red-500">{p.value.toFixed(1)}</span>
+                <span className="text-right font-mono text-sm text-muted-foreground">{p.mp}</span>
+                <span className="text-right font-mono text-sm">{p.ps}</span>
+                <span className="text-right font-mono text-sm">{p.ast}</span>
+                <span className="text-right font-mono text-sm">{p.reb}</span>
+                <span className="text-right font-mono text-sm">{p.blk}</span>
+                <span className="text-right font-mono text-sm">{p.stl}</span>
               </div>
             );
           })}
@@ -450,11 +450,11 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
           return (
             <div key={team.tricode} className="space-y-2">
               <div className="flex items-center gap-2">
-                {logo && <img src={logo} alt={team.tricode} className="w-5 h-5" />}
-                <span className="font-heading font-bold text-xs uppercase">{team.tricode}</span>
-                {meta && <span className="text-[9px] text-muted-foreground">{meta.conference}</span>}
+                {logo && <img src={logo} alt={team.tricode} className="w-8 h-8" />}
+                <span className="font-heading font-bold text-sm uppercase">{team.tricode}</span>
+                {meta && <span className="text-xs text-muted-foreground">{meta.conference}</span>}
               </div>
-              <div className="grid grid-cols-4 gap-1 text-[10px]">
+              <div className="grid grid-cols-4 gap-1.5 text-xs">
                 <div>
                   <span className="text-muted-foreground">W-L</span>
                   <p className="font-mono font-bold">{team.w}-{team.l}</p>
@@ -473,12 +473,12 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 </div>
               </div>
               <div>
-                <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
-                <div className="space-y-0.5">
+                <p className="text-xs font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
+                <div className="space-y-1">
                   {team.last5.map((g, i) => {
                     const oppLogo = getTeamLogo(g.opp);
                     return (
-                      <div key={i} className="flex items-center gap-1.5 text-[10px]">
+                      <div key={i} className="flex items-center gap-2 text-xs">
                         <button onClick={() => onGameClick(g)}>
                           <Badge
                             variant={g.won ? "default" : "destructive"}

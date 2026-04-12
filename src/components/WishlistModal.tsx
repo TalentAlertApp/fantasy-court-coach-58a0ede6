@@ -62,6 +62,7 @@ export default function WishlistModal({ open, onOpenChange, onPlayerClick }: Wis
                     )}
                     <span className="text-xs font-medium flex-1 relative z-10">{p.core.name}</span>
                     <span className="text-[10px] font-mono text-muted-foreground relative z-10">{Number(fp).toFixed(1)} FP</span>
+                    <span className="text-muted-foreground/40 relative z-10">|</span>
                     <span className="text-[10px] font-mono text-muted-foreground relative z-10">${p.core.salary}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFromWishlist(p.core.id); }}

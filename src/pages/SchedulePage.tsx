@@ -5,13 +5,14 @@ import TeamOfTheWeekModal from "@/components/TeamOfTheWeekModal";
 import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
 import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
 import ScheduleList from "@/components/ScheduleList";
-import TopPlayersStrip from "@/components/TopPlayersStrip";
+import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 const MIN_WEEK = 1;
 const MAX_WEEK = 25;
@@ -50,17 +51,18 @@ export default function SchedulePage() {
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
   const [totwOpen, setTotwOpen] = useState(false);
+  const [potdOpen, setPotdOpen] = useState(false);
   const navigate = useNavigate();
   const { data, isLoading } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
   const { data: lastPlayed } = useLastPlayedDay();
+  const { hasData: hasPotdData } = useTopPlayersData(gw, day);
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
   const todayStr = new Date().toISOString().slice(0, 10);
   const selectedDateStr = WEEK_DAY_TO_DATE[`${gw}-${day}`] ?? "";
   const isToday = selectedDateStr === todayStr;
-  const isCurrentWeek = gw === current.gw;
 
   const selectedDateLabel = selectedDateStr
     ? format(parse(selectedDateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
@@ -73,6 +75,9 @@ export default function SchedulePage() {
     const el = weekScrollRef.current?.querySelector(`[data-gw="${gw}"]`);
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [gw]);
+
+  // Check if any final games exist for TOTW (simplified: check if weekCounts has any data)
+  const hasTotwData = !!(weekCounts && Object.values(weekCounts).some((c) => c > 0));
 
   return (
     <div className="flex flex-col h-full">
@@ -140,10 +145,10 @@ export default function SchedulePage() {
                 <button
                   key={wd.day}
                   onClick={() => setDay(wd.day)}
-                  className={`flex-1 min-w-[48px] py-1 px-1 text-center transition-all ${
+                  className={`flex-1 min-w-[48px] py-1 px-1 text-center transition-all rounded-xl ${
                     isSelected
-                      ? "bg-primary text-primary-foreground rounded-xl shadow-md"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
                   <div className={`text-[8px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</div>
@@ -178,12 +183,7 @@ export default function SchedulePage() {
           </Button>
         </div>
 
-        {/* Top Players Strip — now has more vertical room */}
-        <div className="py-1">
-          <TopPlayersStrip gw={gw} day={day} />
-        </div>
-
-        {/* Date header + Deadline + Grid/Trophy icons */}
+        {/* Date header + Deadline + Buttons */}
         <div className="px-1 py-3 bg-background">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 flex-wrap">
@@ -192,28 +192,21 @@ export default function SchedulePage() {
               {isToday && <Badge variant="destructive" className="text-[9px] rounded-xl px-1.5 py-0">TODAY</Badge>}
               {deadline && (
                 <>
-                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground/40">·</span>
                   <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                     <Clock className="h-3 w-3" />
                     <span className="font-heading">Deadline <span className="font-bold text-foreground">{formatDeadline(deadline.deadline_utc)}</span></span>
                   </div>
                 </>
               )}
-              {/* Grid + Trophy icons inline with date */}
+              {/* Separator before Grid icon */}
+              <span className="text-muted-foreground/40">·</span>
               <button
                 onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1"
                 title="Advanced Schedule Grid"
               >
                 <Grid3X3 className="h-4 w-4" />
-              </button>
-              <span className="text-muted-foreground/40">|</span>
-              <button
-                onClick={() => setTotwOpen(true)}
-                className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors p-1"
-                title="Team of the Week"
-              >
-                <Trophy className="h-4 w-4" />
               </button>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -231,7 +224,47 @@ export default function SchedulePage() {
               </Button>
             </div>
           </div>
+
+          {/* TOTW + POTD buttons row */}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={() => hasTotwData && setTotwOpen(true)}
+              disabled={!hasTotwData}
+              className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
+                hasTotwData
+                  ? "border-[hsl(var(--nba-yellow))]/40 text-foreground hover:bg-[hsl(var(--nba-yellow))]/10 hover:border-[hsl(var(--nba-yellow))]"
+                  : "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
+              }`}
+            >
+              <Medal className="h-4 w-4" />
+              Team of the Week
+            </button>
+            <span className="text-muted-foreground/40">|</span>
+            <button
+              onClick={() => hasPotdData && setPotdOpen(!potdOpen)}
+              disabled={!hasPotdData}
+              className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
+                hasPotdData
+                  ? potdOpen
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary"
+                  : "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
+              }`}
+            >
+              <Star className="h-4 w-4" />
+              Players of the Day
+            </button>
+          </div>
         </div>
+
+        {/* Collapsible Players of the Day panel */}
+        <Collapsible open={potdOpen}>
+          <CollapsibleContent>
+            <div className="bg-card border rounded-xl mx-1 mb-2 p-3">
+              <TopPlayersPanel gw={gw} day={day} />
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {/* Games — scrollable */}
