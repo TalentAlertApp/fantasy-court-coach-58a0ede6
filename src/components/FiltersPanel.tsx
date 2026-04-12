@@ -6,21 +6,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { NBA_TEAMS, getTeamLogo } from "@/lib/nba-teams";
 import { useMemo } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
-import { TrendingUp, DollarSign, Gem, BarChart3, ArrowUpDown } from "lucide-react";
-
-const SORT_OPTIONS = [
-  { value: "fp5", label: "FP5", icon: TrendingUp },
-  { value: "salary", label: "Salary", icon: DollarSign },
-  { value: "value5", label: "Value5", icon: Gem },
-  { value: "stocks5", label: "Stocks5", icon: BarChart3 },
-  { value: "delta_fp", label: "Delta FP", icon: ArrowUpDown },
-];
-
 interface FiltersPanelProps {
   fcBc: string;
   onFcBcChange: (v: string) => void;
-  sort: string;
-  onSortChange: (v: string) => void;
   search: string;
   onSearchChange: (v: string) => void;
   maxSalary: number;
@@ -31,7 +19,7 @@ interface FiltersPanelProps {
 }
 
 export default function FiltersPanel({
-  fcBc, onFcBcChange, sort, onSortChange, search, onSearchChange, maxSalary, onMaxSalaryChange,
+  fcBc, onFcBcChange, search, onSearchChange, maxSalary, onMaxSalaryChange,
   maxSalaryLimit = 50, team, onTeamChange,
 }: FiltersPanelProps) {
   const sortedTeams = useMemo(
@@ -86,22 +74,6 @@ export default function FiltersPanel({
           </div>
         )}
 
-        <div>
-          <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Sort By</Label>
-          <Select value={sort} onValueChange={onSortChange}>
-            <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {SORT_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  <div className="flex items-center gap-2">
-                    <opt.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{opt.label}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div>
           <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Search</Label>
           <Input placeholder="Name or team…" value={search} onChange={(e) => onSearchChange(e.target.value)} className="rounded-xl" />

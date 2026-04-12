@@ -24,7 +24,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const { toast } = useToast();
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData } = useRosterQuery();
-  const { data: playersData } = usePlayersQuery();
+  const { data: playersData } = usePlayersQuery({ limit: 500 });
 
   const [analyzeResult, setAnalyzeResult] = useState<any>(null);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
@@ -98,7 +98,9 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const handleInjury = async () => {
     setInjuryLoading(true); setInjuryResult(null);
     try {
-      const rosterPlayerIds = rosterData?.roster ? [...rosterData.roster.starters, ...rosterData.roster.bench] : [];
+      const rosterPlayerIds = rosterData?.roster
+        ? [...(rosterData.roster.starters ?? []), ...(rosterData.roster.bench ?? [])].map((s: any) => s.player_id).filter(Boolean)
+        : [];
       setInjuryResult(await aiInjuryMonitor({ player_ids: rosterPlayerIds, include_replacements: true, max_salary: rosterData?.roster?.bank_remaining ?? null }, selectedTeamId ?? undefined));
     } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
     finally { setInjuryLoading(false); }

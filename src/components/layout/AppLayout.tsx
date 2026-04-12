@@ -153,7 +153,7 @@ export default function AppLayout() {
               }
               title={collapsed ? label : undefined}
             >
-              <Icon className="h-4 w-4 flex-shrink-0" />
+              <Icon className="h-4 w-4 flex-shrink-0 text-[hsl(var(--nba-yellow))]" />
               {!collapsed && <span className="truncate">{label}</span>}
             </NavLink>
           ))}

@@ -38,24 +38,34 @@ export default function WishlistModal({ open, onOpenChange, onPlayerClick }: Wis
             <div className="space-y-1">
               {wishlisted.map((p) => {
                 const logo = getTeamLogo(p.core.team);
+                const fp = (p as any).last5?.fp5 ?? (p as any).season?.fp ?? 0;
                 return (
                   <div
                     key={p.core.id}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer group"
+                    className="relative flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-accent/50 cursor-pointer group overflow-hidden"
                     onClick={() => { onPlayerClick(p.core.id); onOpenChange(false); }}
                   >
+                    {/* Team watermark */}
+                    {logo && (
+                      <img
+                        src={logo}
+                        alt=""
+                        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 opacity-[0.06] pointer-events-none select-none transition-transform group-hover:scale-125"
+                      />
+                    )}
+                    {/* FC/BC badge — far left */}
+                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg shrink-0">{p.core.fc_bc}</Badge>
                     {p.core.photo ? (
                       <img src={p.core.photo} alt="" className="w-7 h-7 rounded-full object-cover bg-muted" />
                     ) : (
                       <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">{p.core.name.substring(0, 2).toUpperCase()}</div>
                     )}
-                    {logo && <img src={logo} alt="" className="w-4 h-4" />}
-                    <span className="text-xs font-medium flex-1">{p.core.name}</span>
-                    <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg">{p.core.fc_bc}</Badge>
-                    <span className="text-[10px] font-mono text-muted-foreground">${p.core.salary}</span>
+                    <span className="text-xs font-medium flex-1 relative z-10">{p.core.name}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground relative z-10">{Number(fp).toFixed(1)} FP</span>
+                    <span className="text-[10px] font-mono text-muted-foreground relative z-10">${p.core.salary}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFromWishlist(p.core.id); }}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity relative z-10"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>

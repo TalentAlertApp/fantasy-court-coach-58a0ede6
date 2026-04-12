@@ -165,14 +165,14 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => setCompareOpen(true)}
-                    className="p-2 rounded-lg bg-primary/20 hover:bg-primary/30 transition-colors"
+                    className="p-1.5 hover:text-primary transition-colors"
                     title="Compare"
                   >
                     <BarChart3 className="h-4 w-4 text-primary" />
                   </button>
                   <button
                     onClick={() => playerId && toggleWishlist(playerId)}
-                    className="p-2 rounded-lg bg-muted hover:bg-muted/80 transition-colors"
+                    className="p-1.5 hover:text-destructive transition-colors"
                     title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                   >
                     <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
