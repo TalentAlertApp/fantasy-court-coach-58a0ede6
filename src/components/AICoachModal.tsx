@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, Alert
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
+import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import {
   aiAnalyzeRoster, aiPickCaptain, aiSuggestTransfers, aiInjuryMonitor, aiExplainPlayer,
   saveRoster, simulateTransactions, commitTransaction,
@@ -18,6 +19,16 @@ import { useToast } from "@/hooks/use-toast";
 interface AICoachModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+/** Strip diacritics for search matching */
+function normalize(str: string): string {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function getTeamFullName(tricode: string): string {
+  const t = NBA_TEAMS.find((t) => t.tricode === tricode);
+  return t?.name ?? tricode;
 }
 
 export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) {
@@ -37,18 +48,49 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const [explainResult, setExplainResult] = useState<any>(null);
   const [explainLoading, setExplainLoading] = useState(false);
   const [explainSearch, setExplainSearch] = useState("");
+  const [selectedExplainPlayer, setSelectedExplainPlayer] = useState<any>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [applyingCaptain, setApplyingCaptain] = useState(false);
   const [simulatingIdx, setSimulatingIdx] = useState<number | null>(null);
   const [committingIdx, setCommittingIdx] = useState<number | null>(null);
   const [simResults, setSimResults] = useState<Record<number, any>>({});
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const gw = rosterData?.roster?.gw ?? 1;
   const day = rosterData?.roster?.day ?? 1;
+  const allPlayers = playersData?.items ?? [];
 
   const getPlayerName = (id: number) => {
-    const p = playersData?.items?.find((i: any) => i.core.id === id);
+    const p = allPlayers.find((i: any) => i.core.id === id);
     return p?.core?.name ?? `#${id}`;
   };
+
+  // Autocomplete matches for explain tab
+  const explainMatches = useMemo(() => {
+    if (explainSearch.length < 3 || selectedExplainPlayer) return [];
+    const q = normalize(explainSearch);
+    return allPlayers.filter((p) => {
+      const nameNorm = normalize(p.core.name);
+      const teamNorm = normalize(p.core.team);
+      const teamFull = normalize(getTeamFullName(p.core.team));
+      return nameNorm.includes(q) || teamNorm.includes(q) || teamFull.includes(q);
+    }).slice(0, 8);
+  }, [explainSearch, allPlayers, selectedExplainPlayer]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  useEffect(() => {
+    setShowDropdown(explainMatches.length > 0);
+  }, [explainMatches]);
 
   const handleAnalyze = async () => {
     setAnalyzeLoading(true); setAnalyzeResult(null);
@@ -107,13 +149,26 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   };
 
   const handleExplain = async () => {
-    if (!explainSearch.trim()) return;
-    const player = playersData?.items?.find((i: any) => i.core.name.toLowerCase().includes(explainSearch.toLowerCase()));
-    if (!player) { toast({ title: "Player not found", variant: "destructive" }); return; }
+    if (!selectedExplainPlayer) {
+      toast({ title: "Select a player from the dropdown first", variant: "destructive" });
+      return;
+    }
     setExplainLoading(true); setExplainResult(null);
-    try { setExplainResult(await aiExplainPlayer({ player_id: player.core.id }, selectedTeamId ?? undefined)); }
+    try { setExplainResult(await aiExplainPlayer({ player_id: selectedExplainPlayer.core.id }, selectedTeamId ?? undefined)); }
     catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
     finally { setExplainLoading(false); }
+  };
+
+  const handleExplainSearchChange = (val: string) => {
+    setExplainSearch(val);
+    setSelectedExplainPlayer(null);
+    setExplainResult(null);
+  };
+
+  const handleSelectExplainPlayer = (p: any) => {
+    setExplainSearch(p.core.name);
+    setSelectedExplainPlayer(p);
+    setShowDropdown(false);
   };
 
   const statusColor = (s: string) => {
@@ -247,12 +302,63 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
-              <div className="flex gap-2">
-                <Input placeholder="Search player name..." value={explainSearch} onChange={(e) => setExplainSearch(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleExplain()} className="rounded-lg flex-1" />
-                <Button size="sm" onClick={handleExplain} disabled={explainLoading}>
-                  {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
-                </Button>
+              <div className="relative" ref={dropdownRef}>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search player name or team..."
+                    value={explainSearch}
+                    onChange={(e) => handleExplainSearchChange(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleExplain()}
+                    className="rounded-lg flex-1"
+                  />
+                  <Button size="sm" onClick={handleExplain} disabled={explainLoading || !selectedExplainPlayer}>
+                    {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
+                  </Button>
+                </div>
+
+                {/* Autocomplete dropdown */}
+                {showDropdown && explainMatches.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-card border rounded-xl shadow-lg z-50 max-h-[240px] overflow-y-auto">
+                    {explainMatches.map((p) => {
+                      const logo = getTeamLogo(p.core.team);
+                      const teamFullName = getTeamFullName(p.core.team);
+                      return (
+                        <button
+                          key={p.core.id}
+                          onClick={() => handleSelectExplainPlayer(p)}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors text-left group relative overflow-hidden"
+                        >
+                          {/* Team watermark */}
+                          {logo && (
+                            <img
+                              src={logo}
+                              alt=""
+                              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 opacity-[0.08] pointer-events-none group-hover:opacity-[0.2] group-hover:scale-125 transition-all"
+                            />
+                          )}
+                          {p.core.photo ? (
+                            <img src={p.core.photo} alt="" className="w-8 h-8 rounded-full object-cover bg-muted shrink-0 transition-transform group-hover:scale-110 relative z-10" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold shrink-0 relative z-10">
+                              {p.core.name.slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0 relative z-10">
+                            <p className="text-sm font-heading font-semibold truncate">{p.core.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground">{teamFullName}</span>
+                              <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5">
+                                {p.core.fc_bc}
+                              </Badge>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
+
               {explainLoading && <Skeleton className="h-20 w-full" />}
               {explainResult && (
                 <div className="space-y-2 text-sm">
