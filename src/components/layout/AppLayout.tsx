@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect } from "react";
@@ -7,6 +7,7 @@ import nbaLogo from "@/assets/nba-logo.svg";
 
 const navItems = [
   { to: "/", label: "My Roster", icon: ClipboardList, end: true },
+  { to: "/scoring", label: "Scoring", icon: Trophy },
   { to: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { to: "/teams", label: "Teams", icon: Shirt },
   { to: "/schedule", label: "Schedule", icon: Calendar },
