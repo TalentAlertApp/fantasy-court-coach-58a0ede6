@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -89,6 +89,8 @@ export default function PlayersPage() {
         const s = p.season as any;
         if (sortCol === "gp") return p.season.gp;
         if (sortCol === "salary") return p.core.salary;
+        if (sortCol === "fp5") return (p.last5 as any)?.fp5 ?? 0;
+        if (sortCol === "value5") return (p.computed as any)?.value5 ?? 0;
         if (perfMode === "total") return s[`total_${sortCol}`] ?? 0;
         else { const tk = `total_${sortCol}`; return s[tk] !== undefined ? s[tk] / gp : 0; }
       };
@@ -115,6 +117,10 @@ export default function PlayersPage() {
     stl: { pg: "Steals per game", total: "Total steals" },
     blk: { pg: "Blocks per game", total: "Total blocks" },
     fp: { pg: "Fantasy points per game", total: "Total fantasy points" },
+    gp: { pg: "Games played", total: "Games played" },
+    fp5: { pg: "Fantasy points avg (last 5 games)", total: "Fantasy points avg (last 5 games)" },
+    value5: { pg: "Value from last 5 games (FP÷5)", total: "Value from last 5 games (FP÷5)" },
+    salary: { pg: "Player salary ($M)", total: "Player salary ($M)" },
   };
 
   const columns = [
@@ -165,6 +171,30 @@ export default function PlayersPage() {
     queryClient.invalidateQueries({ queryKey: ["roster-current"] });
   };
 
+  const sortableHeader = (col: string, label: string) => {
+    const isActive = sortCol === col;
+    const tip = columnTooltips[col];
+    return (
+      <TableHead
+        className={`text-xs text-right cursor-pointer select-none ${isActive ? "text-primary font-bold" : ""}`}
+        onClick={() => handleSort(col)}
+      >
+        {tip ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex items-center gap-0.5">{label}</span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {perfMode === "pg" ? tip.pg : tip.total}
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          label
+        )}
+      </TableHead>
+    );
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 flex-wrap shrink-0 mb-4">
@@ -180,7 +210,6 @@ export default function PlayersPage() {
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
         <div className="flex gap-4 flex-1 min-h-0">
-          {/* Table — scrollable */}
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="flex-1 overflow-y-auto min-h-0">
               <Table>
@@ -189,25 +218,11 @@ export default function PlayersPage() {
                     <TableHead className="text-xs w-8"></TableHead>
                     <TableHead className="text-xs">Player</TableHead>
                     <TableHead className="text-xs">Team</TableHead>
-                    <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "gp" ? "font-bold" : ""}`} onClick={() => handleSort("gp")}>GP</TableHead>
-                    <TableHead className="text-xs text-right font-bold">FP5</TableHead>
-                    <TableHead className="text-xs text-right font-bold">V5</TableHead>
-                    {columns.map((c) => (
-                      <TableHead key={c.key} className={`text-xs text-right cursor-pointer select-none ${sortCol === c.key ? "font-bold" : ""}`} onClick={() => handleSort(c.key)}>
-                        <span className="inline-flex items-center gap-0.5">
-                          {c.label}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 text-muted-foreground inline" />
-                            </TooltipTrigger>
-                            <TooltipContent side="top" className="text-xs">
-                              {perfMode === "pg" ? columnTooltips[c.key]?.pg : columnTooltips[c.key]?.total}
-                            </TooltipContent>
-                          </Tooltip>
-                        </span>
-                      </TableHead>
-                    ))}
-                    <TableHead className={`text-xs text-right cursor-pointer select-none ${sortCol === "salary" ? "font-bold" : ""}`} onClick={() => handleSort("salary")}>$</TableHead>
+                    {sortableHeader("gp", "GP")}
+                    {sortableHeader("fp5", "FP5")}
+                    {sortableHeader("value5", "V5")}
+                    {columns.map((c) => sortableHeader(c.key, c.label))}
+                    {sortableHeader("salary", "$")}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -251,15 +266,15 @@ export default function PlayersPage() {
                             <span>{p.core.team}</span>
                           </div>
                         </td>
-                        <td className="px-2 py-1.5 text-xs text-right font-mono">{gp}</td>
-                        <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">{(p.last5 as any)?.fp5?.toFixed(1) ?? "0.0"}</td>
-                        <td className="px-2 py-1.5 text-xs text-right font-mono font-bold">{(p.computed as any)?.value5?.toFixed(1) ?? "0.0"}</td>
+                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "gp" ? "text-primary font-bold" : ""}`}>{gp}</td>
+                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "fp5" ? "text-primary font-bold" : "font-bold"}`}>{(p.last5 as any)?.fp5?.toFixed(1) ?? "0.0"}</td>
+                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "value5" ? "text-primary font-bold" : "font-bold"}`}>{(p.computed as any)?.value5?.toFixed(1) ?? "0.0"}</td>
                         {columns.map((c) => (
-                          <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
+                          <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === c.key ? "text-primary font-bold" : c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
                             {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
                           </td>
                         ))}
-                        <td className="px-2 py-1.5 text-xs text-right font-mono">${p.core.salary}</td>
+                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "salary" ? "text-primary font-bold" : ""}`}>${p.core.salary}</td>
                       </TableRow>
                     );
                   })}
@@ -286,7 +301,6 @@ export default function PlayersPage() {
             </div>
           </div>
 
-          {/* Sidebar — sticky, non-scrolling */}
           <div className="w-56 flex-shrink-0 sticky top-0 self-start">
             <FiltersPanel fcBc={fcBc} onFcBcChange={setFcBc} search={search} onSearchChange={setSearch} maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit} team={team} onTeamChange={setTeam} />
           </div>

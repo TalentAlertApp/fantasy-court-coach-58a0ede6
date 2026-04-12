@@ -33,7 +33,7 @@ function formatShortName(fullName: string): string {
 
 function OpponentBadge({ tricode, size = "sm" }: { tricode: string; size?: "sm" | "md" }) {
   const logo = getTeamLogo(tricode);
-  const cls = size === "md" ? "w-6 h-6" : "w-4 h-4";
+  const cls = size === "md" ? "w-7 h-7" : "w-4 h-4";
   return logo ? (
     <img src={logo} alt={tricode} className={`${cls} object-contain transition-transform hover:scale-110`} title={tricode} />
   ) : (
@@ -49,13 +49,14 @@ export default function PlayerCard({
   const isFc = core.fc_bc === "FC";
   const accentColor = isFc ? "border-destructive" : "border-primary";
   const teamLogo = getTeamLogo(core.team);
+  const v5 = (player.computed as any)?.value5;
 
-  // Merge all upcoming into a single chronological row (max 7 slots, left-to-right = soonest first)
+  // Max 6 slots, left-to-right chronological
   const allUpcoming = upcoming ?? [];
   const nextGame = allUpcoming[0] ?? null;
-  const upcomingDays = allUpcoming.slice(0, 7);
+  const upcomingDays = allUpcoming.slice(0, 6);
 
-  const resolvedVariant = variant ?? (compact ? "court" : "court");
+  const resolvedVariant = variant ?? "court";
 
   // ─── BENCH VARIANT ───
   if (resolvedVariant === "bench") {
@@ -88,24 +89,27 @@ export default function PlayerCard({
         )}
 
         <div className="flex items-stretch">
-          {/* Team logo — fills full card height */}
           {teamLogo && (
             <div className="w-12 shrink-0 flex items-center justify-center bg-muted/30 rounded-l-xl">
               <img src={teamLogo} alt={core.team} className="w-9 h-9 transition-transform group-hover:scale-110" />
             </div>
           )}
           <div className="flex-1 px-2 py-1.5 min-w-0">
-            {/* Player name */}
             <p className="text-sm font-heading font-bold leading-tight truncate">
               {formatShortName(core.name)}
             </p>
 
-            {/* Second row */}
             <div className="flex items-center gap-2 mt-0.5">
               <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5 shrink-0">
                 {core.fc_bc}
               </Badge>
               <span className="text-[9px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
+              {v5 != null && (
+                <>
+                  <span className="text-muted-foreground/40 text-[8px]">|</span>
+                  <span className="text-[9px] text-muted-foreground font-mono shrink-0">{Number(v5).toFixed(1)}</span>
+                </>
+              )}
 
               {upcoming && (
                 <div className="flex items-center gap-1 shrink-0">
@@ -184,20 +188,26 @@ export default function PlayerCard({
         {formatShortName(core.name)}
       </p>
 
-      {/* FC/BC badge + salary */}
+      {/* FC/BC badge + salary + V5 */}
       <div className="flex items-center justify-center gap-1 py-0.5">
         <Badge variant={isFc ? "destructive" : "default"} className="text-[8px] px-1 py-0 rounded-lg h-4">
           {core.fc_bc}
         </Badge>
         <span className="text-[9px] text-muted-foreground font-mono">${core.salary}</span>
+        {v5 != null && (
+          <>
+            <span className="text-muted-foreground/40 text-[8px]">|</span>
+            <span className="text-[9px] text-muted-foreground font-mono">{Number(v5).toFixed(1)}</span>
+          </>
+        )}
       </div>
 
-      {/* Upcoming games — 7 slots, left-to-right chronological */}
+      {/* Upcoming games — 6 slots */}
       {upcoming && upcomingDays.length > 0 && (
         <div className="border-t border-border/50 px-0.5 py-0.5">
-          <div className="grid grid-cols-7 gap-0">
-            {Array.from({ length: 7 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
-              <div key={i} className="flex items-center justify-center h-5">
+          <div className="grid grid-cols-6 gap-0">
+            {Array.from({ length: 6 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
+              <div key={i} className="flex items-center justify-center h-6">
                 {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
               </div>
             ))}

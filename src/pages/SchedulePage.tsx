@@ -76,8 +76,14 @@ export default function SchedulePage() {
     el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
   }, [gw]);
 
-  // Check if any final games exist for TOTW (simplified: check if weekCounts has any data)
   const hasTotwData = !!(weekCounts && Object.values(weekCounts).some((c) => c > 0));
+
+  // Compute day index within the week for the gw.day label
+  const dayIndexMap = useMemo(() => {
+    const map: Record<number, number> = {};
+    weekDays.forEach((wd, i) => { map[wd.day] = i + 1; });
+    return map;
+  }, [weekDays]);
 
   return (
     <div className="flex flex-col h-full">
@@ -85,13 +91,12 @@ export default function SchedulePage() {
       <div className="sticky top-0 z-20 bg-background pb-0 space-y-0">
         {/* Week strip with GW info */}
         <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-2">
-          {/* GW label — centered */}
           <div className="flex items-center justify-center gap-2 mb-1.5">
             <span className="font-heading font-bold text-base dark:text-[hsl(var(--nba-yellow))]">GW {gw}</span>
             <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
             <span className="text-xs font-body dark:text-[hsl(var(--nba-yellow))]">{dateRange}</span>
           </div>
-          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide">
+          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1">
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
               const isCurrent = w === current.gw;
@@ -107,7 +112,7 @@ export default function SchedulePage() {
                       : isPast
                       ? "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50"
                       : isCurrent
-                      ? "ring-2 ring-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-yellow))] bg-white/10 hover:bg-white/20"
+                      ? "outline outline-2 outline-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-yellow))] bg-white/10 hover:bg-white/20"
                       : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
                   }`}
                 >
@@ -118,12 +123,12 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {/* Day Navigator — directly below week strip */}
+        {/* Day Navigator — reworked layout */}
         <div className="bg-card border-x border-b flex items-center">
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-7 shrink-0 rounded-none"
+            className="h-12 w-7 shrink-0 rounded-none"
             disabled={gw <= MIN_WEEK && day <= (weekDays[0]?.day ?? 1)}
             onClick={() => {
               const idx = weekDays.findIndex((d) => d.day === day);
@@ -141,27 +146,35 @@ export default function SchedulePage() {
               const dayLabel = wd.date ? format(parse(wd.date, "yyyy-MM-dd", new Date()), "EEE").toUpperCase() : "";
               const dayNum = wd.dateObj.getDate();
               const gameCount = weekCounts?.[wd.day] ?? 0;
+              const dayIdx = dayIndexMap[wd.day] ?? 1;
               return (
                 <button
                   key={wd.day}
                   onClick={() => setDay(wd.day)}
-                  className={`flex-1 min-w-[48px] py-1 px-1 text-center transition-all rounded-xl ${
+                  className={`flex-1 min-w-[80px] py-2 px-2 transition-all rounded-xl ${
                     isSelected
                       ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  <div className={`text-[8px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</div>
-                  <div className={`text-xs font-mono font-bold leading-tight`}>{dayNum}</div>
-                  <div className="flex items-center justify-center gap-0.5 mt-0.5">
-                    {isDayToday && (
-                      <div className={`w-1 h-1 rounded-full ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
-                    )}
+                  <div className="flex items-center justify-between">
+                    {/* Left: DAY + NUMBER */}
+                    <div className="flex items-center gap-1">
+                      <span className={`text-[10px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</span>
+                      <span className="text-sm font-mono font-bold leading-tight">{dayNum}</span>
+                      {isDayToday && (
+                        <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
+                      )}
+                    </div>
+                    {/* Center: GW.DAY */}
+                    <span className={`text-xs font-heading font-black ${isSelected ? "text-primary-foreground" : "text-foreground"}`}>{gw}.{dayIdx}</span>
+                    {/* Right: Game count */}
                     {gameCount > 0 && (
-                      <span className={`text-[8px] font-mono font-bold ${isSelected ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-mono font-bold ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                         {gameCount}G
                       </span>
                     )}
+                    {gameCount === 0 && <span className="text-xs invisible">0G</span>}
                   </div>
                 </button>
               );
@@ -171,7 +184,7 @@ export default function SchedulePage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-7 shrink-0 rounded-none"
+            className="h-12 w-7 shrink-0 rounded-none"
             disabled={gw >= MAX_WEEK && day >= (weekDays[weekDays.length - 1]?.day ?? 1)}
             onClick={() => {
               const idx = weekDays.findIndex((d) => d.day === day);
@@ -199,7 +212,6 @@ export default function SchedulePage() {
                   </div>
                 </>
               )}
-              {/* Separator before Grid icon */}
               <span className="text-muted-foreground/40">·</span>
               <button
                 onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
