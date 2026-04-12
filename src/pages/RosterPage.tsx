@@ -200,6 +200,12 @@ export default function RosterPage() {
     setPickerOpen(true);
   };
 
+  // For budget enforcement in picker
+  const swapPlayer = swapPlayerId ? allPlayers.find((p) => p.core.id === swapPlayerId) : null;
+  const swapPlayerSalary = swapPlayer?.core.salary ?? 0;
+  const swapPlayerPosition = swapPlayer?.core.fc_bc ?? null;
+  const totalPlayers = starters.length + bench.length;
+
   const handleSwapSelect = (newPlayer: PlayerListItem) => {
     if (!roster || swapPlayerId === null) return;
     const starterIdx = (roster.starters ?? []).indexOf(swapPlayerId);
