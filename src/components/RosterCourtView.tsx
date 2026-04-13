@@ -72,7 +72,7 @@ function getFormationPositions(starters: PlayerListItem[]) {
   return positioned;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
@@ -107,6 +107,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         isCaptain={p.core.id === captainId}
         onClick={() => onPlayerClick(p.core.id)}
         onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+        onSetCaptain={onSetCaptain ? () => onSetCaptain(p.core.id) : undefined}
         draggable
         onDragStart={(e) => handleDragStart(e, p.core.id)}
         onDragOver={(e) => handleDragOver(e, p.core.id)}
@@ -128,6 +129,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         isCaptain={p.core.id === captainId}
         onClick={() => onPlayerClick(p.core.id)}
         onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+        onSetCaptain={onSetCaptain ? () => onSetCaptain(p.core.id) : undefined}
         draggable
         onDragStart={(e) => handleDragStart(e, p.core.id)}
         onDragOver={(e) => handleDragOver(e, p.core.id)}
