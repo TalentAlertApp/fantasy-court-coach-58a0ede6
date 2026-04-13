@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import { ArrowLeftRight, GripVertical } from "lucide-react";
+import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import React from "react";
@@ -12,6 +12,7 @@ interface PlayerCardProps {
   player: PlayerListItem;
   isCaptain?: boolean;
   onClick?: () => void;
+  onSetCaptain?: () => void;
   onSwap?: () => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
@@ -42,7 +43,7 @@ function OpponentBadge({ tricode, size = "sm" }: { tricode: string; size?: "sm" 
 }
 
 export default function PlayerCard({
-  player, isCaptain, onClick, onSwap, draggable,
+  player, isCaptain, onClick, onSetCaptain, onSwap, draggable,
   onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming,
 }: PlayerCardProps) {
   const { core } = player;
