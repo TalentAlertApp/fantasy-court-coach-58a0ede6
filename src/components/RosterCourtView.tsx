@@ -16,6 +16,7 @@ interface RosterCourtViewProps {
   captainId: number;
   onPlayerClick: (id: number) => void;
   onSwap?: (playerId: number) => void;
+  onSetCaptain?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
   upcomingByTeam?: UpcomingByTeam;
   sidebarProps?: {
