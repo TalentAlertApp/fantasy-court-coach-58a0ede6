@@ -17,7 +17,16 @@ import CommissionerPage from "@/pages/CommissionerPage";
 import AdvancedPage from "@/pages/AdvancedPage";
 import NotFound from "@/pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 30_000,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

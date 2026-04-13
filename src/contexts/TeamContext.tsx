@@ -22,10 +22,12 @@ const LS_KEY = "nba_selected_team_id";
 
 export function TeamProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["teams"],
     queryFn: fetchTeams,
     staleTime: 60_000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
   const teams = data?.items ?? [];
@@ -36,15 +38,29 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   });
 
   // Sync: if selectedTeamId doesn't exist in teams list, fallback to default
+  // Also handle fresh sessions where localStorage might have a stale ID
   useEffect(() => {
     if (isLoading || teams.length === 0) return;
     const exists = teams.some((t: any) => t.id === selectedTeamId);
-    if (!exists) {
+    if (!exists || !selectedTeamId) {
       const fallback = defaultTeamId ?? teams[0]?.id ?? null;
       setSelectedTeamIdRaw(fallback);
-      if (fallback) localStorage.setItem(LS_KEY, fallback);
+      if (fallback) {
+        localStorage.setItem(LS_KEY, fallback);
+      } else {
+        localStorage.removeItem(LS_KEY);
+      }
     }
   }, [teams, selectedTeamId, defaultTeamId, isLoading]);
+
+  // If teams query fails, clear stale localStorage to prevent stuck state
+  useEffect(() => {
+    if (isError) {
+      console.warn("[TeamContext] Teams query failed, clearing stale selection");
+      localStorage.removeItem(LS_KEY);
+      setSelectedTeamIdRaw(null);
+    }
+  }, [isError]);
 
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
