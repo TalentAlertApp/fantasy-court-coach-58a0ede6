@@ -257,6 +257,19 @@ export default function RosterPage() {
     });
   };
 
+  const handleSetCaptain = (playerId: number) => {
+    if (!roster) return;
+    setCaptainId(playerId);
+    // Only starters can be captain — if player is on bench, move to starters first
+    const starterIds = [...(roster.starters ?? [])];
+    const benchIds = [...(roster.bench ?? [])];
+    saveMutation.mutate({
+      gw: currentGameday.gw, day: currentGameday.day,
+      starters: starterIds, bench: benchIds,
+      captain_id: playerId,
+    });
+  };
+
   const isLoading = rosterLoading || playersLoading;
 
   return (
