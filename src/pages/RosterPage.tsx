@@ -396,6 +396,7 @@ export default function RosterPage() {
                 captainId={captainId}
                 onPlayerClick={setSelectedPlayerId}
                 onSwap={handleSwapRequest}
+                onSetCaptain={handleSetCaptain}
                 onDnDSwap={handleDnDSwap}
                 upcomingByTeam={upcomingByTeam}
                 sidebarProps={{
