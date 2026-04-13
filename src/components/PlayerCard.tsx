@@ -72,6 +72,15 @@ export default function PlayerCard({
         className={`bg-card/95 backdrop-blur-sm border-l-2 ${accentColor} rounded-xl cursor-pointer hover:ring-1 hover:ring-accent/50 hover:shadow-lg transition-all duration-200 relative group overflow-hidden`}
       >
         {isCaptain && <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>}
+        {onSetCaptain && !isCaptain && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+            className="absolute top-0 right-5 opacity-0 group-hover:opacity-100 transition-opacity bg-[hsl(var(--nba-yellow))]/80 text-black rounded-lg p-0.5 hover:bg-[hsl(var(--nba-yellow))] z-10"
+            title="Set as captain"
+          >
+            <Star className="h-2.5 w-2.5" />
+          </button>
+        )}
 
         {draggable && (
           <div className="absolute top-1 left-0.5 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab active:cursor-grabbing z-10">
