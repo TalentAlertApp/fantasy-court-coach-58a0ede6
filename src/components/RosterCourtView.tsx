@@ -16,6 +16,7 @@ interface RosterCourtViewProps {
   captainId: number;
   onPlayerClick: (id: number) => void;
   onSwap?: (playerId: number) => void;
+  onSetCaptain?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
   upcomingByTeam?: UpcomingByTeam;
   sidebarProps?: {
@@ -71,7 +72,7 @@ function getFormationPositions(starters: PlayerListItem[]) {
   return positioned;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
@@ -106,6 +107,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         isCaptain={p.core.id === captainId}
         onClick={() => onPlayerClick(p.core.id)}
         onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+        onSetCaptain={onSetCaptain ? () => onSetCaptain(p.core.id) : undefined}
         draggable
         onDragStart={(e) => handleDragStart(e, p.core.id)}
         onDragOver={(e) => handleDragOver(e, p.core.id)}
@@ -127,6 +129,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         isCaptain={p.core.id === captainId}
         onClick={() => onPlayerClick(p.core.id)}
         onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
+        onSetCaptain={onSetCaptain ? () => onSetCaptain(p.core.id) : undefined}
         draggable
         onDragStart={(e) => handleDragStart(e, p.core.id)}
         onDragOver={(e) => handleDragOver(e, p.core.id)}
@@ -175,7 +178,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
           {formation.map(({ player, style }) => (
             <div
               key={player.core.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 w-[22%] md:w-[20%] lg:w-[18%] z-10"
+              className="absolute -translate-x-1/2 -translate-y-1/2 w-[26%] md:w-[24%] lg:w-[22%] z-10"
               style={{ top: style.top, left: style.left }}
             >
               {renderCourtCard(player)}
@@ -193,7 +196,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
               return (
                 <div
                   key={`empty-court-${i}`}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[22%] md:w-[20%] lg:w-[18%] z-10"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[26%] md:w-[24%] lg:w-[22%] z-10"
                   style={{ top: spot.top, left: spot.left }}
                 >
                   {emptySlot(i)}

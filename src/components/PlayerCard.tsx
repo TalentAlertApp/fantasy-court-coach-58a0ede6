@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import { ArrowLeftRight, GripVertical } from "lucide-react";
+import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import React from "react";
@@ -12,6 +12,7 @@ interface PlayerCardProps {
   player: PlayerListItem;
   isCaptain?: boolean;
   onClick?: () => void;
+  onSetCaptain?: () => void;
   onSwap?: () => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
@@ -42,7 +43,7 @@ function OpponentBadge({ tricode, size = "sm" }: { tricode: string; size?: "sm" 
 }
 
 export default function PlayerCard({
-  player, isCaptain, onClick, onSwap, draggable,
+  player, isCaptain, onClick, onSetCaptain, onSwap, draggable,
   onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming,
 }: PlayerCardProps) {
   const { core } = player;
@@ -71,6 +72,15 @@ export default function PlayerCard({
         className={`bg-card/95 backdrop-blur-sm border-l-2 ${accentColor} rounded-xl cursor-pointer hover:ring-1 hover:ring-accent/50 hover:shadow-lg transition-all duration-200 relative group overflow-hidden`}
       >
         {isCaptain && <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>}
+        {onSetCaptain && !isCaptain && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+            className="absolute top-0 right-5 opacity-0 group-hover:opacity-100 transition-opacity bg-[hsl(var(--nba-yellow))]/80 text-black rounded-lg p-0.5 hover:bg-[hsl(var(--nba-yellow))] z-10"
+            title="Set as captain"
+          >
+            <Star className="h-2.5 w-2.5" />
+          </button>
+        )}
 
         {draggable && (
           <div className="absolute top-1 left-0.5 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab active:cursor-grabbing z-10">
@@ -146,71 +156,80 @@ export default function PlayerCard({
       className="cursor-pointer group relative flex flex-col items-center"
       style={{ minWidth: 0 }}
     >
-      {isCaptain && <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-sm z-20" title="Captain">⭐</span>}
+      {isCaptain && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-lg z-20" title="Captain">⭐</span>}
+      {onSetCaptain && !isCaptain && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+          className="absolute -top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-[hsl(var(--nba-yellow))]/80 text-black rounded-full p-1 hover:bg-[hsl(var(--nba-yellow))] z-20"
+          title="Set as captain"
+        >
+          <Star className="h-3.5 w-3.5" />
+        </button>
+      )}
 
       {draggable && (
         <div className="absolute top-0 left-0 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab active:cursor-grabbing z-20">
-          <GripVertical className="h-3 w-3 text-white/70" />
+          <GripVertical className="h-4 w-4 text-white/70" />
         </div>
       )}
 
       {onSwap && (
         <button
           onClick={(e) => { e.stopPropagation(); onSwap(); }}
-          className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-1 hover:bg-black/80 z-20"
+          className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 z-20"
           title="Swap player"
         >
-          <ArrowLeftRight className="h-3 w-3" />
+          <ArrowLeftRight className="h-4 w-4" />
         </button>
       )}
 
       {/* Team logo watermark behind player */}
       {teamLogo && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-15">
-          <img src={teamLogo} alt="" className="w-20 h-20" />
+          <img src={teamLogo} alt="" className="w-28 h-28" />
         </div>
       )}
 
-      {/* Photo — large, cinematic */}
+      {/* Photo — large, cinematic, NO circle border */}
       <div className="relative z-10">
         {core.photo ? (
           <img
             src={core.photo}
             alt={core.name}
-            className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover bg-black/30 border-2 border-white/20 shadow-xl transition-transform duration-300 group-hover:scale-110"
+            className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover bg-black/20 shadow-2xl transition-transform duration-300 group-hover:scale-110"
           />
         ) : (
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-black/40 border-2 border-white/20 flex items-center justify-center text-lg font-heading font-bold text-white/80">
+          <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-black/40 flex items-center justify-center text-2xl font-heading font-bold text-white/80">
             {core.name.substring(0, 2).toUpperCase()}
           </div>
         )}
       </div>
 
-      {/* Name — bold, cinematic */}
-      <p className="text-xs md:text-sm font-heading font-bold text-center text-white drop-shadow-lg leading-tight mt-1 truncate max-w-full z-10">
+      {/* Name — bold, cinematic, larger */}
+      <p className="text-sm md:text-base font-heading font-bold text-center text-white drop-shadow-lg leading-tight mt-1.5 truncate max-w-full z-10">
         {formatShortName(core.name)}
       </p>
 
-      {/* FC/BC badge + salary + V5 */}
-      <div className="flex items-center justify-center gap-1 mt-0.5 z-10">
-        <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded h-3.5 shadow-md">
+      {/* FC/BC badge + salary + V5 — larger font, dark blue for salary/value */}
+      <div className="flex items-center justify-center gap-1.5 mt-1 z-10">
+        <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded h-4 shadow-md">
           {core.fc_bc}
         </Badge>
-        <span className="text-[9px] text-white/80 font-mono drop-shadow">${core.salary}</span>
+        <span className="text-xs text-[#1e3a5f] font-mono font-bold drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">${core.salary}</span>
         {v5 != null && (
           <>
-            <span className="text-white/40 text-[8px]">|</span>
-            <span className="text-[9px] text-white/80 font-mono drop-shadow">{Number(v5).toFixed(1)}</span>
+            <span className="text-white/40 text-[10px]">|</span>
+            <span className="text-xs text-[#1e3a5f] font-mono font-bold drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">{Number(v5).toFixed(1)}</span>
           </>
         )}
       </div>
 
       {/* Upcoming games — 6 slots */}
       {upcoming && upcomingDays.length > 0 && (
-        <div className="flex items-center gap-0.5 mt-1 z-10">
+        <div className="flex items-center gap-0.5 mt-1.5 z-10">
           {Array.from({ length: 6 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
-            <div key={i} className="flex items-center justify-center w-5 h-5 bg-black/30 rounded">
-              {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-white/30">—</span>}
+            <div key={i} className="flex items-center justify-center w-6 h-6 bg-black/30 rounded">
+              {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[6px] text-white/30">—</span>}
             </div>
           ))}
         </div>

@@ -1,16 +1,23 @@
-import { useState, useRef } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { useState, useRef, useMemo } from "react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useScoringHistory, type ScoringGameDay, type ScoringWeek } from "@/hooks/useScoringHistory";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
-import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Dot } from "recharts";
+import PlayerModal from "@/components/PlayerModal";
+import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer } from "recharts";
+
+type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
+type SortDir = "asc" | "desc";
 
 export default function ScoringPage() {
   const { data, isLoading } = useScoringHistory();
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
+  const [playerModalId, setPlayerModalId] = useState<number | null>(null);
   const rosterRef = useRef<HTMLDivElement>(null);
+  const [sortCol, setSortCol] = useState<SortCol>("gw");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   if (isLoading) {
     return (
@@ -33,10 +40,8 @@ export default function ScoringPage() {
   const seasonTotal = weeks.reduce((s, w) => s + w.total_fp, 0);
   const currentGw = weeks.length > 0 ? weeks[weeks.length - 1].gw : 1;
 
-  // Transaction dates for highlighting
   const txnDates = new Set(transactions.map((t: any) => t.created_at?.substring(0, 10)));
 
-  // Timeline data
   const timelineData = game_days.map((gd, i) => ({
     label: `W${gd.gw}D${gd.day}`,
     fp: gd.total_fp,
@@ -50,9 +55,52 @@ export default function ScoringPage() {
 
   const navigateDay = (dir: -1 | 1) => {
     const next = selectedIdx + dir;
-    if (next >= 0 && next < game_days.length) {
-      setSelectedDayIdx(next);
+    if (next >= 0 && next < game_days.length) setSelectedDayIdx(next);
+  };
+
+  const toggleSort = (col: SortCol) => {
+    if (sortCol === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortCol(col); setSortDir(col === "gw" ? "desc" : "desc"); }
+  };
+
+  const sortedWeeks = [...weeks].sort((a, b) => {
+    let av: number, bv: number;
+    switch (sortCol) {
+      case "gw": av = a.gw; bv = b.gw; break;
+      case "total_fp": av = a.total_fp; bv = b.total_fp; break;
+      case "best": av = a.best_player?.fp ?? 0; bv = b.best_player?.fp ?? 0; break;
+      case "worst": av = a.worst_player?.fp ?? 0; bv = b.worst_player?.fp ?? 0; break;
+      case "captain_bonus": av = a.captain_bonus; bv = b.captain_bonus; break;
+      default: av = a.gw; bv = b.gw;
     }
+    return sortDir === "asc" ? av - bv : bv - av;
+  });
+
+  const thClass = (col: SortCol) =>
+    `px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors ${sortCol === col ? "font-extrabold text-foreground" : ""}`;
+
+  const PlayerPhoto = ({ photo, name, size = "sm" }: { photo: string | null; name: string; size?: "sm" | "md" }) => {
+    const cls = size === "md" ? "w-7 h-7" : "w-5 h-5";
+    return photo ? (
+      <img src={photo} alt={name} className={`${cls} rounded-full object-cover border border-border`} />
+    ) : (
+      <div className={`${cls} rounded-full bg-muted flex items-center justify-center text-[7px] font-bold`}>
+        {name.substring(0, 2).toUpperCase()}
+      </div>
+    );
+  };
+
+  const TeamWatermark = ({ team, className = "" }: { team: string; className?: string }) => {
+    const logo = getTeamLogo(team);
+    if (!logo) return null;
+    return (
+      <img
+        src={logo}
+        alt={team}
+        className={`h-6 w-6 opacity-15 group-hover:opacity-30 transition-all group-hover:scale-110 cursor-pointer ${className}`}
+        onClick={(e) => { e.stopPropagation(); setTeamModalTeam(team); }}
+      />
+    );
   };
 
   return (
@@ -67,69 +115,7 @@ export default function ScoringPage() {
         </div>
       </div>
 
-      {/* ── WEEKLY LEADERBOARD ── */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-muted/50">
-          <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">Weekly Breakdown</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
-                <th className="px-4 py-2 text-left">Week</th>
-                <th className="px-4 py-2 text-right">Total FP</th>
-                <th className="px-4 py-2 text-left">Best Player</th>
-                <th className="px-4 py-2 text-left">Worst Player</th>
-                <th className="px-4 py-2 text-right">Cpt Bonus</th>
-              </tr>
-            </thead>
-            <tbody>
-              {weeks.map((w) => (
-                <tr
-                  key={w.gw}
-                  className={`border-b border-border/50 transition-colors ${
-                    w.gw === currentGw
-                      ? "bg-[hsl(var(--nba-yellow))]/10 font-bold"
-                      : "hover:bg-muted/30"
-                  }`}
-                >
-                  <td className="px-4 py-2 font-heading font-bold">
-                    W{w.gw}
-                    {w.gw === currentGw && (
-                      <Badge variant="outline" className="ml-2 text-[8px] px-1 py-0">CURRENT</Badge>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono">{w.total_fp.toFixed(1)}</td>
-                  <td className="px-4 py-2">
-                    {w.best_player && (
-                      <span className="text-green-500">
-                        {w.best_player.name} <span className="text-muted-foreground font-mono">({w.best_player.fp})</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    {w.worst_player && (
-                      <span className="text-destructive">
-                        {w.worst_player.name} <span className="text-muted-foreground font-mono">({w.worst_player.fp})</span>
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 text-right font-mono">{w.captain_bonus}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-muted/50 font-bold">
-                <td className="px-4 py-2 font-heading">TOTAL</td>
-                <td className="px-4 py-2 text-right font-mono text-[hsl(var(--nba-yellow))]">{seasonTotal.toFixed(1)}</td>
-                <td className="px-4 py-2" colSpan={3}></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-
-      {/* ── TIMELINE ── */}
+      {/* ── TIMELINE (moved to top) ── */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/50">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">FP Timeline</h2>
@@ -180,16 +166,11 @@ export default function ScoringPage() {
         </div>
       </div>
 
-      {/* ── GAME DAY ROSTER TABLE ── */}
+      {/* ── GAME DAY ROSTER TABLE (moved to second) ── */}
       {selectedDay && (
         <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
-          {/* Navigation header */}
           <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
-            <button
-              onClick={() => navigateDay(-1)}
-              disabled={selectedIdx <= 0}
-              className="p-1 rounded-lg hover:bg-muted disabled:opacity-30 transition-colors"
-            >
+            <button onClick={() => navigateDay(-1)} disabled={selectedIdx <= 0} className="p-1 rounded-lg hover:bg-muted disabled:opacity-30 transition-colors">
               <ChevronLeft className="h-5 w-5" />
             </button>
             <div className="text-center">
@@ -198,11 +179,7 @@ export default function ScoringPage() {
               </h2>
               <span className="text-xs text-muted-foreground">{selectedDay.game_date}</span>
             </div>
-            <button
-              onClick={() => navigateDay(1)}
-              disabled={selectedIdx >= game_days.length - 1}
-              className="p-1 rounded-lg hover:bg-muted disabled:opacity-30 transition-colors"
-            >
+            <button onClick={() => navigateDay(1)} disabled={selectedIdx >= game_days.length - 1} className="p-1 rounded-lg hover:bg-muted disabled:opacity-30 transition-colors">
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
@@ -217,7 +194,11 @@ export default function ScoringPage() {
                 .filter((p) => p.is_starter)
                 .slice(0, 5)
                 .map((p) => (
-                  <div key={p.player_id} className="flex flex-col items-center">
+                  <div
+                    key={p.player_id}
+                    className="flex flex-col items-center cursor-pointer hover:opacity-80"
+                    onClick={() => setPlayerModalId(p.player_id)}
+                  >
                     {p.photo ? (
                       <img src={p.photo} alt={p.name} className="w-10 h-10 rounded-full object-cover border border-border" />
                     ) : (
@@ -260,24 +241,28 @@ export default function ScoringPage() {
 
                   return (
                     <tr key={p.player_id} className="border-b border-border/30 hover:bg-muted/30 transition-colors group">
-                      {/* Pos */}
                       <td className="px-3 py-2">
                         <Badge variant={isFc ? "destructive" : "default"} className="text-[8px] px-1.5 py-0 rounded h-4">
                           {p.fc_bc}
                         </Badge>
                       </td>
-                      {/* Player */}
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2 relative">
-                          {p.photo ? (
-                            <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover border border-border transition-transform group-hover:scale-110" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">
-                              {p.name.substring(0, 2)}
-                            </div>
-                          )}
-                          <span className="text-sm font-heading font-bold">{p.name}</span>
-                          {/* Team watermark */}
+                          <div className="cursor-pointer" onClick={() => setPlayerModalId(p.player_id)}>
+                            {p.photo ? (
+                              <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover border border-border transition-transform group-hover:scale-110" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">
+                                {p.name.substring(0, 2)}
+                              </div>
+                            )}
+                          </div>
+                          <span
+                            className="text-sm font-heading font-bold cursor-pointer hover:underline"
+                            onClick={() => setPlayerModalId(p.player_id)}
+                          >
+                            {p.name}
+                          </span>
                           {playerTeamLogo && (
                             <img
                               src={playerTeamLogo}
@@ -288,7 +273,6 @@ export default function ScoringPage() {
                           )}
                         </div>
                       </td>
-                      {/* Opp */}
                       <td className="px-3 py-2">
                         <div className="flex items-center justify-center gap-0.5">
                           {isAway && <span className="text-[9px] text-muted-foreground">@</span>}
@@ -304,7 +288,6 @@ export default function ScoringPage() {
                           )}
                         </div>
                       </td>
-                      {/* Result */}
                       <td className="px-3 py-2 text-center">
                         {p.result_wl ? (
                           p.nba_game_url ? (
@@ -328,7 +311,6 @@ export default function ScoringPage() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
-                      {/* Stats */}
                       <td className="px-3 py-2 text-right font-mono font-bold text-[hsl(var(--nba-yellow))]">{p.fp}</td>
                       <td className="px-3 py-2 text-right font-mono text-muted-foreground">{p.salary}</td>
                       <td className="px-3 py-2 text-right font-mono text-muted-foreground">{p.value.toFixed(1)}</td>
@@ -347,11 +329,88 @@ export default function ScoringPage() {
         </div>
       )}
 
-      {/* Team Modal */}
+      {/* ── WEEKLY LEADERBOARD (moved to bottom) ── */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-muted/50">
+          <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">Weekly Breakdown</h2>
+        </div>
+        <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-card z-10">
+              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+                <th className={`${thClass("gw")} text-left`} onClick={() => toggleSort("gw")}>Week</th>
+                <th className={`${thClass("total_fp")} text-right`} onClick={() => toggleSort("total_fp")}>Total FP</th>
+                <th className={`${thClass("best")} text-left`} onClick={() => toggleSort("best")}>Best Player</th>
+                <th className={`${thClass("worst")} text-left`} onClick={() => toggleSort("worst")}>Worst Player</th>
+                <th className={`${thClass("captain_bonus")} text-right`} onClick={() => toggleSort("captain_bonus")}>Cpt Bonus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedWeeks.map((w) => (
+                <tr
+                  key={w.gw}
+                  className={`border-b border-border/50 transition-colors ${
+                    w.gw === currentGw
+                      ? "bg-[hsl(var(--nba-yellow))]/10 font-bold"
+                      : "hover:bg-muted/30"
+                  }`}
+                >
+                  <td className="px-4 py-2 font-heading font-bold">
+                    W{w.gw}
+                    {w.gw === currentGw && (
+                      <Badge variant="outline" className="ml-2 text-[8px] px-1 py-0">CURRENT</Badge>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono">{w.total_fp.toFixed(1)}</td>
+                  <td className="px-4 py-2">
+                    {w.best_player && (
+                      <div
+                        className="flex items-center gap-1.5 text-green-500 cursor-pointer hover:underline group"
+                        onClick={() => setPlayerModalId(w.best_player!.player_id)}
+                      >
+                        <PlayerPhoto photo={null} name={w.best_player.name} />
+                        <span>{w.best_player.name}</span>
+                        <span className="text-muted-foreground font-mono">({w.best_player.fp})</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    {w.worst_player && (
+                      <div
+                        className="flex items-center gap-1.5 text-destructive cursor-pointer hover:underline group"
+                        onClick={() => setPlayerModalId(w.worst_player!.player_id)}
+                      >
+                        <PlayerPhoto photo={null} name={w.worst_player.name} />
+                        <span>{w.worst_player.name}</span>
+                        <span className="text-muted-foreground font-mono">({w.worst_player.fp})</span>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-2 text-right font-mono">{w.captain_bonus}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="sticky bottom-0 bg-card">
+              <tr className="bg-muted/50 font-bold border-t border-border">
+                <td className="px-4 py-2 font-heading">TOTAL</td>
+                <td className="px-4 py-2 text-right font-mono text-[hsl(var(--nba-yellow))]">{seasonTotal.toFixed(1)}</td>
+                <td className="px-4 py-2" colSpan={3}></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* Modals */}
       <TeamModal
         tricode={teamModalTeam}
         open={!!teamModalTeam}
         onOpenChange={(open) => { if (!open) setTeamModalTeam(null); }}
+      />
+      <PlayerModal
+        playerId={playerModalId}
+        open={playerModalId !== null}
+        onOpenChange={(open) => { if (!open) setPlayerModalId(null); }}
       />
     </div>
   );
