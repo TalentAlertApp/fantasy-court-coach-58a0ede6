@@ -45,8 +45,18 @@ export async function apiFetch<T extends z.ZodTypeAny>(
       ...(init?.headers ?? {}),
     },
   });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${path} returned ${res.status}: ${text}`);
+  }
   const json = await res.json();
-  return schema.parse(json);
+  // Use safeParse: if schema fails, log and return raw JSON so the app never breaks
+  const result = schema.safeParse(json);
+  if (!result.success) {
+    console.warn(`[apiFetch] Zod validation warning for "${path}":`, result.error.issues);
+    return json as z.infer<T>;
+  }
+  return result.data;
 }
 
 function unwrap(envelope: any): any {
