@@ -1,90 +1,83 @@
 
 
-## Plan: Cinematic Roster Display + New Scoring Page
+## Plan: Data Persistence Fix, UI Polish, and Captain-Per-Week Rule
 
-### Part 1: Cinematic Starting 5 on Roster Page
+### 1. Fix: Data not loading after closing/reopening browser
 
-**Inspired by the reference image**: Make player cards on the court much larger and more cinematic — big player photos without card containers, names and stats overlaid directly on/below the photo.
+**Root cause**: The `teams` edge function needs to be deployed, but more critically, the `NBAGameModal.tsx` has build errors blocking the entire app from rendering. The TS compilation passes locally, but the build errors in the report suggest a corrupted cached build artifact. Fix: rewrite `NBAGameModal.tsx` with identical content to force a clean rebuild.
 
-**Files: `src/components/PlayerCard.tsx`, `src/components/RosterCourtView.tsx`**
+Additionally, add `staleTime: Infinity` to critical queries that shouldn't refetch unnecessarily, and ensure `refetchOnMount: "always"` for the teams query so it always loads fresh on app mount.
 
-- **PlayerCard court variant overhaul**: Replace the current small card with a cinematic layout:
-  - Player photo enlarged to `w-24 h-24` (from `w-16 h-16`), no card background — transparent/minimal
-  - Name displayed larger (`text-base font-bold`) below photo
-  - FC/BC badge, salary, V5 overlaid compactly
-  - Remove the bordered card look; use a subtle dark gradient overlay instead
-  - Keep the 6 upcoming opponent slots but make them slightly larger
-  - Team logo as subtle watermark behind the player
+**File**: `src/components/NBAGameModal.tsx` — rewrite file (same content, forces rebuild)
+**File**: `src/contexts/TeamContext.tsx` — add `refetchOnMount: "always"` to teams query
 
-- **RosterCourtView**: Increase player slot widths from `w-[18%]` to `w-[20%]` to accommodate bigger cards. The court background remains.
+### 2. Team of the Week Modal — increase size
 
-### Part 2: New Scoring Page
+**File**: `src/components/TeamOfTheWeekModal.tsx`
+- Change `max-w-2xl` to `max-w-4xl` on DialogContent
+- Increase court aspect ratio from `5/3` to `16/9`
+- Increase player card width from `w-[18%]` to `w-[22%]`
+- Increase photo from `w-12 h-12` to `w-16 h-16`
+- Increase player name from `text-[10px]` to `text-sm`
+- Increase FP text from `text-[9px]` to `text-xs`
+- Increase badge sizes proportionally
 
-**New file: `src/pages/ScoringPage.tsx`**
+### 3. Schedule — Upcoming game expanded card: Conference standings mini-table
 
-This page fetches game logs for the current roster's 10 players across all weeks and displays scoring history. Since the roster table only stores the current snapshot (no historical roster records), the page will compute stats for the **current 10 players** across all past game days.
+**File**: `src/components/ScheduleList.tsx` (`UpcomingGamePreview`)
+- For each team in the preview, query `schedule_games` to compute conference standings
+- Use `NBA_TEAM_META` to get conference membership
+- Compute W/L/PCT/GB for all conference teams, sort by PCT desc
+- Find the team's rank, then show 5 teams centered on that rank (handling edges)
+- Display mini-table: Rank, team badge, tricode, GP, W, L, PCT, GB
+- Wire team badge/name to TeamModal
 
-**Data source**: Edge function `scoring-history` that:
-1. Takes `team_id` as param
-2. Reads current roster (10 player IDs)
-3. Joins `player_game_logs` with `schedule_games` (via `game_date = tipoff_utc::date`) to get GW/day mapping
-4. Returns per-game-day rows: `{ gw, day, game_date, players: [{ player_id, name, team, fc_bc, photo, opp, home_away, result_wl, fp, salary, value, mp, pts (real pts), ast, reb, blk, stl, nba_game_url }] }`
-5. Also returns weekly aggregates: `{ gw, total_fp, best_player, worst_player }`
+### 4. Team Modal — wire team names + roster column tooltips
 
-**New file: `supabase/functions/scoring-history/index.ts`**
+**File**: `src/components/TeamModal.tsx`
+- Tabs PLAYED and UPCOMING: opponent team names already clickable — verify wiring to TeamModal (the modal already imports `PlayerModal` but needs to add self-referencing TeamModal for opponent clicks)
+- Tab ROSTER: add `title` tooltips to column headers (MPG, PPG, FPG, $)
 
-**UI Layout** (3 sections):
+### 5. Player Modal — fixed height + scrollable tabs + AI Explain bug
 
-**A) Weekly Leaderboard Table** (top)
-- Columns: Week | Total FP | Best Player | Worst Player | Captain Bonus
-- Highlight current week row
-- Running season total at the bottom
-- Premium styling with alternating rows
+**File**: `src/components/PlayerModal.tsx`
+- Change `max-h-[85vh]` to a fixed `h-[85vh]` on DialogContent
+- Ensure all tab contents use `ScrollArea` with consistent height
+- AI Explain tab: the bug where it returns wrong player is already fixed with the autocomplete approach in `AICoachModal.tsx`. The Player Modal's own `handleExplain` sends `player_id` directly, so it should be correct. Verify the explain endpoint logic.
 
-**B) Timeline Chart** (middle)
-- Dot chart showing total FP per game day (X = game day, Y = FP)
-- Highlight dots where roster replacements occurred (different color)
-- Clicking a dot selects that game day and scrolls to the roster table below
-- Show the Starting 5 selected for that day in a mini visual
+### 6. Wishlist Modal — align FP and $ columns
 
-**C) Game Day Roster Table** (bottom)
-- Navigation arrows in header: `< GW25 Day 3 >`
-- 10 player rows with:
-  - FC/BC badge (red/blue color scheme)
-  - Player photo (circular, surge on hover)
-  - Player name (bold, larger font)
-  - Team badge watermark (large, far right, surge on hover)
-  - Opp team badge (large, with `@` prefix if away)
-  - Result (W/L) — linked to Game URL (external tab)
-  - Stat columns: FP, $, V, MP, PS, A, R, B, S
-- Opp team badge wired to TeamModal
-- Result wired to `nba_game_url` (opens new tab)
+**File**: `src/components/WishlistModal.tsx`
+- Change the FP and salary spans to use fixed `min-w-[48px]` (or `w-[50px]`) with `text-right` to ensure alignment regardless of value format (XX.X)
 
-**New file: `src/hooks/useScoringHistory.ts`** — React Query hook for the edge function
+### 7. Captain once-per-week rule
 
-**Navigation**: Add to sidebar in `AppLayout.tsx` after "My Roster":
-- Icon: `Trophy` (from lucide-react) — represents scoring/performance
-- Label: "Scoring"
-- Route: `/scoring`
+**File**: `src/pages/RosterPage.tsx`
+- Query the `roster` table for the current GW to check if any day already has `is_captain=true`
+- If a captain is already set for another day in the same GW, show a warning toast and prevent setting a new captain
+- Add a visual indicator showing which day the captain is already set for
+- Modify `handleSetCaptain` to check this rule before saving
 
-**Route**: Add in `App.tsx`: `<Route path="/scoring" element={<ScoringPage />} />`
+**File**: `src/hooks/useRosterQuery.ts` or inline query in RosterPage
+- Add a query: `SELECT day FROM roster WHERE team_id = X AND gw = Y AND is_captain = true`
+- Use result to enforce the "one captain per week" rule
+
+### 8. AI Coach Explain — wrong player bug (Booker/VJ Edgecombe)
+
+**File**: `src/components/AICoachModal.tsx`
+- The autocomplete fix was already implemented. However, the injury handler at line 144 extracts `player_id` incorrectly: `rosterData.roster.starters` are plain number arrays, not objects with `.player_id`. Fix: use the IDs directly from the starters/bench arrays instead of mapping `.player_id`
 
 ### Files Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/PlayerCard.tsx` | Cinematic court variant with bigger photos, overlay stats |
-| `src/components/RosterCourtView.tsx` | Wider player slots for cinematic cards |
-| `src/pages/ScoringPage.tsx` | **New** — full Scoring page with leaderboard, timeline, roster table |
-| `src/hooks/useScoringHistory.ts` | **New** — React Query hook |
-| `supabase/functions/scoring-history/index.ts` | **New** — edge function for scoring data |
-| `src/components/layout/AppLayout.tsx` | Add Scoring nav item |
-| `src/App.tsx` | Add `/scoring` route |
-
-### Technical Notes
-
-- The edge function joins `player_game_logs` with `schedule_games` to map dates to GW/day
-- Since no historical roster snapshots exist, scoring is computed retroactively for the current 10 players
-- The timeline uses Recharts (already in the project) for the dot chart
-- TeamModal and external game URLs are wired from the roster table
+| `src/components/NBAGameModal.tsx` | Rewrite to clear build cache |
+| `src/contexts/TeamContext.tsx` | Add `refetchOnMount: "always"` |
+| `src/components/TeamOfTheWeekModal.tsx` | Increase modal/card sizes |
+| `src/components/ScheduleList.tsx` | Add conference standings mini-table in upcoming preview |
+| `src/components/TeamModal.tsx` | Wire opponent team clicks, roster tooltips |
+| `src/components/PlayerModal.tsx` | Fixed height `h-[85vh]`, scrollable tabs |
+| `src/components/WishlistModal.tsx` | Fixed-width FP/$ columns for alignment |
+| `src/pages/RosterPage.tsx` | Captain once-per-week enforcement with warning |
+| `src/components/AICoachModal.tsx` | Fix injury monitor player_ids extraction |
 
