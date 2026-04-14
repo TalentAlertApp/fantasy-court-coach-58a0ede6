@@ -79,25 +79,25 @@ function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void
           <img
             src={player.photo}
             alt={player.name}
-            className="w-12 h-12 rounded-full object-cover bg-muted transition-transform duration-200 hover:scale-110"
+            className="w-16 h-16 rounded-full object-cover bg-muted transition-transform duration-200 hover:scale-110"
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xs font-heading font-bold text-muted-foreground">
             {player.name.substring(0, 2).toUpperCase()}
           </div>
         )}
       </div>
-      <p className="text-[10px] font-heading font-bold text-center truncate px-0.5 leading-tight">
+      <p className="text-sm font-heading font-bold text-center truncate px-0.5 leading-tight">
         {formatShortName(player.name)}
       </p>
       <div className="flex items-center justify-center gap-1 py-0.5">
-        <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5">
+        <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded-md h-4">
           {player.fc_bc}
         </Badge>
       </div>
       <div className="border-t border-border/50 px-1 py-1 text-center">
-        <span className="text-[9px] font-heading font-bold text-emerald-400">{player.fp_avg} FP</span>
-        <span className="text-[7px] text-muted-foreground ml-1">({player.gp}G)</span>
+        <span className="text-xs font-heading font-bold text-emerald-400">{player.fp_avg} FP</span>
+        <span className="text-[9px] text-muted-foreground ml-1">({player.gp}G)</span>
       </div>
     </div>
   );
@@ -117,7 +117,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wider">
               <Trophy className="h-5 w-5 text-accent" />
@@ -135,7 +135,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
             <div
               className="relative w-full rounded-lg overflow-hidden"
               style={{
-                aspectRatio: "5/3",
+                aspectRatio: "16/9",
                 backgroundImage: `url(${courtBg})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -150,7 +150,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
               {formation.map(({ player, style }) => (
                 <div
                   key={player.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[18%] z-10"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[22%] z-10"
                   style={{ top: style.top, left: style.left }}
                 >
                   <TOTWCard player={player} onClick={() => setSelectedPlayerId(player.id)} />

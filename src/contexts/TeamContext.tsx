@@ -28,6 +28,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     staleTime: 60_000,
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    refetchOnMount: "always",
   });
 
   const teams = data?.items ?? [];
