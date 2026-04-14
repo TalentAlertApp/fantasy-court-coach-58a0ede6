@@ -226,10 +226,10 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                   {/* Header */}
                   <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border sticky top-0 bg-card z-10">
                     <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground">Player</span>
-                    <span className="w-12 text-right">{sortHeader("MPG", "mpg")}</span>
-                    <span className="w-12 text-right">{sortHeader("PPG", "ppg")}</span>
-                    <span className="w-12 text-right">{sortHeader("FP", "fpg")}</span>
-                    <span className="w-10 text-right">{sortHeader("$", "salary")}</span>
+                    <span className="w-12 text-right" title="Minutes Per Game">{sortHeader("MPG", "mpg")}</span>
+                    <span className="w-12 text-right" title="Points Per Game">{sortHeader("PPG", "ppg")}</span>
+                    <span className="w-12 text-right" title="Fantasy Points Per Game">{sortHeader("FP", "fpg")}</span>
+                    <span className="w-10 text-right" title="Player Salary (in millions)">{sortHeader("$", "salary")}</span>
                   </div>
                   <div className="space-y-0">
                     {sortedRoster.map((p) => (

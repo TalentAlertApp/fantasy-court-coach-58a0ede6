@@ -141,7 +141,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     setInjuryLoading(true); setInjuryResult(null);
     try {
       const rosterPlayerIds = rosterData?.roster
-        ? [...(rosterData.roster.starters ?? []), ...(rosterData.roster.bench ?? [])].map((s: any) => s.player_id).filter(Boolean)
+        ? [...(rosterData.roster.starters ?? []), ...(rosterData.roster.bench ?? [])].filter((id: any) => typeof id === 'number' && id > 0)
         : [];
       setInjuryResult(await aiInjuryMonitor({ player_ids: rosterPlayerIds, include_replacements: true, max_salary: rosterData?.roster?.bank_remaining ?? null }, selectedTeamId ?? undefined));
     } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }

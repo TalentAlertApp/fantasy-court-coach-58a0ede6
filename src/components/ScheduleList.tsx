@@ -447,6 +447,39 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
         {[away, home].map((team) => {
           const logo = getTeamLogo(team.tricode);
           const meta = NBA_TEAM_META[team.tricode];
+          const conference = meta?.conference;
+
+          // Compute conference standings from all team form data
+          const confStandings = useMemo(() => {
+            if (!conference || !data) return [];
+            const allTeams = Object.keys(NBA_TEAM_META).filter(t => NBA_TEAM_META[t].conference === conference);
+            const rows = allTeams.map(t => {
+              const d = data[t];
+              const w = d?.w ?? 0;
+              const l = d?.l ?? 0;
+              const gp = w + l;
+              const pct = gp > 0 ? w / gp : 0;
+              return { tricode: t, w, l, gp, pct };
+            }).sort((a, b) => b.pct - a.pct || b.w - a.w);
+
+            // Assign ranks and GB
+            const bestWins = rows[0]?.w ?? 0;
+            const bestLosses = rows[0]?.l ?? 0;
+            const bestDiff = bestWins - bestLosses;
+            const ranked = rows.map((r, i) => ({
+              ...r,
+              rank: i + 1,
+              gb: i === 0 ? "-" : ((bestDiff - (r.w - r.l)) / 2).toFixed(1),
+              pctStr: r.gp > 0 ? (r.w / r.gp).toFixed(3).replace(/^0/, "") : ".000",
+            }));
+
+            // Find this team's rank and show 5 centered
+            const idx = ranked.findIndex(r => r.tricode === team.tricode);
+            let start = Math.max(0, idx - 2);
+            if (start + 5 > ranked.length) start = Math.max(0, ranked.length - 5);
+            return ranked.slice(start, start + 5);
+          }, [data, conference, team.tricode]);
+
           return (
             <div key={team.tricode} className="space-y-2">
               <div className="flex items-center gap-2">
@@ -454,6 +487,42 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 <span className="font-heading font-bold text-sm uppercase">{team.tricode}</span>
                 {meta && <span className="text-xs text-muted-foreground">{meta.conference}</span>}
               </div>
+
+              {/* Conference Standings Mini-Table */}
+              {confStandings.length > 0 && (
+                <div className="bg-card/60 rounded-lg border p-2">
+                  <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">{conference} Conference</p>
+                  <div className="grid grid-cols-[24px_20px_36px_28px_28px_28px_36px_32px] gap-0 text-[10px]">
+                    <span className="font-heading text-muted-foreground">#</span>
+                    <span></span>
+                    <span className="font-heading text-muted-foreground">Team</span>
+                    <span className="text-right font-heading text-muted-foreground">GP</span>
+                    <span className="text-right font-heading text-muted-foreground">W</span>
+                    <span className="text-right font-heading text-muted-foreground">L</span>
+                    <span className="text-right font-heading text-muted-foreground">PCT</span>
+                    <span className="text-right font-heading text-muted-foreground">GB</span>
+                    {confStandings.map((r) => {
+                      const isThis = r.tricode === team.tricode;
+                      const rLogo = getTeamLogo(r.tricode);
+                      return (
+                        <div key={r.tricode} className={`contents ${isThis ? "font-bold" : ""}`}>
+                          <span className={`py-0.5 ${isThis ? "text-primary" : "text-muted-foreground"}`}>{r.rank}</span>
+                          <button onClick={() => onTeamClick(r.tricode)} className="py-0.5">
+                            {rLogo && <img src={rLogo} alt={r.tricode} className="w-3.5 h-3.5 hover:scale-125 transition-transform" />}
+                          </button>
+                          <button onClick={() => onTeamClick(r.tricode)} className={`py-0.5 text-left font-heading hover:underline ${isThis ? "text-primary" : ""}`}>{r.tricode}</button>
+                          <span className="py-0.5 text-right font-mono">{r.gp}</span>
+                          <span className="py-0.5 text-right font-mono">{r.w}</span>
+                          <span className="py-0.5 text-right font-mono">{r.l}</span>
+                          <span className="py-0.5 text-right font-mono">{r.pctStr}</span>
+                          <span className="py-0.5 text-right font-mono text-muted-foreground">{r.gb}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-4 gap-1.5 text-xs">
                 <div>
                   <span className="text-muted-foreground">W-L</span>
