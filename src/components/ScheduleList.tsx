@@ -427,12 +427,81 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   );
 }
 
+function computeConfStandings(data: Record<string, TeamFormData>, tricode: string): { tricode: string; rank: number; w: number; l: number; gp: number; pctStr: string; gb: string }[] {
+  const meta = NBA_TEAM_META[tricode];
+  if (!meta || !data) return [];
+  const conference = meta.conference;
+  const allTeams = Object.keys(NBA_TEAM_META).filter(t => NBA_TEAM_META[t].conference === conference);
+  const rows = allTeams.map(t => {
+    const d = data[t];
+    const w = d?.w ?? 0;
+    const l = d?.l ?? 0;
+    const gp = w + l;
+    return { tricode: t, w, l, gp, pct: gp > 0 ? w / gp : 0 };
+  }).sort((a, b) => b.pct - a.pct || b.w - a.w);
+  const bestDiff = rows.length > 0 ? rows[0].w - rows[0].l : 0;
+  const ranked = rows.map((r, i) => ({
+    tricode: r.tricode, rank: i + 1, w: r.w, l: r.l, gp: r.gp,
+    pctStr: r.gp > 0 ? (r.w / r.gp).toFixed(3).replace(/^0/, "") : ".000",
+    gb: i === 0 ? "-" : ((bestDiff - (r.w - r.l)) / 2).toFixed(1),
+  }));
+  const idx = ranked.findIndex(r => r.tricode === tricode);
+  let start = Math.max(0, idx - 2);
+  if (start + 5 > ranked.length) start = Math.max(0, ranked.length - 5);
+  return ranked.slice(start, start + 5);
+}
+
+function ConferenceTable({ standings, teamTricode, onTeamClick }: {
+  standings: ReturnType<typeof computeConfStandings>;
+  teamTricode: string;
+  onTeamClick: (tricode: string) => void;
+}) {
+  const meta = NBA_TEAM_META[teamTricode];
+  if (!standings.length || !meta) return null;
+  return (
+    <div className="bg-card/60 rounded-lg border p-2">
+      <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">{meta.conference} Conference</p>
+      <div className="grid grid-cols-[24px_20px_36px_28px_28px_28px_36px_32px] gap-0 text-[10px]">
+        <span className="font-heading text-muted-foreground">#</span>
+        <span></span>
+        <span className="font-heading text-muted-foreground">Team</span>
+        <span className="text-right font-heading text-muted-foreground">GP</span>
+        <span className="text-right font-heading text-muted-foreground">W</span>
+        <span className="text-right font-heading text-muted-foreground">L</span>
+        <span className="text-right font-heading text-muted-foreground">PCT</span>
+        <span className="text-right font-heading text-muted-foreground">GB</span>
+        {standings.map((r) => {
+          const isThis = r.tricode === teamTricode;
+          const rLogo = getTeamLogo(r.tricode);
+          return (
+            <div key={r.tricode} className={`contents ${isThis ? "font-bold" : ""}`}>
+              <span className={`py-0.5 ${isThis ? "text-primary" : "text-muted-foreground"}`}>{r.rank}</span>
+              <button onClick={() => onTeamClick(r.tricode)} className="py-0.5">
+                {rLogo && <img src={rLogo} alt={r.tricode} className="w-3.5 h-3.5 hover:scale-125 transition-transform" />}
+              </button>
+              <button onClick={() => onTeamClick(r.tricode)} className={`py-0.5 text-left font-heading hover:underline ${isThis ? "text-primary" : ""}`}>{r.tricode}</button>
+              <span className="py-0.5 text-right font-mono">{r.gp}</span>
+              <span className="py-0.5 text-right font-mono">{r.w}</span>
+              <span className="py-0.5 text-right font-mono">{r.l}</span>
+              <span className="py-0.5 text-right font-mono">{r.pctStr}</span>
+              <span className="py-0.5 text-right font-mono text-muted-foreground">{r.gb}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   awayTeam: string; homeTeam: string;
   onGameClick: (game: Last5Game) => void;
   onTeamClick: (tricode: string) => void;
 }) {
   const { data, isLoading } = useTeamFormData([awayTeam, homeTeam], true);
+
+  const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam) : [], [data, awayTeam]);
+  const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam) : [], [data, homeTeam]);
 
   if (isLoading) return <div className="p-3"><Skeleton className="h-16" /></div>;
   if (!data) return null;
@@ -441,16 +510,85 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   const home = data[homeTeam];
   if (!away || !home) return null;
 
+  const teamsArr: { team: TeamFormData; standings: ReturnType<typeof computeConfStandings> }[] = [
+    { team: away, standings: awayStandings },
+    { team: home, standings: homeStandings },
+  ];
+
   return (
     <div className="border-t bg-muted/20 px-4 py-3">
       <div className="grid grid-cols-2 gap-4">
-        {[away, home].map((team) => {
+        {teamsArr.map(({ team, standings }) => {
           const logo = getTeamLogo(team.tricode);
           const meta = NBA_TEAM_META[team.tricode];
-          const conference = meta?.conference;
 
-          // Compute conference standings from all team form data
-          const confStandings = useMemo(() => {
+          return (
+            <div key={team.tricode} className="space-y-2">
+              <div className="flex items-center gap-2">
+                {logo && <img src={logo} alt={team.tricode} className="w-8 h-8" />}
+                <span className="font-heading font-bold text-sm uppercase">{team.tricode}</span>
+                {meta && <span className="text-xs text-muted-foreground">{meta.conference}</span>}
+              </div>
+
+              <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
+
+              <div className="grid grid-cols-4 gap-1.5 text-xs">
+                <div>
+                  <span className="text-muted-foreground">W-L</span>
+                  <p className="font-mono font-bold">{team.w}-{team.l}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">PCT</span>
+                  <p className="font-mono font-bold">{team.pct}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">HOME</span>
+                  <p className="font-mono">{team.homeRec}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">AWAY</span>
+                  <p className="font-mono">{team.awayRec}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
+                <div className="space-y-1">
+                  {team.last5.map((g, i) => {
+                    const oppLogo = getTeamLogo(g.opp);
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <button onClick={() => onGameClick(g)}>
+                          <Badge
+                            variant={g.won ? "default" : "destructive"}
+                            className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                          >
+                            {g.won ? "W" : "L"}
+                          </Badge>
+                        </button>
+                        <span className="text-muted-foreground font-mono w-14">{g.date}</span>
+                        <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
+                          {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
+                          <span className="font-heading font-bold">{g.opp}</span>
+                        </button>
+                        <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
+                        <div className="flex items-center gap-0 ml-auto">
+                          {g.game_boxscore_url && <a href={g.game_boxscore_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Box Score"><Table2 className="h-3 w-3" /></a>}
+                          {g.game_charts_url && <a href={g.game_charts_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Charts"><BarChart3 className="h-3 w-3" /></a>}
+                          {g.game_playbyplay_url && <a href={g.game_playbyplay_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Play-by-Play"><Mic className="h-3 w-3" /></a>}
+                          <span className={`p-0.5 ${g.youtube_recap_id ? "text-green-500" : "text-muted-foreground/30"}`} title="Recap"><Tv2 className="h-3 w-3" /></span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {team.last5.length === 0 && <span className="text-[10px] text-muted-foreground">No games played</span>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
             if (!conference || !data) return [];
             const allTeams = Object.keys(NBA_TEAM_META).filter(t => NBA_TEAM_META[t].conference === conference);
             const rows = allTeams.map(t => {
