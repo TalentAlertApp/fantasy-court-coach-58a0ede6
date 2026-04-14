@@ -591,23 +591,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   );
 
 
-            // Assign ranks and GB
-            const bestWins = rows[0]?.w ?? 0;
-            const bestLosses = rows[0]?.l ?? 0;
-            const bestDiff = bestWins - bestLosses;
-            const ranked = rows.map((r, i) => ({
-              ...r,
-              rank: i + 1,
-              gb: i === 0 ? "-" : ((bestDiff - (r.w - r.l)) / 2).toFixed(1),
-              pctStr: r.gp > 0 ? (r.w / r.gp).toFixed(3).replace(/^0/, "") : ".000",
-            }));
-
-            // Find this team's rank and show 5 centered
-            const idx = ranked.findIndex(r => r.tricode === team.tricode);
-            let start = Math.max(0, idx - 2);
-            if (start + 5 > ranked.length) start = Math.max(0, ranked.length - 5);
-            return ranked.slice(start, start + 5);
-          }, [data, conference, team.tricode]);
 
           return (
             <div key={team.tricode} className="space-y-2">
