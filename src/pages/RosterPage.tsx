@@ -2,10 +2,11 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useTeam } from "@/contexts/TeamContext";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { saveRoster } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { getCurrentGameday, getGamedaysRemaining, formatDeadline } from "@/lib/deadlines";
 import RosterCourtView from "@/components/RosterCourtView";
@@ -257,10 +258,38 @@ export default function RosterPage() {
     });
   };
 
+  // Query to check if a captain is already set for this GW on another day
+  const { data: weeklyCaptainData } = useQuery({
+    queryKey: ["weekly-captain", selectedTeamId, currentGameday.gw],
+    queryFn: async () => {
+      if (!selectedTeamId) return null;
+      const { data, error } = await supabase
+        .from("roster")
+        .select("day")
+        .eq("team_id", selectedTeamId)
+        .eq("gw", currentGameday.gw)
+        .eq("is_captain", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!selectedTeamId,
+    staleTime: 10_000,
+  });
+
   const handleSetCaptain = (playerId: number) => {
     if (!roster) return;
+    // Enforce once-per-week captain rule
+    if (weeklyCaptainData && weeklyCaptainData.day !== currentGameday.day) {
+      toast({
+        title: "Captain already set",
+        description: `You already have a captain for Day ${weeklyCaptainData.day} this week. Only one captain per gameweek is allowed.`,
+        variant: "destructive",
+      });
+      return;
+    }
     setCaptainId(playerId);
-    // Only starters can be captain — if player is on bench, move to starters first
     const starterIds = [...(roster.starters ?? [])];
     const benchIds = [...(roster.bench ?? [])];
     saveMutation.mutate({

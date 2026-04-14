@@ -125,7 +125,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
-        <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className="max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden">
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
@@ -192,7 +192,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsList>
 
                 {/* Stats Tab */}
-                <TabsContent value="stats" className="shrink-0">
+                <TabsContent value="stats" className="flex-1 min-h-0 overflow-y-auto">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {[
                       { l: "Season FP/G", v: data.player.season.fp.toFixed(1) },
@@ -295,7 +295,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* Schedule Tab */}
-                <TabsContent value="schedule" className="flex-1 min-h-0">
+                <TabsContent value="schedule" className="flex-1 min-h-0 overflow-y-auto">
                   {data.upcoming.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No upcoming games</p>
                   ) : (
@@ -339,7 +339,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* AI Tab */}
-                <TabsContent value="ai" className="shrink-0">
+                <TabsContent value="ai" className="flex-1 min-h-0 overflow-y-auto">
                   <div className="space-y-3">
                     <Button size="sm" onClick={handleExplain} disabled={aiLoading} className="w-full">
                       {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}

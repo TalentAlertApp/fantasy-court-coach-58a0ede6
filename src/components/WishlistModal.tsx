@@ -61,9 +61,9 @@ export default function WishlistModal({ open, onOpenChange, onPlayerClick }: Wis
                       <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">{p.core.name.substring(0, 2).toUpperCase()}</div>
                     )}
                     <span className="text-xs font-medium flex-1 relative z-10">{p.core.name}</span>
-                    <span className="text-[10px] font-mono text-muted-foreground relative z-10">{Number(fp).toFixed(1)} FP</span>
+                    <span className="min-w-[48px] text-right text-[10px] font-mono text-muted-foreground relative z-10">{Number(fp).toFixed(1)} FP</span>
                     <span className="text-muted-foreground/40 relative z-10">|</span>
-                    <span className="text-[10px] font-mono text-muted-foreground relative z-10">${p.core.salary}</span>
+                    <span className="min-w-[40px] text-right text-[10px] font-mono text-muted-foreground relative z-10">${p.core.salary}</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); removeFromWishlist(p.core.id); }}
                       className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity relative z-10"
