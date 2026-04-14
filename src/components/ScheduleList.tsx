@@ -589,14 +589,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
       </div>
     </div>
   );
-            const rows = allTeams.map(t => {
-              const d = data[t];
-              const w = d?.w ?? 0;
-              const l = d?.l ?? 0;
-              const gp = w + l;
-              const pct = gp > 0 ? w / gp : 0;
-              return { tricode: t, w, l, gp, pct };
-            }).sort((a, b) => b.pct - a.pct || b.w - a.w);
+
 
             // Assign ranks and GB
             const bestWins = rows[0]?.w ?? 0;
