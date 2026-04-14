@@ -589,8 +589,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
       </div>
     </div>
   );
-            if (!conference || !data) return [];
-            const allTeams = Object.keys(NBA_TEAM_META).filter(t => NBA_TEAM_META[t].conference === conference);
             const rows = allTeams.map(t => {
               const d = data[t];
               const w = d?.w ?? 0;
