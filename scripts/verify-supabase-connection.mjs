@@ -19,7 +19,13 @@ const PUBLISHABLE_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0ZXd1ZWthdmF1amdueW5tcGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzE2MTcsImV4cCI6MjA4ODEwNzYxN30.ooXNRN9p2EKJlnGNph6NXIZ9xw3QZQqyjKdBxFagroU";
 
 const envUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const envSecret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const envSecret =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  // Fallback: if VITE_SUPABASE_ANON_KEY was (mis)configured as a secret key, use it server-side only
+  (process.env.VITE_SUPABASE_ANON_KEY && process.env.VITE_SUPABASE_ANON_KEY.replace(/['"]/g, "").startsWith("sb_secret_")
+    ? process.env.VITE_SUPABASE_ANON_KEY
+    : "");
 
 function line(label, status, detail = "") {
   const badge = status === "ok" ? "  OK  " : status === "warn" ? " WARN " : " FAIL ";
@@ -71,24 +77,8 @@ async function main() {
     line("VITE_SUPABASE_ANON_KEY present in env", "ok");
   }
 
-  // 4. REST endpoint liveness (PostgREST root returns Swagger)
-  try {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/`, {
-      headers: { apikey: PUBLISHABLE_KEY, Authorization: `Bearer ${PUBLISHABLE_KEY}` },
-    });
-    if (r.ok) {
-      line("PostgREST /rest/v1/ responded", "ok", `HTTP ${r.status}`);
-    } else {
-      line("PostgREST /rest/v1/ non-OK", "fail", `HTTP ${r.status}`);
-      failed++;
-    }
-  } catch (err) {
-    line("PostgREST request failed", "fail", String(err));
-    failed++;
-  }
-
-  // 5. Try a small query against a known table (teams) — if RLS blocks anon, we still expect 200 with []
-  const probeTables = ["teams", "players", "schedule"];
+  // 4. Try a small query against a known table — if RLS blocks anon, we still expect 200 with []
+  const probeTables = ["teams", "players", "schedule_games"];
   for (const table of probeTables) {
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=1`, {
@@ -131,13 +121,18 @@ async function main() {
     failed++;
   }
 
-  // 7. Server-side confirmation: list schema if we have a secret key (optional, won't fail build)
+  // 7. Server-side confirmation: if we have a secret key in env, probe a real table with it
   if (envSecret) {
+    const secret = envSecret.replace(/['"]/g, "");
     try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/?select=*`, {
-        headers: { apikey: envSecret.replace(/['"]/g, ""), Authorization: `Bearer ${envSecret.replace(/['"]/g, "")}` },
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/teams?select=id&limit=1`, {
+        headers: { apikey: secret, Authorization: `Bearer ${secret}` },
       });
-      line("service-role REST reachable", r.ok ? "ok" : "warn", `HTTP ${r.status}`);
+      if (r.ok) {
+        line("service-role key works against teams table", "ok", `HTTP ${r.status}`);
+      } else {
+        line(`service-role key HTTP ${r.status}`, "warn", (await r.text()).slice(0, 160));
+      }
     } catch (err) {
       line("service-role REST failed", "warn", String(err));
     }
