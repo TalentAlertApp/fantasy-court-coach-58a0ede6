@@ -28,8 +28,7 @@ import {
   ImportGameDataResponseSchema,
   ImportScheduleResponseSchema,
 } from "@/lib/contracts";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 export async function apiFetch<T extends z.ZodTypeAny>(
   path: string,
@@ -41,7 +40,8 @@ export async function apiFetch<T extends z.ZodTypeAny>(
     ...init,
     headers: {
       "Content-Type": "application/json",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
       ...(init?.headers ?? {}),
     },
   });

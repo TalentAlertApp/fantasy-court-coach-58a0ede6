@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+const ANON_KEY = SUPABASE_PUBLISHABLE_KEY;
 
 export interface ScoringPlayer {
   player_id: number;
@@ -56,6 +56,7 @@ async function fetchScoringHistory(teamId: string): Promise<ScoringHistoryData> 
       headers: {
         "Content-Type": "application/json",
         apikey: ANON_KEY,
+        Authorization: `Bearer ${ANON_KEY}`,
       },
     }
   );
