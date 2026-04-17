@@ -233,10 +233,16 @@ All deployed with `verify_jwt = false` (no auth).
 | `GSHEET_GID_FP` | FP tab GID (1967183508) | `sync-sheet` |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Google service account credentials | `sync-sheet` (via `sheets.ts`) |
 
-Frontend `.env`:
-- `VITE_SUPABASE_PROJECT_ID` = `jtewuekavaujgnynmpaq`
-- `VITE_SUPABASE_PUBLISHABLE_KEY` = anon key
-- `VITE_SUPABASE_URL` = `https://jtewuekavaujgnynmpaq.supabase.co`
+Frontend `.env` (read by the Vite client in `src/integrations/supabase/client.ts`):
+- `VITE_SUPABASE_URL` — Supabase project URL (e.g. `https://<ref>.supabase.co`)
+- `VITE_SUPABASE_ANON_KEY` — publishable / anon key (safe for the browser bundle)
+
+Optional server-side helpers (used by `scripts/verify-supabase-connection.mjs` and any
+Node scripts; never exposed to the browser):
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+
+The Supabase CLI binding for the `supabase/` directory lives in `supabase/config.toml`
+(`project_id`) — edit it there if the local project link ever needs to change.
 
 ---
 

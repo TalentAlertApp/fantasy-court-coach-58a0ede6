@@ -4,21 +4,53 @@
  * Run with:
  *   node --env-file-if-exists=/vercel/share/.env.project scripts/verify-supabase-connection.mjs
  *
+ * All values are read from the project's environment (no project-specific
+ * details are hardcoded here). The script picks the first URL / publishable
+ * key it finds across the usual env var names and derives the project ref
+ * from the URL.
+ *
  * Checks:
- *  1. Env vars + URL match the expected project ref (jtewuekavaujgnynmpaq)
- *  2. REST endpoint answers with the publishable (anon) key
+ *  1. URL + anon key in env are self-consistent
+ *  2. REST endpoint answers for a few expected tables with the anon key
  *  3. Edge Functions endpoint `/functions/v1/health` answers
- *  4. A couple of expected tables respond to a lightweight HEAD/GET
+ *  4. If a service-role key is present, confirm it works against the DB
  */
 
-const EXPECTED_REF = "jtewuekavaujgnynmpaq";
+const SUPABASE_URL = (
+  process.env.VITE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  ""
+).replace(/['"]/g, "").replace(/\/+$/, "");
 
-// Hardcoded to match src/integrations/supabase/client.ts (single source of truth for the browser client)
-const SUPABASE_URL = "https://jtewuekavaujgnynmpaq.supabase.co";
-const PUBLISHABLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0ZXd1ZWthdmF1amdueW5tcGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MzE2MTcsImV4cCI6MjA4ODEwNzYxN30.ooXNRN9p2EKJlnGNph6NXIZ9xw3QZQqyjKdBxFagroU";
+const PUBLISHABLE_KEY = (
+  process.env.VITE_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  ""
+).replace(/['"]/g, "");
 
-const envUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+if (!SUPABASE_URL || !PUBLISHABLE_KEY) {
+  console.error(
+    "Missing env. Expected VITE_SUPABASE_URL (or SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL) and VITE_SUPABASE_ANON_KEY (or SUPABASE_ANON_KEY)."
+  );
+  process.exit(1);
+}
+
+// Reject accidentally-used secret keys in the "publishable" slot
+if (PUBLISHABLE_KEY.startsWith("sb_secret_")) {
+  console.error(
+    "Resolved publishable key starts with 'sb_secret_'. That is a SERVER-ONLY key. " +
+      "Fix VITE_SUPABASE_ANON_KEY / SUPABASE_ANON_KEY to hold the publishable (anon) key instead."
+  );
+  process.exit(1);
+}
+
+// Derive the expected project ref from the URL
+const urlMatch = SUPABASE_URL.match(/^https?:\/\/([^.]+)\.supabase\.co/i);
+const EXPECTED_REF = urlMatch ? urlMatch[1] : "";
+
 const envSecret =
   process.env.SUPABASE_SECRET_KEY ||
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -45,36 +77,32 @@ async function main() {
   let failed = 0;
 
   console.log("--- Supabase connection verification ---");
-  console.log(`Target project ref: ${EXPECTED_REF}`);
-  console.log(`Using URL:          ${SUPABASE_URL}`);
+  console.log(`Project ref (from URL): ${EXPECTED_REF || "(unknown)"}`);
+  console.log(`Using URL:              ${SUPABASE_URL}`);
   console.log("");
 
-  // 1. Env vars sanity check
-  if (envUrl && envUrl.replace(/['"]/g, "") === SUPABASE_URL) {
-    line("env VITE_SUPABASE_URL matches client URL", "ok");
+  // 1. If the publishable key is a JWT, decode it and confirm it matches the URL's ref
+  if (PUBLISHABLE_KEY.startsWith("eyJ")) {
+    const decoded = decodeJwtRef(PUBLISHABLE_KEY);
+    if (!decoded) {
+      line("publishable key is not a valid JWT", "warn");
+    } else if (decoded.role !== "anon") {
+      line(`publishable key role is "${decoded.role}", expected "anon"`, "fail", JSON.stringify(decoded));
+      failed++;
+    } else if (EXPECTED_REF && decoded.ref !== EXPECTED_REF) {
+      line(
+        "publishable key belongs to a different project than the URL",
+        "fail",
+        `url=${EXPECTED_REF} key=${decoded.ref}`
+      );
+      failed++;
+    } else {
+      line(`publishable key is anon JWT for ref=${decoded.ref}`, "ok");
+    }
+  } else if (PUBLISHABLE_KEY.startsWith("sb_publishable_")) {
+    line("publishable key uses new sb_publishable_ format", "ok");
   } else {
-    line("env VITE_SUPABASE_URL mismatch", "warn", `env=${envUrl}`);
-  }
-
-  // 2. Decode the publishable key to confirm it belongs to the right project
-  const decoded = decodeJwtRef(PUBLISHABLE_KEY);
-  if (decoded && decoded.ref === EXPECTED_REF && decoded.role === "anon") {
-    line(`publishable key is anon JWT for ref=${decoded.ref}`, "ok");
-  } else {
-    line("publishable key does not decode to expected ref/role", "fail", JSON.stringify(decoded));
-    failed++;
-  }
-
-  // 3. Warn if VITE_SUPABASE_ANON_KEY in env is a secret key (common misconfig)
-  const viteAnon = (process.env.VITE_SUPABASE_ANON_KEY || "").replace(/['"]/g, "");
-  if (viteAnon.startsWith("sb_secret_")) {
-    line(
-      "VITE_SUPABASE_ANON_KEY is a SECRET key in env",
-      "warn",
-      "would be leaked to browser bundle if referenced in client code. Reset it to the publishable key (sb_p... or eyJ... anon JWT)."
-    );
-  } else if (viteAnon) {
-    line("VITE_SUPABASE_ANON_KEY present in env", "ok");
+    line("publishable key in unrecognized format", "warn", PUBLISHABLE_KEY.slice(0, 12) + "…");
   }
 
   // 4. Try a small query against a known table — if RLS blocks anon, we still expect 200 with []
