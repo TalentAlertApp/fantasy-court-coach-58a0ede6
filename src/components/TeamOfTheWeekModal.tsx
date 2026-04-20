@@ -100,11 +100,11 @@ function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void
 
       {/* FC/BC badge + salary pill */}
       <div className="flex items-center justify-center gap-1.5 mt-1 z-10">
-        <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded h-4 shadow-md">
+        <Badge variant={isFc ? "destructive" : "default"} className="text-[10px] px-2 py-0 rounded h-5 inline-flex items-center shadow-md">
           {player.fc_bc}
         </Badge>
-        <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-4 inline-flex items-center text-xs font-mono text-foreground">
-          ${player.salary}
+        <span className="rounded-md bg-card/90 border border-border/40 px-2 h-5 inline-flex items-center gap-0.5 text-[11px] font-mono font-bold text-foreground shadow-md">
+          <span className="text-[hsl(var(--nba-yellow))]">$</span>{player.salary.toFixed(1)}M
         </span>
       </div>
 
