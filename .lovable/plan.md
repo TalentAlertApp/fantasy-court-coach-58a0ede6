@@ -1,74 +1,74 @@
 
 
-## Plan: Injury modal scroll height + AI Transfers rules-aware + Schedule standings/last-5 fix
+## Plan: Injury status filter + Schedule Team-of-the-Week & Top Players card redesign
 
-### 1. Injury Report Modal — keep ALL-tab vertical height for every team view
+### 1. Injury Report Modal — status filter chip row
 File: `src/components/InjuryReportModal.tsx`
 
-Current bug: when a team is picked from the dropdown, the list height collapses because the outer `DialogContent` plus `min-h-0` chain shrinks to fit a few rows.
+Add a horizontal chip row directly under the existing `ALL | Team dropdown` header bar, inside the same sticky header container.
 
-Fix:
-- Force a stable min-height on the scroll container so it always reserves the same vertical area as the ALL view, regardless of how few rows the team has.
-- Replace the list wrapper class with `flex-1 min-h-[60vh] sm:min-h-[60vh] overflow-y-auto overscroll-contain px-3 pb-4 pt-2 relative`.
-- Also set `DialogContent` desktop sizing to `sm:max-w-3xl sm:h-[80vh] sm:max-h-[80vh]` (was `sm:h-auto sm:max-h-[85vh]`) so the modal box itself is fixed height — this is what makes the inner area constant whether the visible list has 3 rows or 100.
-- Mobile already uses `w-screen h-screen`, so no change there.
+Chips (left → right): `All` · `Out` · `Day-To-Day` · `Questionable` · `Probable`.
 
-This guarantees the team-tab view has the same vertical space and scrolling behaviour as ALL.
+- New state: `const [statusFilter, setStatusFilter] = useState<"all"|"Out"|"Day-To-Day"|"Questionable"|"Probable">("all")`.
+- Chip styling: small pill buttons (`h-6 px-2 text-[10px] font-heading uppercase tracking-wider rounded-md`). Each chip uses its own status color (reuse existing `statusClasses`) with a dimmer state when not active and full-color + ring when active. The "All" chip uses neutral muted styling.
+- Each chip shows its live count next to the label, computed from the currently-visible dataset (after the team-tab + "My Roster only" filters but BEFORE the status filter is applied), so users always see how many would match if they pick that status.
+- Apply the status filter as a final pass on `visibleItems`:
+  ```ts
+  const finalItems = statusFilter === "all"
+    ? visibleItems
+    : visibleItems.filter(r => r.status === statusFilter);
+  ```
+- Pass `finalItems` to `<InjuryList />`.
+- If a chip yields 0 rows, show the existing empty state ("No reported injuries"); the chip stays clickable so the user can switch back.
+- Layout: place the chip row just below the `[ALL] | [Team Select]` grid, inside the same sticky header (`px-3 pb-2`), centered, wrapping on narrow widths.
 
-### 2. AI Coach → TRANSFERS: respect ALL game rules ($100M cap, max 2/team, FC/BC, etc.)
-Files: `supabase/functions/ai-coach/index.ts`, `src/components/AICoachModal.tsx`
+### 2. `/schedule` — Team of the Week modal: reuse Starting 5 layout
+File: `src/components/TeamOfTheWeekModal.tsx`
 
-The current AI advice violates the game rules (screenshot shows ADD Dončić / DROP Raynaud which would blow past the $100M cap). Root causes:
-- `fetchContext` pulls roster + 200 players but never reads `team_settings` (salary cap / FC-BC mins) and never computes current roster salary or bank_remaining.
-- The prompt mentions `salary_cap` and `bank_remaining` as constraints but the payload doesn't include them.
-- The "max 2 players per NBA team" rule from "How to Play" is never declared to the model anywhere.
+Replace the current bespoke `TOTWCard` with the cinematic Court styling already used by `RosterCourtView`'s Starting 5.
 
-Fixes (server-side, in `supabase/functions/ai-coach/index.ts`):
-- Extend `fetchContext` to also `select` from `team_settings` for the resolved `team_id`. Default to `{ salary_cap: 100, starter_fc_min: 2, starter_bc_min: 2 }` if no row exists.
-- Compute and inject into the dev message:
-  - `roster_salary_total` = sum of `players.salary` for all 10 roster players of the active team.
-  - `bank_remaining` = `salary_cap - roster_salary_total`.
-  - `team_distribution` = a `{ tricode: count }` map of how many roster players belong to each NBA team.
-- Add an explicit `HARD CONSTRAINTS` block to the system prompt covering the immutable game rules:
-  - Roster size = 10 (5 starters + 5 bench).
-  - 5 FC + 5 BC total.
-  - Starting 5 must contain ≥2 FC and ≥2 BC.
-  - Salary cap = `$100M` (use the value from `team_settings.salary_cap`); after any proposed swap the new total salary MUST be ≤ cap.
-  - Maximum 2 players from the same NBA team across the full 10-man roster — every proposed ADD must respect this AFTER the corresponding DROP is applied.
-  - 1 captain per gameweek = 2× FP.
-- Update the `suggest-transfers` schema description to require the model to:
-  - Only return moves where post-swap `total_salary ≤ salary_cap`.
-  - Only return moves where the ADD player's NBA team count (after the swap) ≤ 2.
-  - Maintain the FC/BC totals (5/5) — i.e. ADD and DROP must share the same `fc_bc`.
-  - Include a `cap_after` numeric field per move so the UI can verify.
-- Server-side post-validation step (defence-in-depth) for `suggest-transfers`: after the AI returns moves, drop any move that violates cap, team-cap, or FC/BC parity. If all are dropped, return an empty `moves` array with a `notes` entry explaining which constraint failed.
+Approach (no shared-component refactor; keep changes scoped):
+- Lift the formation positioning logic from `RosterCourtView` (`getRowPositions` 28% / 72%, `getFormationPositions`-style layout) — already mirrored here, just align the FC row to `28%` to match Starting 5 (currently `30%`).
+- Replace `TOTWCard`'s body with the same cinematic block used in `PlayerCard` court variant:
+  - Team-logo watermark behind the photo (`absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-15`, `w-28 h-28`).
+  - Round photo `w-28 h-28 md:w-36 md:h-36 rounded-full object-cover shadow-2xl`, hover `scale-110`.
+  - Name `text-sm md:text-base font-heading font-bold text-white drop-shadow-lg` shortened via `formatShortName`.
+  - FC/BC badge + salary pill in the same flex row as PlayerCard.
+  - Add the GW FP line below ("76 FP (2G)") in `text-emerald-400` to preserve the Team-of-the-Week-specific info.
+  - Wishlist heart stays at top-right corner (z-20).
+- Container card: drop the `bg-card/95 border-t-2 rounded-lg overflow-hidden` chrome and use the same transparent `flex flex-col items-center group cursor-pointer` wrapper as PlayerCard so the watermark sits correctly behind the photo.
+- Modal stays `max-w-4xl` with `aspect-ratio: 16/9` court background; tile width remains `w-[22%]`, positions `top: 28% / 72%` with the same horizontal layout (`20%/50%/80%` for 3, `33%/67%` for 2).
 
-Client-side (`src/components/AICoachModal.tsx`):
-- `handleTransfers` currently sends `max_cost: rosterData?.roster?.bank_remaining ?? 100`. Keep this but also rely on the server enrichment. No additional UI work needed — the existing `Simulate` button already validates moves against the real backend before commit, so once the model output is constraint-clean it stays clean.
+This makes the TOTW players visually identical to the My Roster Starting 5 (no card box, large unclipped photo, watermark behind, name + FC/BC + salary + FP).
 
-### 3. `/schedule` — fix team standings (full conference data) + relocate Last 5 Games + only Recap link
-File: `src/components/ScheduleList.tsx`
+### 3. `/schedule` — Top Players (Players of the Day) card redesign
+File: `src/components/TopPlayersStrip.tsx`
 
-Bug today: `useTeamFormData` is called with only the 2 game teams, so `result` only contains W/L for those 2 teams. `computeConfStandings` then iterates the whole conference but reads `data[t]` which is `undefined` for the other 13 teams — that's why every other team in the standings table shows `0-0 / .000`.
+Affects both tabs (Fantasy Points and Value FP/$) and both columns (FC, BC).
 
-Fix:
-- Replace the per-game-team query with a conference-aware query. Two clean options; we'll take the simple one:
-  - Add a new internal hook (still inside `ScheduleList.tsx`) `useAllTeamsForm()` that fetches `schedule_games` once (final games only) and returns `Record<tricode, TeamFormData>` for all 30 teams. Cache via React Query with `staleTime: 60_000` and a stable key `["all-teams-form"]`.
-  - `UpcomingGamePreview` now consumes this hook (instead of `useTeamFormData([away, home])`). All 30 teams get real W/L, so `computeConfStandings` produces the correct rank, GP, W, L, PCT, GB for every row.
-- Confirm the existing 5-row windowing in `computeConfStandings` already yields "2 above + the team + 2 below, adjusted at the edges" — it does (`start = max(0, idx - 2)` then clamped near the bottom). Keep as is.
-- Layout change inside `UpcomingGamePreview`:
-  - Restructure each team column to a 2-column inner grid: `[Conference standings (left)] [Last 5 Games (right)]` so Last 5 sits next to the standings instead of below them. Use `grid grid-cols-1 md:grid-cols-2 gap-3` for that inner pair so on narrow viewports it stacks.
-  - Keep the team header (logo + tricode + conference) and the W-L / PCT / HOME / AWAY mini stat strip above the two-column block.
-- "Last 5 Games" row cleanup:
-  - Inside the `team.last5.map(...)` block, remove the BoxScore (`Table2`), Charts (`BarChart3`) and Play-by-Play (`Mic`) icon links. Keep only the Recap icon (`Tv2`), and make it an actual `<a>` to `g.youtube_recap_id` (open `https://www.youtube.com/watch?v=<id>` in a new tab) when present, otherwise dim/disabled. Drop the `g.game_boxscore_url`/`g.game_charts_url`/`g.game_playbyplay_url` blocks entirely.
+Changes inside `renderPlayer`:
+- **Remove** the inline team badge + tricode row currently rendered below the name (the `<img>` + `{p.team}` + `·` + `${p.salary}` block). Salary stays — see below.
+- **Add a team-logo watermark** centered behind each row:
+  - Wrap row body in `relative overflow-hidden` (already has `rounded-xl`).
+  - Insert `<img src={getTeamLogo(p.team)} className="pointer-events-none absolute inset-0 m-auto h-14 w-14 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60" aria-hidden />`.
+  - Add `group` to the row's class list so the watermark scales/brightens on hover (matches the Injury Report row pattern already shipped).
+- **Stacking**: every existing inline element (FC/BC badge, avatar, name, FP/value) gets `relative z-10` so they sit above the watermark.
+- **Restructure the text column** (where team+salary used to live):
+  - Keep just `<span class="text-sm font-heading font-bold truncate">{p.name}</span>` on the first line.
+  - Second line becomes a single small row with the tricode + salary, both styled to remain readable on hover:
+    - Default: `text-[10px] text-muted-foreground` (unchanged off-hover so existing look is preserved on cards without hover).
+    - On hover: `group-hover:text-[hsl(var(--nba-yellow))] group-hover:font-semibold` so when the watermark brightens and the row background shifts, both the tricode and `$salary` switch to bold yellow and remain legible.
+  - Drop the small `<img>` next to the tricode (the badge is now the watermark).
+
+Result: each row has a vivid team-logo watermark centered behind it, no duplicate small team badge, and the tricode + salary become bold yellow on hover so they remain readable against the highlighted background.
 
 ### Files touched
-- `src/components/InjuryReportModal.tsx` (heights only)
-- `supabase/functions/ai-coach/index.ts` (context enrichment, prompt rules, post-validate)
-- `src/components/ScheduleList.tsx` (standings hook swap, layout regroup, link pruning)
+- `src/components/InjuryReportModal.tsx` — add status chip row + filter
+- `src/components/TeamOfTheWeekModal.tsx` — replace `TOTWCard` with cinematic Starting-5 styling
+- `src/components/TopPlayersStrip.tsx` — remove inline team badge, add watermark + hover-yellow text
 
 ### Verification
-- Open AI Coach → Injuries → Scan Injuries; switch from ALL to a team in the dropdown — the player list area keeps the same vertical height and scrolls smoothly.
-- Open AI Coach → Transfers → Suggest Transfers; every returned move keeps the post-swap roster within $100M, never proposes a 3rd player from a single NBA team, and matches FC↔FC / BC↔BC. Simulate continues to confirm validity.
-- Go to `/schedule`, expand a SCHEDULED game; both team standings tables now show real W/L/PCT/GB for the 5 ranked rows (the game's team is highlighted with 2 above + 2 below where possible). The "Last 5 Games" block is rendered to the right of the standings, and each row only shows the Recap (Tv2) icon.
+- Open AI Coach → Injuries → Scan Injuries: a chip row "All · Out · Day-To-Day · Questionable · Probable" appears with live counts; clicking each narrows the list; combining with My Roster only and team dropdown still works.
+- `/schedule` → click the medal → Team of the Week modal: 5 players are laid out on the court using the same cinematic style as My Roster Starting 5 (large unclipped photo, team-logo watermark behind, name + FC/BC + salary), keeping the GW FP line.
+- `/schedule` → "Players of the Day" panel (FP and Value tabs, FC and BC columns): no small team badge under the name; a big team logo sits as a watermark centered on each row and surges on hover; the tricode and `$salary` turn bold yellow on hover and stay readable.
 
