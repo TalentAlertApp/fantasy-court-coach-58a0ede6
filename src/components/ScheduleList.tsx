@@ -655,7 +655,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                     alt=""
                     aria-hidden
                     loading="lazy"
-                    className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.07] dark:opacity-[0.12]"
+                    className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] dark:opacity-[0.18]"
                   />
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/60 to-card" />
