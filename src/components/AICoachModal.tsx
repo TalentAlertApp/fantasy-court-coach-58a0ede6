@@ -35,7 +35,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const { toast } = useToast();
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData } = useRosterQuery();
-  const { data: playersData } = usePlayersQuery({ limit: 500 });
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
 
   const [analyzeResult, setAnalyzeResult] = useState<any>(null);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
@@ -67,7 +67,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
   // Autocomplete matches for explain tab
   const explainMatches = useMemo(() => {
-    if (explainSearch.length < 3 || selectedExplainPlayer) return [];
+    if (explainSearch.length < 1 || selectedExplainPlayer) return [];
     const q = normalize(explainSearch);
     return allPlayers.filter((p) => {
       const nameNorm = normalize(p.core.name);
@@ -369,6 +369,11 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               {explainLoading && <Skeleton className="h-20 w-full" />}
               {explainResult && (
                 <div className="space-y-2 text-sm">
+                  {selectedExplainPlayer && (
+                    <p className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+                      Explanation for {selectedExplainPlayer.core.name}
+                    </p>
+                  )}
                   <p className="font-semibold">{explainResult.summary}</p>
                   {explainResult.why_it_scores?.map((f: any, i: number) => (
                     <div key={i} className="flex items-center gap-2 text-xs mb-1">

@@ -55,7 +55,7 @@ Do not fabricate stats, injuries, or schedules. If unsure, say so via notes or r
 const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "suggest-transfers": `Return JSON: { "moves": [{ "add": number, "drop": number, "reason_bullets": string[], "expected_delta": { "proj_fp5": number, "proj_stocks5": number, "proj_ast5": number }, "risk_flags": string[], "confidence": number(0-1) }], "notes": string[] }. moves array: 1-5 items. reason_bullets: 1-6 items each max ~12 words.`,
   "pick-captain": `Return JSON: { "captain_id": number, "alternatives": [{ "id": number, "why": string }], "reason_bullets": string[], "confidence": number(0-1) }. captain_id must be from starters. Pick the best captain for the ENTIRE GAMEWEEK (not just one day). Consider total projected FP across all remaining gamedays, schedule density, matchup quality, and form. alternatives: 0-3.`,
-  "explain-player": `Return JSON: { "summary": string, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }`,
+  "explain-player": `Return JSON: { "player_id": number, "summary": string, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id from the input. Do not substitute another player. The player_id you return MUST equal target_player_id exactly.`,
   "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[] }`,
   "injury-monitor": `Return JSON: { "items": [{ "player_id": number, "status": "OUT"|"Q"|"DTD"|"ACTIVE"|"UNKNOWN", "headline": string|null, "impact": "low"|"medium"|"high", "recommended_move": { "action": "hold"|"bench"|"drop"|"swap", "replacement_targets": [{ "player_id": number, "why": string[], "confidence": number(0-1) }] }, "risk_flags": string[] }], "notes": string[] }`,
 };
@@ -218,11 +218,33 @@ Deno.serve(async (req) => {
 
     const playerSummary = buildPlayerSummary(ctx.players, rosterPlayerIds);
 
+    // For explain-player, ensure the requested player is always present in the
+    // model context (top-100 truncation can otherwise cause hallucinated wrong
+    // player). Prepend the targeted player row if missing.
+    let finalPlayerSummary = playerSummary;
+    let targetPlayerId: number | undefined;
+    if (action === "explain-player" && typeof params.player_id === "number") {
+      targetPlayerId = params.player_id;
+      const alreadyIn = playerSummary.some((p: any) => p.id === targetPlayerId);
+      if (!alreadyIn) {
+        const { data: targetRow } = await sb
+          .from("players")
+          .select("*")
+          .eq("id", targetPlayerId)
+          .maybeSingle();
+        if (targetRow) {
+          const enriched = buildPlayerSummary([targetRow], rosterPlayerIds);
+          finalPlayerSummary = [...enriched, ...playerSummary];
+        }
+      }
+    }
+
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
-      players: playerSummary,
+      players: finalPlayerSummary,
       schedule: ctx.schedule.slice(0, 20),
       params,
+      ...(targetPlayerId !== undefined ? { target_player_id: targetPlayerId } : {}),
     });
 
     // First attempt
@@ -251,6 +273,19 @@ Deno.serve(async (req) => {
 
     if (validationErrors.length > 0) {
       return errorResponse("AI_SCHEMA_INVALID", "AI output does not match expected schema", validationErrors.join("; "));
+    }
+
+    // Defense in depth: for explain-player, ensure the AI describes the right player.
+    if (action === "explain-player" && targetPlayerId !== undefined) {
+      if (typeof aiData.player_id === "number" && aiData.player_id !== targetPlayerId) {
+        console.error(`[ai-coach] player mismatch: requested=${targetPlayerId} got=${aiData.player_id}`);
+        return errorResponse(
+          "AI_PLAYER_MISMATCH",
+          `AI returned a different player than requested (requested ${targetPlayerId}, got ${aiData.player_id})`
+        );
+      }
+      // Force the correct id onto the response so downstream UI can rely on it.
+      aiData.player_id = targetPlayerId;
     }
 
     console.log(`[ai-coach] action=${action} success`);
