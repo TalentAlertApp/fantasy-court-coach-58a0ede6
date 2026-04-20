@@ -20,7 +20,7 @@ function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
         <span className="text-xs font-heading font-bold uppercase tracking-wider">
           {isIncrease ? "Increased Playing Time" : "Decreased Playing Time"}
         </span>
-        <span className="text-[10px] text-muted-foreground ml-auto">Last 7 Days</span>
+        <span className="text-[10px] text-muted-foreground ml-auto">Last 7 Game Days</span>
       </div>
       <div className="grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
         <span>Player</span>
@@ -83,6 +83,11 @@ export default function AdvancedPage() {
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-muted-foreground" />
           <h1 className="text-lg font-heading font-bold uppercase tracking-wider">Playing Time Trends</h1>
+          {data?.latestDate && (
+            <span className="text-[10px] text-muted-foreground font-body ml-2">
+              Through {data.latestDate}
+            </span>
+          )}
         </div>
         {data?.updatedAt && (
           <span className="text-[10px] text-muted-foreground font-body">
