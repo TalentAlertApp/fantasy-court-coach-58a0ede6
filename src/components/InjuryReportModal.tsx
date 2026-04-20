@@ -323,7 +323,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-screen h-screen max-w-none sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-none sm:rounded-lg">
+      <DialogContent className="w-screen h-screen max-w-none sm:w-full sm:max-w-3xl sm:h-[80vh] sm:max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-none sm:rounded-lg">
         <DialogHeader className="px-5 py-4 border-b shrink-0">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <DialogTitle className="flex items-center gap-2 font-heading">
@@ -451,7 +451,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-4 pt-2 relative">
+              <div className="flex-1 min-h-[60vh] sm:min-h-[60vh] overflow-y-auto overscroll-contain px-3 pb-4 pt-2 relative">
                 <InjuryList
                   items={visibleItems}
                   myRosterOnly={myRosterOnly}

@@ -279,9 +279,9 @@ interface TeamFormData {
   last5: Last5Game[];
 }
 
-function useTeamFormData(teams: string[], enabled: boolean) {
+function useAllTeamsForm(enabled: boolean) {
   return useQuery({
-    queryKey: ["team-form", ...teams],
+    queryKey: ["all-teams-form"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
@@ -326,7 +326,9 @@ function useTeamFormData(teams: string[], enabled: boolean) {
         if (diff > bestDiff) bestDiff = diff;
       }
 
-      for (const tricode of teams) {
+      // Build results for ALL 30 NBA teams so conference standings have full data
+      const allTricodes = new Set<string>([...Object.keys(NBA_TEAM_META), ...Object.keys(acc)]);
+      for (const tricode of allTricodes) {
         const t = acc[tricode];
         if (!t) {
           result[tricode] = { tricode, w: 0, l: 0, pct: ".000", gb: "-", homeRec: "0-0", awayRec: "0-0", last5: [] };
@@ -498,7 +500,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   onGameClick: (game: Last5Game) => void;
   onTeamClick: (tricode: string) => void;
 }) {
-  const { data, isLoading } = useTeamFormData([awayTeam, homeTeam], true);
+  const { data, isLoading } = useAllTeamsForm(true);
 
   const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam) : [], [data, awayTeam]);
   const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam) : [], [data, homeTeam]);
@@ -530,8 +532,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 {meta && <span className="text-xs text-muted-foreground">{meta.conference}</span>}
               </div>
 
-              <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
-
               <div className="grid grid-cols-4 gap-1.5 text-xs">
                 <div>
                   <span className="text-muted-foreground">W-L</span>
@@ -550,37 +550,56 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                   <p className="font-mono">{team.awayRec}</p>
                 </div>
               </div>
-              <div>
-                <p className="text-xs font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
-                <div className="space-y-1">
-                  {team.last5.map((g, i) => {
-                    const oppLogo = getTeamLogo(g.opp);
-                    return (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <button onClick={() => onGameClick(g)}>
-                          <Badge
-                            variant={g.won ? "default" : "destructive"}
-                            className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
-                          >
-                            {g.won ? "W" : "L"}
-                          </Badge>
-                        </button>
-                        <span className="text-muted-foreground font-mono w-14">{g.date}</span>
-                        <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
-                          {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
-                          <span className="font-heading font-bold">{g.opp}</span>
-                        </button>
-                        <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
-                        <div className="flex items-center gap-0 ml-auto">
-                          {g.game_boxscore_url && <a href={g.game_boxscore_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Box Score"><Table2 className="h-3 w-3" /></a>}
-                          {g.game_charts_url && <a href={g.game_charts_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Charts"><BarChart3 className="h-3 w-3" /></a>}
-                          {g.game_playbyplay_url && <a href={g.game_playbyplay_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Play-by-Play"><Mic className="h-3 w-3" /></a>}
-                          <span className={`p-0.5 ${g.youtube_recap_id ? "text-green-500" : "text-muted-foreground/30"}`} title="Recap"><Tv2 className="h-3 w-3" /></span>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
+                <div className="bg-card/60 rounded-lg border p-2">
+                  <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
+                  <div className="space-y-1">
+                    {team.last5.map((g, i) => {
+                      const oppLogo = getTeamLogo(g.opp);
+                      const recapHref = g.youtube_recap_id
+                        ? `https://www.youtube.com/watch?v=${g.youtube_recap_id}`
+                        : null;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          <button onClick={() => onGameClick(g)}>
+                            <Badge
+                              variant={g.won ? "default" : "destructive"}
+                              className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                            >
+                              {g.won ? "W" : "L"}
+                            </Badge>
+                          </button>
+                          <span className="text-muted-foreground font-mono w-14">{g.date}</span>
+                          <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
+                            {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
+                            <span className="font-heading font-bold">{g.opp}</span>
+                          </button>
+                          <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
+                          <div className="ml-auto">
+                            {recapHref ? (
+                              <a
+                                href={recapHref}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-green-500 hover:text-green-400 p-0.5 inline-flex"
+                                title="Watch Recap"
+                              >
+                                <Tv2 className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/30 p-0.5 inline-flex" title="Recap unavailable">
+                                <Tv2 className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                  {team.last5.length === 0 && <span className="text-[10px] text-muted-foreground">No games played</span>}
+                      );
+                    })}
+                    {team.last5.length === 0 && <span className="text-[10px] text-muted-foreground">No games played</span>}
+                  </div>
                 </div>
               </div>
             </div>

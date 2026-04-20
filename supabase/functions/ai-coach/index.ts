@@ -20,6 +20,19 @@ Assists are 2x. Steals + blocks are 3x each ("stocks" are huge).
 ## POSITIONS
 Players only have FC (Front Court) or BC (Back Court). Do not invent other positions.
 
+## HARD CONSTRAINTS (NEVER VIOLATE)
+These rules are immutable. Any move suggestion that violates ANY of them MUST be discarded.
+- Roster size = 10 (5 starters + 5 bench).
+- Roster composition: exactly 5 FC + 5 BC at all times. Every ADD must share the same fc_bc as its DROP.
+- Starting 5 must contain >=2 FC and >=2 BC.
+- Salary cap (in $M) = team_settings.salary_cap (default 100). After ANY proposed swap:
+  total_salary_after = roster_salary_total - drop_salary + add_salary
+  total_salary_after MUST be <= salary_cap.
+- Maximum 2 players from the same NBA team across the full 10-man roster. After each swap:
+  team_distribution[add.team] (after applying the corresponding drop) MUST be <= 2.
+- 1 captain per gameweek = 2x FP.
+The internal payload includes: salary_cap, roster_salary_total, bank_remaining, team_distribution. USE them.
+
 ## DATA TRUTH HIERARCHY
 1) Internal app data (provided in developer message)
 2) Web search tool (real-time NBA news)
@@ -53,7 +66,7 @@ Keep content short, direct, decision-focused. No vague adjectives without data.
 Do not fabricate stats, injuries, or schedules. If unsure, say so via notes or risk_flags.`;
 
 const SCHEMA_DESCRIPTIONS: Record<string, string> = {
-  "suggest-transfers": `Return JSON: { "moves": [{ "add": number, "drop": number, "reason_bullets": string[], "expected_delta": { "proj_fp5": number, "proj_stocks5": number, "proj_ast5": number }, "risk_flags": string[], "confidence": number(0-1) }], "notes": string[] }. moves array: 1-5 items. reason_bullets: 1-6 items each max ~12 words.`,
+  "suggest-transfers": `Return JSON: { "moves": [{ "add": number, "drop": number, "cap_after": number, "reason_bullets": string[], "expected_delta": { "proj_fp5": number, "proj_stocks5": number, "proj_ast5": number }, "risk_flags": string[], "confidence": number(0-1) }], "notes": string[] }. moves array: 1-5 items. reason_bullets: 1-6 items each max ~12 words. CRITICAL CONSTRAINTS for every move: (1) ADD player's fc_bc MUST equal DROP player's fc_bc (preserves 5 FC + 5 BC). (2) cap_after = roster_salary_total - drop.salary + add.salary MUST be <= salary_cap. (3) After applying the swap, the count of roster players from add.team MUST be <= 2 (use team_distribution from payload, subtract 1 if drop is from same team). (4) Both add and drop players MUST exist in the players list. Set cap_after as a number (in $M) so the server can verify. If no legal move exists, return moves: [] and explain in notes.`,
   "pick-captain": `Return JSON: { "captain_id": number, "alternatives": [{ "id": number, "why": string }], "reason_bullets": string[], "confidence": number(0-1) }. captain_id must be from starters. Pick the best captain for the ENTIRE GAMEWEEK (not just one day). Consider total projected FP across all remaining gamedays, schedule density, matchup quality, and form. alternatives: 0-3.`,
   "explain-player": `Return JSON: { "player_id": number, "summary": string, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id from the input. Do not substitute another player. The player_id you return MUST equal target_player_id exactly.`,
   "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[] }`,
@@ -61,17 +74,26 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
 };
 
 async function fetchContext(sb: any, teamId?: string) {
-  const [playersRes, rosterRes, scheduleRes] = await Promise.all([
+  const [playersRes, rosterRes, scheduleRes, settingsRes] = await Promise.all([
     sb.from("players").select("*").order("fp_pg5", { ascending: false }).limit(200),
     teamId
       ? sb.from("roster").select("*").eq("team_id", teamId)
       : sb.from("roster").select("*"),
     sb.from("schedule_games").select("*").order("gw").order("day").limit(50),
+    teamId
+      ? sb.from("team_settings").select("*").eq("team_id", teamId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const settings = settingsRes?.data ?? null;
   return {
     players: playersRes.data ?? [],
     roster: rosterRes.data ?? [],
     schedule: scheduleRes.data ?? [],
+    settings: {
+      salary_cap: Number(settings?.salary_cap ?? 100),
+      starter_fc_min: Number(settings?.starter_fc_min ?? 2),
+      starter_bc_min: Number(settings?.starter_bc_min ?? 2),
+    },
   };
 }
 
@@ -218,6 +240,35 @@ Deno.serve(async (req) => {
 
     const playerSummary = buildPlayerSummary(ctx.players, rosterPlayerIds);
 
+    // ---- Compute roster financials & team distribution for HARD CONSTRAINTS ----
+    // Build a quick lookup of players-by-id from the (possibly truncated) summary,
+    // but for roster math we need accurate salary/team for every roster player —
+    // refetch any missing ones directly from the DB.
+    const rosterIdsArr = Array.from(rosterPlayerIds);
+    let rosterPlayerRows: any[] = [];
+    if (rosterIdsArr.length > 0) {
+      const { data: rp } = await sb
+        .from("players")
+        .select("id, name, team, fc_bc, salary")
+        .in("id", rosterIdsArr);
+      rosterPlayerRows = rp ?? [];
+    }
+    const rosterPlayerById = new Map<number, any>();
+    for (const p of rosterPlayerRows) rosterPlayerById.set(p.id, p);
+
+    const roster_salary_total = rosterPlayerRows.reduce(
+      (sum, p) => sum + Number(p.salary ?? 0),
+      0
+    );
+    const team_distribution: Record<string, number> = {};
+    for (const p of rosterPlayerRows) {
+      const tri = String(p.team ?? "").toUpperCase();
+      if (!tri) continue;
+      team_distribution[tri] = (team_distribution[tri] ?? 0) + 1;
+    }
+    const salary_cap = ctx.settings.salary_cap;
+    const bank_remaining = salary_cap - roster_salary_total;
+
     // For explain-player, ensure the requested player is always present in the
     // model context (top-100 truncation can otherwise cause hallucinated wrong
     // player). Prepend the targeted player row if missing.
@@ -241,6 +292,15 @@ Deno.serve(async (req) => {
 
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
+      roster_players: rosterPlayerRows.map((p) => ({
+        id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, salary: p.salary,
+      })),
+      salary_cap,
+      starter_fc_min: ctx.settings.starter_fc_min,
+      starter_bc_min: ctx.settings.starter_bc_min,
+      roster_salary_total,
+      bank_remaining,
+      team_distribution,
       players: finalPlayerSummary,
       schedule: ctx.schedule.slice(0, 20),
       params,
@@ -286,6 +346,69 @@ Deno.serve(async (req) => {
       }
       // Force the correct id onto the response so downstream UI can rely on it.
       aiData.player_id = targetPlayerId;
+    }
+
+    // Defense in depth: for suggest-transfers, drop any move that violates HARD CONSTRAINTS.
+    if (action === "suggest-transfers" && Array.isArray(aiData.moves)) {
+      const playerById = new Map<number, any>();
+      for (const p of ctx.players) playerById.set(p.id, p);
+      // Make sure roster players are also lookupable
+      for (const p of rosterPlayerRows) if (!playerById.has(p.id)) playerById.set(p.id, p);
+
+      const violations: string[] = [];
+      const validMoves = aiData.moves.filter((m: any) => {
+        const addP = playerById.get(Number(m?.add));
+        const dropP = playerById.get(Number(m?.drop));
+        if (!addP || !dropP) {
+          violations.push(`Unknown player(s) in move add=${m?.add} drop=${m?.drop}`);
+          return false;
+        }
+        if (!rosterPlayerIds.has(Number(m.drop))) {
+          violations.push(`Drop ${dropP.name} not on roster`);
+          return false;
+        }
+        if (rosterPlayerIds.has(Number(m.add))) {
+          violations.push(`Add ${addP.name} already on roster`);
+          return false;
+        }
+        if (addP.fc_bc !== dropP.fc_bc) {
+          violations.push(`FC/BC mismatch: ADD ${addP.name} (${addP.fc_bc}) vs DROP ${dropP.name} (${dropP.fc_bc})`);
+          return false;
+        }
+        const capAfter =
+          roster_salary_total - Number(dropP.salary ?? 0) + Number(addP.salary ?? 0);
+        if (capAfter > salary_cap + 1e-6) {
+          violations.push(
+            `Cap exceeded: ${addP.name}↔${dropP.name} → $${capAfter.toFixed(1)}M > $${salary_cap}M`
+          );
+          return false;
+        }
+        const addTri = String(addP.team ?? "").toUpperCase();
+        const dropTri = String(dropP.team ?? "").toUpperCase();
+        const addTeamCountAfter =
+          (team_distribution[addTri] ?? 0) - (addTri === dropTri ? 1 : 0) + 1;
+        if (addTeamCountAfter > 2) {
+          violations.push(
+            `Max-2-per-team violated: ${addP.name} (${addTri}) would make ${addTeamCountAfter} on roster`
+          );
+          return false;
+        }
+        // Stamp the verified cap_after for the UI
+        m.cap_after = Number(capAfter.toFixed(2));
+        return true;
+      });
+
+      if (validMoves.length !== aiData.moves.length) {
+        console.warn(`[ai-coach] suggest-transfers dropped ${aiData.moves.length - validMoves.length} invalid move(s):`, violations);
+      }
+      aiData.moves = validMoves;
+      if (validMoves.length === 0) {
+        aiData.notes = Array.isArray(aiData.notes) ? aiData.notes : [];
+        aiData.notes.unshift(
+          `No legal moves found within constraints (cap $${salary_cap}M, max 2 per NBA team, FC↔FC / BC↔BC). Bank remaining: $${bank_remaining.toFixed(1)}M.`
+        );
+        if (violations.length) aiData.notes.push(`Rejected: ${violations.slice(0, 3).join("; ")}`);
+      }
     }
 
     console.log(`[ai-coach] action=${action} success`);
