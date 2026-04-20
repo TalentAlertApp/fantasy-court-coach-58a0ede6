@@ -50,6 +50,12 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const [explainSearch, setExplainSearch] = useState("");
   const [selectedExplainPlayer, setSelectedExplainPlayer] = useState<any>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [recentExplained, setRecentExplained] = useState<Array<{ id: number; name: string; team: string; photo: string | null; fc_bc: string }>>(() => {
+    try {
+      const raw = localStorage.getItem("nbaf:ai-explain-recent");
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
   const [applyingCaptain, setApplyingCaptain] = useState(false);
   const [simulatingIdx, setSimulatingIdx] = useState<number | null>(null);
   const [committingIdx, setCommittingIdx] = useState<number | null>(null);
@@ -161,8 +167,16 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
       return;
     }
     setExplainLoading(true); setExplainResult(null);
-    try { setExplainResult(await aiExplainPlayer({ player_id: target.core.id }, selectedTeamId ?? undefined)); }
-    catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    try {
+      const res = await aiExplainPlayer({ player_id: target.core.id }, selectedTeamId ?? undefined);
+      setExplainResult(res);
+      const entry = { id: target.core.id, name: target.core.name, team: target.core.team, photo: target.core.photo ?? null, fc_bc: target.core.fc_bc };
+      setRecentExplained((prev) => {
+        const next = [entry, ...prev.filter((p) => p.id !== entry.id)].slice(0, 5);
+        try { localStorage.setItem("nbaf:ai-explain-recent", JSON.stringify(next)); } catch {}
+        return next;
+      });
+    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
     finally { setExplainLoading(false); }
   };
 
@@ -170,6 +184,24 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     setExplainSearch(val);
     setSelectedExplainPlayer(null);
     setExplainResult(null);
+    setShowDropdown(true);
+  };
+
+  const handleRecentClick = async (r: { id: number; name: string }) => {
+    const found = allPlayers.find((p: any) => p.core.id === r.id);
+    if (!found) {
+      toast({ title: "Player not loaded yet", description: "Try again in a moment.", variant: "destructive" });
+      return;
+    }
+    setSelectedExplainPlayer(found);
+    setExplainSearch(found.core.name);
+    setShowDropdown(false);
+    setExplainLoading(true); setExplainResult(null);
+    try {
+      const res = await aiExplainPlayer({ player_id: found.core.id }, selectedTeamId ?? undefined);
+      setExplainResult(res);
+    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
+    finally { setExplainLoading(false); }
   };
 
   const handleSelectExplainPlayer = (p: any) => {
@@ -309,6 +341,33 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
+              {/* Recent 5 explained chips */}
+              {!explainSearch && !explainResult && recentExplained.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">Recent</span>
+                  {recentExplained.map((r) => {
+                    const logo = getTeamLogo(r.team);
+                    const lastName = r.name.split(/\s+/).slice(-1)[0];
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => handleRecentClick(r)}
+                        className="inline-flex items-center gap-1.5 bg-muted hover:bg-accent/50 transition-colors rounded-full pl-0.5 pr-2 py-0.5 border"
+                        title={r.name}
+                      >
+                        {r.photo ? (
+                          <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
+                        ) : logo ? (
+                          <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
+                        ) : (
+                          <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">{r.name.slice(0,1)}</span>
+                        )}
+                        <span className="text-[10px] font-heading font-semibold">{lastName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="relative" ref={dropdownRef}>
                 <div className="flex gap-2">
                   <Input
@@ -353,11 +412,18 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                           <div className="flex-1 min-w-0 relative z-10">
                             <p className="text-sm font-heading font-semibold truncate">{p.core.name}</p>
                             <div className="flex items-center gap-1.5">
+                              {logo && (
+                                <img src={logo} alt="" className="w-4 h-4 object-contain shrink-0" />
+                              )}
                               <span className="text-[10px] text-muted-foreground">{teamFullName}</span>
                               <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5">
                                 {p.core.fc_bc}
                               </Badge>
                             </div>
+                          </div>
+                          <div className="relative z-10 shrink-0 ml-2 text-right">
+                            <span className="font-mono text-[11px] font-bold text-foreground">{Number((p as any).last5?.fp5 ?? 0).toFixed(1)}</span>
+                            <span className="text-[8px] text-muted-foreground ml-0.5">FP5</span>
                           </div>
                         </button>
                       );

@@ -113,12 +113,13 @@ export default function PlayerCard({
               <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5 shrink-0">
                 {core.fc_bc}
               </Badge>
-              <span className="text-[9px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
+              <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-3.5 inline-flex items-center text-[10px] font-mono text-foreground shrink-0">
+                ${core.salary}
+              </span>
               {v5 != null && (
-                <>
-                  <span className="text-muted-foreground/40 text-[8px]">|</span>
-                  <span className="text-[9px] text-muted-foreground font-mono shrink-0">{Number(v5).toFixed(1)}</span>
-                </>
+                <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-3.5 inline-flex items-center text-[10px] font-mono text-foreground shrink-0">
+                  {Number(v5).toFixed(1)}
+                </span>
               )}
 
               {upcoming && (
@@ -210,17 +211,18 @@ export default function PlayerCard({
         {formatShortName(core.name)}
       </p>
 
-      {/* FC/BC badge + salary + V5 — larger font, dark blue for salary/value */}
+      {/* FC/BC badge + salary + V5 — pill containers matching /transactions style */}
       <div className="flex items-center justify-center gap-1.5 mt-1 z-10">
         <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded h-4 shadow-md">
           {core.fc_bc}
         </Badge>
-        <span className="text-xs text-[#1e3a5f] font-mono font-bold drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">${core.salary}</span>
+        <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-4 inline-flex items-center text-xs font-mono text-foreground">
+          ${core.salary}
+        </span>
         {v5 != null && (
-          <>
-            <span className="text-white/40 text-[10px]">|</span>
-            <span className="text-xs text-[#1e3a5f] font-mono font-bold drop-shadow-[0_1px_2px_rgba(255,255,255,0.6)]">{Number(v5).toFixed(1)}</span>
-          </>
+          <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-4 inline-flex items-center text-xs font-mono text-foreground">
+            {Number(v5).toFixed(1)}
+          </span>
         )}
       </div>
 
