@@ -1,4 +1,4 @@
-import { Wallet, ArrowRightLeft, Users, Shield } from "lucide-react";
+import { Wallet, ArrowRightLeft, Users, Shield, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface RosterSidebarProps {
@@ -15,6 +15,12 @@ interface RosterSidebarProps {
 export default function RosterSidebar({
   bankRemaining, freeTransfers, fcStarters, bcStarters, totalSalary,
 }: RosterSidebarProps) {
+  const bankColorClass =
+    bankRemaining > 0
+      ? "text-green-500 font-bold"
+      : bankRemaining < 0
+      ? "text-destructive font-bold"
+      : "text-[hsl(var(--nba-yellow))] font-bold";
   return (
     <div className="space-y-3">
       <div className="bg-card border rounded-xl overflow-hidden">
@@ -23,7 +29,19 @@ export default function RosterSidebar({
           <span className="text-xs font-heading font-bold uppercase tracking-wider text-foreground">Roster Info</span>
         </div>
         <div className="p-3 space-y-2.5">
-          <InfoRow icon={<Wallet className="h-3.5 w-3.5" />} label="Bank Remaining" value={`$${bankRemaining.toFixed(1)}`} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-muted-foreground dark:text-white/70">
+              <Wallet className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-heading uppercase">Bank Remaining</span>
+            </div>
+            <span className={`font-mono text-sm ${bankColorClass}`}>${bankRemaining.toFixed(1)}</span>
+          </div>
+          {bankRemaining < 0 && (
+            <div className="flex items-start gap-1.5 text-destructive text-[10px] leading-tight">
+              <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+              <span>Over budget — adjust roster to bring bank to 0 or higher</span>
+            </div>
+          )}
           <InfoRow icon={<ArrowRightLeft className="h-3.5 w-3.5" />} label="Free Transfers" value={String(freeTransfers)} />
           <div className="border-t pt-2 space-y-1.5">
             <div className="flex items-center justify-between text-xs">

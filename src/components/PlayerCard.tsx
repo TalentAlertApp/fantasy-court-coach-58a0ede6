@@ -113,12 +113,13 @@ export default function PlayerCard({
               <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5 shrink-0">
                 {core.fc_bc}
               </Badge>
-              <span className="text-[9px] text-muted-foreground font-mono shrink-0">${core.salary}</span>
+              <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-3.5 inline-flex items-center text-[10px] font-mono text-foreground shrink-0">
+                ${core.salary}
+              </span>
               {v5 != null && (
-                <>
-                  <span className="text-muted-foreground/40 text-[8px]">|</span>
-                  <span className="text-[9px] text-muted-foreground font-mono shrink-0">{Number(v5).toFixed(1)}</span>
-                </>
+                <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-3.5 inline-flex items-center text-[10px] font-mono text-foreground shrink-0">
+                  {Number(v5).toFixed(1)}
+                </span>
               )}
 
               {upcoming && (
