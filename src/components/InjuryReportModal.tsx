@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Select,
@@ -12,11 +13,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle } from "lucide-react";
-import { format, parseISO, isValid } from "date-fns";
+import { format, parseISO, isValid, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAMS, getTeamByTricode } from "@/lib/nba-teams";
 import nbaLogo from "@/assets/nba-logo.svg";
 import { cn } from "@/lib/utils";
+import PlayerModal from "@/components/PlayerModal";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
 
 interface InjuryRecord {
   player_name: string;
@@ -53,6 +56,30 @@ interface InjuryReportModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const CACHE_KEY = "nbaf:injury-report:v1";
+const CACHE_TTL_MS = 30 * 60 * 1000;
+
+function readCache(): InjuryPayload | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { savedAt: number; payload: InjuryPayload };
+    if (!parsed?.savedAt || !parsed?.payload) return null;
+    if (Date.now() - parsed.savedAt > CACHE_TTL_MS) return null;
+    return parsed.payload;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(payload: InjuryPayload) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), payload }));
+  } catch {
+    // ignore quota
+  }
+}
+
 function normalizeName(s: string): string {
   return s
     .normalize("NFD")
@@ -64,10 +91,8 @@ function normalizeName(s: string): string {
 function tricodeFromTeamString(s: string): string {
   if (!s) return "";
   const upper = s.toUpperCase().trim();
-  // exact tricode hit
   const exact = NBA_TEAMS.find((t) => t.tricode === upper);
   if (exact) return exact.tricode;
-  // full or partial name hit
   const lower = s.toLowerCase();
   const byName = NBA_TEAMS.find(
     (t) => lower.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(lower),
@@ -104,19 +129,38 @@ function statusClasses(status: string): string {
   }
 }
 
-function formatReturn(raw: string | null): { label: string; isSeasonEnd: boolean; isTbd: boolean } {
-  if (!raw) return { label: "TBD", isSeasonEnd: false, isTbd: true };
+interface ReturnInfo {
+  label: string;
+  isSeasonEnd: boolean;
+  isTbd: boolean;
+  daysAway: number | null;
+}
+
+function formatReturn(raw: string | null): ReturnInfo {
+  if (!raw) return { label: "TBD", isSeasonEnd: false, isTbd: true, daysAway: null };
   const trimmed = raw.trim();
-  if (!trimmed) return { label: "TBD", isSeasonEnd: false, isTbd: true };
-  if (/season-?ending/i.test(trimmed)) return { label: "Season-ending", isSeasonEnd: true, isTbd: false };
-  if (/next season/i.test(trimmed)) return { label: "Next Season", isSeasonEnd: true, isTbd: false };
-  // try ISO
+  if (!trimmed) return { label: "TBD", isSeasonEnd: false, isTbd: true, daysAway: null };
+  if (/season-?ending/i.test(trimmed)) return { label: "Season-ending", isSeasonEnd: true, isTbd: false, daysAway: null };
+  if (/next season/i.test(trimmed)) return { label: "Next Season", isSeasonEnd: true, isTbd: false, daysAway: null };
   const iso = parseISO(trimmed);
-  if (isValid(iso)) return { label: format(iso, "MMM d"), isSeasonEnd: false, isTbd: false };
-  // try Date()
+  if (isValid(iso)) {
+    const days = differenceInCalendarDays(iso, new Date());
+    return { label: format(iso, "MMM d"), isSeasonEnd: false, isTbd: false, daysAway: days };
+  }
   const d = new Date(trimmed);
-  if (isValid(d) && !isNaN(d.getTime())) return { label: format(d, "MMM d"), isSeasonEnd: false, isTbd: false };
-  return { label: trimmed, isSeasonEnd: false, isTbd: false };
+  if (isValid(d) && !isNaN(d.getTime())) {
+    const days = differenceInCalendarDays(d, new Date());
+    return { label: format(d, "MMM d"), isSeasonEnd: false, isTbd: false, daysAway: days };
+  }
+  return { label: trimmed, isSeasonEnd: false, isTbd: false, daysAway: null };
+}
+
+function dateColorClass(ret: ReturnInfo): string {
+  if (ret.isSeasonEnd) return "text-red-500 font-bold";
+  if (ret.isTbd) return "text-muted-foreground";
+  if (ret.daysAway === null) return "text-muted-foreground";
+  if (ret.daysAway <= 30) return "text-yellow-400 font-bold";
+  return "text-red-500 font-bold";
 }
 
 function truncate(s: string, max: number): string {
@@ -144,10 +188,48 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const [payload, setPayload] = useState<InjuryPayload | null>(null);
   const [rosterMap, setRosterMap] = useState<Map<string, { id: number; team: string; pos: string | null; fc_bc: string; photo: string | null }>>(new Map());
   const [view, setView] = useState<"all" | string>("all");
+  const [myRosterOnly, setMyRosterOnly] = useState(false);
+  const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const { data: rosterData } = useRosterQuery();
+  const rosterIds = useMemo(() => {
+    const set = new Set<number>();
+    const slots = (rosterData as any)?.roster ?? (rosterData as any)?.slots ?? [];
+    if (Array.isArray(slots)) {
+      for (const s of slots) {
+        const pid = s?.player_id ?? s?.player?.id ?? s?.id;
+        if (typeof pid === "number") set.add(pid);
+      }
+    }
+    return set;
+  }, [rosterData]);
+
+  const load = useCallback(async (force = false) => {
     setError(null);
+
+    if (!force) {
+      const cached = readCache();
+      if (cached) {
+        setPayload(cached);
+        // still load roster map in background if not loaded
+        const { data: playersRows } = await supabase.from("players").select("id, name, team, pos, fc_bc, photo");
+        const map = new Map<string, { id: number; team: string; pos: string | null; fc_bc: string; photo: string | null }>();
+        (playersRows ?? []).forEach((p: any) => {
+          if (!p?.name) return;
+          map.set(normalizeName(p.name), {
+            id: p.id,
+            team: p.team,
+            pos: p.pos ?? null,
+            fc_bc: p.fc_bc,
+            photo: p.photo ?? null,
+          });
+        });
+        setRosterMap(map);
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
       const [{ data: injuryData, error: fnErr }, { data: playersRows, error: pErr }] = await Promise.all([
         supabase.functions.invoke("nba-injury-report"),
@@ -169,6 +251,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
       });
       setRosterMap(map);
       setPayload(injuryData as InjuryPayload);
+      writeCache(injuryData as InjuryPayload);
     } catch (e: any) {
       setError(e?.message ?? "Failed to load injury report");
     } finally {
@@ -178,7 +261,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
 
   useEffect(() => {
     if (open && !payload && !loading) {
-      load();
+      load(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -203,10 +286,16 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     });
   }, [payload, rosterMap]);
 
-  // Group by tricode and build sorted tab list
+  // Apply "My Roster only" filter to whole dataset (affects counts too)
+  const filteredAll = useMemo<EnrichedRecord[]>(() => {
+    if (!myRosterOnly) return enriched;
+    return enriched.filter((r) => r.player_id != null && rosterIds.has(r.player_id));
+  }, [enriched, myRosterOnly, rosterIds]);
+
+  // Group by tricode (built from filtered set so badges reflect filter)
   const groups = useMemo(() => {
     const m = new Map<string, EnrichedRecord[]>();
-    for (const rec of enriched) {
+    for (const rec of filteredAll) {
       const key = rec.team_tricode || "UNK";
       if (!m.has(key)) m.set(key, []);
       m.get(key)!.push(rec);
@@ -218,20 +307,40 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     }));
     arr.sort((a, b) => a.fullName.localeCompare(b.fullName));
     return arr;
-  }, [enriched]);
+  }, [filteredAll]);
+
+  // If the currently selected team no longer exists in groups (e.g. filter removed it), reset to all
+  useEffect(() => {
+    if (view !== "all" && !groups.some((g) => g.tricode === view)) {
+      setView("all");
+    }
+  }, [groups, view]);
 
   const updatedLabel = payload?.generated_at ? `Updated ${relativeTime(payload.generated_at)}` : "";
+
+  const visibleItems =
+    view === "all" ? filteredAll : groups.find((g) => g.tricode === view)?.items ?? [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-screen h-screen max-w-none sm:w-full sm:max-w-3xl sm:h-auto sm:max-h-[85vh] flex flex-col p-0 overflow-hidden rounded-none sm:rounded-lg">
         <DialogHeader className="px-5 py-4 border-b shrink-0">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <DialogTitle className="flex items-center gap-2 font-heading">
               <Shield className="h-5 w-5 text-accent" />
               INJURY REPORT
             </DialogTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Switch
+                  checked={myRosterOnly}
+                  onCheckedChange={setMyRosterOnly}
+                  aria-label="My roster only"
+                />
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">
+                  My Roster only
+                </span>
+              </label>
               {updatedLabel && (
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground hidden sm:inline">
                   {updatedLabel}
@@ -240,7 +349,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
               <Button
                 size="icon"
                 variant="ghost"
-                onClick={load}
+                onClick={() => load(true)}
                 disabled={loading}
                 aria-label="Refresh injury report"
                 className="h-8 w-8"
@@ -256,8 +365,8 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
           )}
         </DialogHeader>
 
-        <div className="relative flex-1 min-h-0 overflow-hidden">
-          {/* NBA logo watermark (small, all states) */}
+        <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
+          {/* NBA logo watermark */}
           <img
             src={nbaLogo}
             alt=""
@@ -266,7 +375,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
           />
 
           {loading && !payload && (
-            <div className="relative h-full overflow-y-auto p-5 space-y-2">
+            <div className="relative flex-1 overflow-y-auto p-5 space-y-2">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Skeleton key={i} className="h-9 w-full" />
               ))}
@@ -274,26 +383,26 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
           )}
 
           {error && (
-            <div className="relative h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <div className="relative flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
               <AlertTriangle className="h-8 w-8 text-destructive" />
               <p className="text-sm font-semibold">Could not load injury report</p>
               <p className="text-xs text-muted-foreground max-w-sm">{error}</p>
-              <Button size="sm" onClick={load}>
+              <Button size="sm" onClick={() => load(true)}>
                 <RefreshCw className="h-4 w-4 mr-2" /> Retry
               </Button>
             </div>
           )}
 
           {!loading && !error && payload && (
-            <div className="relative h-full flex flex-col">
-              {/* ALL | Team dropdown header bar */}
-              <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border/50 bg-background/60 backdrop-blur-sm">
-                <div className="flex items-center justify-center gap-3 w-full">
+            <>
+              {/* ALL | Team dropdown header bar (sticky-ish, equal widths) */}
+              <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border/50 bg-background/95 backdrop-blur-sm relative z-20">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 max-w-xl mx-auto w-full">
                   <button
                     type="button"
                     onClick={() => setView("all")}
                     className={cn(
-                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-md font-heading text-[11px] uppercase tracking-wider transition-colors",
+                      "w-full inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md font-heading text-[11px] uppercase tracking-wider transition-colors",
                       view === "all"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted/60 text-muted-foreground hover:bg-muted",
@@ -301,7 +410,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
                   >
                     All
                     <Badge variant="destructive" className="px-1.5 h-4 text-[9px] leading-none rounded-md">
-                      {enriched.length}
+                      {filteredAll.length}
                     </Badge>
                   </button>
 
@@ -311,10 +420,13 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
                     value={view === "all" ? "" : view}
                     onValueChange={(v) => setView(v)}
                   >
-                    <SelectTrigger className="h-8 w-[260px] text-xs">
+                    <SelectTrigger className="h-8 w-full text-xs">
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent>
+                      {groups.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">No teams</div>
+                      )}
                       {groups.map((g) => {
                         const team = getTeamByTricode(g.tricode);
                         return (
@@ -339,29 +451,43 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-2">
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 pb-4 pt-2 relative">
                 <InjuryList
-                  items={
-                    view === "all"
-                      ? enriched
-                      : groups.find((g) => g.tricode === view)?.items ?? []
-                  }
+                  items={visibleItems}
+                  myRosterOnly={myRosterOnly}
+                  onSelect={(id) => setOpenPlayerId(id)}
                 />
               </div>
-            </div>
+            </>
           )}
         </div>
       </DialogContent>
+
+      <PlayerModal
+        playerId={openPlayerId}
+        open={openPlayerId !== null}
+        onOpenChange={(o) => !o && setOpenPlayerId(null)}
+      />
     </Dialog>
   );
 }
 
-function InjuryList({ items }: { items: EnrichedRecord[] }) {
+function InjuryList({
+  items,
+  myRosterOnly,
+  onSelect,
+}: {
+  items: EnrichedRecord[];
+  myRosterOnly: boolean;
+  onSelect: (id: number) => void;
+}) {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground">
         <CheckCircle2 className="h-7 w-7 text-green-600" />
-        <p className="text-sm">No reported injuries</p>
+        <p className="text-sm">
+          {myRosterOnly ? "No injuries on your roster" : "No reported injuries"}
+        </p>
       </div>
     );
   }
@@ -369,14 +495,14 @@ function InjuryList({ items }: { items: EnrichedRecord[] }) {
     <TooltipProvider delayDuration={150}>
       <ul className="divide-y divide-border/60">
         {items.map((rec, idx) => (
-          <InjuryRow key={`${rec.player_name}-${idx}`} rec={rec} />
+          <InjuryRow key={`${rec.player_name}-${idx}`} rec={rec} onSelect={onSelect} />
         ))}
       </ul>
     </TooltipProvider>
   );
 }
 
-function InjuryRow({ rec }: { rec: EnrichedRecord }) {
+function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: number) => void }) {
   const ret = formatReturn(rec.estimated_return);
   const injury = truncate(rec.injury_type || "—", 40);
   const team = getTeamByTricode(rec.team_tricode);
@@ -388,21 +514,31 @@ function InjuryRow({ rec }: { rec: EnrichedRecord }) {
     .join("")
     .toUpperCase();
 
-  return (
-    <li className="group relative overflow-hidden flex items-center gap-2 py-2.5 text-xs">
-      {/* Big vivid team-logo watermark, surge on hover */}
-      {team?.logo && (
-        <img
-          src={team.logo}
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 m-auto h-12 w-12 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60"
-        />
-      )}
+  const clickable = rec.on_roster && rec.player_id != null;
 
+  const handleClick = () => {
+    if (clickable && rec.player_id != null) onSelect(rec.player_id);
+  };
+
+  return (
+    <li
+      className={cn(
+        "group relative flex items-center gap-2 py-2.5 px-1 text-xs rounded-sm",
+        clickable && "cursor-pointer hover:bg-muted/40 transition-colors",
+      )}
+      onClick={handleClick}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (clickable && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+    >
       <span
         className={cn(
-          "relative z-10 inline-flex items-center justify-center px-2 h-5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0",
+          "inline-flex items-center justify-center px-2 h-5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0",
           statusClasses(rec.status),
         )}
       >
@@ -414,11 +550,11 @@ function InjuryRow({ rec }: { rec: EnrichedRecord }) {
         <img
           src={rec.photo}
           alt={rec.player_name}
-          className="relative z-10 h-7 w-7 rounded-full object-cover border border-border/60 shrink-0 bg-muted"
+          className="h-7 w-7 rounded-full object-cover border border-border/60 shrink-0 bg-muted"
         />
       ) : (
         <span
-          className="relative z-10 h-7 w-7 rounded-full border border-border/60 shrink-0 bg-muted text-muted-foreground flex items-center justify-center text-[9px] font-bold opacity-70"
+          className="h-7 w-7 rounded-full border border-border/60 shrink-0 bg-muted text-muted-foreground flex items-center justify-center text-[9px] font-bold opacity-70"
           aria-hidden="true"
         >
           {initials || "—"}
@@ -427,7 +563,7 @@ function InjuryRow({ rec }: { rec: EnrichedRecord }) {
 
       <span
         className={cn(
-          "relative z-10 font-heading font-bold whitespace-nowrap",
+          "font-heading font-bold whitespace-nowrap shrink-0",
           !rec.on_roster && "text-muted-foreground italic",
         )}
       >
@@ -438,33 +574,42 @@ function InjuryRow({ rec }: { rec: EnrichedRecord }) {
       </span>
 
       {rec.on_roster && rec.pos && (
-        <Badge variant="outline" className="relative z-10 h-4 px-1 text-[9px] rounded-md shrink-0 bg-background/70">
+        <Badge variant="outline" className="h-4 px-1 text-[9px] rounded-md shrink-0 bg-background/70">
           {rec.pos}
         </Badge>
       )}
 
-      <span className="relative z-10 text-muted-foreground shrink-0">·</span>
-      <span className="relative z-10 text-foreground/80 truncate min-w-0" title={rec.injury_type}>
+      <span className="text-muted-foreground shrink-0">·</span>
+      <span className="text-foreground/80 truncate flex-1 min-w-0" title={rec.injury_type}>
         {injury}
       </span>
 
-      <span className="relative z-10 text-muted-foreground shrink-0">·</span>
       <span
         className={cn(
-          "relative z-10 shrink-0 ml-auto font-mono text-[11px]",
-          ret.isSeasonEnd && "text-destructive font-semibold",
-          ret.isTbd && "text-muted-foreground",
+          "shrink-0 font-mono text-[11px]",
+          dateColorClass(ret),
         )}
       >
         {ret.label}
       </span>
+
+      {team?.logo ? (
+        <img
+          src={team.logo}
+          alt={team.tricode}
+          className="h-7 w-7 object-contain shrink-0 transition-transform duration-200 group-hover:scale-110"
+        />
+      ) : (
+        <span className="h-7 w-7 shrink-0" aria-hidden="true" />
+      )}
 
       {rec.notes && rec.notes.trim().length > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="relative z-10 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Show notes"
             >
               <Info className="h-3.5 w-3.5" />
