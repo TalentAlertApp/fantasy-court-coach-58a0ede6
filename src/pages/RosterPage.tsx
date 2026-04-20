@@ -48,8 +48,8 @@ function useCountdown(deadlineUtc: string | null) {
 
 export default function RosterPage() {
   const queryClient = useQueryClient();
-  const { selectedTeamId, teams } = useTeam();
-  const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
+  const { selectedTeamId, teams, isReady: teamReady, isError: teamError } = useTeam();
+  const { data: rosterData, isLoading: rosterLoading, isError: rosterIsError, isSuccess: rosterSuccess, refetch: refetchRoster } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
 
@@ -342,9 +342,12 @@ export default function RosterPage() {
     });
   };
 
-  const isLoading = rosterLoading || playersLoading;
-
-  const isRosterEmpty = !isLoading && rosterPlayerIds.length === 0;
+  // Bootstrap: teams haven't resolved yet — never show "empty roster" here.
+  const isBootstrapping = !teamReady || rosterLoading || playersLoading;
+  // Only show empty state when the roster query actually succeeded for a real team.
+  const isRosterEmpty = teamReady && rosterSuccess && rosterPlayerIds.length === 0;
+  // Genuine transport failure (after team is ready) — surface a retry card.
+  const isRosterErrored = teamReady && rosterIsError;
   const [autoPicking, setAutoPicking] = useState(false);
   const handleAutoPick = async () => {
     setAutoPicking(true);
@@ -404,10 +407,24 @@ export default function RosterPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isBootstrapping ? (
         <div className="space-y-4">
           <div className="grid grid-cols-5 gap-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
           <Skeleton className="h-64" />
+        </div>
+      ) : isRosterErrored ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-card border border-destructive/40 rounded-2xl p-8 text-center shadow-lg">
+            <h2 className="font-heading text-xl font-bold uppercase tracking-wider mb-2 text-destructive">
+              Couldn't load roster
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              The roster request failed. This is usually a transient network issue — your data is safe.
+            </p>
+            <Button onClick={() => refetchRoster()} className="rounded-xl font-heading uppercase text-xs">
+              <RefreshCw className="h-4 w-4 mr-1" />Retry
+            </Button>
+          </div>
         </div>
       ) : isRosterEmpty ? (
         <div className="flex-1 flex items-center justify-center p-6">

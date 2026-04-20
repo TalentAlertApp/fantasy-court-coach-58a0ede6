@@ -2,6 +2,9 @@ import { useState, useRef, useMemo } from "react";
 import { Trophy, ChevronLeft, ChevronRight, ExternalLink, ArrowUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useScoringHistory, type ScoringGameDay, type ScoringWeek } from "@/hooks/useScoringHistory";
+import { useTeam } from "@/contexts/TeamContext";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -11,7 +14,8 @@ type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
 
 export default function ScoringPage() {
-  const { data, isLoading } = useScoringHistory();
+  const { isReady: teamReady } = useTeam();
+  const { data, isLoading, isError, isSuccess, refetch } = useScoringHistory();
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
   const [playerModalId, setPlayerModalId] = useState<number | null>(null);
@@ -19,7 +23,7 @@ export default function ScoringPage() {
   const [sortCol, setSortCol] = useState<SortCol>("gw");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  if (isLoading) {
+  if (!teamReady || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-muted-foreground animate-pulse font-heading text-lg">Loading scoring data…</div>
@@ -27,13 +31,29 @@ export default function ScoringPage() {
     );
   }
 
-  if (!data || data.game_days.length === 0) {
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Trophy className="h-12 w-12 text-destructive/40" />
+        <p className="text-destructive font-heading">Couldn't load scoring data</p>
+        <Button onClick={() => refetch()} size="sm" className="rounded-xl">
+          <RefreshCw className="h-3.5 w-3.5 mr-1" />Retry
+        </Button>
+      </div>
+    );
+  }
+
+  if (isSuccess && (!data || data.game_days.length === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <Trophy className="h-12 w-12 text-muted-foreground/30" />
         <p className="text-muted-foreground font-heading">No scoring data available yet</p>
       </div>
     );
+  }
+
+  if (!data) {
+    return null;
   }
 
   const { weeks, game_days, transactions } = data;

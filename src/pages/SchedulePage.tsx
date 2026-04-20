@@ -8,7 +8,7 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -53,7 +53,7 @@ export default function SchedulePage() {
   const [totwOpen, setTotwOpen] = useState(false);
   const [potdOpen, setPotdOpen] = useState(false);
   const navigate = useNavigate();
-  const { data, isLoading } = useScheduleQuery({ gw, day });
+  const { data, isLoading, isError, isSuccess, refetch } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
   const { data: lastPlayed } = useLastPlayedDay();
   const { hasData: hasPotdData } = useTopPlayersData(gw, day);
@@ -283,6 +283,15 @@ export default function SchedulePage() {
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="space-y-2 px-1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 px-4 text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive/60" />
+            <p className="font-heading text-sm text-destructive">Couldn't load schedule</p>
+            <p className="text-xs text-muted-foreground max-w-sm">The schedule request failed. Try again — your data is safe.</p>
+            <Button onClick={() => refetch()} size="sm" className="rounded-xl mt-1">
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />Retry
+            </Button>
+          </div>
         ) : (
           <ScheduleList games={data?.games ?? []} />
         )}
