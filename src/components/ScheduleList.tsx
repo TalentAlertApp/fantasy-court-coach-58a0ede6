@@ -589,7 +589,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
       </div>
     </div>
   );
-
+}
 
 export default function ScheduleList({ games }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);

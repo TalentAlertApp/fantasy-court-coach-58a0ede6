@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TeamContextValue {
   teams: { id: string; name: string; description: string | null }[];
@@ -38,21 +39,56 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem(LS_KEY);
   });
 
-  // Sync: if selectedTeamId doesn't exist in teams list, fallback to default
-  // Also handle fresh sessions where localStorage might have a stale ID
+  // Sync: if selectedTeamId doesn't exist in teams list, OR points to a team
+  // with zero roster rows on initial load, fall back to a team that has data.
+  // This only runs once at startup — manual switches are preserved.
+  const [autoCorrected, setAutoCorrected] = useState(false);
   useEffect(() => {
-    if (isLoading || teams.length === 0) return;
+    if (isLoading || teams.length === 0 || autoCorrected) return;
     const exists = teams.some((t: any) => t.id === selectedTeamId);
-    if (!exists || !selectedTeamId) {
-      const fallback = defaultTeamId ?? teams[0]?.id ?? null;
-      setSelectedTeamIdRaw(fallback);
-      if (fallback) {
-        localStorage.setItem(LS_KEY, fallback);
-      } else {
-        localStorage.removeItem(LS_KEY);
+
+    const pickPopulatedTeam = async (): Promise<string | null> => {
+      // Query roster counts for all teams; pick the first team with rows.
+      const { data: rows } = await supabase
+        .from("roster")
+        .select("team_id");
+      const counts = new Map<string, number>();
+      for (const r of (rows ?? []) as any[]) {
+        counts.set(r.team_id, (counts.get(r.team_id) ?? 0) + 1);
       }
-    }
-  }, [teams, selectedTeamId, defaultTeamId, isLoading]);
+      // Prefer default team if populated
+      if (defaultTeamId && (counts.get(defaultTeamId) ?? 0) > 0) return defaultTeamId;
+      // Otherwise first team in list with rows
+      const populated = teams.find((t: any) => (counts.get(t.id) ?? 0) > 0);
+      if (populated) return populated.id;
+      return defaultTeamId ?? teams[0]?.id ?? null;
+    };
+
+    (async () => {
+      let target: string | null = selectedTeamId;
+
+      if (!exists || !selectedTeamId) {
+        target = await pickPopulatedTeam();
+      } else {
+        // Check if currently-selected team has any roster rows
+        const { count } = await supabase
+          .from("roster")
+          .select("id", { count: "exact", head: true })
+          .eq("team_id", selectedTeamId);
+        if (!count || count === 0) {
+          const better = await pickPopulatedTeam();
+          if (better && better !== selectedTeamId) target = better;
+        }
+      }
+
+      setAutoCorrected(true);
+      if (target !== selectedTeamId) {
+        setSelectedTeamIdRaw(target);
+        if (target) localStorage.setItem(LS_KEY, target);
+        else localStorage.removeItem(LS_KEY);
+      }
+    })();
+  }, [teams, selectedTeamId, defaultTeamId, isLoading, autoCorrected]);
 
   // If teams query fails, clear stale localStorage to prevent stuck state
   useEffect(() => {
