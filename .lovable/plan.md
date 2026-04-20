@@ -1,90 +1,74 @@
 
 
-## Plan: Injury Report Modal + supporting edge function
+## Plan: Redesign InjuryReportModal — smaller watermark, team dropdown, photo + watermark on rows
 
-### 1. New Edge Function: `nba-injury-report`
-Create `supabase/functions/nba-injury-report/index.ts` based on the user's reference TS, with these adjustments:
-- Add the project's standard CORS headers (matching `_shared/cors.ts` style — `Access-Control-Allow-Origin: *`, allow `authorization, apikey, content-type`).
-- Keep the three scrapers (ESPN, CBS, RotoWire) running via `Promise.allSettled`.
-- Keep the `deduplicate` step prioritising ESPN → CBS → RotoWire.
-- Keep response payload: `{ generated_at, total_players, sources_failed?, by_team, all }`.
-- Cache header `public, max-age=1800` (30 min).
-- Register in `supabase/config.toml` with `verify_jwt = false` so the modal can call it with the standard anon key.
+### 1. Smaller NBA watermark (all states)
+In `src/components/InjuryReportModal.tsx`:
+- Change the background watermark `<img>` from `w-1/2 max-w-[260px] opacity-[0.04]` to `w-1/4 max-w-[140px] opacity-[0.035]`.
+- Apply the same reduced size to the loading skeleton state and empty state (move the watermark wrapper so it covers all three states consistently).
 
-### 2. New Component: `src/components/InjuryReportModal.tsx`
-Standalone modal triggered from the AI Coach Injuries tab.
+### 2. Replace horizontal tab strip with `ALL | Team dropdown` header bar
+Replace the current `TabsList` strip with a centered control row that spans full modal width.
 
-**Header**
-- Title "Injury Report" with shield icon.
-- Right-side "Refresh" icon button (`RefreshCw`) — re-runs the fetch.
-- Subtitle "Updated X min ago" computed from `generated_at`.
+**Layout (centered, full-width row, sticky under header):**
+```
+[ ALL (123) ] | [ Select team ▼ ]
+```
 
-**Data fetching**
-- On open: call `nba-injury-report` via `supabase.functions.invoke("nba-injury-report")`.
-- Loading: skeleton rows with a faint NBA logo watermark (reuse `src/assets/nba-logo.svg` at low opacity).
-- Error: inline error card with retry button.
-- Cache result in component state; refresh button reruns.
+- Left segment: a button-style "ALL" pill with the total count badge. Active by default.
+- Divider: a thin `|` (`<span className="text-border">|</span>`).
+- Right segment: a shadcn `Select` (or `Popover` + `Command` for searchability) trigger reading **"Select team"** when nothing is picked.
+- Both segments sit in a flex container with `justify-center gap-3` and `w-full` padding.
 
-**Player enrichment (the join step)**
-- After fetch, query `players` table: `supabase.from("players").select("id, name, team, pos, fc_bc, photo")`.
-- Build a `Map` keyed by `normalize(name)` (NFD strip diacritics + lowercase + trim) for robust matching.
-- For each injury record, attach `{ player_id, pos, fc_bc, photo, team_tricode, on_roster }` from the map. **Position displayed comes only from `players.pos` — never from the injury source.**
-- If no match: `on_roster = false`, no position rendered, name greyed out with `[Not on roster]` suffix.
+**Dropdown content:**
+- Built from `groups` (already sorted alphabetically by full team name).
+- Each item renders: `<TeamLogo w-5 h-5> + Full team name + <Badge variant="destructive">{count}</Badge>`.
+- Team logos pulled from `NBA_TEAMS` mapping by tricode (existing `tricodeFromTeamString` already used).
+- Only teams with ≥1 player out are shown (already true — `groups` is built from injury data only).
 
-**Tab structure**
-- Tabs built from `by_team`. Tab labels = team **tricode** (resolved from `players.team` for matched players, else fallback to abbreviation in payload mapped through `NBA_TEAMS`).
-- Sort tabs alphabetically by team full name.
-- Each tab shows a small red badge with count.
-- Prepend "All" tab with combined list.
-- Horizontal scroll on mobile (`overflow-x-auto`).
+**State & Tab switching:**
+- Replace `Tabs` controlled state. Add `const [view, setView] = useState<"all" | string>("all")` where the string is the team tricode.
+- "ALL" button → `setView("all")` and clears the Select value.
+- Picking a team in the Select → `setView(tricode)`.
+- Body renders `<InjuryList items={view === "all" ? enriched : groups.find(g => g.tricode === view)?.items ?? []} />`.
+- Keep horizontal scroll fallback removed (no longer needed) but ensure the "ALL" button stays visible at all viewport sizes.
 
-**Player row (single line, compact)**
-Layout: `[StatusBadge] [Name] [Pos] · [Injury, truncated 40ch] · [Return]  [ⓘ?]`
-- **Status badge** colors:
-  - Out → red (`bg-destructive`)
-  - Day-To-Day → orange
-  - Game-Time Decision → amber
-  - Questionable → yellow
-  - Probable → green
-  - Rest → blue-grey (slate)
-  - Personal → grey
-  - Suspended → dark red (`bg-red-900`)
-  - G-League / fallback → muted
-- **Name**: `font-heading font-bold`. If `!on_roster` → `text-muted-foreground italic` plus `[Not on roster]` suffix.
-- **Position**: small outline badge with `pos` (e.g. "PG"). Hidden when off-roster.
-- **Injury**: truncated to 40 chars with ellipsis, `text-xs`.
-- **Return**: formatted `MMM d` via `date-fns`. `null` → "TBD". Literal "Season-ending" rendered red.
-- **Notes tooltip**: if `notes` non-empty, render `Info` icon (`lucide-react`) wrapped in shadcn `Tooltip` showing full notes.
+### 3. Player row redesign — photo + big team-logo watermark
+Update `InjuryRow` in the same file:
 
-**Empty states**
-- A team tab with zero rows → centered message "No reported injuries" with `CheckCircle2` icon.
-- All tabs empty → same message in All tab.
+**Row container:**
+- Switch from a flat `<li>` to `<li className="relative overflow-hidden …">` so the watermark can be absolutely positioned and clipped.
 
-**Styling**
-- `Dialog` with `max-w-3xl` on desktop, full-screen on mobile (`w-screen h-screen sm:h-auto sm:max-h-[85vh]`).
-- Body scrollable: `overflow-y-auto`.
-- Reuse existing design tokens (no inline hex except status colors which use Tailwind palette tokens consistent with the app).
+**Team-logo watermark (big, vivid, hover surge):**
+- Inside the row, render an absolutely positioned `<img>` of the team logo:
+  - Source: lookup via `NBA_TEAMS` by `rec.team_tricode`.
+  - Position: `absolute inset-0 m-auto` for centering; size `h-12 w-12` (bigger than typical row but clipped by row height).
+  - Vivid by default: `opacity-30` (no greyscale).
+  - Hover surge: parent gets `group` class, watermark gets `transition-all duration-300 group-hover:scale-125 group-hover:opacity-60`.
+  - `pointer-events-none` and `aria-hidden`.
 
-### 3. Wire it into `AICoachModal.tsx`
-- Import the new modal.
-- Replace the current `handleInjury` flow on the Injuries tab: keep the yellow "SCAN INJURIES" button, but on click it now opens `InjuryReportModal` (`setInjuryModalOpen(true)`) instead of calling the old `aiInjuryMonitor` API.
-- Remove the now-unused per-row injury rendering inside the Injuries TabsContent (cleaner: just the trigger button + helper text).
-- Render `<InjuryReportModal open={injuryModalOpen} onOpenChange={setInjuryModalOpen} />` at the bottom of the AI Coach modal tree.
+**Player photo (right after the OUT badge):**
+- Add a small avatar between the status badge and the name:
+  - `rec.photo` from the enriched record (already fetched from `players`).
+  - Render `<img src={rec.photo} className="h-7 w-7 rounded-full object-cover border border-border/60 shrink-0 z-10 relative" />`.
+  - If `!rec.photo` (off-roster): render a neutral fallback circle with the player's initials, dimmed.
 
-### Files to change
-- **Create** `supabase/functions/nba-injury-report/index.ts`
-- **Edit** `supabase/config.toml` (add function with `verify_jwt = false`)
-- **Create** `src/components/InjuryReportModal.tsx`
-- **Edit** `src/components/AICoachModal.tsx` (open modal from button + render it)
+**Stacking:**
+- All existing row content (badge, photo, name, pos pill, injury text, return, info) gets `relative z-10` so they sit above the watermark.
+
+**Spacing tweak:**
+- Bump row vertical padding from `py-2` to `py-2.5` so the 28px photo doesn't crowd the line.
+
+### Files to edit
+- `src/components/InjuryReportModal.tsx` — only file that changes.
 
 ### Verification
-- Click "SCAN INJURIES" → new modal opens with skeleton, then loads.
-- Tabs show NBA tricodes alphabetically with red count badges; "All" first.
-- Each row is a single line with correct color-coded status.
-- Position values match `players.pos` (verified by spot-checking a known player).
-- Off-roster players appear greyed with `[Not on roster]`, no position shown.
-- Hovering ⓘ shows full notes.
-- Refresh button re-fetches and updates "Updated X min ago".
-- Mobile: modal full-screen, tabs scroll horizontally.
-- Empty team → "No reported injuries" with check icon.
+- Open AI Coach → Injuries → Scan Injuries.
+- NBA watermark is noticeably smaller (~140px) in loading, error, empty, and loaded states.
+- Header now shows "ALL (123) | Select team ▼" centered, taking the modal width.
+- Default view = ALL. Dropdown lists only teams with injuries, each showing logo + full name + red count.
+- Picking a team switches the body to that team's rows; clicking ALL returns to the full list.
+- Each row shows the OUT badge, then player photo, then name as before.
+- Each row has a large, vivid team logo centered as a watermark; hovering scales it up and brightens it.
+- Off-roster players still show the [Not on roster] suffix and italic name; their watermark uses `team_abbr` as fallback.
 
