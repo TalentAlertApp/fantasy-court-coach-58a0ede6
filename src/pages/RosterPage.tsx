@@ -3,7 +3,7 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useTeam } from "@/contexts/TeamContext";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
-import { saveRoster } from "@/lib/api";
+import { saveRoster, autoPickRoster } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/li
 import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart } from "lucide-react";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
