@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { NBA_TEAMS } from "@/lib/nba-teams";
+import { NBA_TEAMS, getTeamByTricode } from "@/lib/nba-teams";
 import nbaLogo from "@/assets/nba-logo.svg";
 import { cn } from "@/lib/utils";
 
@@ -137,6 +143,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<InjuryPayload | null>(null);
   const [rosterMap, setRosterMap] = useState<Map<string, { id: number; team: string; pos: string | null; fc_bc: string; photo: string | null }>>(new Map());
+  const [view, setView] = useState<"all" | string>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -250,12 +257,12 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
         </DialogHeader>
 
         <div className="relative flex-1 min-h-0 overflow-hidden">
-          {/* NBA logo watermark */}
+          {/* NBA logo watermark (small, all states) */}
           <img
             src={nbaLogo}
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 m-auto w-1/2 max-w-[260px] opacity-[0.04]"
+            className="pointer-events-none absolute inset-0 m-auto w-1/4 max-w-[140px] opacity-[0.035]"
           />
 
           {loading && !payload && (
@@ -278,41 +285,70 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
           )}
 
           {!loading && !error && payload && (
-            <Tabs defaultValue="__all" className="relative h-full flex flex-col">
-              <div className="px-3 pt-3 shrink-0 overflow-x-auto">
-                <TabsList className="inline-flex h-9 w-max gap-1 bg-muted/60">
-                  <TabsTrigger value="__all" className="font-heading text-[10px] uppercase rounded-md px-2 h-7">
+            <div className="relative h-full flex flex-col">
+              {/* ALL | Team dropdown header bar */}
+              <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border/50 bg-background/60 backdrop-blur-sm">
+                <div className="flex items-center justify-center gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setView("all")}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-md font-heading text-[11px] uppercase tracking-wider transition-colors",
+                      view === "all"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                    )}
+                  >
                     All
-                    <Badge variant="destructive" className="ml-1.5 px-1.5 h-4 text-[9px] leading-none rounded-md">
+                    <Badge variant="destructive" className="px-1.5 h-4 text-[9px] leading-none rounded-md">
                       {enriched.length}
                     </Badge>
-                  </TabsTrigger>
-                  {groups.map((g) => (
-                    <TabsTrigger
-                      key={g.tricode}
-                      value={g.tricode}
-                      className="font-heading text-[10px] uppercase rounded-md px-2 h-7"
-                    >
-                      {g.tricode}
-                      <Badge variant="destructive" className="ml-1.5 px-1.5 h-4 text-[9px] leading-none rounded-md">
-                        {g.items.length}
-                      </Badge>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                  </button>
+
+                  <span className="text-border select-none" aria-hidden="true">|</span>
+
+                  <Select
+                    value={view === "all" ? "" : view}
+                    onValueChange={(v) => setView(v)}
+                  >
+                    <SelectTrigger className="h-8 w-[260px] text-xs">
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groups.map((g) => {
+                        const team = getTeamByTricode(g.tricode);
+                        return (
+                          <SelectItem key={g.tricode} value={g.tricode}>
+                            <div className="flex items-center gap-2">
+                              {team?.logo && (
+                                <img src={team.logo} alt="" className="h-5 w-5 object-contain" />
+                              )}
+                              <span className="text-xs">{g.fullName}</span>
+                              <Badge
+                                variant="destructive"
+                                className="ml-auto px-1.5 h-4 text-[9px] leading-none rounded-md"
+                              >
+                                {g.items.length}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-2">
-                <TabsContent value="__all" className="mt-0">
-                  <InjuryList items={enriched} />
-                </TabsContent>
-                {groups.map((g) => (
-                  <TabsContent key={g.tricode} value={g.tricode} className="mt-0">
-                    <InjuryList items={g.items} />
-                  </TabsContent>
-                ))}
+                <InjuryList
+                  items={
+                    view === "all"
+                      ? enriched
+                      : groups.find((g) => g.tricode === view)?.items ?? []
+                  }
+                />
               </div>
-            </Tabs>
+            </div>
           )}
         </div>
       </DialogContent>
@@ -343,21 +379,55 @@ function InjuryList({ items }: { items: EnrichedRecord[] }) {
 function InjuryRow({ rec }: { rec: EnrichedRecord }) {
   const ret = formatReturn(rec.estimated_return);
   const injury = truncate(rec.injury_type || "—", 40);
+  const team = getTeamByTricode(rec.team_tricode);
+  const initials = rec.player_name
+    .split(/\s+/)
+    .map((s) => s[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <li className="flex items-center gap-2 py-2 text-xs">
+    <li className="group relative overflow-hidden flex items-center gap-2 py-2.5 text-xs">
+      {/* Big vivid team-logo watermark, surge on hover */}
+      {team?.logo && (
+        <img
+          src={team.logo}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 m-auto h-12 w-12 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60"
+        />
+      )}
+
       <span
         className={cn(
-          "inline-flex items-center justify-center px-2 h-5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0",
+          "relative z-10 inline-flex items-center justify-center px-2 h-5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0",
           statusClasses(rec.status),
         )}
       >
         {rec.status}
       </span>
 
+      {/* Player photo */}
+      {rec.photo ? (
+        <img
+          src={rec.photo}
+          alt={rec.player_name}
+          className="relative z-10 h-7 w-7 rounded-full object-cover border border-border/60 shrink-0 bg-muted"
+        />
+      ) : (
+        <span
+          className="relative z-10 h-7 w-7 rounded-full border border-border/60 shrink-0 bg-muted text-muted-foreground flex items-center justify-center text-[9px] font-bold opacity-70"
+          aria-hidden="true"
+        >
+          {initials || "—"}
+        </span>
+      )}
+
       <span
         className={cn(
-          "font-heading font-bold whitespace-nowrap",
+          "relative z-10 font-heading font-bold whitespace-nowrap",
           !rec.on_roster && "text-muted-foreground italic",
         )}
       >
@@ -368,20 +438,20 @@ function InjuryRow({ rec }: { rec: EnrichedRecord }) {
       </span>
 
       {rec.on_roster && rec.pos && (
-        <Badge variant="outline" className="h-4 px-1 text-[9px] rounded-md shrink-0">
+        <Badge variant="outline" className="relative z-10 h-4 px-1 text-[9px] rounded-md shrink-0 bg-background/70">
           {rec.pos}
         </Badge>
       )}
 
-      <span className="text-muted-foreground shrink-0">·</span>
-      <span className="text-foreground/80 truncate min-w-0" title={rec.injury_type}>
+      <span className="relative z-10 text-muted-foreground shrink-0">·</span>
+      <span className="relative z-10 text-foreground/80 truncate min-w-0" title={rec.injury_type}>
         {injury}
       </span>
 
-      <span className="text-muted-foreground shrink-0">·</span>
+      <span className="relative z-10 text-muted-foreground shrink-0">·</span>
       <span
         className={cn(
-          "shrink-0 ml-auto font-mono text-[11px]",
+          "relative z-10 shrink-0 ml-auto font-mono text-[11px]",
           ret.isSeasonEnd && "text-destructive font-semibold",
           ret.isTbd && "text-muted-foreground",
         )}
@@ -394,7 +464,7 @@ function InjuryRow({ rec }: { rec: EnrichedRecord }) {
           <TooltipTrigger asChild>
             <button
               type="button"
-              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              className="relative z-10 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Show notes"
             >
               <Info className="h-3.5 w-3.5" />
