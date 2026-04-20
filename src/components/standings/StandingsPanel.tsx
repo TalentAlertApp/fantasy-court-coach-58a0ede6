@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function StandingsPanel({ standings, onTeamClick }: Props) {
-  const [view, setView] = useState<StandingsView>("league");
+  const [view, setView] = useState<StandingsView>("division");
 
   const east = standings.filter((r) => r.conference === "East").sort((a, b) => b.pct - a.pct || b.w - a.w);
   const west = standings.filter((r) => r.conference === "West").sort((a, b) => b.pct - a.pct || b.w - a.w);

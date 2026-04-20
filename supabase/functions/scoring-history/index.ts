@@ -163,10 +163,10 @@ Deno.serve(async (req) => {
       weekMap[gd.gw].total_fp += gd.total_fp;
       for (const p of gd.players) {
         if (!weekMap[gd.gw].best || p.fp > weekMap[gd.gw].best.fp) {
-          weekMap[gd.gw].best = { name: p.name, fp: p.fp, player_id: p.player_id };
+          weekMap[gd.gw].best = { name: p.name, fp: p.fp, player_id: p.player_id, photo: p.photo ?? null };
         }
         if (!weekMap[gd.gw].worst || p.fp < weekMap[gd.gw].worst.fp) {
-          weekMap[gd.gw].worst = { name: p.name, fp: p.fp, player_id: p.player_id };
+          weekMap[gd.gw].worst = { name: p.name, fp: p.fp, player_id: p.player_id, photo: p.photo ?? null };
         }
       }
     }

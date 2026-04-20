@@ -37,8 +37,8 @@ export interface ScoringGameDay {
 export interface ScoringWeek {
   gw: number;
   total_fp: number;
-  best_player: { name: string; fp: number; player_id: number } | null;
-  worst_player: { name: string; fp: number; player_id: number } | null;
+  best_player: { name: string; fp: number; player_id: number; photo?: string | null } | null;
+  worst_player: { name: string; fp: number; player_id: number; photo?: string | null } | null;
   captain_bonus: number;
 }
 

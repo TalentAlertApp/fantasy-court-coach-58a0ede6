@@ -37,12 +37,21 @@ export function usePlayingTimeTrends() {
   return useQuery({
     queryKey: ["playing-time-trends"],
     queryFn: async () => {
-      const today = new Date();
-      const sevenDaysAgo = new Date(today);
+      const allLogs = await fetchAllGameLogs();
+
+      // Anchor the 7-day window to the LATEST game_date in the dataset, not
+      // the wall clock — the dataset can lag behind real-world dates.
+      let latest = "";
+      for (const l of allLogs) {
+        if (l.game_date && l.game_date > latest) latest = l.game_date;
+      }
+      if (!latest) {
+        return { increased: [], decreased: [], updatedAt: new Date().toISOString(), latestDate: null };
+      }
+      const latestDate = new Date(latest);
+      const sevenDaysAgo = new Date(latestDate);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const cutoff = sevenDaysAgo.toISOString().slice(0, 10);
-
-      const allLogs = await fetchAllGameLogs();
 
       // Aggregate season totals and last-7-day totals per player
       const seasonAgg: Record<number, { totalMp: number; gp: number }> = {};
@@ -64,7 +73,7 @@ export function usePlayingTimeTrends() {
       }
 
       const playerIds = Object.keys(recentAgg).map(Number);
-      if (playerIds.length === 0) return { increased: [], decreased: [], updatedAt: new Date().toISOString() };
+      if (playerIds.length === 0) return { increased: [], decreased: [], updatedAt: new Date().toISOString(), latestDate: latest };
 
       // Fetch player info in batches
       const batchSize = 200;
@@ -85,7 +94,7 @@ export function usePlayingTimeTrends() {
       for (const p of players) {
         const recent = recentAgg[p.id];
         const season = seasonAgg[p.id];
-        if (!recent || recent.gp < 1 || !season || season.gp < 2) continue;
+        if (!recent || recent.gp < 1 || !season || season.gp < 3) continue;
 
         const avg7d = recent.totalMp / recent.gp;
         const seasonAvg = season.totalMp / season.gp;
@@ -110,7 +119,7 @@ export function usePlayingTimeTrends() {
       increased.sort((a, b) => b.delta - a.delta);
       decreased.sort((a, b) => a.delta - b.delta);
 
-      return { increased, decreased, updatedAt: new Date().toISOString() };
+      return { increased, decreased, updatedAt: new Date().toISOString(), latestDate: latest };
     },
     staleTime: 300_000,
   });

@@ -368,7 +368,7 @@ export default function ScoringPage() {
                         className="flex items-center gap-1.5 text-green-500 cursor-pointer hover:underline group"
                         onClick={() => setPlayerModalId(w.best_player!.player_id)}
                       >
-                        <PlayerPhoto photo={null} name={w.best_player.name} />
+                        <PlayerPhoto photo={w.best_player.photo ?? null} name={w.best_player.name} />
                         <span>{w.best_player.name}</span>
                         <span className="text-muted-foreground font-mono">({w.best_player.fp})</span>
                       </div>
@@ -380,7 +380,7 @@ export default function ScoringPage() {
                         className="flex items-center gap-1.5 text-destructive cursor-pointer hover:underline group"
                         onClick={() => setPlayerModalId(w.worst_player!.player_id)}
                       >
-                        <PlayerPhoto photo={null} name={w.worst_player.name} />
+                        <PlayerPhoto photo={w.worst_player.photo ?? null} name={w.worst_player.name} />
                         <span>{w.worst_player.name}</span>
                         <span className="text-muted-foreground font-mono">({w.worst_player.fp})</span>
                       </div>
