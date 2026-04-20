@@ -3,6 +3,7 @@
  * Hard rule: every response is Schema.parse(json) before the caller sees it.
  */
 import { z } from "zod";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 import {
   HealthResponseSchema,
   PlayersListResponseSchema,
@@ -29,19 +30,20 @@ import {
   ImportScheduleResponseSchema,
 } from "@/lib/contracts";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-
 export async function apiFetch<T extends z.ZodTypeAny>(
   path: string,
   schema: T,
   init?: RequestInit
 ): Promise<z.infer<T>> {
+  if (!SUPABASE_URL) {
+    throw new Error(`API config missing: SUPABASE_URL is empty (path=${path})`);
+  }
   const url = `${SUPABASE_URL}/functions/v1/${path}`;
   const res = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+      apikey: SUPABASE_PUBLISHABLE_KEY,
       ...(init?.headers ?? {}),
     },
   });
@@ -49,7 +51,19 @@ export async function apiFetch<T extends z.ZodTypeAny>(
     const text = await res.text().catch(() => "");
     throw new Error(`API ${path} returned ${res.status}: ${text}`);
   }
-  const json = await res.json();
+  // Defensive: ensure the body is actually JSON. Some preview proxies can
+  // return HTML on transient errors which would otherwise blow up here.
+  const ct = res.headers.get("content-type") || "";
+  const raw = await res.text();
+  if (!ct.includes("application/json") && !raw.trimStart().startsWith("{") && !raw.trimStart().startsWith("[")) {
+    throw new Error(`API ${path} returned non-JSON response (content-type=${ct})`);
+  }
+  let json: unknown;
+  try {
+    json = JSON.parse(raw);
+  } catch (e: any) {
+    throw new Error(`API ${path} returned invalid JSON: ${e?.message ?? "parse error"}`);
+  }
   // Use safeParse: if schema fails, log and return raw JSON so the app never breaks
   const result = schema.safeParse(json);
   if (!result.success) {

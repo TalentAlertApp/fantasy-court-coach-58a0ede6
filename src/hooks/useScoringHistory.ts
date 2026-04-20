@@ -1,8 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 
 export interface ScoringPlayer {
   player_id: number;
@@ -55,21 +53,30 @@ async function fetchScoringHistory(teamId: string): Promise<ScoringHistoryData> 
     {
       headers: {
         "Content-Type": "application/json",
-        apikey: ANON_KEY,
+        apikey: SUPABASE_PUBLISHABLE_KEY,
       },
     }
   );
-  const json = await res.json();
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`scoring-history ${res.status}: ${text}`);
+  }
+  const ct = res.headers.get("content-type") || "";
+  const raw = await res.text();
+  if (!ct.includes("application/json") && !raw.trimStart().startsWith("{")) {
+    throw new Error(`scoring-history returned non-JSON (content-type=${ct})`);
+  }
+  const json = JSON.parse(raw);
   if (!json.ok) throw new Error(json.error?.message || "Failed to fetch scoring history");
   return json.data;
 }
 
 export function useScoringHistory() {
-  const { selectedTeamId } = useTeam();
+  const { selectedTeamId, isReady } = useTeam();
   return useQuery({
     queryKey: ["scoring-history", selectedTeamId],
     queryFn: () => fetchScoringHistory(selectedTeamId!),
-    enabled: !!selectedTeamId,
+    enabled: isReady && !!selectedTeamId,
     staleTime: 60_000,
   });
 }
