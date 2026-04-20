@@ -348,6 +348,69 @@ Deno.serve(async (req) => {
       aiData.player_id = targetPlayerId;
     }
 
+    // Defense in depth: for suggest-transfers, drop any move that violates HARD CONSTRAINTS.
+    if (action === "suggest-transfers" && Array.isArray(aiData.moves)) {
+      const playerById = new Map<number, any>();
+      for (const p of ctx.players) playerById.set(p.id, p);
+      // Make sure roster players are also lookupable
+      for (const p of rosterPlayerRows) if (!playerById.has(p.id)) playerById.set(p.id, p);
+
+      const violations: string[] = [];
+      const validMoves = aiData.moves.filter((m: any) => {
+        const addP = playerById.get(Number(m?.add));
+        const dropP = playerById.get(Number(m?.drop));
+        if (!addP || !dropP) {
+          violations.push(`Unknown player(s) in move add=${m?.add} drop=${m?.drop}`);
+          return false;
+        }
+        if (!rosterPlayerIds.has(Number(m.drop))) {
+          violations.push(`Drop ${dropP.name} not on roster`);
+          return false;
+        }
+        if (rosterPlayerIds.has(Number(m.add))) {
+          violations.push(`Add ${addP.name} already on roster`);
+          return false;
+        }
+        if (addP.fc_bc !== dropP.fc_bc) {
+          violations.push(`FC/BC mismatch: ADD ${addP.name} (${addP.fc_bc}) vs DROP ${dropP.name} (${dropP.fc_bc})`);
+          return false;
+        }
+        const capAfter =
+          roster_salary_total - Number(dropP.salary ?? 0) + Number(addP.salary ?? 0);
+        if (capAfter > salary_cap + 1e-6) {
+          violations.push(
+            `Cap exceeded: ${addP.name}↔${dropP.name} → $${capAfter.toFixed(1)}M > $${salary_cap}M`
+          );
+          return false;
+        }
+        const addTri = String(addP.team ?? "").toUpperCase();
+        const dropTri = String(dropP.team ?? "").toUpperCase();
+        const addTeamCountAfter =
+          (team_distribution[addTri] ?? 0) - (addTri === dropTri ? 1 : 0) + 1;
+        if (addTeamCountAfter > 2) {
+          violations.push(
+            `Max-2-per-team violated: ${addP.name} (${addTri}) would make ${addTeamCountAfter} on roster`
+          );
+          return false;
+        }
+        // Stamp the verified cap_after for the UI
+        m.cap_after = Number(capAfter.toFixed(2));
+        return true;
+      });
+
+      if (validMoves.length !== aiData.moves.length) {
+        console.warn(`[ai-coach] suggest-transfers dropped ${aiData.moves.length - validMoves.length} invalid move(s):`, violations);
+      }
+      aiData.moves = validMoves;
+      if (validMoves.length === 0) {
+        aiData.notes = Array.isArray(aiData.notes) ? aiData.notes : [];
+        aiData.notes.unshift(
+          `No legal moves found within constraints (cap $${salary_cap}M, max 2 per NBA team, FC↔FC / BC↔BC). Bank remaining: $${bank_remaining.toFixed(1)}M.`
+        );
+        if (violations.length) aiData.notes.push(`Rejected: ${violations.slice(0, 3).join("; ")}`);
+      }
+    }
+
     console.log(`[ai-coach] action=${action} success`);
     return okResponse(aiData);
   } catch (e) {
