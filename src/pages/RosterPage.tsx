@@ -409,6 +409,36 @@ export default function RosterPage() {
           <div className="grid grid-cols-5 gap-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
           <Skeleton className="h-64" />
         </div>
+      ) : isRosterEmpty ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 text-center shadow-lg">
+            <img src={nbaLogo} alt="NBA" className="h-14 w-auto mx-auto mb-4 opacity-90" />
+            <h2 className="font-heading text-xl font-bold uppercase tracking-wider mb-2">
+              No players on {teamName} yet
+            </h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Build a 10-player squad: 5 Frontcourt + 5 Backcourt, $100M salary cap, max 2 per NBA team.
+              Starting 5 needs at least 2 FC and 2 BC.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button
+                onClick={handleAutoPick}
+                disabled={autoPicking}
+                className="rounded-xl font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <Zap className="h-4 w-4 mr-1" />
+                {autoPicking ? "Picking…" : "Auto-Pick Roster"}
+              </Button>
+              <Button
+                onClick={handleAddPlayer}
+                variant="outline"
+                className="rounded-xl font-heading uppercase text-xs"
+              >
+                <Plus className="h-4 w-4 mr-1" />Add Players Manually
+              </Button>
+            </div>
+          </div>
+        </div>
       ) : (
         <>
           {/* ── Toolbar Row ── */}
