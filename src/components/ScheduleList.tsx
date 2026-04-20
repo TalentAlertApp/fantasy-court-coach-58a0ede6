@@ -532,8 +532,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 {meta && <span className="text-xs text-muted-foreground">{meta.conference}</span>}
               </div>
 
-              <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
-
               <div className="grid grid-cols-4 gap-1.5 text-xs">
                 <div>
                   <span className="text-muted-foreground">W-L</span>
@@ -550,6 +548,58 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 <div>
                   <span className="text-muted-foreground">AWAY</span>
                   <p className="font-mono">{team.awayRec}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
+                <div className="bg-card/60 rounded-lg border p-2">
+                  <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
+                  <div className="space-y-1">
+                    {team.last5.map((g, i) => {
+                      const oppLogo = getTeamLogo(g.opp);
+                      const recapHref = g.youtube_recap_id
+                        ? `https://www.youtube.com/watch?v=${g.youtube_recap_id}`
+                        : null;
+                      return (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          <button onClick={() => onGameClick(g)}>
+                            <Badge
+                              variant={g.won ? "default" : "destructive"}
+                              className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                            >
+                              {g.won ? "W" : "L"}
+                            </Badge>
+                          </button>
+                          <span className="text-muted-foreground font-mono w-14">{g.date}</span>
+                          <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
+                            {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
+                            <span className="font-heading font-bold">{g.opp}</span>
+                          </button>
+                          <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
+                          <div className="ml-auto">
+                            {recapHref ? (
+                              <a
+                                href={recapHref}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-green-500 hover:text-green-400 p-0.5 inline-flex"
+                                title="Watch Recap"
+                              >
+                                <Tv2 className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground/30 p-0.5 inline-flex" title="Recap unavailable">
+                                <Tv2 className="h-3 w-3" />
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {team.last5.length === 0 && <span className="text-[10px] text-muted-foreground">No games played</span>}
+                  </div>
                 </div>
               </div>
             </div>
