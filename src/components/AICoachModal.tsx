@@ -15,6 +15,7 @@ import {
   saveRoster, simulateTransactions, commitTransaction,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import InjuryReportModal from "@/components/InjuryReportModal";
 
 interface AICoachModalProps {
   open: boolean;
@@ -43,8 +44,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const [captainLoading, setCaptainLoading] = useState(false);
   const [transfersResult, setTransfersResult] = useState<any>(null);
   const [transfersLoading, setTransfersLoading] = useState(false);
-  const [injuryResult, setInjuryResult] = useState<any>(null);
-  const [injuryLoading, setInjuryLoading] = useState(false);
+  const [injuryModalOpen, setInjuryModalOpen] = useState(false);
   const [explainResult, setExplainResult] = useState<any>(null);
   const [explainLoading, setExplainLoading] = useState(false);
   const [explainSearch, setExplainSearch] = useState("");
