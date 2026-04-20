@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { format, parseISO, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { NBA_TEAMS } from "@/lib/nba-teams";
+import { NBA_TEAMS, getTeamByTricode } from "@/lib/nba-teams";
 import nbaLogo from "@/assets/nba-logo.svg";
 import { cn } from "@/lib/utils";
 
