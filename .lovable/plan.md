@@ -1,61 +1,72 @@
 
+Goal: make data loading deterministic on first preview load so roster, scoring, schedule, and team state do not randomly appear empty until an auto refresh.
 
-## Plan: 4 fixes across AI Coach + Roster info display
+What is actually broken
+- The current preview snapshot shows frontend requests going to `undefined/functions/v1/...` instead of the real Supabase URL.
+- That means some core data loaders are building their endpoint URLs from `import.meta.env.*` values that are not reliably available in this preview runtime.
+- When those requests fail, the UI often falls back to “empty” states instead of showing a loading/error state.
+- `TeamContext` also clears the saved team selection on transient `teams` query failure, which makes the app look even more broken after one bad bootstrap.
 
-### 1. AI Coach Explain — autocomplete dropdown still empty (server cap)
-**Root cause (new):** `supabase/functions/players-list/index.ts` line 46 hard-caps the request limit at 500:
-```ts
-const limit = Math.min(Number(url.searchParams.get("limit")) || 200, 500);
-```
-So even though the modal already asks for `limit: 1000`, the server only returns the top 500 by salary. Paul George (and any player outside the top-500 salary bucket) is silently dropped, which is why typing "Paul Ge" produces zero suggestions.
+Implementation plan
 
-**Fix:**
-- Raise the server cap in `players-list` from 500 → 2000 (covers the full 592-player roster with headroom).
-- Keep the client request at `limit: 1000`.
-- Add a tiny defensive guard in `AICoachModal`: when the user types, also reset `selectedExplainPlayer` and force `setShowDropdown(true)` so the dropdown re-opens after a previous selection.
+1. Replace runtime-fragile env access with a single stable Supabase config source
+- Stop reading `import.meta.env.VITE_SUPABASE_URL` and `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY` directly inside client fetchers.
+- Reuse the already-stable frontend Supabase config from `src/integrations/supabase/client.ts`, or move those constants into a small shared config module and import from there.
+- Update:
+  - `src/lib/api.ts`
+  - `src/hooks/useScoringHistory.ts`
+- This removes the root cause behind requests like `undefined/functions/v1/teams`.
 
-### 2. Richer autocomplete cards — team logo + FP5 + recent-explained chips
-In `src/components/AICoachModal.tsx`, autocomplete row redesign:
-- Add a small **team logo (w-5 h-5)** next to the team full name (next to the existing watermark, not replacing it).
-- Add the player's **FP5** value as a right-aligned mono badge on each row (`{p.last5.fp5.toFixed(1)} FP5`).
-- Keep photo, name, FC/BC badge, and team watermark from the current row.
+2. Harden edge-function fetching so bad responses cannot masquerade as “no data”
+- In `apiFetch`, validate that the response is actually JSON before parsing.
+- If the response is HTML or otherwise invalid, throw a clear error instead of letting downstream pages behave as if the API returned an empty payload.
+- Keep Zod validation, but make transport/runtime failures explicit and early.
 
-**"Recent 5" Explained players:**
-- Persist the last 5 successfully-explained players in `localStorage` under `nbaf:ai-explain-recent` (array of `{ id, name, team, photo, fc_bc }`, max 5, most-recent first, deduped).
-- When the Explain tab opens with no search text and no result, render a **"Recent" strip** of up to 5 small chips (photo + last name) above the search input. Clicking a chip selects that player and immediately runs `handleExplain`.
-- Update on each successful explain (push to front, dedupe, slice 5).
+3. Make team bootstrap deterministic instead of optimistic
+- Refactor `TeamContext` to expose a real readiness signal such as `isReady` / `hasResolvedSelection`, separate from the raw `teams` query loading state.
+- Only resolve `selectedTeamId` after the teams fetch has succeeded.
+- Preserve the last known `selectedTeamId` during transient `teams` errors instead of immediately wiping localStorage.
+- Keep the one-time auto-correction to a populated team, but only run it after successful team initialization.
 
-### 3. Roster Sidebar — Bank Remaining color states
-In `src/components/RosterSidebar.tsx`, replace the plain `InfoRow` for Bank Remaining with a colored value:
-- `bank > 0` → bold **green** (`text-green-500 font-bold`)
-- `bank === 0` → bold **yellow** (`text-[hsl(var(--nba-yellow))] font-bold`)
-- `bank < 0` → bold **red** (`text-destructive font-bold`) **plus** a small inline warning line below: "Over budget — adjust roster to bring bank to 0 or higher" (only shown when negative).
-- Keep the existing wallet icon and label; only the value (and the warning line) change.
+4. Gate team-scoped queries on team readiness
+- Update team-dependent hooks so they do not enter a fake idle/empty state while the active team is still being resolved.
+- Specifically update:
+  - `src/hooks/useRosterQuery.ts`
+  - `src/hooks/useScoringHistory.ts`
+- Use `enabled: isTeamReady && !!selectedTeamId` rather than only `!!selectedTeamId`.
 
-### 4. Roster cards — Salary/Value styling & font alignment with /transactions
-Reference style (from `src/components/PlayerRow.tsx` line 64-66) used on `/transactions`:
-```tsx
-<TableCell className="text-right font-mono text-sm">${core.salary}</TableCell>
-```
-Plain `font-mono text-sm`, neutral foreground color, **no** drop-shadow, **no** dark blue.
+5. Replace misleading empty states with loading/error states
+- `src/pages/RosterPage.tsx`
+  - Show a bootstrap/loading state while team selection is unresolved.
+  - Show a retry/error card if data transport fails.
+  - Only show “No players on {team} yet” when the roster query succeeded for a valid selected team and truly returned zero players.
+- `src/pages/ScoringPage.tsx`
+  - Distinguish between “no scoring history exists” and “scoring request failed / team not ready”.
+- `src/pages/SchedulePage.tsx`
+  - Render a proper error state with retry when schedule fetching fails instead of defaulting to `games={[]}` and showing “No games scheduled”.
 
-In `src/components/PlayerCard.tsx`:
+6. Tighten refetch behavior to avoid startup churn
+- Review `refetchOnMount: "always"` on the teams query and keep it only if it is still needed after the bootstrap cleanup.
+- Preserve last successful data during transient refetches where possible, so users do not see the whole app collapse to empty while background refresh happens.
 
-**Court variant (lines 213-225):** Wrap Salary and Value in their own light pill containers (matching the FC/BC badge shape — `rounded-md bg-card/80 border border-border/40 px-1.5 py-0 h-4`), and replace the current text styling with `font-mono text-xs text-foreground` so it matches `/transactions`. Drop the `text-[#1e3a5f]` blue and the `drop-shadow-[...]` glow.
+Why this fixes it for good
+- The primary failure is not your Supabase data and not a database-side change; it is unstable frontend endpoint construction during preview bootstrap.
+- Once all edge-function calls stop depending on missing preview env vars, the app will consistently hit the same Supabase every time.
+- Once the UI stops treating failed requests as legitimate empty data, transient network issues will show as recoverable errors instead of fake “no roster / no games / no scoring” states.
 
-**Bench variant (lines 116-122):** Same treatment — wrap `${core.salary}` and `{v5}` in matching light pills with `font-mono` neutral text instead of muted-foreground inline text. Keep the size compact (`text-[10px]`).
+Files to update
+- `src/integrations/supabase/client.ts` or new shared config module
+- `src/lib/api.ts`
+- `src/hooks/useScoringHistory.ts`
+- `src/contexts/TeamContext.tsx`
+- `src/hooks/useRosterQuery.ts`
+- `src/pages/RosterPage.tsx`
+- `src/pages/ScoringPage.tsx`
+- `src/pages/SchedulePage.tsx`
 
-This affects every PlayerCard rendered across the roster screen (Starting 5 court + Bench), so Salary/Value visually align with the `/transactions` table while keeping FC/BC pill geometry consistent.
-
-### Files touched
-- `supabase/functions/players-list/index.ts` — raise server-side `limit` cap from 500 → 2000.
-- `src/components/AICoachModal.tsx` — autocomplete reset/show fix; team logo + FP5 in rows; Recent 5 chips with localStorage persistence.
-- `src/components/RosterSidebar.tsx` — color-coded Bank Remaining + over-budget warning.
-- `src/components/PlayerCard.tsx` — light pill containers and `font-mono` for Salary / Value in court & bench variants.
-
-### Verification
-- AI Coach → Explain: typing "Pa" or "Paul Ge" lists Paul George (and other Pauls) with team logos and FP5 visible.
-- Selecting a player and pressing Explain succeeds, then the player appears in the "Recent" strip on next open.
-- Roster Info: Bank shows green when positive, yellow when 0, red with warning when negative.
-- My Roster: Salary and Value on every player card sit inside light pills and visually match the font/weight used in the `/transactions` table.
-
+Verification after implementation
+- Fresh preview load does not make any request to `undefined/functions/v1/*`.
+- Hard reload shows teams, roster, scoring, and schedule immediately without waiting for an auto refresh.
+- Temporary API failures show an explicit retry/error state, not a fake empty-state CTA.
+- The saved selected team remains stable across transient failures.
+- `/schedule` no longer says “No games scheduled” when the day actually has games.
