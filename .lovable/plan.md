@@ -1,56 +1,50 @@
 
 
-## Plan: 6 fixes across header, roster, advanced, standings, scoring, AI search
+## Plan: Fix AI Coach Explain — autocomplete + wrong-player response
 
-### 1. Visible team indicator + quick switcher in page header
-- Create a small `HeaderTeamPill` component that shows the active team name and renders an inline dropdown to switch teams (reusing `useTeam()`). It will also include a "Manage" affordance that opens the existing rename/delete dialogs.
-- Mount it inside `AppLayout` at the top-right of the main content area (sticky strip above `<Outlet />`) so it appears on every page, not only the sidebar.
-- Keep the existing sidebar `TeamSwitcher` for full CRUD, but the header pill becomes the always-visible source of truth.
+Two real bugs are at play. The dropdown bug from the previous round was **never actually applied** to the file, and there's a second backend bug that also needs to be fixed for "Explain" to return the right player.
 
-### 2. Clear empty-state on Roster page with auto-pick CTA
-- In `src/pages/RosterPage.tsx`, after roster + players load, detect when the selected team has zero rostered player ids (`rosterPlayerIds.length === 0`).
-- Render a centered empty-state card: NBA logo, headline ("No players on {teamName} yet"), subline explaining the 10-player / $100M / 5FC-5BC rules, and two CTAs:
-  - **Auto-Pick Roster** — calls the existing `roster-auto-pick` edge function for the selected team, then invalidates `roster-current`.
-  - **Add Players Manually** — opens the existing `PlayerPickerDialog`.
-- Hide the toolbar / chips / court while in this state to remove the "broken" look.
+### Bug 1 — Autocomplete never appears (frontend, not previously applied)
 
-### 3. Fix `/advanced` (Playing Time Trends showing nothing)
-- Root cause: `usePlayingTimeTrends` builds the 7-day window from `new Date()` (today = 2026-04-20), but the latest `player_game_logs.game_date` is 2026-04-10. The cutoff (2026-04-13) excludes every real game, so both tables end up empty.
-- Fix: compute the cutoff from the **latest game_date in the dataset** (rolling 7-day window ending on the last played day), not from the wall clock. Fall back to "today" only if no logs exist.
-- Also raise the "min season GP" filter slightly (≥3 instead of ≥2) so the lists don't fill with one-off appearances now that the window is correct.
-- Update header label from "Last 7 Days" to "Last 7 Game Days (through {latestDate})" so the timeframe is unambiguous.
+In `src/components/AICoachModal.tsx` the code today still says:
+- `usePlayersQuery({ limit: 500 })` (should be 1000)
+- `if (explainSearch.length < 3 || selectedExplainPlayer) return [];` (should be 1)
 
-### 4. Standings opens on DIVISION by default
-- In `src/components/standings/StandingsPanel.tsx`, change `useState<StandingsView>("league")` → `useState<StandingsView>("division")`.
+So typing "Paul" (4 chars) sometimes shows nothing because Paul George can sit outside the top‑500 fetch, and typing "Pa" (2 chars) shows nothing at all.
 
-### 5. Scoring "Weekly Breakdown" — show real player photo
-- In `src/hooks/useScoringHistory.ts`, extend `ScoringWeek.best_player` / `worst_player` types to include `photo: string | null`.
-- In `supabase/functions/scoring-history/index.ts`, when building `weekMap` best/worst objects (lines 165-170), include `photo: p.photo` (already available on each `players[]` row).
-- In `src/pages/ScoringPage.tsx`, replace `<PlayerPhoto photo={null} ... />` with `<PlayerPhoto photo={w.best_player.photo} ... />` and the same for worst.
+Fix:
+- Bump `usePlayersQuery({ limit: 500 })` → `usePlayersQuery({ limit: 1000 })`.
+- Lower the trigger from `< 3` to `< 1` so suggestions appear from the first character.
+- Keep the existing diacritics-insensitive name + tricode + full team name match.
+- Keep the existing Enter / button auto-pick of the top match.
 
-### 6. AI Coach "Explain" — fix autocomplete on `/`
-- In `src/components/AICoachModal.tsx`:
-  - Lower the autocomplete trigger from 3 chars to **1 char** so suggestions appear as the user types.
-  - Increase `usePlayersQuery({ limit: 500 })` to `limit: 1000` so all 592 players are searchable.
-  - Keep the diacritics-insensitive match (already correct via `normalize()`), and continue matching against name + tricode + full team name.
-  - Allow pressing Enter to auto-select the top match if none is chosen yet, so the current "select from dropdown first" error stops blocking the user.
+### Bug 2 — Explain returns the wrong player (backend)
+
+In `supabase/functions/ai-coach/index.ts`:
+- `fetchContext` pulls only the top 200 players by `fp_pg5`.
+- `buildPlayerSummary` then trims that to **the top 100** before sending to OpenAI.
+- The `explain-player` developer message contains the `player_id` the user picked, but if that player isn't in the 100‑row summary, the model has no data row for them and hallucinates a description of someone else (the Kevin Durant output in the screenshot is exactly this failure — Paul George wasn't in the context window).
+
+Fix in `ai-coach/index.ts`:
+- For the `explain-player` action specifically, **always include the requested player** in the player summary sent to the model:
+  - Read `params.player_id` from the request body.
+  - If that id isn't already in the top‑100 slice, fetch that single player row from `players` and prepend it to the summary.
+  - Also pass an explicit `target_player_id` field in the developer message so the model knows exactly which row to describe.
+- Add a guard in the developer instructions for `explain-player`: "Describe ONLY the player whose `id` matches `target_player_id`. Do not substitute another player."
+- As a small defense in depth, after parsing the model's JSON response for `explain-player`, if the model returned `player_id` and it doesn't match the requested id, return an `AI_PLAYER_MISMATCH` error so the UI shows a clear failure instead of a wrong-player answer.
+
+### Bug 3 (small) — UX guardrail in the modal
+
+In `AICoachModal.tsx`, after `handleExplain` resolves, also surface the resolved player's name in the result header (e.g. "Explanation for Paul George") so any future mismatch is immediately visible to the user.
 
 ### Files touched
-- `src/components/layout/AppLayout.tsx` — mount header pill
-- `src/components/layout/HeaderTeamPill.tsx` — new component
-- `src/pages/RosterPage.tsx` — empty-state + auto-pick CTA
-- `src/hooks/usePlayingTimeTrends.ts` — rolling window from latest game_date
-- `src/components/standings/StandingsPanel.tsx` — default tab "division"
-- `src/hooks/useScoringHistory.ts` — type adds `photo`
-- `supabase/functions/scoring-history/index.ts` — emit `photo` on best/worst
-- `src/pages/ScoringPage.tsx` — render the photo
-- `src/components/AICoachModal.tsx` — 1-char trigger, 1000-player fetch, Enter-to-pick
+- `src/components/AICoachModal.tsx` — apply the previously-missed limit/length changes; show the resolved player name above the explanation.
+- `supabase/functions/ai-coach/index.ts` — for `explain-player`, ensure the targeted player is in the model context, add a guard line in the developer prompt, and validate the returned `player_id` matches the requested id.
 
 ### Verification after implementation
-- Header pill visible on every route; switching teams updates roster/scoring immediately.
-- An empty team shows the new empty-state with a working "Auto-Pick Roster" button.
-- `/advanced` lists increased/decreased players based on real recent game data.
-- Visiting `/teams` lands on the **Division** tab.
-- Scoring → Weekly Breakdown best/worst rows show actual player photos.
-- AI Coach → Explain shows live suggestions starting at 1 character, including for players outside the original 500-row window (e.g. "Queta").
+- Typing "P" in Explain shows a dropdown immediately.
+- Typing "Paul" lists Paul George (and any other Paul) with team logos.
+- Selecting Paul George and clicking Explain returns an explanation about **Paul George** (not Kevin Durant), with his name shown above the breakdown.
+- Same check works for a clearly low-ranked player (e.g. "Queta") to confirm the top‑100 truncation no longer blocks Explain.
+- Other tabs (Analyze / Captain / Transfers / Injuries) still work unchanged.
 
