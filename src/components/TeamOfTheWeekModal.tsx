@@ -35,7 +35,7 @@ function getFormation(players: TOTWPlayer[]) {
   const fcs = players.filter((p) => p.fc_bc === "FC");
   const bcs = players.filter((p) => p.fc_bc === "BC");
 
-  const fcPositions = getRowPositions(fcs.length, "30%");
+  const fcPositions = getRowPositions(fcs.length, "28%");
   const bcPositions = getRowPositions(bcs.length, "72%");
 
   const positioned: { player: TOTWPlayer; style: { top: string; left: string } }[] = [];
@@ -58,46 +58,60 @@ function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void
 
   return (
     <div
-      className="bg-card/95 backdrop-blur-sm border-t-2 rounded-lg overflow-hidden cursor-pointer hover:ring-1 hover:ring-accent transition-all relative group"
-      style={{ borderColor: isFc ? "hsl(var(--destructive))" : "hsl(var(--primary))" }}
       onClick={onClick}
+      className="cursor-pointer group relative flex flex-col items-center"
+      style={{ minWidth: 0 }}
     >
       {/* Wishlist toggle */}
       <button
         onClick={(e) => { e.stopPropagation(); toggleWishlist(player.id); }}
-        className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity z-20 bg-black/60 rounded-full p-1.5 hover:bg-black/80"
+        aria-label="Toggle wishlist"
       >
-        <Heart className={`h-3 w-3 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground hover:text-destructive"}`} />
+        <Heart className={`h-3.5 w-3.5 ${wishlisted ? "fill-destructive text-destructive" : "text-white"}`} />
       </button>
 
-      <div className="flex items-center justify-between px-1.5 pt-1">
-        {teamLogo && <img src={teamLogo} alt={player.team} className="w-4 h-4" />}
-        <span className="text-[8px] font-heading font-bold text-muted-foreground">{player.team}</span>
-      </div>
-      <div className="flex justify-center py-0.5">
+      {/* Team logo watermark behind player */}
+      {teamLogo && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-15">
+          <img src={teamLogo} alt="" className="w-28 h-28" />
+        </div>
+      )}
+
+      {/* Photo — large, cinematic */}
+      <div className="relative z-10">
         {player.photo ? (
           <img
             src={player.photo}
             alt={player.name}
-            className="w-16 h-16 rounded-full object-cover bg-muted transition-transform duration-200 hover:scale-110"
+            className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover bg-black/20 shadow-2xl transition-transform duration-300 group-hover:scale-110"
           />
         ) : (
-          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-xs font-heading font-bold text-muted-foreground">
+          <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-black/40 flex items-center justify-center text-2xl font-heading font-bold text-white/80">
             {player.name.substring(0, 2).toUpperCase()}
           </div>
         )}
       </div>
-      <p className="text-sm font-heading font-bold text-center truncate px-0.5 leading-tight">
+
+      {/* Name */}
+      <p className="text-sm md:text-base font-heading font-bold text-center text-white drop-shadow-lg leading-tight mt-1.5 truncate max-w-full z-10">
         {formatShortName(player.name)}
       </p>
-      <div className="flex items-center justify-center gap-1 py-0.5">
-        <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded-md h-4">
+
+      {/* FC/BC badge + salary pill */}
+      <div className="flex items-center justify-center gap-1.5 mt-1 z-10">
+        <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded h-4 shadow-md">
           {player.fc_bc}
         </Badge>
+        <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-4 inline-flex items-center text-xs font-mono text-foreground">
+          ${player.salary}
+        </span>
       </div>
-      <div className="border-t border-border/50 px-1 py-1 text-center">
-        <span className="text-xs font-heading font-bold text-emerald-400">{player.fp_avg} FP</span>
-        <span className="text-[9px] text-muted-foreground ml-1">({player.gp}G)</span>
+
+      {/* GW FP — preserve TOTW info */}
+      <div className="mt-1 z-10 text-center">
+        <span className="text-xs font-heading font-bold text-emerald-400 drop-shadow-md">{player.fp_avg} FP</span>
+        <span className="text-[9px] text-white/70 ml-1">({player.gp}G)</span>
       </div>
     </div>
   );
