@@ -9,6 +9,8 @@ interface TeamContextValue {
   setSelectedTeamId: (id: string) => void;
   defaultTeamId: string | null;
   isLoading: boolean;
+  isReady: boolean;
+  isError: boolean;
 }
 
 const TeamContext = createContext<TeamContextValue>({
@@ -17,19 +19,23 @@ const TeamContext = createContext<TeamContextValue>({
   setSelectedTeamId: () => {},
   defaultTeamId: null,
   isLoading: true,
+  isReady: false,
+  isError: false,
 });
 
 const LS_KEY = "nba_selected_team_id";
 
 export function TeamProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, isSuccess } = useQuery({
     queryKey: ["teams"],
     queryFn: fetchTeams,
     staleTime: 60_000,
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
-    refetchOnMount: "always",
+    // Avoid refetching on every mount; cached successful data is preserved
+    // across navigations and team-scoped queries don't collapse to empty
+    // while a background refresh runs.
   });
 
   const teams = data?.items ?? [];
@@ -90,14 +96,19 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     })();
   }, [teams, selectedTeamId, defaultTeamId, isLoading, autoCorrected]);
 
-  // If teams query fails, clear stale localStorage to prevent stuck state
+  // If teams query fails, KEEP the saved selection so a transient network
+  // hiccup doesn't visually wipe the entire app. The next successful fetch
+  // will reconcile through the auto-correct effect above.
   useEffect(() => {
     if (isError) {
-      console.warn("[TeamContext] Teams query failed, clearing stale selection");
-      localStorage.removeItem(LS_KEY);
-      setSelectedTeamIdRaw(null);
+      console.warn("[TeamContext] Teams query failed; preserving saved selection until next refresh");
     }
   }, [isError]);
+
+  // Readiness: true once teams have successfully loaded AND the selected team
+  // (if any) has been resolved/auto-corrected. Team-scoped queries should
+  // gate on this so they never fire with a stale or missing team id.
+  const isReady = isSuccess && (autoCorrected || (!!selectedTeamId && teams.some((t: any) => t.id === selectedTeamId)));
 
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
@@ -108,7 +119,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   return (
-    <TeamContext.Provider value={{ teams, selectedTeamId, setSelectedTeamId, defaultTeamId, isLoading }}>
+    <TeamContext.Provider value={{ teams, selectedTeamId, setSelectedTeamId, defaultTeamId, isLoading, isReady, isError }}>
       {children}
     </TeamContext.Provider>
   );
