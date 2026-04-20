@@ -500,7 +500,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   onGameClick: (game: Last5Game) => void;
   onTeamClick: (tricode: string) => void;
 }) {
-  const { data, isLoading } = useTeamFormData([awayTeam, homeTeam], true);
+  const { data, isLoading } = useAllTeamsForm(true);
 
   const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam) : [], [data, awayTeam]);
   const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam) : [], [data, homeTeam]);
@@ -550,39 +550,6 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                 <div>
                   <span className="text-muted-foreground">AWAY</span>
                   <p className="font-mono">{team.awayRec}</p>
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
-                <div className="space-y-1">
-                  {team.last5.map((g, i) => {
-                    const oppLogo = getTeamLogo(g.opp);
-                    return (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <button onClick={() => onGameClick(g)}>
-                          <Badge
-                            variant={g.won ? "default" : "destructive"}
-                            className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
-                          >
-                            {g.won ? "W" : "L"}
-                          </Badge>
-                        </button>
-                        <span className="text-muted-foreground font-mono w-14">{g.date}</span>
-                        <button className="flex items-center gap-0.5 hover:underline" onClick={() => onTeamClick(g.opp)}>
-                          {oppLogo && <img src={oppLogo} alt={g.opp} className="w-3.5 h-3.5" />}
-                          <span className="font-heading font-bold">{g.opp}</span>
-                        </button>
-                        <span className="text-muted-foreground text-[9px]">{g.venue === "H" ? "Home" : "Away"}</span>
-                        <div className="flex items-center gap-0 ml-auto">
-                          {g.game_boxscore_url && <a href={g.game_boxscore_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Box Score"><Table2 className="h-3 w-3" /></a>}
-                          {g.game_charts_url && <a href={g.game_charts_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Charts"><BarChart3 className="h-3 w-3" /></a>}
-                          {g.game_playbyplay_url && <a href={g.game_playbyplay_url} target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary p-0.5" title="Play-by-Play"><Mic className="h-3 w-3" /></a>}
-                          <span className={`p-0.5 ${g.youtube_recap_id ? "text-green-500" : "text-muted-foreground/30"}`} title="Recap"><Tv2 className="h-3 w-3" /></span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {team.last5.length === 0 && <span className="text-[10px] text-muted-foreground">No games played</span>}
                 </div>
               </div>
             </div>
