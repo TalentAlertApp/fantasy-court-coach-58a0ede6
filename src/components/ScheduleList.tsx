@@ -691,14 +691,6 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                         {formatTipoff(g.tipoff_utc)}
                       </span>
                     )}
-                    {venue?.name && (
-                      <span
-                        className="mt-0.5 text-[10px] italic text-muted-foreground/80 truncate max-w-[140px]"
-                        title={venue.name}
-                      >
-                        {venue.name}
-                      </span>
-                    )}
                   </div>
 
                   <div className="flex items-center gap-2 min-w-[100px]">
@@ -718,6 +710,14 @@ export default function ScheduleList({ games }: ScheduleListProps) {
 
                 {/* Right: action icons */}
                 <div className="relative z-10 flex items-center gap-1.5">
+                  {venue?.name && (
+                    <span
+                      className="hidden sm:inline-block text-[10px] italic text-muted-foreground/80 truncate max-w-[140px] mr-1"
+                      title={venue.name}
+                    >
+                      {venue.name}
+                    </span>
+                  )}
                   {isFinal && (
                     <span
                       onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
