@@ -344,6 +344,24 @@ export default function RosterPage() {
 
   const isLoading = rosterLoading || playersLoading;
 
+  const isRosterEmpty = !isLoading && rosterPlayerIds.length === 0;
+  const [autoPicking, setAutoPicking] = useState(false);
+  const handleAutoPick = async () => {
+    setAutoPicking(true);
+    try {
+      await autoPickRoster(
+        { gw: currentGameday.gw, day: currentGameday.day, strategy: "value5" },
+        selectedTeamId ?? undefined
+      );
+      await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+      toast({ title: "Roster auto-picked!" });
+    } catch (e: any) {
+      toast({ title: "Auto-pick failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAutoPicking(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* ── Full-width Header Banner ── */}
