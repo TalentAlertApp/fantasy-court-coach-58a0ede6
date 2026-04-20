@@ -206,6 +206,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
