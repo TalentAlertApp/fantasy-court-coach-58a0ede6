@@ -198,8 +198,9 @@ export default function SchedulePage() {
 
         {/* Date header + Deadline + Buttons */}
         <div className="px-1 py-3 bg-background">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex items-center flex-wrap gap-y-2">
+            {/* LEFT: date / deadline / grid */}
+            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
               <h3 className="font-heading font-bold text-sm uppercase">{selectedDateLabel}</h3>
               <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-xl">Day {day}</span>
               {isToday && <Badge variant="destructive" className="text-[9px] rounded-xl px-1.5 py-0">TODAY</Badge>}
@@ -221,7 +222,40 @@ export default function SchedulePage() {
                 <Grid3X3 className="h-4 w-4" />
               </button>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
+
+            {/* CENTER: TOTW | POTD (absolute on md+, inline on mobile) */}
+            <div className="order-3 md:order-2 w-full md:w-auto flex md:absolute md:left-1/2 md:-translate-x-1/2 items-center justify-center gap-2">
+              <button
+                onClick={() => hasTotwData && setTotwOpen(true)}
+                disabled={!hasTotwData}
+                className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
+                  hasTotwData
+                    ? "border-[hsl(var(--nba-yellow))]/40 text-foreground hover:bg-[hsl(var(--nba-yellow))]/10 hover:border-[hsl(var(--nba-yellow))]"
+                    : "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
+                }`}
+              >
+                <Medal className="h-4 w-4" />
+                Team of the Week
+              </button>
+              <span className="text-muted-foreground/40">|</span>
+              <button
+                onClick={() => hasPotdData && setPotdOpen(!potdOpen)}
+                disabled={!hasPotdData}
+                className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
+                  hasPotdData
+                    ? potdOpen
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary"
+                    : "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
+                }`}
+              >
+                <Star className="h-4 w-4" />
+                Players of the Day
+              </button>
+            </div>
+
+            {/* RIGHT: Last Played + Today */}
+            <div className="order-2 md:order-3 flex items-center gap-1.5 shrink-0 flex-1 justify-end">
               {lastPlayed && (
                 <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20 rounded-xl min-w-[120px] justify-center"
                   disabled={gw === lastPlayed.gw && day === lastPlayed.day}
@@ -235,37 +269,6 @@ export default function SchedulePage() {
                 <CalendarDays className="h-3 w-3" />Today
               </Button>
             </div>
-          </div>
-
-          {/* TOTW + POTD buttons row */}
-          <div className="flex items-center gap-2 mt-2">
-            <button
-              onClick={() => hasTotwData && setTotwOpen(true)}
-              disabled={!hasTotwData}
-              className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
-                hasTotwData
-                  ? "border-[hsl(var(--nba-yellow))]/40 text-foreground hover:bg-[hsl(var(--nba-yellow))]/10 hover:border-[hsl(var(--nba-yellow))]"
-                  : "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
-              }`}
-            >
-              <Medal className="h-4 w-4" />
-              Team of the Week
-            </button>
-            <span className="text-muted-foreground/40">|</span>
-            <button
-              onClick={() => hasPotdData && setPotdOpen(!potdOpen)}
-              disabled={!hasPotdData}
-              className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
-                hasPotdData
-                  ? potdOpen
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary"
-                  : "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
-              }`}
-            >
-              <Star className="h-4 w-4" />
-              Players of the Day
-            </button>
           </div>
         </div>
 

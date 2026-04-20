@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
+import { getVenue } from "@/lib/nba-venues";
 
 /* ---------- Recap Video Embed ---------- */
 function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
