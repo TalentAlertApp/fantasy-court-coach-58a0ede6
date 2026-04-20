@@ -257,12 +257,12 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
         </DialogHeader>
 
         <div className="relative flex-1 min-h-0 overflow-hidden">
-          {/* NBA logo watermark */}
+          {/* NBA logo watermark (small, all states) */}
           <img
             src={nbaLogo}
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 m-auto w-1/2 max-w-[260px] opacity-[0.04]"
+            className="pointer-events-none absolute inset-0 m-auto w-1/4 max-w-[140px] opacity-[0.035]"
           />
 
           {loading && !payload && (
@@ -285,41 +285,70 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
           )}
 
           {!loading && !error && payload && (
-            <Tabs defaultValue="__all" className="relative h-full flex flex-col">
-              <div className="px-3 pt-3 shrink-0 overflow-x-auto">
-                <TabsList className="inline-flex h-9 w-max gap-1 bg-muted/60">
-                  <TabsTrigger value="__all" className="font-heading text-[10px] uppercase rounded-md px-2 h-7">
+            <div className="relative h-full flex flex-col">
+              {/* ALL | Team dropdown header bar */}
+              <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border/50 bg-background/60 backdrop-blur-sm">
+                <div className="flex items-center justify-center gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setView("all")}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 h-8 px-3 rounded-md font-heading text-[11px] uppercase tracking-wider transition-colors",
+                      view === "all"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                    )}
+                  >
                     All
-                    <Badge variant="destructive" className="ml-1.5 px-1.5 h-4 text-[9px] leading-none rounded-md">
+                    <Badge variant="destructive" className="px-1.5 h-4 text-[9px] leading-none rounded-md">
                       {enriched.length}
                     </Badge>
-                  </TabsTrigger>
-                  {groups.map((g) => (
-                    <TabsTrigger
-                      key={g.tricode}
-                      value={g.tricode}
-                      className="font-heading text-[10px] uppercase rounded-md px-2 h-7"
-                    >
-                      {g.tricode}
-                      <Badge variant="destructive" className="ml-1.5 px-1.5 h-4 text-[9px] leading-none rounded-md">
-                        {g.items.length}
-                      </Badge>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                  </button>
+
+                  <span className="text-border select-none" aria-hidden="true">|</span>
+
+                  <Select
+                    value={view === "all" ? "" : view}
+                    onValueChange={(v) => setView(v)}
+                  >
+                    <SelectTrigger className="h-8 w-[260px] text-xs">
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groups.map((g) => {
+                        const team = getTeamByTricode(g.tricode);
+                        return (
+                          <SelectItem key={g.tricode} value={g.tricode}>
+                            <div className="flex items-center gap-2">
+                              {team?.logo && (
+                                <img src={team.logo} alt="" className="h-5 w-5 object-contain" />
+                              )}
+                              <span className="text-xs">{g.fullName}</span>
+                              <Badge
+                                variant="destructive"
+                                className="ml-auto px-1.5 h-4 text-[9px] leading-none rounded-md"
+                              >
+                                {g.items.length}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex-1 min-h-0 overflow-y-auto px-3 pb-4 pt-2">
-                <TabsContent value="__all" className="mt-0">
-                  <InjuryList items={enriched} />
-                </TabsContent>
-                {groups.map((g) => (
-                  <TabsContent key={g.tricode} value={g.tricode} className="mt-0">
-                    <InjuryList items={g.items} />
-                  </TabsContent>
-                ))}
+                <InjuryList
+                  items={
+                    view === "all"
+                      ? enriched
+                      : groups.find((g) => g.tricode === view)?.items ?? []
+                  }
+                />
               </div>
-            </Tabs>
+            </div>
           )}
         </div>
       </DialogContent>
