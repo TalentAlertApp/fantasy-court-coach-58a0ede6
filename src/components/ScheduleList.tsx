@@ -635,6 +635,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
         const isExpandable = isFinal || isScheduled;
         const isExpanded = expandedId === g.game_id;
         const hasYoutubeRecap = !!g.youtube_recap_id;
+        const venue = getVenue(g.home_team);
 
         return (
           <Collapsible
@@ -644,12 +645,23 @@ export default function ScheduleList({ games }: ScheduleListProps) {
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-3 ${
+                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-3 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
+                {venue?.image && (
+                  <img
+                    src={venue.image}
+                    alt=""
+                    aria-hidden
+                    loading="lazy"
+                    className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.07] dark:opacity-[0.12]"
+                  />
+                )}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/60 to-card" />
+
                 {/* Teams */}
-                <div className="flex items-center gap-3 flex-1">
+                <div className="relative z-10 flex items-center gap-3 flex-1">
                   <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
@@ -679,6 +691,14 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                         {formatTipoff(g.tipoff_utc)}
                       </span>
                     )}
+                    {venue?.name && (
+                      <span
+                        className="mt-0.5 text-[10px] italic text-muted-foreground/80 truncate max-w-[140px]"
+                        title={venue.name}
+                      >
+                        {venue.name}
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 min-w-[100px]">
@@ -697,7 +717,7 @@ export default function ScheduleList({ games }: ScheduleListProps) {
                 </div>
 
                 {/* Right: action icons */}
-                <div className="flex items-center gap-1.5">
+                <div className="relative z-10 flex items-center gap-1.5">
                   {isFinal && (
                     <span
                       onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
