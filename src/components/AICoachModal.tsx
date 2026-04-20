@@ -15,6 +15,7 @@ import {
   saveRoster, simulateTransactions, commitTransaction,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import InjuryReportModal from "@/components/InjuryReportModal";
 
 interface AICoachModalProps {
   open: boolean;
@@ -43,8 +44,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const [captainLoading, setCaptainLoading] = useState(false);
   const [transfersResult, setTransfersResult] = useState<any>(null);
   const [transfersLoading, setTransfersLoading] = useState(false);
-  const [injuryResult, setInjuryResult] = useState<any>(null);
-  const [injuryLoading, setInjuryLoading] = useState(false);
+  const [injuryModalOpen, setInjuryModalOpen] = useState(false);
   const [explainResult, setExplainResult] = useState<any>(null);
   const [explainLoading, setExplainLoading] = useState(false);
   const [explainSearch, setExplainSearch] = useState("");
@@ -143,16 +143,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     finally { setCommittingIdx(null); }
   };
 
-  const handleInjury = async () => {
-    setInjuryLoading(true); setInjuryResult(null);
-    try {
-      const rosterPlayerIds = rosterData?.roster
-        ? [...(rosterData.roster.starters ?? []), ...(rosterData.roster.bench ?? [])].filter((id: any) => typeof id === 'number' && id > 0)
-        : [];
-      setInjuryResult(await aiInjuryMonitor({ player_ids: rosterPlayerIds, include_replacements: true, max_salary: rosterData?.roster?.bank_remaining ?? null }, selectedTeamId ?? undefined));
-    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
-    finally { setInjuryLoading(false); }
-  };
+  // Injury monitoring is now delegated to the standalone <InjuryReportModal />.
 
   const handleExplain = async () => {
     let target = selectedExplainPlayer;
@@ -215,6 +206,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
@@ -321,22 +313,17 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Injuries */}
             <TabsContent value="injuries" className="mt-0 space-y-3">
-              <Button size="sm" onClick={handleInjury} disabled={injuryLoading} className="w-full">
-                {injuryLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
+              <Button
+                size="sm"
+                onClick={() => setInjuryModalOpen(true)}
+                className="w-full bg-yellow-500 hover:bg-yellow-500/90 text-black"
+              >
+                <Shield className="h-4 w-4 mr-2" />
                 Scan Injuries
               </Button>
-              {injuryLoading && <Skeleton className="h-20 w-full" />}
-              {injuryResult?.items?.map((item: any) => (
-                <div key={item.player_id} className="bg-muted rounded-lg p-2 space-y-1 border">
-                  <div className="flex items-center gap-2">
-                    <span className="font-heading font-bold uppercase text-xs">{getPlayerName(item.player_id)}</span>
-                    <Badge variant={statusColor(item.status) as any} className="rounded-lg text-[9px]">{item.status}</Badge>
-                    <Badge variant="outline" className="text-[9px] rounded-lg">{item.impact} impact</Badge>
-                  </div>
-                  {item.headline && <p className="text-[10px]">{item.headline}</p>}
-                  <div className="text-[10px]"><span className="font-semibold">Action: </span>{item.recommended_move?.action}</div>
-                </div>
-              ))}
+              <p className="text-[10px] text-muted-foreground text-center">
+                Opens the league-wide injury report aggregated from ESPN, CBS Sports and RotoWire.
+              </p>
             </TabsContent>
 
             {/* Explain */}
@@ -463,5 +450,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </Tabs>
       </DialogContent>
     </Dialog>
+    <InjuryReportModal open={injuryModalOpen} onOpenChange={setInjuryModalOpen} />
+    </>
   );
 }

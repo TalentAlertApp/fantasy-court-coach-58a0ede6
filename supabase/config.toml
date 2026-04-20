@@ -1,1 +1,4 @@
 project_id = "jtewuekavaujgnynmpaq"
+
+[functions.nba-injury-report]
+verify_jwt = false
