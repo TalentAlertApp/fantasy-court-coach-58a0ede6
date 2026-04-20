@@ -240,6 +240,35 @@ Deno.serve(async (req) => {
 
     const playerSummary = buildPlayerSummary(ctx.players, rosterPlayerIds);
 
+    // ---- Compute roster financials & team distribution for HARD CONSTRAINTS ----
+    // Build a quick lookup of players-by-id from the (possibly truncated) summary,
+    // but for roster math we need accurate salary/team for every roster player —
+    // refetch any missing ones directly from the DB.
+    const rosterIdsArr = Array.from(rosterPlayerIds);
+    let rosterPlayerRows: any[] = [];
+    if (rosterIdsArr.length > 0) {
+      const { data: rp } = await sb
+        .from("players")
+        .select("id, name, team, fc_bc, salary")
+        .in("id", rosterIdsArr);
+      rosterPlayerRows = rp ?? [];
+    }
+    const rosterPlayerById = new Map<number, any>();
+    for (const p of rosterPlayerRows) rosterPlayerById.set(p.id, p);
+
+    const roster_salary_total = rosterPlayerRows.reduce(
+      (sum, p) => sum + Number(p.salary ?? 0),
+      0
+    );
+    const team_distribution: Record<string, number> = {};
+    for (const p of rosterPlayerRows) {
+      const tri = String(p.team ?? "").toUpperCase();
+      if (!tri) continue;
+      team_distribution[tri] = (team_distribution[tri] ?? 0) + 1;
+    }
+    const salary_cap = ctx.settings.salary_cap;
+    const bank_remaining = salary_cap - roster_salary_total;
+
     // For explain-player, ensure the requested player is always present in the
     // model context (top-100 truncation can otherwise cause hallucinated wrong
     // player). Prepend the targeted player row if missing.
@@ -263,6 +292,15 @@ Deno.serve(async (req) => {
 
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
+      roster_players: rosterPlayerRows.map((p) => ({
+        id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, salary: p.salary,
+      })),
+      salary_cap,
+      starter_fc_min: ctx.settings.starter_fc_min,
+      starter_bc_min: ctx.settings.starter_bc_min,
+      roster_salary_total,
+      bank_remaining,
+      team_distribution,
       players: finalPlayerSummary,
       schedule: ctx.schedule.slice(0, 20),
       params,
