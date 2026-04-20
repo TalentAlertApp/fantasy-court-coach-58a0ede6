@@ -143,6 +143,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<InjuryPayload | null>(null);
   const [rosterMap, setRosterMap] = useState<Map<string, { id: number; team: string; pos: string | null; fc_bc: string; photo: string | null }>>(new Map());
+  const [view, setView] = useState<"all" | string>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
