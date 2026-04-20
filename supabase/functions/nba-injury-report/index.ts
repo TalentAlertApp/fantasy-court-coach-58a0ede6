@@ -73,6 +73,32 @@ async function fetchESPN(): Promise<InjuryRecord[]> {
   return out;
 }
 
+function cleanCbsName(raw: string): string {
+  const s = (raw ?? "").trim();
+  if (!s) return "";
+  // CBS renders both an abbreviated name ("A. Davis") and the full name
+  // ("Anthony Davis") inside the same cell, producing strings like
+  // "A. DavisAnthony Davis". Detect that pattern and keep the full name.
+  const m = s.match(/^([A-Z]\.\s?[A-Za-zÀ-ÖØ-öø-ÿ'’.\-]+)([A-Z][a-zÀ-ÖØ-öø-ÿ'’.\-]+\s+[A-Za-zÀ-ÖØ-öø-ÿ'’.\-]+.*)$/);
+  if (m) return m[2].trim();
+  return s;
+}
+
+function cleanCbsTeam(raw: string): { team: string; abbr: string } {
+  const t = (raw ?? "").trim();
+  if (!t) return { team: "", abbr: "" };
+  const map: Record<string, { team: string; abbr: string }> = {
+    "L.A. Lakers": { team: "Los Angeles Lakers", abbr: "LAL" },
+    "L.A. Clippers": { team: "LA Clippers", abbr: "LAC" },
+    "LA Lakers": { team: "Los Angeles Lakers", abbr: "LAL" },
+    "LA Clippers": { team: "LA Clippers", abbr: "LAC" },
+  };
+  if (map[t]) return map[t];
+  // Default: keep team string, derive abbr by trimming non-letters first 3.
+  const abbr = t.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase();
+  return { team: t, abbr };
+}
+
 async function fetchCBS(): Promise<InjuryRecord[]> {
   const url = "https://www.cbssports.com/nba/injuries/";
   const html = await fetch(url, { headers: HEADERS }).then((r) => r.text());
@@ -82,14 +108,15 @@ async function fetchCBS(): Promise<InjuryRecord[]> {
 
   doc?.querySelectorAll(".TeamLogoNameLockup, .TableBase-bodyTr").forEach((el: any) => {
     if (el.matches?.(".TeamLogoNameLockup")) {
-      team = el.textContent?.trim() ?? "";
-      abbr = team.slice(0, 3).toUpperCase();
+      const cleaned = cleanCbsTeam(el.textContent ?? "");
+      team = cleaned.team;
+      abbr = cleaned.abbr;
       return;
     }
     const cells = el.querySelectorAll("td");
     if (cells.length >= 5) {
       out.push({
-        player_name: cells[0]?.textContent?.trim() ?? "",
+        player_name: cleanCbsName(cells[0]?.textContent ?? ""),
         team,
         team_abbr: abbr,
         status: normalizeStatus(cells[4]?.textContent ?? ""),
