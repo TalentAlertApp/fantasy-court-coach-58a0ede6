@@ -92,25 +92,35 @@ export function TopPlayersPanel({ gw, day }: TopPlayersStripProps) {
   }
 
   const renderPlayer = (p: TopPlayer, mode: "fp" | "value") => (
-    <div key={p.id} className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setSelectedPlayerId(p.id)}>
-      <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 rounded-lg shrink-0">{p.fc_bc}</Badge>
-      <Avatar className="h-8 w-8 shrink-0">
+    <div
+      key={p.id}
+      className="group relative overflow-hidden flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent/50 transition-colors cursor-pointer"
+      onClick={() => setSelectedPlayerId(p.id)}
+    >
+      {getTeamLogo(p.team) && (
+        <img
+          src={getTeamLogo(p.team)!}
+          aria-hidden
+          className="pointer-events-none absolute inset-0 m-auto h-14 w-14 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60"
+        />
+      )}
+      <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="relative z-10 text-[8px] px-1 py-0 rounded-lg shrink-0">{p.fc_bc}</Badge>
+      <Avatar className="relative z-10 h-8 w-8 shrink-0">
         {p.photo && <AvatarImage src={p.photo} />}
         <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 min-w-0">
+      <div className="relative z-10 flex-1 min-w-0">
         <span className="text-sm font-heading font-bold truncate block">{p.name}</span>
         <div className="flex items-center gap-1">
-          {getTeamLogo(p.team) && <img src={getTeamLogo(p.team)} alt="" className="w-3.5 h-3.5" />}
-          <span className="text-[10px] text-muted-foreground">{p.team}</span>
-          <span className="text-[10px] text-muted-foreground">·</span>
-          <span className="text-[10px] font-mono text-muted-foreground">${p.salary}</span>
+          <span className="text-[10px] text-muted-foreground transition-colors group-hover:text-[hsl(var(--nba-yellow))] group-hover:font-semibold">{p.team}</span>
+          <span className="text-[10px] text-muted-foreground transition-colors group-hover:text-[hsl(var(--nba-yellow))] group-hover:font-semibold">·</span>
+          <span className="text-[10px] font-mono text-muted-foreground transition-colors group-hover:text-[hsl(var(--nba-yellow))] group-hover:font-semibold">${p.salary}</span>
         </div>
       </div>
       {mode === "fp" ? (
-        <span className="text-sm font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
+        <span className="relative z-10 text-sm font-mono font-bold text-primary">{Number(p.fp).toFixed(1)}</span>
       ) : (
-        <span className="text-sm font-mono font-bold text-primary">{(p.fp / (p.salary || 1)).toFixed(1)}</span>
+        <span className="relative z-10 text-sm font-mono font-bold text-primary">{(p.fp / (p.salary || 1)).toFixed(1)}</span>
       )}
     </div>
   );
