@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
+import HeaderTeamPill from "@/components/layout/HeaderTeamPill";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 
@@ -107,6 +108,9 @@ export default function AppLayout() {
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="main-content">
         <main className="page-scroll">
+          <div className="sticky top-0 z-30 flex justify-end items-center px-4 py-2 bg-background/80 backdrop-blur-sm border-b border-border/50">
+            <HeaderTeamPill />
+          </div>
           <div className="animate-fade-in w-full h-full">
             <Outlet />
           </div>
