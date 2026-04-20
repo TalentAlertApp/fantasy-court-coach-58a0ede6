@@ -218,11 +218,33 @@ Deno.serve(async (req) => {
 
     const playerSummary = buildPlayerSummary(ctx.players, rosterPlayerIds);
 
+    // For explain-player, ensure the requested player is always present in the
+    // model context (top-100 truncation can otherwise cause hallucinated wrong
+    // player). Prepend the targeted player row if missing.
+    let finalPlayerSummary = playerSummary;
+    let targetPlayerId: number | undefined;
+    if (action === "explain-player" && typeof params.player_id === "number") {
+      targetPlayerId = params.player_id;
+      const alreadyIn = playerSummary.some((p: any) => p.id === targetPlayerId);
+      if (!alreadyIn) {
+        const { data: targetRow } = await sb
+          .from("players")
+          .select("*")
+          .eq("id", targetPlayerId)
+          .maybeSingle();
+        if (targetRow) {
+          const enriched = buildPlayerSummary([targetRow], rosterPlayerIds);
+          finalPlayerSummary = [...enriched, ...playerSummary];
+        }
+      }
+    }
+
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
-      players: playerSummary,
+      players: finalPlayerSummary,
       schedule: ctx.schedule.slice(0, 20),
       params,
+      ...(targetPlayerId !== undefined ? { target_player_id: targetPlayerId } : {}),
     });
 
     // First attempt
@@ -251,6 +273,19 @@ Deno.serve(async (req) => {
 
     if (validationErrors.length > 0) {
       return errorResponse("AI_SCHEMA_INVALID", "AI output does not match expected schema", validationErrors.join("; "));
+    }
+
+    // Defense in depth: for explain-player, ensure the AI describes the right player.
+    if (action === "explain-player" && targetPlayerId !== undefined) {
+      if (typeof aiData.player_id === "number" && aiData.player_id !== targetPlayerId) {
+        console.error(`[ai-coach] player mismatch: requested=${targetPlayerId} got=${aiData.player_id}`);
+        return errorResponse(
+          "AI_PLAYER_MISMATCH",
+          `AI returned a different player than requested (requested ${targetPlayerId}, got ${aiData.player_id})`
+        );
+      }
+      // Force the correct id onto the response so downstream UI can rely on it.
+      aiData.player_id = targetPlayerId;
     }
 
     console.log(`[ai-coach] action=${action} success`);
