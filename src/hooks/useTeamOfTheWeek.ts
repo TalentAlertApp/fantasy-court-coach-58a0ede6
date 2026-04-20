@@ -10,6 +10,7 @@ export interface TOTWPlayer {
   fc_bc: string;
   fp_avg: number;
   gp: number;
+  salary: number;
 }
 
 function getGwDateRange(gw: number): { start: string; end: string } | null {
@@ -89,12 +90,12 @@ export function useTeamOfTheWeek(gw: number) {
 
       // Fetch player info
       const batchSize = 200;
-      const players: { id: number; name: string; team: string; photo: string | null; fc_bc: string }[] = [];
+      const players: { id: number; name: string; team: string; photo: string | null; fc_bc: string; salary: number }[] = [];
       for (let i = 0; i < playerIds.length; i += batchSize) {
         const batch = playerIds.slice(i, i + batchSize);
         const { data, error } = await supabase
           .from("players")
-          .select("id, name, team, photo, fc_bc")
+          .select("id, name, team, photo, fc_bc, salary")
           .in("id", batch);
         if (error) throw error;
         if (data) players.push(...data);
@@ -110,6 +111,7 @@ export function useTeamOfTheWeek(gw: number) {
           fc_bc: p.fc_bc,
           fp_avg: Math.round((a.totalFp / a.gp) * 10) / 10,
           gp: a.gp,
+          salary: Number(p.salary) || 0,
         };
       });
 
