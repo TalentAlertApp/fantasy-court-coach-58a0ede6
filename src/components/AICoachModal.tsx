@@ -341,6 +341,33 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
+              {/* Recent 5 explained chips */}
+              {!explainSearch && !explainResult && recentExplained.length > 0 && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">Recent</span>
+                  {recentExplained.map((r) => {
+                    const logo = getTeamLogo(r.team);
+                    const lastName = r.name.split(/\s+/).slice(-1)[0];
+                    return (
+                      <button
+                        key={r.id}
+                        onClick={() => handleRecentClick(r)}
+                        className="inline-flex items-center gap-1.5 bg-muted hover:bg-accent/50 transition-colors rounded-full pl-0.5 pr-2 py-0.5 border"
+                        title={r.name}
+                      >
+                        {r.photo ? (
+                          <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
+                        ) : logo ? (
+                          <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
+                        ) : (
+                          <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">{r.name.slice(0,1)}</span>
+                        )}
+                        <span className="text-[10px] font-heading font-semibold">{lastName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="relative" ref={dropdownRef}>
                 <div className="flex gap-2">
                   <Input
@@ -385,11 +412,18 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                           <div className="flex-1 min-w-0 relative z-10">
                             <p className="text-sm font-heading font-semibold truncate">{p.core.name}</p>
                             <div className="flex items-center gap-1.5">
+                              {logo && (
+                                <img src={logo} alt="" className="w-4 h-4 object-contain shrink-0" />
+                              )}
                               <span className="text-[10px] text-muted-foreground">{teamFullName}</span>
                               <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5">
                                 {p.core.fc_bc}
                               </Badge>
                             </div>
+                          </div>
+                          <div className="relative z-10 shrink-0 ml-2 text-right">
+                            <span className="font-mono text-[11px] font-bold text-foreground">{Number((p as any).last5?.fp5 ?? 0).toFixed(1)}</span>
+                            <span className="text-[8px] text-muted-foreground ml-0.5">FP5</span>
                           </div>
                         </button>
                       );
