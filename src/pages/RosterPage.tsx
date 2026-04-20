@@ -49,7 +49,7 @@ export default function RosterPage() {
   const queryClient = useQueryClient();
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData, isLoading: rosterLoading } = useRosterQuery();
-  const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 500 });
+  const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
 
   const [viewMode, setViewMode] = useState<"court" | "list">("court");
@@ -70,14 +70,56 @@ export default function RosterPage() {
   const allPlayers = playersData?.items ?? [];
   const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "My Team";
 
+  // Safety net: if any roster player_id is not in the loaded players list
+  // (e.g. they fall outside the page limit), fetch them directly so the
+  // roster never appears partially empty.
+  const rosterPlayerIds = useMemo(() => [
+    ...(roster?.starters ?? []),
+    ...(roster?.bench ?? []),
+  ].filter((id) => id > 0), [roster?.starters, roster?.bench]);
+
+  const missingIds = useMemo(() => {
+    const known = new Set(allPlayers.map((p) => p.core.id));
+    return rosterPlayerIds.filter((id) => !known.has(id));
+  }, [allPlayers, rosterPlayerIds]);
+
+  const { data: missingPlayersData } = useQuery({
+    queryKey: ["roster-missing-players", missingIds.sort().join(",")],
+    enabled: missingIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase
+        .from("players")
+        .select("*")
+        .in("id", missingIds);
+      if (error) throw error;
+      return rows ?? [];
+    },
+  });
+
+  const allPlayersWithFallback = useMemo(() => {
+    if (!missingPlayersData || missingPlayersData.length === 0) return allPlayers;
+    const extras = missingPlayersData.map((p: any) => ({
+      core: {
+        id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc,
+        photo: p.photo, salary: Number(p.salary) || 0, jersey: p.jersey,
+        pos: p.pos, height: p.height, weight: p.weight, age: p.age,
+        injury: p.injury, note: p.note,
+      },
+      season: { gp: p.gp, mpg: p.mpg, pts: p.pts, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, fp_pg: p.fp_pg_t, value: p.value_t },
+      last5: { mpg5: p.mpg5, pts5: p.pts5, reb5: p.reb5, ast5: p.ast5, stl5: p.stl5, blk5: p.blk5, fp5: p.fp_pg5, value5: p.value5, stocks5: p.stocks5, delta_mpg: p.delta_mpg, delta_fp: p.delta_fp },
+    }));
+    return [...allPlayers, ...extras] as any;
+  }, [allPlayers, missingPlayersData]);
+
   const currentGameday = useMemo(() => getCurrentGameday(), []);
   const gamedaysRemaining = useMemo(() => getGamedaysRemaining(), []);
   const deadlineFormatted = useMemo(() => formatDeadline(currentGameday.deadline_utc), [currentGameday]);
   const countdown = useCountdown(currentGameday.deadline_utc);
 
   const resolvePlayer = useCallback(
-    (id: number) => allPlayers.find((p) => p.core.id === id),
-    [allPlayers]
+    (id: number) => allPlayersWithFallback.find((p: any) => p.core.id === id),
+    [allPlayersWithFallback]
   );
 
   const starters = useMemo(
