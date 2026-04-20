@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
 
     const playerIds = (rosterRows as any[]).map((r: any) => r.player_id);
     const starterSlots = new Set(
-      (rosterRows as any[]).filter((r: any) => r.slot === "starter").map((r: any) => r.player_id)
+      (rosterRows as any[]).filter((r: any) => String(r.slot).toUpperCase() === "STARTER").map((r: any) => r.player_id)
     );
     const captainId = (rosterRows as any[]).find((r: any) => r.is_captain)?.player_id ?? null;
 
