@@ -149,12 +149,19 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   };
 
   const handleExplain = async () => {
-    if (!selectedExplainPlayer) {
-      toast({ title: "Select a player from the dropdown first", variant: "destructive" });
+    let target = selectedExplainPlayer;
+    if (!target && explainMatches.length > 0) {
+      target = explainMatches[0];
+      setSelectedExplainPlayer(target);
+      setExplainSearch(target.core.name);
+      setShowDropdown(false);
+    }
+    if (!target) {
+      toast({ title: "Type a player name to search", variant: "destructive" });
       return;
     }
     setExplainLoading(true); setExplainResult(null);
-    try { setExplainResult(await aiExplainPlayer({ player_id: selectedExplainPlayer.core.id }, selectedTeamId ?? undefined)); }
+    try { setExplainResult(await aiExplainPlayer({ player_id: target.core.id }, selectedTeamId ?? undefined)); }
     catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
     finally { setExplainLoading(false); }
   };
@@ -311,7 +318,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                     onKeyDown={(e) => e.key === "Enter" && handleExplain()}
                     className="rounded-lg flex-1"
                   />
-                  <Button size="sm" onClick={handleExplain} disabled={explainLoading || !selectedExplainPlayer}>
+                  <Button size="sm" onClick={handleExplain} disabled={explainLoading || (!selectedExplainPlayer && explainMatches.length === 0)}>
                     {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
                   </Button>
                 </div>
