@@ -20,6 +20,19 @@ Assists are 2x. Steals + blocks are 3x each ("stocks" are huge).
 ## POSITIONS
 Players only have FC (Front Court) or BC (Back Court). Do not invent other positions.
 
+## HARD CONSTRAINTS (NEVER VIOLATE)
+These rules are immutable. Any move suggestion that violates ANY of them MUST be discarded.
+- Roster size = 10 (5 starters + 5 bench).
+- Roster composition: exactly 5 FC + 5 BC at all times. Every ADD must share the same fc_bc as its DROP.
+- Starting 5 must contain >=2 FC and >=2 BC.
+- Salary cap (in $M) = team_settings.salary_cap (default 100). After ANY proposed swap:
+  total_salary_after = roster_salary_total - drop_salary + add_salary
+  total_salary_after MUST be <= salary_cap.
+- Maximum 2 players from the same NBA team across the full 10-man roster. After each swap:
+  team_distribution[add.team] (after applying the corresponding drop) MUST be <= 2.
+- 1 captain per gameweek = 2x FP.
+The internal payload includes: salary_cap, roster_salary_total, bank_remaining, team_distribution. USE them.
+
 ## DATA TRUTH HIERARCHY
 1) Internal app data (provided in developer message)
 2) Web search tool (real-time NBA news)
@@ -53,7 +66,7 @@ Keep content short, direct, decision-focused. No vague adjectives without data.
 Do not fabricate stats, injuries, or schedules. If unsure, say so via notes or risk_flags.`;
 
 const SCHEMA_DESCRIPTIONS: Record<string, string> = {
-  "suggest-transfers": `Return JSON: { "moves": [{ "add": number, "drop": number, "reason_bullets": string[], "expected_delta": { "proj_fp5": number, "proj_stocks5": number, "proj_ast5": number }, "risk_flags": string[], "confidence": number(0-1) }], "notes": string[] }. moves array: 1-5 items. reason_bullets: 1-6 items each max ~12 words.`,
+  "suggest-transfers": `Return JSON: { "moves": [{ "add": number, "drop": number, "cap_after": number, "reason_bullets": string[], "expected_delta": { "proj_fp5": number, "proj_stocks5": number, "proj_ast5": number }, "risk_flags": string[], "confidence": number(0-1) }], "notes": string[] }. moves array: 1-5 items. reason_bullets: 1-6 items each max ~12 words. CRITICAL CONSTRAINTS for every move: (1) ADD player's fc_bc MUST equal DROP player's fc_bc (preserves 5 FC + 5 BC). (2) cap_after = roster_salary_total - drop.salary + add.salary MUST be <= salary_cap. (3) After applying the swap, the count of roster players from add.team MUST be <= 2 (use team_distribution from payload, subtract 1 if drop is from same team). (4) Both add and drop players MUST exist in the players list. Set cap_after as a number (in $M) so the server can verify. If no legal move exists, return moves: [] and explain in notes.`,
   "pick-captain": `Return JSON: { "captain_id": number, "alternatives": [{ "id": number, "why": string }], "reason_bullets": string[], "confidence": number(0-1) }. captain_id must be from starters. Pick the best captain for the ENTIRE GAMEWEEK (not just one day). Consider total projected FP across all remaining gamedays, schedule density, matchup quality, and form. alternatives: 0-3.`,
   "explain-player": `Return JSON: { "player_id": number, "summary": string, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id from the input. Do not substitute another player. The player_id you return MUST equal target_player_id exactly.`,
   "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[] }`,
@@ -61,17 +74,26 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
 };
 
 async function fetchContext(sb: any, teamId?: string) {
-  const [playersRes, rosterRes, scheduleRes] = await Promise.all([
+  const [playersRes, rosterRes, scheduleRes, settingsRes] = await Promise.all([
     sb.from("players").select("*").order("fp_pg5", { ascending: false }).limit(200),
     teamId
       ? sb.from("roster").select("*").eq("team_id", teamId)
       : sb.from("roster").select("*"),
     sb.from("schedule_games").select("*").order("gw").order("day").limit(50),
+    teamId
+      ? sb.from("team_settings").select("*").eq("team_id", teamId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const settings = settingsRes?.data ?? null;
   return {
     players: playersRes.data ?? [],
     roster: rosterRes.data ?? [],
     schedule: scheduleRes.data ?? [],
+    settings: {
+      salary_cap: Number(settings?.salary_cap ?? 100),
+      starter_fc_min: Number(settings?.starter_fc_min ?? 2),
+      starter_bc_min: Number(settings?.starter_bc_min ?? 2),
+    },
   };
 }
 
