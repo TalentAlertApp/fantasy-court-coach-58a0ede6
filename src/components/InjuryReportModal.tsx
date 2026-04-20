@@ -190,6 +190,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const [view, setView] = useState<"all" | string>("all");
   const [myRosterOnly, setMyRosterOnly] = useState(false);
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "Out" | "Day-To-Day" | "Questionable" | "Probable">("all");
 
   const { data: rosterData } = useRosterQuery();
   const rosterIds = useMemo(() => {
@@ -321,6 +322,27 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const visibleItems =
     view === "all" ? filteredAll : groups.find((g) => g.tricode === view)?.items ?? [];
 
+  const statusCounts = useMemo(() => {
+    const counts = { Out: 0, "Day-To-Day": 0, Questionable: 0, Probable: 0 } as Record<string, number>;
+    for (const r of visibleItems) {
+      if (r.status in counts) counts[r.status]++;
+    }
+    return counts;
+  }, [visibleItems]);
+
+  const finalItems = useMemo(
+    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => r.status === statusFilter)),
+    [visibleItems, statusFilter],
+  );
+
+  const STATUS_CHIPS: { key: "all" | "Out" | "Day-To-Day" | "Questionable" | "Probable"; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "Out", label: "Out" },
+    { key: "Day-To-Day", label: "Day-To-Day" },
+    { key: "Questionable", label: "Questionable" },
+    { key: "Probable", label: "Probable" },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-screen h-screen max-w-none sm:w-full sm:max-w-3xl sm:h-[80vh] sm:max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-none sm:rounded-lg">
@@ -449,11 +471,41 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Status filter chips */}
+                <div className="flex items-center justify-center flex-wrap gap-1.5 mt-2">
+                  {STATUS_CHIPS.map((chip) => {
+                    const isActive = statusFilter === chip.key;
+                    const count = chip.key === "all" ? visibleItems.length : statusCounts[chip.key] ?? 0;
+                    const colorCls =
+                      chip.key === "all"
+                        ? isActive
+                          ? "bg-primary text-primary-foreground ring-1 ring-primary"
+                          : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                        : isActive
+                          ? cn(statusClasses(chip.key), "ring-2 ring-offset-1 ring-foreground/30")
+                          : cn(statusClasses(chip.key), "opacity-50 hover:opacity-100");
+                    return (
+                      <button
+                        key={chip.key}
+                        type="button"
+                        onClick={() => setStatusFilter(chip.key)}
+                        className={cn(
+                          "h-6 px-2 inline-flex items-center gap-1 text-[10px] font-heading uppercase tracking-wider rounded-md transition-all",
+                          colorCls,
+                        )}
+                      >
+                        {chip.label}
+                        <span className="text-[9px] font-mono opacity-90">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex-1 min-h-[60vh] sm:min-h-[60vh] overflow-y-auto overscroll-contain px-3 pb-4 pt-2 relative">
                 <InjuryList
-                  items={visibleItems}
+                  items={finalItems}
                   myRosterOnly={myRosterOnly}
                   onSelect={(id) => setOpenPlayerId(id)}
                 />
