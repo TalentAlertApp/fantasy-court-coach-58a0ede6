@@ -279,9 +279,9 @@ interface TeamFormData {
   last5: Last5Game[];
 }
 
-function useTeamFormData(teams: string[], enabled: boolean) {
+function useAllTeamsForm(enabled: boolean) {
   return useQuery({
-    queryKey: ["team-form", ...teams],
+    queryKey: ["all-teams-form"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
@@ -326,7 +326,9 @@ function useTeamFormData(teams: string[], enabled: boolean) {
         if (diff > bestDiff) bestDiff = diff;
       }
 
-      for (const tricode of teams) {
+      // Build results for ALL 30 NBA teams so conference standings have full data
+      const allTricodes = new Set<string>([...Object.keys(NBA_TEAM_META), ...Object.keys(acc)]);
+      for (const tricode of allTricodes) {
         const t = acc[tricode];
         if (!t) {
           result[tricode] = { tricode, w: 0, l: 0, pct: ".000", gb: "-", homeRec: "0-0", awayRec: "0-0", last5: [] };
