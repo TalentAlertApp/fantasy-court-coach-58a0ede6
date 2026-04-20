@@ -1,69 +1,74 @@
 
 
-## Plan: Injury Report Modal — roster filter, click-to-open, caching, equal tabs, scroll, restyled row
+## Plan: Injury modal scroll height + AI Transfers rules-aware + Schedule standings/last-5 fix
 
-All edits land in `src/components/InjuryReportModal.tsx`.
+### 1. Injury Report Modal — keep ALL-tab vertical height for every team view
+File: `src/components/InjuryReportModal.tsx`
 
-### 1. "My Roster only" toggle
-- Add a small `Switch` (shadcn) in the header row, left of the "Updated X min ago" timestamp, labelled `My Roster only`.
-- Pull active roster via `useRosterQuery()` and build a `Set<number>` of `player_id`s.
-- New state `myRosterOnly: boolean` (default `false`).
-- Apply filter inside the existing `view`-derived list:
-  - `const filtered = myRosterOnly ? items.filter(r => r.player_id != null && rosterIds.has(r.player_id)) : items;`
-- Counts shown on the "ALL" pill and the team dropdown badges also reflect the filter when toggled on.
-- Empty state when filter yields zero rows: "No injuries on your roster" + check icon.
+Current bug: when a team is picked from the dropdown, the list height collapses because the outer `DialogContent` plus `min-h-0` chain shrinks to fit a few rows.
 
-### 2. Click row → open existing PlayerModal
-- Import `PlayerModal` from `@/components/PlayerModal`.
-- Add state `const [openPlayerId, setOpenPlayerId] = useState<number | null>(null)`.
-- In `InjuryRow`, when `rec.on_roster && rec.player_id`, the row becomes a `<button>`-like clickable element (cursor-pointer, hover bg) calling `onSelect(rec.player_id)`.
-- Off-roster rows stay non-clickable (no `player_id` to open).
-- Render `<PlayerModal playerId={openPlayerId} open={openPlayerId !== null} onOpenChange={(o) => !o && setOpenPlayerId(null)} />` at the bottom of the InjuryReportModal tree (nested Dialogs are fine — already done in PlayerModal itself for boxscore).
+Fix:
+- Force a stable min-height on the scroll container so it always reserves the same vertical area as the ALL view, regardless of how few rows the team has.
+- Replace the list wrapper class with `flex-1 min-h-[60vh] sm:min-h-[60vh] overflow-y-auto overscroll-contain px-3 pb-4 pt-2 relative`.
+- Also set `DialogContent` desktop sizing to `sm:max-w-3xl sm:h-[80vh] sm:max-h-[80vh]` (was `sm:h-auto sm:max-h-[85vh]`) so the modal box itself is fixed height — this is what makes the inner area constant whether the visible list has 3 rows or 100.
+- Mobile already uses `w-screen h-screen`, so no change there.
 
-### 3. Cache payload in localStorage for 30 minutes
-- Storage key: `nbaf:injury-report:v1`. Shape: `{ savedAt: number, payload: InjuryPayload }`.
-- On modal open:
-  - Read cache. If `Date.now() - savedAt < 30 * 60_000`, hydrate `payload` synchronously and skip the network call (instant render).
-  - Otherwise call `nba-injury-report` and on success write fresh cache.
-- `Refresh` button always bypasses cache (force fetch + overwrite cache).
-- "Updated X min ago" continues to read from `payload.generated_at` so the cached label stays accurate.
+This guarantees the team-tab view has the same vertical space and scrolling behaviour as ALL.
 
-### 4. Equal-width "ALL" and team-select tabs
-- Wrap both controls in a centered grid:
-  - `<div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 max-w-xl mx-auto w-full">`
-  - Left cell: `ALL` button with `w-full justify-center` (so it stretches to match).
-  - Middle cell: `|` divider.
-  - Right cell: `<SelectTrigger className="w-full ...">`.
-- This forces the ALL pill to be exactly as wide as the team Select trigger (both = 1fr).
-- ALL pill keeps its existing red count badge inside.
+### 2. AI Coach → TRANSFERS: respect ALL game rules ($100M cap, max 2/team, FC/BC, etc.)
+Files: `supabase/functions/ai-coach/index.ts`, `src/components/AICoachModal.tsx`
 
-### 5. Vertical scroll inside the list
-- Current body wrapper already uses `flex-1 min-h-0 overflow-y-auto`, but the `Dialog` height on desktop is `sm:h-auto sm:max-h-[85vh]`. Confirm and tighten:
-  - Outer `DialogContent` already constrains height; set the list container explicitly to `flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1` so the inner `<ul>` scrolls smoothly while header (title + ALL/Select bar) stays sticky.
-  - Header bar gets `sticky top-0 z-20 bg-background/95 backdrop-blur-sm`.
-- Mobile (`w-screen h-screen`) already provides full height; same flex layout works.
+The current AI advice violates the game rules (screenshot shows ADD Dončić / DROP Raynaud which would blow past the $100M cap). Root causes:
+- `fetchContext` pulls roster + 200 players but never reads `team_settings` (salary cap / FC-BC mins) and never computes current roster salary or bank_remaining.
+- The prompt mentions `salary_cap` and `bank_remaining` as constraints but the payload doesn't include them.
+- The "max 2 players per NBA team" rule from "How to Play" is never declared to the model anywhere.
 
-### 6. Restyled player row
-New right-side ordering inside `InjuryRow`:
-```
-[OUT] [photo] Name [POS] · Injury · ……… [DATE]  [TEAM BADGE]   [ⓘ?]
-```
-- Move the team-logo watermark out and replace it with a real, foreground team badge on the far right (`h-7 w-7 object-contain shrink-0`). Keep the hover surge: `transition-transform duration-200 group-hover:scale-110` (no more absolute watermark).
-- Place the **return date** immediately to the left of the badge.
-- Date colouring rule (replaces current `season-end red / TBD muted`):
-  - Compute days-from-today using the parsed `estimated_return` date (when it parses).
-  - `<= 30 days` → `text-yellow-400 font-bold` (bold yellow).
-  - `> 30 days` → `text-red-500 font-bold` (bold red).
-  - "Season-ending" / "Next Season" → bold red (treated as long).
-  - "TBD" / unparseable → `text-muted-foreground` (no bold).
-- Keep `font-mono text-[11px]` for the date.
-- Layout: change row to `flex items-center gap-2` with the injury text getting `flex-1 min-w-0 truncate`, then date, then badge, then info icon. Drop `ml-auto` from date (now naturally pushed by flex-1 on the injury text).
+Fixes (server-side, in `supabase/functions/ai-coach/index.ts`):
+- Extend `fetchContext` to also `select` from `team_settings` for the resolved `team_id`. Default to `{ salary_cap: 100, starter_fc_min: 2, starter_bc_min: 2 }` if no row exists.
+- Compute and inject into the dev message:
+  - `roster_salary_total` = sum of `players.salary` for all 10 roster players of the active team.
+  - `bank_remaining` = `salary_cap - roster_salary_total`.
+  - `team_distribution` = a `{ tricode: count }` map of how many roster players belong to each NBA team.
+- Add an explicit `HARD CONSTRAINTS` block to the system prompt covering the immutable game rules:
+  - Roster size = 10 (5 starters + 5 bench).
+  - 5 FC + 5 BC total.
+  - Starting 5 must contain ≥2 FC and ≥2 BC.
+  - Salary cap = `$100M` (use the value from `team_settings.salary_cap`); after any proposed swap the new total salary MUST be ≤ cap.
+  - Maximum 2 players from the same NBA team across the full 10-man roster — every proposed ADD must respect this AFTER the corresponding DROP is applied.
+  - 1 captain per gameweek = 2× FP.
+- Update the `suggest-transfers` schema description to require the model to:
+  - Only return moves where post-swap `total_salary ≤ salary_cap`.
+  - Only return moves where the ADD player's NBA team count (after the swap) ≤ 2.
+  - Maintain the FC/BC totals (5/5) — i.e. ADD and DROP must share the same `fc_bc`.
+  - Include a `cap_after` numeric field per move so the UI can verify.
+- Server-side post-validation step (defence-in-depth) for `suggest-transfers`: after the AI returns moves, drop any move that violates cap, team-cap, or FC/BC parity. If all are dropped, return an empty `moves` array with a `notes` entry explaining which constraint failed.
+
+Client-side (`src/components/AICoachModal.tsx`):
+- `handleTransfers` currently sends `max_cost: rosterData?.roster?.bank_remaining ?? 100`. Keep this but also rely on the server enrichment. No additional UI work needed — the existing `Simulate` button already validates moves against the real backend before commit, so once the model output is constraint-clean it stays clean.
+
+### 3. `/schedule` — fix team standings (full conference data) + relocate Last 5 Games + only Recap link
+File: `src/components/ScheduleList.tsx`
+
+Bug today: `useTeamFormData` is called with only the 2 game teams, so `result` only contains W/L for those 2 teams. `computeConfStandings` then iterates the whole conference but reads `data[t]` which is `undefined` for the other 13 teams — that's why every other team in the standings table shows `0-0 / .000`.
+
+Fix:
+- Replace the per-game-team query with a conference-aware query. Two clean options; we'll take the simple one:
+  - Add a new internal hook (still inside `ScheduleList.tsx`) `useAllTeamsForm()` that fetches `schedule_games` once (final games only) and returns `Record<tricode, TeamFormData>` for all 30 teams. Cache via React Query with `staleTime: 60_000` and a stable key `["all-teams-form"]`.
+  - `UpcomingGamePreview` now consumes this hook (instead of `useTeamFormData([away, home])`). All 30 teams get real W/L, so `computeConfStandings` produces the correct rank, GP, W, L, PCT, GB for every row.
+- Confirm the existing 5-row windowing in `computeConfStandings` already yields "2 above + the team + 2 below, adjusted at the edges" — it does (`start = max(0, idx - 2)` then clamped near the bottom). Keep as is.
+- Layout change inside `UpcomingGamePreview`:
+  - Restructure each team column to a 2-column inner grid: `[Conference standings (left)] [Last 5 Games (right)]` so Last 5 sits next to the standings instead of below them. Use `grid grid-cols-1 md:grid-cols-2 gap-3` for that inner pair so on narrow viewports it stacks.
+  - Keep the team header (logo + tricode + conference) and the W-L / PCT / HOME / AWAY mini stat strip above the two-column block.
+- "Last 5 Games" row cleanup:
+  - Inside the `team.last5.map(...)` block, remove the BoxScore (`Table2`), Charts (`BarChart3`) and Play-by-Play (`Mic`) icon links. Keep only the Recap icon (`Tv2`), and make it an actual `<a>` to `g.youtube_recap_id` (open `https://www.youtube.com/watch?v=<id>` in a new tab) when present, otherwise dim/disabled. Drop the `g.game_boxscore_url`/`g.game_charts_url`/`g.game_playbyplay_url` blocks entirely.
+
+### Files touched
+- `src/components/InjuryReportModal.tsx` (heights only)
+- `supabase/functions/ai-coach/index.ts` (context enrichment, prompt rules, post-validate)
+- `src/components/ScheduleList.tsx` (standings hook swap, layout regroup, link pruning)
 
 ### Verification
-- Toggle `My Roster only` → list shrinks to roster injuries; ALL count and team badges update accordingly; empty state reads "No injuries on your roster".
-- Click a roster player row → existing PlayerModal opens with the right player; closing returns to the Injury modal.
-- Reopen the modal within 30 min → list appears instantly with no skeleton; "Updated X min ago" still reads off cached `generated_at`. After 30 min or on Refresh, a fresh fetch runs.
-- ALL pill and team Select trigger have identical width, both centered.
-- Long lists scroll vertically; header (title + ALL/Select) stays sticky.
-- Each row shows the team badge on the far right; the date sits just left of it, bold yellow when ≤30 days away, bold red when >30 days or season-ending; TBD stays muted.
+- Open AI Coach → Injuries → Scan Injuries; switch from ALL to a team in the dropdown — the player list area keeps the same vertical height and scrolls smoothly.
+- Open AI Coach → Transfers → Suggest Transfers; every returned move keeps the post-swap roster within $100M, never proposes a 3rd player from a single NBA team, and matches FC↔FC / BC↔BC. Simulate continues to confirm validity.
+- Go to `/schedule`, expand a SCHEDULED game; both team standings tables now show real W/L/PCT/GB for the 5 ranked rows (the game's team is highlighted with 2 above + 2 below where possible). The "Last 5 Games" block is rendered to the right of the standings, and each row only shows the Recap (Tv2) icon.
 
