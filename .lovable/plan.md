@@ -1,69 +1,64 @@
 
 
-## Plan: Players-of-the-Day swap, day tab borders, and Injury Report shortcut
+## Plan: Day-tab styling, header reordering, week 25 clip, and AI Coach dropdown visibility
 
-### 1. `/schedule` Players of the Day — swap photo ↔ team logo (with effects)
-File: `src/components/TopPlayersStrip.tsx` (`renderPlayer`)
+### 1. `/schedule` — day tabs: add themed border + rounded format on every tab
+File: `src/pages/SchedulePage.tsx` (day-navigator buttons, lines ~159-188)
 
-Currently the team logo is the watermarked background that scales/brightens on hover, and the player photo is the small foreground avatar. Swap their roles:
+- Wrap each day `<button>` in a small `p-0.5` cell so the visible button has consistent rounding, OR apply the styling directly: every tab becomes a rounded pill with a 1px border in `border-[hsl(var(--nba-navy))]` (light) / `dark:border-[hsl(var(--nba-yellow))]` (dark).
+- Replace the current "border-r divider" approach with a per-tab outlined pill:
+  - Drop `border-r border-border/60 last:border-r-0`.
+  - Wrap the button row with `gap-1` so pills don't touch.
+  - Base classes on every button: `rounded-xl border border-[hsl(var(--nba-navy))] dark:border-[hsl(var(--nba-yellow))]/60`.
+  - Selected state keeps `bg-primary text-primary-foreground shadow-md`.
+  - Unselected hover keeps `hover:bg-muted/50`.
+- Result: every day tab now has the same rounded pill shape and a visible navy (light) / yellow (dark) outline, matching the active tab's silhouette — exactly like the GW pills above.
 
-- **New background (watermark with surge)**: render the **player photo** as the absolutely-positioned watermark.
-  - Replace the existing `<img src={getTeamLogo(p.team)} ... opacity-30 group-hover:scale-125 group-hover:opacity-60 />` with an `<img src={p.photo} ... />` using the same opacity/transition/group-hover classes (`opacity-30 → group-hover:opacity-60`, `group-hover:scale-125`).
-  - Keep `object-contain` and the same h-14/w-14 sizing so the watermark behaves identically.
-  - If `p.photo` is missing, fall back to the team logo so the row never goes blank.
-- **New foreground avatar**: render the **team logo** in place of the current `<Avatar>` (the small h-8 w-8 element next to the FC/BC badge).
-  - Use the same `<Avatar className="relative z-10 h-8 w-8 shrink-0">` wrapper, with `<AvatarImage src={getTeamLogo(p.team)!} className="object-contain p-0.5" />` and an `AvatarFallback` of the tricode (e.g. first 3 letters of `p.team`).
-- All other elements unchanged: FC/BC badge stays on the left, name + team + salary stay center, FP / value number stays on the right with the same `relative z-10` stacking. Hover behaviour (scale 1.25, opacity surge to 0.60) is preserved — it now applies to the player photo instead of the team logo.
+### 2. `/schedule` — reorder header icon row + add bullet separators
+File: `src/pages/SchedulePage.tsx` (lines ~210-259)
 
-This affects both the **Fantasy Points** and **Value (FP/$)** tabs, FC and BC sides, because all four lists go through the same `renderPlayer` function.
+Current order: `Date · Day # · Deadline · [Shield] [Grid3X3] [List/Grid toggle]`.
 
-### 2. `/schedule` daily day-tab visual separation
-File: `src/pages/SchedulePage.tsx` (the "Day Navigator" block at lines ~133-194)
+New order: `Date · Day # · Deadline · [List/Grid toggle] · [Shield] · [Grid3X3]`.
 
-Right now the day tabs sit flush next to each other inside the `<div className="flex-1 flex overflow-x-auto scrollbar-hide">` strip with no separators. Add subtle vertical dividers so the user can clearly see each tab's boundary.
-
-- On every day `<button>`, add `border-r border-border/60 last:border-r-0` so each tab gets a 1px right divider, except the final one.
-- Drop `rounded-xl` from the unselected state (it currently rounds corners that don't visually exist due to the flush layout) and keep `rounded-xl` only when `isSelected` so the active tab still pops as a rounded pill.
-- Concrete className change:
-  ```tsx
-  className={`flex-1 min-w-[80px] py-2 px-2 transition-all border-r border-border/60 last:border-r-0 ${
-    isSelected
-      ? "bg-primary text-primary-foreground shadow-md rounded-xl border-r-transparent"
-      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-  }`}
+- Move the `<div className="inline-flex … rounded-xl border …">` (List/Grid toggle) to sit immediately after the `Deadline` block (before the existing `·` separator).
+- Insert a small bullet separator (`<span className="text-muted-foreground/40">·</span>` — same one already used between Day # and Deadline) between:
+  - List/Grid toggle ↔ Shield (Injury Report)
+  - Shield ↔ Grid3X3 (Advanced Schedule Grid)
+- Final markup order in the LEFT cluster:
   ```
-- Result: each day tab has a clear vertical divider, the active tab still renders as a rounded primary pill, and dark-mode contrast stays consistent via `border-border/60`.
-
-### 3. `/schedule` Injury Report shortcut icon
-File: `src/pages/SchedulePage.tsx`
-
-Add a small shield icon button that opens the existing `<InjuryReportModal>` directly — same modal already triggered from the AI Coach → Injuries → "Scan Injuries" flow on `/`.
-
-- Import `InjuryReportModal` from `@/components/InjuryReportModal` and the `Shield` icon from `lucide-react`.
-- Add local state `const [injuryOpen, setInjuryOpen] = useState(false);`.
-- In the icon row right before the existing `Grid3X3` button (line ~217-223), insert:
-  ```tsx
-  <button
-    onClick={() => setInjuryOpen(true)}
-    className="text-muted-foreground hover:text-foreground transition-colors p-1"
-    title="Injury Report"
-    aria-label="Open injury report"
-  >
-    <Shield className="h-4 w-4" />
-  </button>
+  Date · Day # · TODAY badge · · Deadline · [List/Grid toggle] · [Shield] · [Grid3X3]
   ```
-- At the bottom of the component (next to `<TeamOfTheWeekModal …/>`), render:
-  ```tsx
-  <InjuryReportModal open={injuryOpen} onOpenChange={setInjuryOpen} />
-  ```
-- The modal is fully self-contained: it lazy-loads the injury report from the `nba-injury-report` edge function (with its own 30 min localStorage cache) on first open, exactly as it does from the AI Coach. No prop wiring needed. Closing the modal returns the user to the schedule view.
+
+### 3. `/schedule` — fix week 25 right-edge clip
+File: `src/pages/SchedulePage.tsx` (week strip, lines ~108-132)
+
+The week strip uses `overflow-x-auto` with `gap-0.5`, and the active pill's `shadow-md` + outline gets clipped on the rightmost pill (week 25). Fix:
+
+- Add right-side breathing room to the scroll container: change the strip's parent `px-3` to `px-3 pr-4` (or add `pr-2` to the inner `flex` div) so the last pill's outline/shadow renders fully.
+- Equivalently, add an invisible spacer `<span className="shrink-0 w-1" aria-hidden />` after the `.map(...)` so the scroll area extends just past the last pill.
+- Either fix is sufficient; we'll use the spacer approach since it doesn't change the navy band's visual padding.
+
+### 4. AI Coach → Explain — fix invisible autocomplete dropdown
+File: `src/components/AICoachModal.tsx` (Explain tab, dropdown at lines ~358-419)
+
+The dropdown is currently rendered as `<div className="absolute … z-50">` inside `TabsContent`, which is itself inside the modal's scroll container `<div className="flex-1 min-h-0 overflow-y-auto …">` (line 228). `overflow-y-auto` creates a clipping context that hides the absolutely-positioned dropdown — that's why the user sees nothing.
+
+Fix (no behaviour change, only stacking):
+- Replace the `absolute` dropdown with a Radix `Popover` so it renders into a portal at the document root (no parent-clipping):
+  - Import `Popover, PopoverTrigger, PopoverContent, PopoverAnchor` from `@/components/ui/popover`.
+  - Wrap the input + Explain button row in a `<Popover open={showDropdown && explainMatches.length > 0} onOpenChange={setShowDropdown}>` with the input as the `PopoverAnchor` (so width matches the input).
+  - Move the dropdown markup into `<PopoverContent>` with `align="start"`, `side="bottom"`, `sideOffset={4}`, `className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)] max-h-[260px] overflow-y-auto z-[100]"` and `onOpenAutoFocus={(e) => e.preventDefault()}` so the input keeps focus while typing.
+  - Remove the manual `dropdownRef` + outside-click listener — Popover handles outside-click closing natively. Keep the `useEffect` that opens the popover when `explainMatches.length > 0`.
+- This guarantees the dropdown sits in a portal above all dialog content and is no longer clipped by the modal's `overflow-y-auto` scroll container.
 
 ### Files touched
-- `src/components/TopPlayersStrip.tsx` — swap player photo and team logo positions in `renderPlayer`, preserving the hover surge effect.
-- `src/pages/SchedulePage.tsx` — add `border-r border-border/60 last:border-r-0` to day-tab buttons; add a Shield icon button before the Grid3X3 link that opens the existing `InjuryReportModal`.
+- `src/pages/SchedulePage.tsx` — restyle day tabs as outlined pills (navy / yellow border per theme); reorder the header icon row to `[List/Grid] · [Shield] · [Grid3X3]` after the Deadline block; add a right-edge spacer in the GW strip so week 25 isn't clipped.
+- `src/components/AICoachModal.tsx` — convert the Explain autocomplete from a clipped `absolute` div into a Radix `Popover` (portal), keeping all selection/match logic identical.
 
 ### Verification
-- `/schedule` → Players of the Day, both tabs (Fantasy Points and Value), FC and BC: each player row now shows the team logo as the small avatar on the left and the **player photo** as a larger faded watermark behind it; hovering the row makes the player-photo watermark scale up and brighten (the same surge effect previously applied to the team logo).
-- `/schedule` day strip: every day tab has a clear vertical divider line between it and its neighbours; the active day still renders as a rounded primary pill.
-- `/schedule` icon row: a shield icon sits immediately to the left of the existing Grid3X3 (advanced grid) icon. Clicking it opens the league-wide Injury Report modal — identical to the modal opened from the AI Coach → Injuries → Scan Injuries flow on the My Roster page.
+- `/schedule`: every day tab now shows a rounded pill outline in navy (light theme) / yellow (dark theme); active tab still rendered as a filled primary pill.
+- `/schedule` header: after the Deadline, the icon order is List/Grid toggle → bullet → Shield → bullet → Grid3X3, with the same `·` separator already used between Day # and Deadline.
+- `/schedule`: the GW strip can scroll one pixel further so week 25 (rightmost) shows its full outline/shadow even when not selected.
+- `/` → AI Coach → Explain → type "Pau": the autocomplete dropdown now appears directly under the search input with player rows; clicking a row selects the player; clicking outside closes it.
 
