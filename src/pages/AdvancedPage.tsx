@@ -197,23 +197,18 @@ function NBAPlaySearchSection() {
     setDate(d.toISOString().slice(0, 10));
   };
 
-  const handleMatchupOpen = async () => {
-    const url =
-      `https://www.nbaplaydb.com/search` +
-      `?actionplayer=${encodeURIComponent(offensivePlayer)}` +
-      `&defensivePlayers=${encodeURIComponent(defensivePlayer)}` +
-      `&offensivePlayers=${encodeURIComponent(offensivePlayer)}`;
-    open(url);
-    try {
-      await navigator.clipboard?.writeText(defensivePlayer);
-      toast.success("Opening NBAPlayDB", {
-        description: `Offensive filter applied for ${offensivePlayer}. Defender "${defensivePlayer}" copied to clipboard — paste into Matchups → Defensive Player.`,
-      });
-    } catch {
-      toast.success("Opening NBAPlayDB", {
-        description: `Offensive filter applied for ${offensivePlayer}. Paste "${defensivePlayer}" into Matchups → Defensive Player.`,
-      });
-    }
+  const handleMatchupOpen = () => {
+    const params = new URLSearchParams({
+      actionplayer: offensivePlayer,
+      defensivePlayers: defensivePlayer,
+      offensivePlayers: offensivePlayer,
+    });
+    const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
+    window.open(url, "_blank");
+    navigator.clipboard?.writeText(defensivePlayer).catch(() => {});
+    toast.success("Opening NBAPlayDB", {
+      description: `Filters: ${offensivePlayer} (off) + ${defensivePlayer} (def). Defender copied to clipboard.`,
+    });
   };
 
   return (
@@ -228,7 +223,7 @@ function NBAPlaySearchSection() {
       </div>
       <div className="p-4 space-y-4">
         <Tabs defaultValue="matchup">
-          <TabsList className="rounded-lg">
+          <TabsList className="rounded-lg grid grid-cols-2 w-full max-w-md mx-auto">
             <TabsTrigger value="matchup" className="font-heading text-xs uppercase rounded-lg">🏀 Player Matchup</TabsTrigger>
             <TabsTrigger value="game" className="font-heading text-xs uppercase rounded-lg">🏀 By Game</TabsTrigger>
           </TabsList>
@@ -276,14 +271,14 @@ function NBAPlaySearchSection() {
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-[230px_1fr_auto] gap-3 items-end">
+            <div className="grid sm:grid-cols-[200px_1fr_auto] gap-3 items-end">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
                 <div className="flex items-stretch gap-1">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="h-10 w-9 rounded-lg shrink-0"
+                    className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
                     onClick={() => shiftDate(-1)}
                     aria-label="Previous day"
                   >
@@ -291,9 +286,9 @@ function NBAPlaySearchSection() {
                   </Button>
                   <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg flex-1 min-w-0" />
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="h-10 w-9 rounded-lg shrink-0"
+                    className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
                     onClick={() => shiftDate(1)}
                     aria-label="Next day"
                   >
