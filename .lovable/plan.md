@@ -1,72 +1,71 @@
 
 
-## Plan: Game-day arrows + working Matchup pre-fill
+## Plan: Matchup URL fix + tab styling + arrow polish
 
-### 1. `/advanced` → By Game: prev/next day navigation arrows
-File: `src/pages/AdvancedPage.tsx` (Game date cell, ~line 258-261)
+### 1. Player Matchup URL — guarantee all 3 params reach NBAPlayDB
+File: `src/pages/AdvancedPage.tsx` (`handleMatchupOpen`, ~line 200)
 
-Wrap the date `<Input>` with two compact icon buttons so the user can step day-by-day without opening the native date picker.
+The current code already builds `?actionplayer=…&defensivePlayers=…&offensivePlayers=…`, but the landed URL shows only `actionplayer`. Two likely culprits:
+- `window.open(url, "_blank", "noopener,noreferrer")` — the third arg `"noopener,noreferrer"` is a feature string in some browsers (Safari, certain Chrome configs) and can interact oddly with long query strings opened from a click handler that also performs an async clipboard write.
+- NBAPlayDB's landing page may rewrite the URL on first paint. We can't change their server behavior, but we CAN make sure the request leaving our app contains all params.
 
-- Layout (replacing the current single-input cell):
-  ```tsx
-  <div className="space-y-1.5">
-    <Label …>Game date</Label>
-    <div className="flex items-stretch gap-1">
-      <Button variant="outline" size="icon" className="h-10 w-9 rounded-lg shrink-0"
-              onClick={() => shiftDate(-1)} aria-label="Previous day">
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <Input type="date" value={date} onChange={…} className="rounded-lg flex-1 min-w-0" />
-      <Button variant="outline" size="icon" className="h-10 w-9 rounded-lg shrink-0"
-              onClick={() => shiftDate(1)} aria-label="Next day">
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-  ```
-- Helper inside the component:
+Fix:
+- Build the URL FIRST, open it BEFORE the awaited clipboard call so the browser's user-gesture window is intact:
   ```ts
-  const shiftDate = (delta: number) => {
-    const d = new Date(date + "T00:00:00");
-    d.setDate(d.getDate() + delta);
-    setDate(d.toISOString().slice(0, 10));
+  const handleMatchupOpen = () => {
+    const params = new URLSearchParams({
+      actionplayer: offensivePlayer,
+      defensivePlayers: defensivePlayer,
+      offensivePlayers: offensivePlayer,
+    });
+    const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
+    window.open(url, "_blank"); // drop the rel string — modern browsers default to noopener for _blank
+    // Fire-and-forget clipboard + toast (non-blocking)
+    navigator.clipboard?.writeText(defensivePlayer).catch(() => {});
+    toast.success("Opening NBAPlayDB", {
+      description: `Filters: ${offensivePlayer} (off) + ${defensivePlayer} (def). Defender copied to clipboard.`,
+    });
   };
   ```
-- Bump the column width: `grid sm:grid-cols-[180px_1fr_auto]` → `grid sm:grid-cols-[230px_1fr_auto]` so the two arrows + input fit cleanly without squeezing the Game select.
-- Add `ChevronLeft, ChevronRight` to the existing `lucide-react` import.
-- The existing date-change handler already triggers a refetch + clears `gameId`, so the arrows automatically reload the games list.
+- Use `URLSearchParams` so encoding is bulletproof for diacritics (Dončić, Sengün) and removes any chance of double-encoding.
+- Drop `async/await` from the click — the awaited clipboard call was happening BEFORE `open`, but even if `open` runs first, an async function flagged the click handler in a way that consumed the user gesture token in some browsers.
 
-### 2. `/advanced` → Player Matchup: actually pre-select both players on NBAPlayDB
+### 2. Tabs: equal width, centered, wider
+File: `src/pages/AdvancedPage.tsx` (`<TabsList>`, line 231)
 
-The current URL `?defensivePlayers=…&offensivePlayers=…` lands on the Matchups tab (good) but with empty player dropdowns (bad) — NBAPlayDB's Matchups panel hydrates from a different param shape than what we're sending. Per the screenshot evidence and the only verified working filter param on that site (`actionplayer`), the practical fix is:
+Current `<TabsList>` is left-aligned with intrinsic-sized triggers. Make the two tabs symmetric and centered:
+```tsx
+<TabsList className="rounded-lg grid grid-cols-2 w-full max-w-md mx-auto">
+  <TabsTrigger value="matchup" className="font-heading text-xs uppercase rounded-lg">🏀 Player Matchup</TabsTrigger>
+  <TabsTrigger value="game" className="font-heading text-xs uppercase rounded-lg">🏀 By Game</TabsTrigger>
+</TabsList>
+```
+- `grid grid-cols-2` → both tabs share the row equally.
+- `w-full max-w-md mx-auto` → tabs are noticeably wider than today and horizontally centered within the card.
 
-- Open the URL with the `actionplayer` param (which IS recognized as an Active Filter chip) AND keep our `defensivePlayers` / `offensivePlayers` params as a hint for any future-compatible hydration:
-  ```ts
-  const url =
-    `https://www.nbaplaydb.com/search` +
-    `?actionplayer=${encodeURIComponent(offensivePlayer)}` +
-    `&defensivePlayers=${encodeURIComponent(defensivePlayer)}` +
-    `&offensivePlayers=${encodeURIComponent(offensivePlayer)}`;
-  ```
-  This guarantees the offensive player shows as an Active Filter chip immediately, while still flagging the defender for Matchups-aware logic. The previous attempt that dropped `actionplayer` proved the matchups-only params are silently ignored on landing.
-- After opening the URL, copy the defender's full name to the user's clipboard (so they can paste it into the Matchups → Defensive Player dropdown in one move) and show a toast:
-  ```ts
-  await navigator.clipboard?.writeText(defensivePlayer);
-  toast({
-    title: "Opening NBAPlayDB",
-    description: `Offensive filter applied for ${offensivePlayer}. Defender "${defensivePlayer}" copied to clipboard — paste into the Matchups → Defensive Player field.`,
-  });
-  ```
-  Use the existing `useToast` hook (`@/hooks/use-toast`, already used elsewhere in the project).
-- Update the helper line under the selectors to match:
-  `Offensive player auto-applied as filter. Defender name copied to clipboard for one-paste selection.`
+### 3. By Game date arrows: borderless, smaller
+File: `src/pages/AdvancedPage.tsx` (date-cell buttons, lines 283-301)
 
-This delivers the closest behavior NBAPlayDB allows today (their Matchups tab does not appear to hydrate from URL params for the player selects; copying the name to the clipboard removes the friction of re-typing).
+Switch the chevron buttons from `variant="outline"` (which renders the bordered yellow primary outline) to `variant="ghost"` and shrink them:
+```tsx
+<Button variant="ghost" size="icon" className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDate(-1)} aria-label="Previous day">
+  <ChevronLeft className="h-4 w-4" />
+</Button>
+…
+<Button variant="ghost" size="icon" className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDate(1)} aria-label="Next day">
+  <ChevronRight className="h-4 w-4" />
+</Button>
+```
+- `variant="ghost"` removes the yellow border entirely; the chevron sits on the card's neutral surface and only highlights on hover.
+- `w-7` (28px) instead of `w-9` shrinks the container; `px-0` keeps the icon visually centered.
+- Trim the date-column grid width from `230px` back to `200px` since the arrows are now narrower:
+  `grid sm:grid-cols-[230px_1fr_auto]` → `grid sm:grid-cols-[200px_1fr_auto]`.
 
 ### Files touched
-- `src/pages/AdvancedPage.tsx` — add `ChevronLeft/ChevronRight` arrows around the date input with a `shiftDate` helper; widen the date column; rewrite the matchup `onClick` to include `actionplayer` + clipboard copy + toast; tweak the helper sentence.
+- `src/pages/AdvancedPage.tsx`
 
 ### Verification
-- `/advanced` → By Game: pick `2026-04-12` → click left arrow → date becomes `2026-04-11`, the Game select reloads with that day's games and clears any prior selection. Right arrow advances back. Both arrows live next to the date input, fit on one row at 1318px.
-- `/advanced` → Player Matchup: pick `Luka Dončić` (off) and `Anthony Edwards` (def) → click `Open Matchup on NBAPlayDB` → opens NBAPlayDB on the Matchups tab with **`Actionplayer: Luka Dončić`** chip in Active Filters, the defender's name `Anthony Edwards` is on the clipboard, and a toast says so. One paste into the Defensive Player dropdown completes the matchup.
+- Player Matchup → Ajay Mitchell (off) + Aaron Gordon (def) → click `Open Matchup on NBAPlayDB` → opens `https://www.nbaplaydb.com/search?actionplayer=Ajay+Mitchell&defensivePlayers=Aaron+Gordon&offensivePlayers=Ajay+Mitchell` (full param string in the address bar).
+- Tabs row: both `🏀 Player Matchup` and `🏀 By Game` are the same width, centered horizontally inside the NBA Play Search card, and visibly wider than before.
+- By Game: prev/next arrows are borderless, narrower (28px), match the muted text color, and highlight on hover. Date input + arrows still fit on one line.
 
