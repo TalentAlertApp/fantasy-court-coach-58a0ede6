@@ -179,17 +179,18 @@ export default function CommissionerPage() {
   const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
   const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
 
-  const handleYoutubeRecapLookup = async () => {
+  const handleYoutubeRecapLookup = async (rescanAll = false) => {
     setIsLookingUpRecaps(true);
     setRecapResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("youtube-recap-lookup", {
-        body: null,
-      });
+      const path = rescanAll ? "youtube-recap-lookup?clear=1&limit=100" : "youtube-recap-lookup";
+      const { data, error } = await supabase.functions.invoke(path, { body: null });
       if (error) throw error;
       if (data?.ok && data.data) {
         setRecapResult(data.data);
-        toast.success(`Found ${data.data.found} recaps (${data.data.remaining} remaining)`);
+        toast.success(
+          `${rescanAll ? "Re-scanned: " : ""}Found ${data.data.found} recaps (${data.data.remaining} remaining)`,
+        );
         if (data.data.errors?.length) {
           toast.warning(`${data.data.errors.length} errors`);
           console.warn("Recap lookup errors:", data.data.errors);
@@ -739,14 +740,23 @@ export default function CommissionerPage() {
           Auto-populate YouTube recap video IDs for all finished games missing a recap.
           Uses the YouTube Data API to search for "Motion Station" recaps.
         </p>
-        <Button
-          onClick={handleYoutubeRecapLookup}
-          disabled={isLookingUpRecaps}
-          className="w-full"
-        >
-          <Youtube className="h-4 w-4 mr-2" />
-          {isLookingUpRecaps ? "Looking up recaps…" : "Populate YouTube Recaps"}
-        </Button>
+        <div className="grid sm:grid-cols-2 gap-2">
+          <Button
+            onClick={() => handleYoutubeRecapLookup(false)}
+            disabled={isLookingUpRecaps}
+          >
+            <Youtube className="h-4 w-4 mr-2" />
+            {isLookingUpRecaps ? "Looking up recaps…" : "Populate YouTube Recaps"}
+          </Button>
+          <Button
+            onClick={() => handleYoutubeRecapLookup(true)}
+            disabled={isLookingUpRecaps}
+            variant="outline"
+          >
+            <Youtube className="h-4 w-4 mr-2" />
+            Re-scan All Recaps
+          </Button>
+        </div>
         {recapResult && (
           <div className="flex items-center gap-2 text-sm text-primary">
             <CheckCircle2 className="h-4 w-4" />
