@@ -143,31 +143,74 @@ function NBAPlaySearchSection() {
   const [offensivePlayer, setOffensivePlayer] = useState("");
   const [defensivePlayer, setDefensivePlayer] = useState("");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
+  const initial = useMemo(() => getCurrentGameday(), []);
+  const [gw, setGw] = useState<number>(initial.gw);
+  const [day, setDay] = useState<number>(initial.day);
   const [gameId, setGameId] = useState("");
 
+  // Lisbon-day label + yyyymmdd derived from the matched deadline
+  const currentDeadline = useMemo(
+    () => DEADLINES.find((d) => d.gw === gw && d.day === day) ?? initial,
+    [gw, day, initial],
+  );
+  const lisbonDateLabel = useMemo(() => {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Lisbon",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(new Date(currentDeadline.deadline_utc));
+  }, [currentDeadline]);
+  const yyyymmdd = useMemo(() => {
+    // Lisbon Y-M-D for the deadline date
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Lisbon",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(currentDeadline.deadline_utc));
+    const y = parts.find((p) => p.type === "year")?.value ?? "";
+    const m = parts.find((p) => p.type === "month")?.value ?? "";
+    const d = parts.find((p) => p.type === "day")?.value ?? "";
+    return `${y}${m}${d}`;
+  }, [currentDeadline]);
+
+  // Step through DEADLINES chronologically
+  const currentIndex = useMemo(
+    () => DEADLINES.findIndex((d) => d.gw === gw && d.day === day),
+    [gw, day],
+  );
+  const canPrev = currentIndex > 0;
+  const canNext = currentIndex >= 0 && currentIndex < DEADLINES.length - 1;
+  const shiftDay = (delta: number) => {
+    const next = DEADLINES[currentIndex + delta];
+    if (!next) return;
+    setGw(next.gw);
+    setDay(next.day);
+  };
+
+  const daysInGw = useMemo(() => DEADLINES.filter((d) => d.gw === gw).map((d) => d.day), [gw]);
+  const allGws = useMemo(() => Array.from(new Set(DEADLINES.map((d) => d.gw))), []);
+
+  // Reset selected game when (gw, day) changes — proper effect, not useMemo
+  useEffect(() => {
+    setGameId("");
+  }, [gw, day]);
+
   const { data: gamesByDate, isLoading: gamesLoading } = useQuery({
-    queryKey: ["games-by-date", date],
+    queryKey: ["games-by-gw-day", gw, day],
     queryFn: async () => {
-      if (!date) return [];
-      const start = new Date(date + "T00:00:00");
-      const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, away_team, home_team, tipoff_utc, status")
-        .gte("tipoff_utc", start.toISOString())
-        .lt("tipoff_utc", end.toISOString())
+        .eq("gw", gw)
+        .eq("day", day)
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 2 * 60 * 60 * 1000,
-    enabled: !!date,
   });
-
-  // Reset gameId when date changes / list reloads to avoid stale selection
-  useMemo(() => { setGameId(""); }, [date]);
 
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
   const players = useMemo(() => {
@@ -186,17 +229,10 @@ function NBAPlaySearchSection() {
   const matchupDisabled = !offensivePlayer || !defensivePlayer;
 
   const selectedGame = (gamesByDate ?? []).find((g: any) => g.game_id === gameId);
-  const yyyymmdd = date.split("-").join("");
   const gamecode = selectedGame ? `${yyyymmdd}/${selectedGame.away_team}${selectedGame.home_team}` : "";
   const gameSearchDisabled = !selectedGame;
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
-
-  const shiftDate = (delta: number) => {
-    const d = new Date(date + "T00:00:00");
-    d.setDate(d.getDate() + delta);
-    setDate(d.toISOString().slice(0, 10));
-  };
 
   const handleMatchupOpen = () => {
     const params = new URLSearchParams({
@@ -204,9 +240,19 @@ function NBAPlaySearchSection() {
       offensivePlayers: offensivePlayer,
     });
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
-    window.open(url, "_blank");
+    // Synchronous anchor click — more reliable than window.open against SPAs that strip popups
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener,noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Fallback: copy URL so the user can paste if NBAPlayDB strips params on hydration
+    navigator.clipboard?.writeText(url).catch(() => {});
     toast.success("Opening NBAPlayDB", {
-      description: `Matchup: ${offensivePlayer} (off) vs ${defensivePlayer} (def).`,
+      description: `Matchup URL copied to clipboard. If filters don't apply, paste it into the address bar.`,
+      duration: 6000,
     });
   };
 
