@@ -228,7 +228,7 @@ function NBAPlaySearchSection() {
                   disabled={matchupDisabled}
                   onClick={() =>
                     open(
-                      `https://www.nbaplaydb.com/search?actionplayer=${encodeURIComponent(offensivePlayer)}&q=${encodeURIComponent(defensivePlayer)}`
+                      `https://www.nbaplaydb.com/search?defensivePlayers=${encodeURIComponent(defensivePlayer)}&offensivePlayers=${encodeURIComponent(offensivePlayer)}`
                     )
                   }
                   className="rounded-lg h-10"
@@ -249,12 +249,12 @@ function NBAPlaySearchSection() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Offensive player applied as filter; defender added as a search term.
+              Both players are applied as Matchup filters on NBAPlayDB.
             </p>
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-[180px_1fr] gap-3">
+            <div className="grid sm:grid-cols-[180px_1fr_auto] gap-3 items-end">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg" />
@@ -295,29 +295,32 @@ function NBAPlaySearchSection() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  disabled={gameSearchDisabled}
+                  onClick={() => selectedGame && open(`https://www.nbaplaydb.com/games/${yyyymmdd}-${selectedGame.away_team}${selectedGame.home_team}`)}
+                  className="rounded-lg h-10"
+                >
+                  Open Game on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={gameSearchDisabled}
+                  onClick={() => open(`https://www.nbaplaydb.com/search?gamecode=${encodeURIComponent(gamecode)}`)}
+                  className="rounded-lg h-10"
+                >
+                  Search Plays <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                size="sm"
-                disabled={gameSearchDisabled}
-                onClick={() => open(`https://www.nbaplaydb.com/search?gamecode=${encodeURIComponent(gamecode)}`)}
-                className="rounded-lg"
-              >
-                Open on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={gameSearchDisabled}
-                onClick={() => selectedGame && open(`https://www.nbaplaydb.com/games/${yyyymmdd}-${selectedGame.away_team}${selectedGame.home_team}`)}
-                className="rounded-lg"
-              >
-                View Game Page <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
-              </Button>
-              {!gameSearchDisabled && (
-                <span className="text-[10px] font-mono text-muted-foreground ml-auto">{gamecode}</span>
-              )}
-            </div>
+            {!gameSearchDisabled && (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] text-muted-foreground">
+                  If "Search Plays" is blocked by a verification page, use "Open Game" — it loads the game page directly.
+                </p>
+                <span className="text-[10px] font-mono text-muted-foreground">{gamecode}</span>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
