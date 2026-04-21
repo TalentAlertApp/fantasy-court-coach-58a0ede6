@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
+import { supabase } from "@/integrations/supabase/client";
 import {
   HealthResponseSchema,
   PlayersListResponseSchema,
@@ -39,11 +40,22 @@ export async function apiFetch<T extends z.ZodTypeAny>(
     throw new Error(`API config missing: SUPABASE_URL is empty (path=${path})`);
   }
   const url = `${SUPABASE_URL}/functions/v1/${path}`;
+  // Attach the current user's JWT when available, so edge functions can
+  // identify the caller (e.g. teams stamping owner_id).
+  let authHeader: Record<string, string> = {};
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) authHeader = { Authorization: `Bearer ${token}` };
+  } catch {
+    // ignore — fall back to apikey-only request
+  }
   const res = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       apikey: SUPABASE_PUBLISHABLE_KEY,
+      ...authHeader,
       ...(init?.headers ?? {}),
     },
   });
