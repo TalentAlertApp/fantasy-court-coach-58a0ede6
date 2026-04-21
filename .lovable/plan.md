@@ -1,81 +1,66 @@
 
 
-## Plan: Replace "Player Matchup" with "Player Action" search
+## Plan: Add login (Email/Password + Magic Link) with per-user team ownership
 
-### Why
-Image-212 proves the URL `?actionplayer=Neemias%20Queta&actiontype=rebound&actiontype=2pt` works perfectly on NBAPlayDB (lands on Play Filters with Actionplayer + multiple Actiontype chips active, 1,856 results). The Matchup URL keeps getting stripped by NBAPlayDB's hydration — abandon it and ship the Player Action variant instead.
+### Goals
+- Gate the entire app behind sign-in.
+- Support **Email + Password** and **Magic Link**.
+- New teams created after login belong to the creator; existing teams stay visible to everyone (per your "Per-user from now on" choice).
+- No profiles table — Supabase `auth.users` only.
 
-### File touched
-`src/pages/AdvancedPage.tsx` — `NBAPlaySearchSection`
+### 1 · Database migration
+- Add nullable `owner_id uuid` column to `public.teams` (FK → `auth.users(id) ON DELETE SET NULL`). Existing rows keep `owner_id = NULL` → treated as "shared/legacy".
+- Replace permissive RLS on `public.teams` with:
+  - SELECT: `owner_id IS NULL OR owner_id = auth.uid()`
+  - INSERT: `auth.uid() IS NOT NULL` and `owner_id = auth.uid()`
+  - UPDATE/DELETE: `owner_id = auth.uid()` (legacy NULL-owned teams remain read-only via UI, edited only through edge functions).
+- Other 9 tables (roster, transactions, players, schedule_games, etc.) keep current RLS — they're keyed by `team_id` and remain reachable through edge functions (which use service role). This matches your "data stays shared, new teams per-user" choice.
 
-### 1. Replace tab label and state
-- Rename tab `matchup` → `action` and label `🏀 Player Matchup` → `🏀 Player Action`. Keep By Game tab as-is.
-- Replace state `offensivePlayer` / `defensivePlayer` with:
-  - `actionPlayer: string` (single player name)
-  - `actionTypes: string[]` (multi-select; empty = "All")
+### 2 · Supabase config (you do this in the dashboard)
+- Authentication → URL Configuration → set **Site URL** to the preview URL and add the same as a Redirect URL (so magic links land back in-app).
+- Authentication → Providers → Email: **enable**, with "Confirm email" turned **off** for friction-free signup (you can re-enable later).
+- No Google setup needed — Magic Link covers passwordless without Google Cloud configuration.
 
-### 2. Action Type catalogue
-Constant inside the component:
-```ts
-const ACTION_TYPES = [
-  { value: "rebound",  label: "Rebound" },
-  { value: "2pt",      label: "2pt" },
-  { value: "3pt",      label: "3pt" },
-  { value: "freethrow",label: "Free Throw" },
-  { value: "block",    label: "Block" },
-  { value: "steal",    label: "Steal" },
-  { value: "foul",     label: "Foul" },
-  { value: "turnover", label: "Turnover" },
-  { value: "violation",label: "Violation" },
-  { value: "jumpball", label: "Jumpball" },
-];
-```
+### 3 · Frontend — auth surface
 
-### 3. UI layout (Player Action tab)
-Three-column row, same shell as the previous Matchup tab so the rest of the section is unchanged:
+**New files**
+- `src/contexts/AuthContext.tsx` — wraps the app; subscribes to `supabase.auth.onAuthStateChange` (set up BEFORE `getSession()` per Supabase contract); exposes `{ user, session, loading, signOut }`.
+- `src/pages/AuthPage.tsx` — single page at `/auth` with two tabs:
+  - **Sign in / Sign up** (Email + Password) — shared form, two buttons; signup uses `emailRedirectTo: window.location.origin`.
+  - **Magic link** — email input → `signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })` → toast "Check your inbox".
+  - Branded with the existing dark theme + NBA logo.
+- `src/components/auth/RequireAuth.tsx` — guard wrapper. While loading, render a centered spinner. If no session, `<Navigate to="/auth" replace />`.
 
-```text
-[ Player (combobox)        ] [ Action Type (multi-popover) ] [ Open · Clear ]
-```
+**Edits**
+- `src/App.tsx` — wrap `<Routes>` so `/auth` is public and everything else (the entire `<AppLayout>` subtree) sits inside `<RequireAuth>`. Add `<AuthProvider>` above `<TeamProvider>`.
+- `src/components/layout/AppLayout.tsx` (or the sidebar) — add a small user pill at the bottom showing the email + "Sign out" button calling `supabase.auth.signOut()` then `navigate("/auth")`.
 
-- **Player**: reuse existing `PlayerCombobox` with `value={actionPlayer}` and label "Player".
-- **Action Type**: Popover + Command list with checkbox items. Trigger button shows:
-  - `All actions` when `actionTypes.length === 0`
-  - First label + `+N` chip when multiple selected (e.g. `Rebound +2`)
-  - Single label when exactly one
-  Each Command item toggles its value in/out of `actionTypes`. Add a "Clear actions" footer item that empties the array.
-- **Buttons**:
-  - `Open Plays on NBAPlayDB` — disabled when `!actionPlayer`.
-  - Ghost `Clear` — resets `actionPlayer = ""` and `actionTypes = []`.
-- Helper line beneath: `Player + selected action types open as Play Filters on NBAPlayDB.`
+### 4 · Frontend — wire the auth header to edge functions
 
-### 4. URL construction
-```ts
-const handleActionOpen = () => {
-  const params = new URLSearchParams();
-  params.set("actionplayer", actionPlayer);
-  for (const t of actionTypes) params.append("actiontype", t); // repeats the key
-  const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
-  const a = document.createElement("a");
-  a.href = url; a.target = "_blank"; a.rel = "noopener,noreferrer";
-  document.body.appendChild(a); a.click(); a.remove();
-  toast.success("Opening NBAPlayDB", {
-    description: actionTypes.length
-      ? `${actionPlayer} · ${actionTypes.join(", ")}`
-      : `${actionPlayer} · All actions`,
-  });
-};
-```
-- `URLSearchParams.append` produces the exact repeated-key shape the user verified (`?actionplayer=…&actiontype=rebound&actiontype=2pt`).
-- Encoding handles diacritics automatically (Queta, Dončić, Šengün).
+Edge functions currently use `apikey` only. To carry the user identity to `teams` so it can stamp `owner_id`, update `src/lib/api.ts`:
+- Read the current session via `supabase.auth.getSession()` inside `apiFetch` and add `Authorization: Bearer <access_token>` when present.
+- Falls back gracefully (still sends `apikey`) so unauthenticated calls during boot don't crash.
 
-### 5. Remove obsolete code
-- Delete `handleMatchupOpen`, `matchupDisabled`, the matchup clipboard fallback, and the unused `defensivePlayer` state.
-- Keep By Game tab and all its logic (gameday selectors, arrows, NBAPlayDB game URL) untouched.
+### 5 · Edge function update — `supabase/functions/teams/index.ts`
+- Read the JWT from `Authorization` header, decode `sub` (user id) using the supabase-js helper (`createClient(...).auth.getUser(jwt)`).
+- On `POST` (create team): inject `owner_id: user.id`. If no user → 401.
+- On `PATCH` / `DELETE`: verify the row's `owner_id` matches `user.id` (or is NULL → reject for safety). If no user → 401.
+- On `GET`: filter by `owner_id IS NULL OR owner_id = user.id`. If no user → return empty list.
 
-### Verification
-- `/advanced` → Player Action tab → pick `Neemias Queta` → leave actions empty → `Open Plays on NBAPlayDB` opens `https://www.nbaplaydb.com/search?actionplayer=Neemias%20Queta` (Active Filters chip: `Actionplayer: Neemias Queta`).
-- Same player → check `Rebound` + `2pt` → opens `https://www.nbaplaydb.com/search?actionplayer=Neemias%20Queta&actiontype=rebound&actiontype=2pt` (matches image-212 exactly: 1,856 results, both action chips active).
-- Trigger button reads `Rebound +1`; multi-popover lets the user toggle any of the 10 action types.
-- By Game tab continues to work exactly as today.
+### 6 · TeamContext interplay
+- `fetchTeams()` will now return only owned + legacy teams for the signed-in user. The existing auto-correct logic already picks the first populated team and persists to localStorage — works unchanged.
+- When the user signs out, clear `localStorage["nba_selected_team_id"]` so the next user doesn't inherit a stale selection.
+
+### Acceptance checklist
+- Visiting `/` while signed out → redirected to `/auth`.
+- Magic link tab → enter email → toast → click link in inbox → land on `/` signed in.
+- Email+password signup → immediately signed in (since email confirm is off).
+- Header shows the signed-in email + Sign out button.
+- Creating a new team while signed in → team is created with `owner_id = your uid`. Signing out and signing up as a second user → second user does NOT see your new team, but DOES see the pre-existing legacy teams.
+- Trying to rename/delete a team you don't own → fails with a toast (RLS rejects).
+
+### Files touched
+- New: `src/contexts/AuthContext.tsx`, `src/pages/AuthPage.tsx`, `src/components/auth/RequireAuth.tsx`
+- Edited: `src/App.tsx`, `src/lib/api.ts`, `src/components/layout/AppLayout.tsx`, `supabase/functions/teams/index.ts`
+- New migration: add `owner_id` column + new RLS policies on `public.teams`
 
