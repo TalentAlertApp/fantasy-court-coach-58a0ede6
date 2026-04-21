@@ -191,6 +191,31 @@ function NBAPlaySearchSection() {
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
+  const shiftDate = (delta: number) => {
+    const d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    setDate(d.toISOString().slice(0, 10));
+  };
+
+  const handleMatchupOpen = async () => {
+    const url =
+      `https://www.nbaplaydb.com/search` +
+      `?actionplayer=${encodeURIComponent(offensivePlayer)}` +
+      `&defensivePlayers=${encodeURIComponent(defensivePlayer)}` +
+      `&offensivePlayers=${encodeURIComponent(offensivePlayer)}`;
+    open(url);
+    try {
+      await navigator.clipboard?.writeText(defensivePlayer);
+      toast.success("Opening NBAPlayDB", {
+        description: `Offensive filter applied for ${offensivePlayer}. Defender "${defensivePlayer}" copied to clipboard — paste into Matchups → Defensive Player.`,
+      });
+    } catch {
+      toast.success("Opening NBAPlayDB", {
+        description: `Offensive filter applied for ${offensivePlayer}. Paste "${defensivePlayer}" into Matchups → Defensive Player.`,
+      });
+    }
+  };
+
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
