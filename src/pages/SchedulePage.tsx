@@ -149,7 +149,7 @@ export default function SchedulePage() {
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
 
-          <div className="flex-1 flex overflow-x-auto scrollbar-hide">
+          <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide px-1">
             {weekDays.map((wd) => {
               const isSelected = wd.day === day;
               const isDayToday = wd.date === todayStr;
@@ -161,9 +161,9 @@ export default function SchedulePage() {
                 <button
                   key={wd.day}
                   onClick={() => setDay(wd.day)}
-                className={`flex-1 min-w-[80px] py-2 px-2 transition-all border-r border-border/60 last:border-r-0 ${
+                  className={`flex-1 min-w-[80px] py-2 px-2 transition-all rounded-xl border border-[hsl(var(--nba-navy))] dark:border-[hsl(var(--nba-yellow))]/60 ${
                     isSelected
-                      ? "bg-primary text-primary-foreground shadow-md rounded-xl border-r-transparent"
+                      ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
