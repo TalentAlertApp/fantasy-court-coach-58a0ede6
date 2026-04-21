@@ -224,21 +224,6 @@ export default function SchedulePage() {
                 </>
               )}
               <span className="text-muted-foreground/40">·</span>
-              <button
-                onClick={() => setInjuryOpen(true)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                title="Injury Report"
-                aria-label="Open injury report"
-              >
-                <Shield className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                title="Advanced Schedule Grid"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
               <div className="inline-flex items-center rounded-xl border border-border overflow-hidden">
                 <button
                   onClick={() => setViewMode("list")}
@@ -257,6 +242,23 @@ export default function SchedulePage() {
                   <LayoutGrid className="h-3.5 w-3.5" />
                 </button>
               </div>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                onClick={() => setInjuryOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Injury Report"
+                aria-label="Open injury report"
+              >
+                <Shield className="h-4 w-4" />
+              </button>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Advanced Schedule Grid"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
             </div>
 
             {/* CENTER: TOTW | POTD (absolute on md+, inline on mobile) */}
