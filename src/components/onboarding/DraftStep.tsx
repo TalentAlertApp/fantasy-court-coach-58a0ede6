@@ -177,21 +177,24 @@ export default function DraftStep({ teamName, onFinish }: Props) {
   const manualGateMet = strategy !== "manual" || picks.length === 0 || isManualValid;
 
   return (
-    <div className="relative flex flex-col min-h-screen px-6 py-10 items-center justify-center">
+    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
       {(drafting || success) && <DraftingOverlay success={success} />}
 
-      <StepIndicator step={2} />
+      <StepIndicator step={3} />
 
-      <div className="w-full max-w-4xl text-center animate-fade-in">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 2 of 2</p>
-        <h2 className="font-heading font-black uppercase tracking-[0.15em] text-5xl md:text-7xl text-foreground">
+      <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center">
+        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
+        <h2
+          className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
+          style={{ fontSize: "clamp(2.25rem, 7vh, 4.5rem)", lineHeight: 1 }}
+        >
           Draft <span className="text-accent">{teamName || "Your Squad"}</span>
         </h2>
-        <p className="mt-4 text-sm md:text-base text-foreground/60">
+        <p className="mt-3 text-sm md:text-base text-foreground/60">
           Pick your drafting style — you can swap players any time after.
         </p>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-3 w-full">
           {options.map((opt) => {
             const Icon = opt.icon;
             const active = strategy === opt.id;
@@ -200,7 +203,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
                 key={opt.id}
                 type="button"
                 onClick={() => setStrategy(opt.id)}
-                className={`relative text-left p-6 rounded-2xl border-2 transition-all ${
+                className={`relative text-left p-5 rounded-2xl border-2 transition-all ${
                   active
                     ? "border-accent bg-accent/5 shadow-[0_0_40px_-15px_hsl(var(--accent))]"
                     : "border-foreground/10 bg-foreground/[0.02] hover:border-foreground/25"
@@ -211,7 +214,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
                     Recommended
                   </span>
                 )}
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-4 ${
+                <div className={`h-11 w-11 rounded-xl flex items-center justify-center mb-3 ${
                   active ? "bg-accent text-accent-foreground" : "bg-foreground/10 text-foreground/70"
                 }`}>
                   <Icon className="h-6 w-6" />
@@ -219,7 +222,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
                 <h3 className="font-heading uppercase tracking-[0.15em] text-base text-foreground">
                   {opt.title}
                 </h3>
-                <p className="mt-2 text-xs text-foreground/60 leading-relaxed">
+                <p className="mt-1.5 text-xs text-foreground/60 leading-relaxed">
                   {opt.subtitle}
                 </p>
               </button>
@@ -229,7 +232,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
 
         {/* Manual progress strip */}
         {strategy === "manual" && picks.length > 0 && (
-          <div className="mt-8 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-4">
+          <div className="mt-5 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-3">
             <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] font-bold">
               <span className="px-3 py-1 rounded-full border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black">
                 Picked {picks.length}/10
@@ -244,7 +247,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
                 ${totalSalary.toFixed(1)}M / ${SALARY_CAP}M
               </span>
             </div>
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
               {picks.map((p) => (
                 <button
                   key={p.core.id}
@@ -259,7 +262,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
             {picks.length < 10 && (
               <button
                 onClick={() => setManualOpen(true)}
-                className="mt-3 text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
+                className="mt-2 text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
               >
                 + Add more players
               </button>
@@ -271,7 +274,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
           onClick={handleGo}
           disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
           size="lg"
-          className="mt-12 h-16 px-12 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
+          className="mt-8 h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
         >
           {drafting ? (
             <>
@@ -289,13 +292,13 @@ export default function DraftStep({ teamName, onFinish }: Props) {
         </Button>
 
         {strategy === "manual" && picks.length > 0 && !isManualValid && (
-          <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-foreground/50">
+          <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-foreground/50">
             Need exactly 5 FC + 5 BC, ≤ ${SALARY_CAP}M, max 2 per NBA team
           </p>
         )}
 
         {/* Bottom info chips for visual consistency with hero */}
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3">
           {[
             "$100M Cap",
             "10 Players",
@@ -336,12 +339,14 @@ export default function DraftStep({ teamName, onFinish }: Props) {
   );
 }
 
-function StepIndicator({ step }: { step: 1 | 2 }) {
+function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   return (
     <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
       <span className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 1 ? "bg-accent" : "bg-foreground/20"}`} />
       <span className="h-px w-8 bg-foreground/15" />
       <span className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 2 ? "bg-accent" : "bg-foreground/20"}`} />
+      <span className="h-px w-8 bg-foreground/15" />
+      <span className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 3 ? "bg-accent" : "bg-foreground/20"}`} />
     </div>
   );
 }
