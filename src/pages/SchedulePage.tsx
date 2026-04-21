@@ -105,7 +105,7 @@ export default function SchedulePage() {
             <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
             <span className="text-xs font-body dark:text-[hsl(var(--nba-yellow))]">{dateRange}</span>
           </div>
-          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1">
+          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1 pr-2">
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
               const isCurrent = w === current.gw;
@@ -129,6 +129,7 @@ export default function SchedulePage() {
                 </button>
               );
             })}
+            <span className="shrink-0 w-1" aria-hidden />
           </div>
         </div>
 
