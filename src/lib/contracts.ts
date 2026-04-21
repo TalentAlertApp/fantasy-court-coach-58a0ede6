@@ -715,13 +715,14 @@ export const TeamSchema = z
     description: z.string().nullable(),
     created_at: IsoDateTimeSchema,
     updated_at: IsoDateTimeSchema,
+    owner_id: z.string().uuid().nullable().optional(),
   })
   .strict();
 
 export const TeamListPayloadSchema = z
   .object({
     items: z.array(TeamSchema),
-    default_team_id: z.string().uuid(),
+    default_team_id: z.string().uuid().nullable(),
   })
   .strict();
 
