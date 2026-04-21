@@ -139,8 +139,22 @@ function PlayerCombobox({
 }
 
 function NBAPlaySearchSection() {
-  const [offensivePlayer, setOffensivePlayer] = useState("");
-  const [defensivePlayer, setDefensivePlayer] = useState("");
+  const [actionPlayer, setActionPlayer] = useState("");
+  const [actionTypes, setActionTypes] = useState<string[]>([]);
+  const [actionPopoverOpen, setActionPopoverOpen] = useState(false);
+
+  const ACTION_TYPES = [
+    { value: "rebound", label: "Rebound" },
+    { value: "2pt", label: "2pt" },
+    { value: "3pt", label: "3pt" },
+    { value: "freethrow", label: "Free Throw" },
+    { value: "block", label: "Block" },
+    { value: "steal", label: "Steal" },
+    { value: "foul", label: "Foul" },
+    { value: "turnover", label: "Turnover" },
+    { value: "violation", label: "Violation" },
+    { value: "jumpball", label: "Jumpball" },
+  ];
 
   const initial = useMemo(() => getCurrentGameday(), []);
   const [gw, setGw] = useState<number>(initial.gw);
@@ -225,21 +239,17 @@ function NBAPlaySearchSection() {
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [playersData]);
 
-  const matchupDisabled = !offensivePlayer || !defensivePlayer;
-
   const selectedGame = (gamesByDate ?? []).find((g: any) => g.game_id === gameId);
   const gamecode = selectedGame ? `${yyyymmdd}/${selectedGame.away_team}${selectedGame.home_team}` : "";
   const gameSearchDisabled = !selectedGame;
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
-  const handleMatchupOpen = () => {
-    const params = new URLSearchParams({
-      defensivePlayers: defensivePlayer,
-      offensivePlayers: offensivePlayer,
-    });
+  const handleActionOpen = () => {
+    const params = new URLSearchParams();
+    params.set("actionplayer", actionPlayer);
+    for (const t of actionTypes) params.append("actiontype", t);
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
-    // Synchronous anchor click — more reliable than window.open against SPAs that strip popups
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
@@ -247,13 +257,28 @@ function NBAPlaySearchSection() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    // Fallback: copy URL so the user can paste if NBAPlayDB strips params on hydration
-    navigator.clipboard?.writeText(url).catch(() => {});
+    const labels = actionTypes
+      .map((v) => ACTION_TYPES.find((x) => x.value === v)?.label ?? v)
+      .join(", ");
     toast.success("Opening NBAPlayDB", {
-      description: `Matchup URL copied to clipboard. If filters don't apply, paste it into the address bar.`,
-      duration: 6000,
+      description: actionTypes.length
+        ? `${actionPlayer} · ${labels}`
+        : `${actionPlayer} · All actions`,
     });
   };
+
+  const actionDisabled = !actionPlayer;
+  const toggleActionType = (v: string) => {
+    setActionTypes((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+    );
+  };
+  const actionTriggerLabel = (() => {
+    if (actionTypes.length === 0) return "All actions";
+    const first = ACTION_TYPES.find((x) => x.value === actionTypes[0])?.label ?? actionTypes[0];
+    if (actionTypes.length === 1) return first;
+    return `${first} +${actionTypes.length - 1}`;
+  })();
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -266,42 +291,88 @@ function NBAPlaySearchSection() {
         </span>
       </div>
       <div className="p-4 space-y-4">
-        <Tabs defaultValue="matchup">
+        <Tabs defaultValue="action">
           <TabsList className="rounded-lg grid grid-cols-2 w-full max-w-md mx-auto">
-            <TabsTrigger value="matchup" className="font-heading text-xs uppercase rounded-lg">🏀 Player Matchup</TabsTrigger>
+            <TabsTrigger value="action" className="font-heading text-xs uppercase rounded-lg">🏀 Player Action</TabsTrigger>
             <TabsTrigger value="game" className="font-heading text-xs uppercase rounded-lg">🏀 By Game</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="matchup" className="mt-4 space-y-2">
+          <TabsContent value="action" className="mt-4 space-y-2">
             <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
               <PlayerCombobox
-                label="Offensive Player"
-                value={offensivePlayer}
-                onChange={setOffensivePlayer}
+                label="Player"
+                value={actionPlayer}
+                onChange={setActionPlayer}
                 players={players}
-                placeholder="Pick offensive player…"
+                placeholder="Pick a player…"
               />
-              <PlayerCombobox
-                label="Defensive Player"
-                value={defensivePlayer}
-                onChange={setDefensivePlayer}
-                players={players}
-                placeholder="Pick defensive player…"
-              />
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Action Type</Label>
+                <Popover open={actionPopoverOpen} onOpenChange={setActionPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full justify-between rounded-lg font-normal h-10">
+                      <span className={cn("truncate", actionTypes.length === 0 && "text-muted-foreground")}>
+                        {actionTriggerLabel}
+                      </span>
+                      <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)]" align="start">
+                    <Command>
+                      <CommandList className="max-h-[320px]">
+                        <CommandGroup>
+                          {ACTION_TYPES.map((a) => {
+                            const checked = actionTypes.includes(a.value);
+                            return (
+                              <CommandItem
+                                key={a.value}
+                                value={a.label}
+                                onSelect={() => toggleActionType(a.value)}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className={cn(
+                                    "h-4 w-4 rounded border flex items-center justify-center shrink-0",
+                                    checked ? "bg-primary border-primary text-primary-foreground" : "border-input",
+                                  )}>
+                                    {checked && <Check className="h-3 w-3" />}
+                                  </div>
+                                  <span className="text-sm">{a.label}</span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                        {actionTypes.length > 0 && (
+                          <CommandGroup>
+                            <CommandItem
+                              value="__clear"
+                              onSelect={() => setActionTypes([])}
+                              className="cursor-pointer text-muted-foreground"
+                            >
+                              <X className="h-3.5 w-3.5 mr-2" /> Clear actions
+                            </CommandItem>
+                          </CommandGroup>
+                        )}
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="flex items-center gap-2">
                 <Button
-                  disabled={matchupDisabled}
-                  onClick={handleMatchupOpen}
+                  disabled={actionDisabled}
+                  onClick={handleActionOpen}
                   className="rounded-lg h-10"
                 >
-                  Open Matchup on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                  Open Plays on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
                 </Button>
                 <Button
                   variant="ghost"
-                  disabled={!offensivePlayer && !defensivePlayer}
+                  disabled={!actionPlayer && actionTypes.length === 0}
                   onClick={() => {
-                    setOffensivePlayer("");
-                    setDefensivePlayer("");
+                    setActionPlayer("");
+                    setActionTypes([]);
                   }}
                   className="rounded-lg h-10"
                 >
@@ -310,7 +381,7 @@ function NBAPlaySearchSection() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Both players auto-applied as Matchup filters on NBAPlayDB.
+              Player + selected action types open as Play Filters on NBAPlayDB.
             </p>
           </TabsContent>
 
