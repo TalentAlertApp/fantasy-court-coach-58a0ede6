@@ -36,12 +36,24 @@ serve(async (req: Request) => {
 
     const url = new URL(req.url);
     const limitParam = url.searchParams.get("limit");
+    const clearAll = url.searchParams.get("clear") === "1";
     const limit = Math.min(parseInt(limitParam || "50"), 100); // max 100 per invocation
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Optional: invalidate all previously stored recap IDs so weak/wrong matches
+    // get re-searched in this run.
+    if (clearAll) {
+      const { error: clearErr } = await supabase
+        .from("schedule_games")
+        .update({ youtube_recap_id: null })
+        .eq("status", "FINAL")
+        .not("youtube_recap_id", "is", null);
+      if (clearErr) throw new Error(`clear failed: ${clearErr.message}`);
+    }
 
     // Find FINAL games without youtube_recap_id
     const { data: games, error: fetchErr } = await supabase
@@ -66,8 +78,8 @@ serve(async (req: Request) => {
         const awayFull = TEAM_FULL_NAME[game.away_team] ?? game.away_team;
         const homeFull = TEAM_FULL_NAME[game.home_team] ?? game.home_team;
         const dateStr = game.tipoff_utc ? new Date(game.tipoff_utc).toISOString().slice(0, 10) : "";
-        const query = `${awayFull} vs ${homeFull} game recap ${dateStr}`.trim();
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoEmbeddable=true&order=relevance&maxResults=5&key=${YOUTUBE_API_KEY}`;
+        const query = `${awayFull} vs ${homeFull} ${dateStr} game recap highlights`.trim();
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoEmbeddable=true&videoDuration=medium&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
 
         const ytRes = await fetch(searchUrl);
         if (!ytRes.ok) {
@@ -99,8 +111,9 @@ serve(async (req: Request) => {
           if (dateStr && title.includes(dateStr.slice(5))) score += 1; // mm-dd token match bonus
           if (score > bestScore) { bestScore = score; best = item; }
         }
-        // Require at least both team mentions OR a recap/highlights keyword to accept.
-        const videoId = bestScore >= 3 ? best?.id?.videoId : (items[0]?.id?.videoId ?? null);
+        // Require a high-confidence match (both team mentions, OR one team + recap/highlights keyword).
+        // Weak matches stay null so future runs can retry instead of stamping a wrong video.
+        const videoId = bestScore >= 3 ? (best?.id?.videoId ?? null) : null;
 
         if (videoId) {
           const { error: updateErr } = await supabase

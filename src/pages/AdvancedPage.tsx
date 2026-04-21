@@ -16,8 +16,12 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Badge } from "@/components/ui/badge";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const SORTED_TEAMS = [...NBA_TEAMS].sort((a, b) => a.name.localeCompare(b.name));
+const TEAM_NAME: Record<string, string> = Object.fromEntries(
+  NBA_TEAMS.map((t) => [t.tricode, t.name]),
+);
 
 function normalize(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -139,8 +143,29 @@ function NBAPlaySearchSection() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
-  const [away, setAway] = useState("");
-  const [home, setHome] = useState("");
+  const [gameId, setGameId] = useState("");
+
+  const { data: gamesByDate, isLoading: gamesLoading } = useQuery({
+    queryKey: ["games-by-date", date],
+    queryFn: async () => {
+      if (!date) return [];
+      const start = new Date(date + "T00:00:00");
+      const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+      const { data, error } = await supabase
+        .from("schedule_games")
+        .select("game_id, away_team, home_team, tipoff_utc, status")
+        .gte("tipoff_utc", start.toISOString())
+        .lt("tipoff_utc", end.toISOString())
+        .order("tipoff_utc", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 2 * 60 * 60 * 1000,
+    enabled: !!date,
+  });
+
+  // Reset gameId when date changes / list reloads to avoid stale selection
+  useMemo(() => { setGameId(""); }, [date]);
 
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
   const players = useMemo(() => {
@@ -158,9 +183,10 @@ function NBAPlaySearchSection() {
 
   const matchupDisabled = !offensivePlayer || !defensivePlayer;
 
+  const selectedGame = (gamesByDate ?? []).find((g: any) => g.game_id === gameId);
   const yyyymmdd = date.split("-").join("");
-  const gamecode = `${yyyymmdd}/${away}${home}`;
-  const gameSearchDisabled = !date || !away || !home;
+  const gamecode = selectedGame ? `${yyyymmdd}/${selectedGame.away_team}${selectedGame.home_team}` : "";
+  const gameSearchDisabled = !selectedGame;
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
@@ -181,8 +207,8 @@ function NBAPlaySearchSection() {
             <TabsTrigger value="game" className="font-heading text-xs uppercase rounded-lg">🏀 By Game</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="matchup" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-2 gap-3">
+          <TabsContent value="matchup" className="mt-4 space-y-2">
+            <div className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
               <PlayerCombobox
                 label="Offensive Player"
                 value={offensivePlayer}
@@ -197,75 +223,70 @@ function NBAPlaySearchSection() {
                 players={players}
                 placeholder="Pick defensive player…"
               />
+              <div className="flex items-center gap-2">
+                <Button
+                  disabled={matchupDisabled}
+                  onClick={() =>
+                    open(
+                      `https://www.nbaplaydb.com/search?actionplayer=${encodeURIComponent(offensivePlayer)}&q=${encodeURIComponent(defensivePlayer)}`
+                    )
+                  }
+                  className="rounded-lg h-10"
+                >
+                  Open Matchup on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={!offensivePlayer && !defensivePlayer}
+                  onClick={() => {
+                    setOffensivePlayer("");
+                    setDefensivePlayer("");
+                  }}
+                  className="rounded-lg h-10"
+                >
+                  <X className="h-3.5 w-3.5 mr-1" /> Clear
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                size="sm"
-                disabled={matchupDisabled}
-                onClick={() =>
-                  open(
-                    `https://www.nbaplaydb.com/search?offensivePlayers=${encodeURIComponent(offensivePlayer)}&defensivePlayers=${encodeURIComponent(defensivePlayer)}`
-                  )
-                }
-                className="rounded-lg"
-              >
-                Open Matchup on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={!offensivePlayer && !defensivePlayer}
-                onClick={() => {
-                  setOffensivePlayer("");
-                  setDefensivePlayer("");
-                }}
-                className="rounded-lg"
-              >
-                <X className="h-3.5 w-3.5 mr-1" /> Clear
-              </Button>
-            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Offensive player applied as filter; defender added as a search term.
+            </p>
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-3 gap-3">
+            <div className="grid sm:grid-cols-[180px_1fr] gap-3">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Away team</Label>
-                <Select value={away} onValueChange={setAway}>
-                  <SelectTrigger className="rounded-lg"><SelectValue placeholder="Select away team" /></SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[300px]">
-                    {SORTED_TEAMS.map((t) => {
-                      const logo = getTeamLogo(t.tricode);
+                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game</Label>
+                <Select value={gameId} onValueChange={setGameId} disabled={gamesLoading || !(gamesByDate?.length)}>
+                  <SelectTrigger className="rounded-lg">
+                    <SelectValue placeholder={
+                      gamesLoading
+                        ? "Loading games…"
+                        : (gamesByDate?.length ? "Pick a game" : "No games on this date")
+                    } />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-lg max-h-[320px]">
+                    {(gamesByDate ?? []).map((g: any) => {
+                      const awayLogo = getTeamLogo(g.away_team);
+                      const homeLogo = getTeamLogo(g.home_team);
+                      const tip = g.tipoff_utc ? new Date(g.tipoff_utc) : null;
+                      const tipStr = tip
+                        ? tip.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" })
+                        : "";
                       return (
-                        <SelectItem key={t.tricode} value={t.tricode}>
-                          <div className="relative flex items-center w-full gap-2 pr-12">
-                            <span>{t.name}</span>
-                            {logo && (
-                              <img src={logo} alt="" className="absolute right-0 w-9 h-9 opacity-20 hover:opacity-50 hover:scale-110 transition-all" />
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Home team</Label>
-                <Select value={home} onValueChange={setHome}>
-                  <SelectTrigger className="rounded-lg"><SelectValue placeholder="Select home team" /></SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[300px]">
-                    {SORTED_TEAMS.map((t) => {
-                      const logo = getTeamLogo(t.tricode);
-                      return (
-                        <SelectItem key={t.tricode} value={t.tricode}>
-                          <div className="relative flex items-center w-full gap-2 pr-12">
-                            <span>{t.name}</span>
-                            {logo && (
-                              <img src={logo} alt="" className="absolute right-0 w-9 h-9 opacity-20 hover:opacity-50 hover:scale-110 transition-all" />
+                        <SelectItem key={g.game_id} value={g.game_id}>
+                          <div className="flex items-center gap-2 w-full">
+                            {awayLogo && <img src={awayLogo} alt="" className="w-5 h-5 shrink-0" />}
+                            <span className="font-medium">{TEAM_NAME[g.away_team] ?? g.away_team}</span>
+                            <span className="text-muted-foreground mx-1">@</span>
+                            {homeLogo && <img src={homeLogo} alt="" className="w-5 h-5 shrink-0" />}
+                            <span className="font-medium">{TEAM_NAME[g.home_team] ?? g.home_team}</span>
+                            {tipStr && (
+                              <span className="ml-auto text-[10px] text-muted-foreground tabular-nums pl-3">{tipStr}</span>
                             )}
                           </div>
                         </SelectItem>
@@ -288,7 +309,7 @@ function NBAPlaySearchSection() {
                 size="sm"
                 variant="ghost"
                 disabled={gameSearchDisabled}
-                onClick={() => open(`https://www.nbaplaydb.com/games/${yyyymmdd}-${away}${home}`)}
+                onClick={() => selectedGame && open(`https://www.nbaplaydb.com/games/${yyyymmdd}-${selectedGame.away_team}${selectedGame.home_team}`)}
                 className="rounded-lg"
               >
                 View Game Page <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
