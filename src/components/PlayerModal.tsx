@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlayerDetail, fetchGameBoxscore, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2 } from "lucide-react";
+import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2, ExternalLink } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -279,9 +279,21 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                         <Mic className="h-3 w-3" />
                                       </a>
                                     )}
-                                    <span className={`p-0.5 ${h.game_recap_url ? "text-green-500" : "text-muted-foreground/30"}`} title="Video Recap">
-                                      <Tv2 className="h-3 w-3" />
-                                    </span>
+                                    {h.game_recap_url ? (
+                                      <a
+                                        href={h.game_recap_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-green-500 hover:text-green-400 transition-colors p-0.5"
+                                        title="Watch Recap on NBA.com"
+                                      >
+                                        <Tv2 className="h-3 w-3" />
+                                      </a>
+                                    ) : (
+                                      <span className="p-0.5 text-muted-foreground/30" title="Recap unavailable">
+                                        <Tv2 className="h-3 w-3" />
+                                      </span>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>

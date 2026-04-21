@@ -361,7 +361,6 @@ function useAllTeamsForm(enabled: boolean) {
 }
 
 function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [showRecap, setShowRecap] = useState(false);
   if (!game) return null;
   const awayLogo = getTeamLogo(game.away_team);
   const homeLogo = getTeamLogo(game.home_team);
@@ -406,24 +405,16 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
             </a>
           )}
         </div>
-        {game.youtube_recap_id && (
-          <div>
-            <button
-              onClick={() => setShowRecap(!showRecap)}
-              className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400 transition-colors mx-auto py-1"
+        {game.game_recap_url && (
+          <div className="flex justify-center pt-1">
+            <a
+              href={game.game_recap_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded-xl border border-green-500/40"
             >
-              <Tv2 className="h-3.5 w-3.5" /> {showRecap ? "Hide" : "Watch"} Recap
-            </button>
-            {showRecap && (
-              <div className="relative w-full mt-1" style={{ paddingBottom: "56.25%" }}>
-                <iframe
-                  className="absolute inset-0 w-full h-full rounded-xl"
-                  src={`https://www.youtube.com/embed/${game.youtube_recap_id}`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            )}
+              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on NBA.com <ExternalLink className="h-3 w-3" />
+            </a>
           </div>
         )}
       </DialogContent>
@@ -560,9 +551,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                   <div className="space-y-1">
                     {team.last5.map((g, i) => {
                       const oppLogo = getTeamLogo(g.opp);
-                      const recapHref = g.youtube_recap_id
-                        ? `https://www.youtube.com/watch?v=${g.youtube_recap_id}`
-                        : null;
+                      const recapHref = g.game_recap_url ?? null;
                       return (
                         <div key={i} className="flex items-center gap-2 text-xs">
                           <button onClick={() => onGameClick(g)}>
