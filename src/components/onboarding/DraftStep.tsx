@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Zap, Hand, Bot, Loader2, Trophy } from "lucide-react";
+import { Zap, Hand, Bot, Loader2, Trophy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { autoPickRoster } from "@/lib/api";
+import { autoPickRoster, saveRoster } from "@/lib/api";
 import { useTeam } from "@/contexts/TeamContext";
 import { useQueryClient } from "@tanstack/react-query";
 import AICoachModal from "@/components/AICoachModal";
+import PlayerPickerDialog from "@/components/PlayerPickerDialog";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { getCurrentGameday } from "@/lib/deadlines";
+import { PlayerListItemSchema } from "@/lib/contracts";
 
 type Strategy = "auto" | "manual" | "ai";
+type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
+
+const SALARY_CAP = 100;
 
 interface Props {
   teamName: string;
@@ -18,19 +26,45 @@ export default function DraftStep({ teamName, onFinish }: Props) {
   const { toast } = useToast();
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
+
   const [strategy, setStrategy] = useState<Strategy>("auto");
   const [drafting, setDrafting] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+
+  // Manual flow
+  const [manualOpen, setManualOpen] = useState(false);
+  const [picks, setPicks] = useState<PlayerListItem[]>([]);
+  const playersQuery = usePlayersQuery({ limit: 1000 });
+  const allPlayers: PlayerListItem[] = (playersQuery.data?.items ?? []) as PlayerListItem[];
+
+  const fcCount = picks.filter((p) => p.core.fc_bc === "FC").length;
+  const bcCount = picks.filter((p) => p.core.fc_bc === "BC").length;
+  const totalSalary = picks.reduce((s, p) => s + (p.core.salary ?? 0), 0);
+  const bankRemaining = SALARY_CAP - totalSalary;
+  const rosterIds = useMemo(() => new Set(picks.map((p) => p.core.id)), [picks]);
+  const rosterTeams = useMemo(() => picks.map((p) => p.core.team), [picks]);
+
+  const isManualValid =
+    picks.length === 10 && fcCount === 5 && bcCount === 5 && totalSalary <= SALARY_CAP;
+
+  const handoff = async () => {
+    setSuccess(true);
+    if (selectedTeamId) {
+      await queryClient.invalidateQueries({ queryKey: ["roster-current", selectedTeamId] });
+    }
+    await queryClient.invalidateQueries({ queryKey: ["teams"] });
+    setTimeout(onFinish, 900);
+  };
 
   const runAutoDraft = async () => {
     if (!selectedTeamId) return;
     setDrafting(true);
     try {
-      await autoPickRoster({ gw: 1, day: 1, strategy: "value5" }, selectedTeamId);
-      await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-      toast({ title: "Squad drafted!", description: "Your starting roster is ready." });
-      // small delay so the success overlay reads cleanly
-      setTimeout(onFinish, 800);
+      const { gw, day } = getCurrentGameday();
+      await autoPickRoster({ gw, day, strategy: "value5" }, selectedTeamId);
+      toast({ title: "Squad drafted!", description: `Saved under GW${gw} · Day ${day}.` });
+      await handoff();
     } catch (e: any) {
       toast({
         title: "Auto-draft failed",
@@ -41,15 +75,76 @@ export default function DraftStep({ teamName, onFinish }: Props) {
     }
   };
 
+  const handlePick = (p: PlayerListItem) => {
+    // Re-open the dialog after each pick until we hit 10
+    setPicks((prev) => {
+      const next = [...prev, p];
+      if (next.length < 10) {
+        // keep dialog open
+        setTimeout(() => setManualOpen(true), 0);
+      }
+      return next;
+    });
+  };
+
+  const removePick = (id: number) => {
+    setPicks((prev) => prev.filter((p) => p.core.id !== id));
+  };
+
+  const submitManual = async () => {
+    if (!selectedTeamId || !isManualValid) return;
+    setDrafting(true);
+    try {
+      const { gw, day } = getCurrentGameday();
+      // Pick a starting 5 with at least 2 FC + 2 BC. Greedy by FP5 desc.
+      const sorted = [...picks].sort((a, b) => (b.last5?.fp5 ?? 0) - (a.last5?.fp5 ?? 0));
+      const starters: PlayerListItem[] = [];
+      const bench: PlayerListItem[] = [];
+      let fcStart = 0, bcStart = 0;
+      for (const p of sorted) {
+        const isFC = p.core.fc_bc === "FC";
+        const fcLeft = 5 - picks.length + bench.length + (isFC ? 0 : 1); // heuristic guard
+        if (starters.length < 5) {
+          // ensure final starters has ≥2 FC and ≥2 BC
+          const remainingSlots = 5 - starters.length;
+          const needFC = Math.max(0, 2 - fcStart);
+          const needBC = Math.max(0, 2 - bcStart);
+          const reservedForOther = (isFC ? needBC : needFC);
+          if (remainingSlots - reservedForOther > 0) {
+            starters.push(p);
+            if (isFC) fcStart++; else bcStart++;
+            continue;
+          }
+        }
+        bench.push(p);
+      }
+      // safety: if starters short (shouldn't happen with valid 5+5), fill from bench
+      while (starters.length < 5 && bench.length) starters.push(bench.shift()!);
+
+      await saveRoster({
+        gw,
+        day,
+        starters: starters.map((p) => p.core.id),
+        bench: bench.map((p) => p.core.id),
+        captain_id: 0,
+      }, selectedTeamId);
+      toast({ title: "Roster saved!", description: `10 players locked in for GW${gw} · Day ${day}.` });
+      await handoff();
+    } catch (e: any) {
+      toast({
+        title: "Could not save roster",
+        description: e?.message ?? "Try again in a moment.",
+        variant: "destructive",
+      });
+      setDrafting(false);
+    }
+  };
+
   const handleGo = () => {
     if (strategy === "auto") return runAutoDraft();
     if (strategy === "ai") return setAiOpen(true);
-    // manual: just send the user to the roster page; the empty roster invites them to add players
-    toast({
-      title: "Ready to draft",
-      description: "Use the Transactions page to hand-pick your 10 players.",
-    });
-    onFinish();
+    // manual: open the picker
+    setManualOpen(true);
   };
 
   const options: { id: Strategy; icon: any; title: string; subtitle: string; recommended?: boolean }[] = [
@@ -64,7 +159,7 @@ export default function DraftStep({ teamName, onFinish }: Props) {
       id: "manual",
       icon: Hand,
       title: "Manual",
-      subtitle: "Hand-pick all 10 players yourself from the full pool.",
+      subtitle: "Hand-pick all 10 players yourself — we enforce the rules.",
     },
     {
       id: "ai",
@@ -74,9 +169,16 @@ export default function DraftStep({ teamName, onFinish }: Props) {
     },
   ];
 
+  const ctaLabel =
+    strategy === "auto" ? "Auto-Draft My Squad" :
+    strategy === "ai" ? "Open AI Coach" :
+    picks.length === 0 ? "Start Picking" : isManualValid ? "Save Roster · Go to Court" : `Pick ${10 - picks.length} More`;
+
+  const manualGateMet = strategy !== "manual" || picks.length === 0 || isManualValid;
+
   return (
     <div className="relative flex flex-col min-h-screen px-6 py-10 items-center justify-center">
-      {drafting && <DraftingOverlay />}
+      {(drafting || success) && <DraftingOverlay success={success} />}
 
       <StepIndicator step={2} />
 
@@ -125,29 +227,109 @@ export default function DraftStep({ teamName, onFinish }: Props) {
           })}
         </div>
 
+        {/* Manual progress strip */}
+        {strategy === "manual" && picks.length > 0 && (
+          <div className="mt-8 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] font-bold">
+              <span className="px-3 py-1 rounded-full border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black">
+                Picked {picks.length}/10
+              </span>
+              <span className={`px-3 py-1 rounded-full border bg-[hsl(var(--nba-yellow))]/10 text-black ${fcCount === 5 ? "border-[hsl(var(--nba-yellow))]" : "border-destructive/60"}`}>
+                {fcCount} FC / 5
+              </span>
+              <span className={`px-3 py-1 rounded-full border bg-[hsl(var(--nba-yellow))]/10 text-black ${bcCount === 5 ? "border-[hsl(var(--nba-yellow))]" : "border-destructive/60"}`}>
+                {bcCount} BC / 5
+              </span>
+              <span className={`px-3 py-1 rounded-full border bg-[hsl(var(--nba-yellow))]/10 text-black ${totalSalary <= SALARY_CAP ? "border-[hsl(var(--nba-yellow))]" : "border-destructive/60"}`}>
+                ${totalSalary.toFixed(1)}M / ${SALARY_CAP}M
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+              {picks.map((p) => (
+                <button
+                  key={p.core.id}
+                  onClick={() => removePick(p.core.id)}
+                  className="px-2 py-1 rounded-full text-[10px] font-semibold bg-foreground/10 text-foreground/80 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  title="Remove"
+                >
+                  {p.core.name} ✕
+                </button>
+              ))}
+            </div>
+            {picks.length < 10 && (
+              <button
+                onClick={() => setManualOpen(true)}
+                className="mt-3 text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
+              >
+                + Add more players
+              </button>
+            )}
+          </div>
+        )}
+
         <Button
           onClick={handleGo}
-          disabled={drafting}
+          disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
           size="lg"
           className="mt-12 h-16 px-12 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
         >
           {drafting ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Drafting…
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving…
+            </>
+          ) : strategy === "manual" && isManualValid ? (
+            <>
+              <Check className="mr-2 h-5 w-5" /> {ctaLabel}
             </>
           ) : (
             <>
-              <Trophy className="mr-2 h-5 w-5" /> Go to My Roster
+              <Trophy className="mr-2 h-5 w-5" /> {ctaLabel}
             </>
           )}
         </Button>
+
+        {strategy === "manual" && picks.length > 0 && !isManualValid && (
+          <p className="mt-4 text-[11px] uppercase tracking-[0.25em] text-foreground/50">
+            Need exactly 5 FC + 5 BC, ≤ ${SALARY_CAP}M, max 2 per NBA team
+          </p>
+        )}
+
+        {/* Bottom info chips for visual consistency with hero */}
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          {[
+            "$100M Cap",
+            "10 Players",
+            "5 FC + 5 BC",
+            "1 Captain · 2× FP",
+          ].map((chip) => (
+            <span
+              key={chip}
+              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
       </div>
+
+      {strategy === "manual" && (
+        <PlayerPickerDialog
+          open={manualOpen}
+          onOpenChange={setManualOpen}
+          allPlayers={allPlayers}
+          rosterIds={rosterIds}
+          rosterTeams={rosterTeams}
+          onSelect={handlePick}
+          title={`Pick player ${picks.length + 1} of 10`}
+          bankRemaining={bankRemaining}
+        />
+      )}
 
       <AICoachModal
         open={aiOpen}
         onOpenChange={(o) => {
           setAiOpen(o);
-          if (!o) onFinish();
+          if (!o) handoff();
         }}
       />
     </div>
@@ -164,15 +346,19 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
   );
 }
 
-function DraftingOverlay() {
+function DraftingOverlay({ success }: { success: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm animate-fade-in">
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-accent/30 blur-3xl animate-pulse" />
-        <Trophy className="relative h-20 w-20 text-accent" />
+        {success ? (
+          <Check className="relative h-20 w-20 text-accent" />
+        ) : (
+          <Trophy className="relative h-20 w-20 text-accent" />
+        )}
       </div>
       <p className="mt-8 font-heading uppercase tracking-[0.4em] text-sm text-foreground/80">
-        Drafting Your Squad
+        {success ? "Roster Ready · Routing to Court" : "Drafting Your Squad"}
       </p>
       <div className="mt-6 h-1 w-48 overflow-hidden rounded-full bg-foreground/10">
         <div className="h-full w-1/3 bg-accent animate-[shimmer_1.4s_ease-in-out_infinite]" />

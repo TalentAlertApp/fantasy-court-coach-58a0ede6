@@ -1,15 +1,17 @@
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
 import PlayerMarquee from "./PlayerMarquee";
 
 interface Props {
   onStart: () => void;
   onSignOut: () => void;
+  onSkip: () => void;
   email?: string | null;
 }
 
-export default function OnboardingHero({ onStart, onSignOut, email }: Props) {
+export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Props) {
   return (
     <div className="relative flex flex-col min-h-screen overflow-hidden">
       <PlayerMarquee />
@@ -22,27 +24,28 @@ export default function OnboardingHero({ onStart, onSignOut, email }: Props) {
             Fantasy
           </span>
         </div>
-        <div className="flex items-center gap-4">
-          {email && (
-            <span className="text-[11px] uppercase tracking-wider text-foreground/50">
-              {email}
-            </span>
-          )}
-          <button
-            onClick={onSignOut}
-            className="text-[11px] uppercase tracking-[0.2em] text-foreground/60 hover:text-foreground transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onSignOut}
+                aria-label={email ? `Sign out · ${email}` : "Sign out"}
+                className="h-9 w-9 rounded-full flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-[11px] uppercase tracking-[0.15em]">
+              Sign out{email ? ` · ${email}` : ""}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </header>
 
       {/* Hero content */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
-        <div className="animate-fade-in flex items-center gap-2 text-[11px] uppercase tracking-[0.4em] text-accent mb-6">
-          <Sparkles className="h-3 w-3" />
-          <span>Welcome to</span>
-          <Sparkles className="h-3 w-3" />
+        <div className="animate-fade-in text-[11px] uppercase tracking-[0.4em] text-accent mb-6">
+          Welcome to
         </div>
 
         <h1
@@ -73,6 +76,14 @@ export default function OnboardingHero({ onStart, onSignOut, email }: Props) {
           3 quick steps · ~60 seconds
         </p>
 
+        <button
+          type="button"
+          onClick={onSkip}
+          className="mt-3 text-[11px] uppercase tracking-[0.2em] text-foreground/40 hover:text-foreground/80 underline-offset-4 hover:underline transition-colors"
+        >
+          Skip for now →
+        </button>
+
         <div className="mt-14 flex flex-wrap items-center justify-center gap-3">
           {[
             "$100M Cap",
@@ -82,7 +93,7 @@ export default function OnboardingHero({ onStart, onSignOut, email }: Props) {
           ].map((chip) => (
             <span
               key={chip}
-              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-foreground/15 bg-foreground/5 text-foreground/70"
+              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
             >
               {chip}
             </span>

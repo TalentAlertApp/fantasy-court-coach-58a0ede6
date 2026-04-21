@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
@@ -9,20 +9,56 @@ import { useQueryClient } from "@tanstack/react-query";
 import OnboardingHero from "@/components/onboarding/OnboardingHero";
 import NameStep from "@/components/onboarding/NameStep";
 import DraftStep from "@/components/onboarding/DraftStep";
+import {
+  getOnboardingState,
+  setOnboardingState,
+  clearOnboardingState,
+  setOnboardingSkipped,
+  type OnboardingStep,
+} from "@/lib/onboarding-store";
 
-type Step = "hero" | "name" | "draft";
+type Step = OnboardingStep;
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { setSelectedTeamId } = useTeam();
+  const { teams, setSelectedTeamId } = useTeam();
   const { shouldOnboard, ready } = useFirstRunGate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<Step>("hero");
+  // Hydrate persisted onboarding state for this user (resume after refresh)
+  const initial = useMemo(() => getOnboardingState(user?.id), [user?.id]);
+  const [step, setStepRaw] = useState<Step>(initial?.step ?? "hero");
   const [creating, setCreating] = useState(false);
-  const [createdTeamName, setCreatedTeamName] = useState("");
+  const [createdTeamName, setCreatedTeamName] = useState(initial?.teamName ?? "");
+  const [createdTeamId, setCreatedTeamId] = useState<string | null>(initial?.teamId ?? null);
+
+  const setStep = (next: Step, extra?: { teamId?: string; teamName?: string }) => {
+    setStepRaw(next);
+    setOnboardingState(user?.id, {
+      step: next,
+      teamId: extra?.teamId ?? createdTeamId ?? undefined,
+      teamName: extra?.teamName ?? createdTeamName ?? undefined,
+    });
+  };
+
+  // Defensive resume: if persisted step === "draft" but the saved teamId is no
+  // longer in the user's owned teams (deleted, signed out etc.), fall back to
+  // the name step. If valid, hydrate selectedTeamId so DraftStep works on refresh.
+  useEffect(() => {
+    if (!ready) return;
+    if (step === "draft") {
+      const owned = createdTeamId && teams.some((t: any) => t.id === createdTeamId && t.owner_id === user?.id);
+      if (!owned) {
+        setStepRaw("name");
+        setOnboardingState(user?.id, { step: "name", teamName: createdTeamName });
+        return;
+      }
+      setSelectedTeamId(createdTeamId!);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, step, createdTeamId, teams, user?.id]);
 
   // If user already owns a team, kick them back home.
   useEffect(() => {
@@ -37,10 +73,11 @@ export default function OnboardingPage() {
       const res = await createTeam({ name });
       const teamId = res.team.id;
       setSelectedTeamId(teamId);
+      setCreatedTeamId(teamId);
       setCreatedTeamName(res.team.name);
       // Refresh teams list so the gate sees the new ownership
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
-      setStep("draft");
+      setStep("draft", { teamId, teamName: res.team.name });
     } catch (e: any) {
       toast({
         title: "Could not create team",
@@ -52,12 +89,18 @@ export default function OnboardingPage() {
     }
   };
 
+  const handleSkip = () => {
+    setOnboardingSkipped();
+    navigate("/", { replace: true });
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth", { replace: true });
   };
 
   const handleFinish = async () => {
+    clearOnboardingState(user?.id);
     await queryClient.invalidateQueries({ queryKey: ["teams"] });
     await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
     navigate("/", { replace: true });
@@ -89,6 +132,7 @@ export default function OnboardingPage() {
         <OnboardingHero
           onStart={() => setStep("name")}
           onSignOut={handleSignOut}
+          onSkip={handleSkip}
           email={user?.email}
         />
       )}

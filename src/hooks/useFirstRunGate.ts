@@ -1,5 +1,6 @@
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getOnboardingSkipped } from "@/lib/onboarding-store";
 
 /**
  * Returns shouldOnboard=true when the signed-in user has zero teams they own.
@@ -14,9 +15,12 @@ export function useFirstRunGate() {
     ? teams.filter((t: any) => t.owner_id && t.owner_id === user!.id)
     : [];
 
+  // Session-scoped skip: user clicked "Skip for now" on hero
+  const skipped = getOnboardingSkipped();
+
   return {
     ready,
     ownedTeams,
-    shouldOnboard: ready && ownedTeams.length === 0,
+    shouldOnboard: ready && ownedTeams.length === 0 && !skipped,
   };
 }

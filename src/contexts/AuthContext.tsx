@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { clearAllOnboardingStorage } from "@/lib/onboarding-store";
 
 interface AuthContextValue {
   user: User | null;
@@ -43,6 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Clear team selection so next user doesn't inherit it
     localStorage.removeItem("nba_selected_team_id");
+    // Clear onboarding skip + per-user resume state
+    clearAllOnboardingStorage();
     await supabase.auth.signOut();
   };
 
