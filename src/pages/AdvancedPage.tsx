@@ -252,11 +252,7 @@ function NBAPlaySearchSection() {
               <div className="flex items-center gap-2">
                 <Button
                   disabled={matchupDisabled}
-                  onClick={() =>
-                    open(
-                      `https://www.nbaplaydb.com/search?defensivePlayers=${encodeURIComponent(defensivePlayer)}&offensivePlayers=${encodeURIComponent(offensivePlayer)}`
-                    )
-                  }
+                  onClick={handleMatchupOpen}
                   className="rounded-lg h-10"
                 >
                   Open Matchup on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
@@ -275,7 +271,7 @@ function NBAPlaySearchSection() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Both players are applied as Matchup filters on NBAPlayDB.
+              Offensive player auto-applied as filter. Defender name copied to clipboard for one-paste selection.
             </p>
           </TabsContent>
 
