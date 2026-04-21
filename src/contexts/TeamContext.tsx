@@ -128,7 +128,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // Readiness: true once teams have successfully loaded AND the selected team
   // (if any) has been resolved/auto-corrected. Team-scoped queries should
   // gate on this so they never fire with a stale or missing team id.
-  const isReady = isSuccess && (autoCorrected || (!!selectedTeamId && teams.some((t: any) => t.id === selectedTeamId)));
+  const isReady =
+    isSuccess &&
+    (autoCorrected ||
+      (!!selectedTeamId && teams.some((t: any) => t.id === selectedTeamId)));
 
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
