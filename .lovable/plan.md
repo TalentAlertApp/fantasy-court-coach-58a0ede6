@@ -1,66 +1,117 @@
 
 
-## Plan: Add login (Email/Password + Magic Link) with per-user team ownership
+## Plan: Premium First-Run Onboarding ("Draft Your Squad")
 
-### Goals
-- Gate the entire app behind sign-in.
-- Support **Email + Password** and **Magic Link**.
-- New teams created after login belong to the creator; existing teams stay visible to everyone (per your "Per-user from now on" choice).
-- No profiles table — Supabase `auth.users` only.
+### Context
+First-time users land on `/auth`, sign up, then arrive at `/` with **zero teams** of their own (legacy teams are visible but not owned). Today they'd see either someone else's roster or a tiny empty-state card — no narrative, no wow factor. We'll insert an immersive full-page onboarding flow that triggers automatically the first time a signed-in user has no owned team, and lets them name their franchise + draft a roster in one cinematic experience.
 
-### 1 · Database migration
-- Add nullable `owner_id uuid` column to `public.teams` (FK → `auth.users(id) ON DELETE SET NULL`). Existing rows keep `owner_id = NULL` → treated as "shared/legacy".
-- Replace permissive RLS on `public.teams` with:
-  - SELECT: `owner_id IS NULL OR owner_id = auth.uid()`
-  - INSERT: `auth.uid() IS NOT NULL` and `owner_id = auth.uid()`
-  - UPDATE/DELETE: `owner_id = auth.uid()` (legacy NULL-owned teams remain read-only via UI, edited only through edge functions).
-- Other 9 tables (roster, transactions, players, schedule_games, etc.) keep current RLS — they're keyed by `team_id` and remain reachable through edge functions (which use service role). This matches your "data stays shared, new teams per-user" choice.
+### Trigger
+- New route component `OnboardingPage.tsx` mounted at `/welcome`.
+- A new `useFirstRunGate` hook checks: `auth ready && teams loaded && (no team owned by current user)`. When true and the user is not already on `/welcome` or `/commissioner`, redirect to `/welcome`.
+- Once the user finishes onboarding (their team is created and has 10 players), redirect to `/` and never trigger again.
 
-### 2 · Supabase config (you do this in the dashboard)
-- Authentication → URL Configuration → set **Site URL** to the preview URL and add the same as a Redirect URL (so magic links land back in-app).
-- Authentication → Providers → Email: **enable**, with "Confirm email" turned **off** for friction-free signup (you can re-enable later).
-- No Google setup needed — Magic Link covers passwordless without Google Cloud configuration.
+---
 
-### 3 · Frontend — auth surface
+### The Experience — 3 cinematic steps
 
-**New files**
-- `src/contexts/AuthContext.tsx` — wraps the app; subscribes to `supabase.auth.onAuthStateChange` (set up BEFORE `getSession()` per Supabase contract); exposes `{ user, session, loading, signOut }`.
-- `src/pages/AuthPage.tsx` — single page at `/auth` with two tabs:
-  - **Sign in / Sign up** (Email + Password) — shared form, two buttons; signup uses `emailRedirectTo: window.location.origin`.
-  - **Magic link** — email input → `signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } })` → toast "Check your inbox".
-  - Branded with the existing dark theme + NBA logo.
-- `src/components/auth/RequireAuth.tsx` — guard wrapper. While loading, render a centered spinner. If no session, `<Navigate to="/auth" replace />`.
+**Full-screen, dark, NBA-yellow accents, large typography. No sidebar (rendered outside `AppLayout`).**
 
-**Edits**
-- `src/App.tsx` — wrap `<Routes>` so `/auth` is public and everything else (the entire `<AppLayout>` subtree) sits inside `<RequireAuth>`. Add `<AuthProvider>` above `<TeamProvider>`.
-- `src/components/layout/AppLayout.tsx` (or the sidebar) — add a small user pill at the bottom showing the email + "Sign out" button calling `supabase.auth.signOut()` then `navigate("/auth")`.
+#### Step 1 · Hero
+```text
+┌──────────────────────────────────────────────────────────┐
+│ [NBA logo]                                    [Sign out] │
+│                                                          │
+│              W E L C O M E   T O                         │
+│            ███ FANTASY ███                               │
+│            "Build the team. Run the league."             │
+│                                                          │
+│   [ Floating player photos drift across background ]     │
+│                                                          │
+│             ╭──────────────────────╮                     │
+│             │  ► START YOUR DRAFT  │                     │
+│             ╰──────────────────────╯                     │
+│                                                          │
+│         3 quick steps · ~60 seconds                      │
+└──────────────────────────────────────────────────────────┘
+```
+- Animated gradient backdrop (deep navy → NBA blue), faint NBA logo watermark.
+- A row of 8–10 randomly picked player photos from `usePlayersQuery` floats slowly left-to-right (CSS keyframe, `prefers-reduced-motion` respected) at low opacity to give cinematic life.
+- Single yellow CTA `Start Your Draft` → step 2.
+- Tiny chips at the bottom: `$100M cap · 10 players · 5 FC + 5 BC`.
 
-### 4 · Frontend — wire the auth header to edge functions
+#### Step 2 · Name your franchise
+```text
+       Step 1 of 2 ──●──○                  [skip naming]
+       
+       NAME  YOUR  FRANCHISE
+       
+       ┌──────────────────────────────────────┐
+       │  Lakers of Lisbon                    │  ← big input
+       └──────────────────────────────────────┘
+       Suggestions: [Court Kings] [Splash Lab] [Triple Threat] [Glass Cleaners]
+       
+                    [ ← back ]   [ next → ]
+```
+- Pre-filled with 1 of ~12 punchy default names (random) so the user can hit `next` instantly.
+- Suggestion chips are clickable and replace the input.
+- `next` → calls `createTeam({ name })`, switches `selectedTeamId`, advances.
 
-Edge functions currently use `apikey` only. To carry the user identity to `teams` so it can stamp `owner_id`, update `src/lib/api.ts`:
-- Read the current session via `supabase.auth.getSession()` inside `apiFetch` and add `Authorization: Bearer <access_token>` when present.
-- Falls back gracefully (still sends `apikey`) so unauthenticated calls during boot don't crash.
+#### Step 3 · Draft your squad
+```text
+       Step 2 of 2 ──●──●
+       
+       D R A F T   Y O U R   S Q U A D
+       
+       ┌─ Pick a strategy ────────────────────────────────┐
+       │ [⚡ AUTO-DRAFT]   [✋ MANUAL]   [🤖 AI COACH]    │
+       └──────────────────────────────────────────────────┘
+       
+       Auto-Draft: We'll build a balanced 10-player roster
+       optimised for the next 5 games (value-based).
+       
+       Manual: Hand-pick all 10 players yourself.
+       
+       AI Coach: Tell us your style ("punt assists", "stars
+       and scrubs") and we'll draft for you.
+       
+            ╭─────────────────────────╮
+            │   ▶  GO TO MY ROSTER    │
+            ╰─────────────────────────╯
+```
+- **Auto-Draft** (default, primary yellow button) — calls existing `autoPickRoster({ gw, day, strategy: "value5" })`. Shows a 1.5s "Drafting…" overlay with NBA-yellow shimmer over a court silhouette, then routes to `/`.
+- **Manual** — opens the existing `PlayerPickerDialog` in a centered modal; on close (or after first pick), routes to `/`. Roster page already supports incremental adds.
+- **AI Coach** — opens existing `AICoachModal`; after closing, routes to `/`.
 
-### 5 · Edge function update — `supabase/functions/teams/index.ts`
-- Read the JWT from `Authorization` header, decode `sub` (user id) using the supabase-js helper (`createClient(...).auth.getUser(jwt)`).
-- On `POST` (create team): inject `owner_id: user.id`. If no user → 401.
-- On `PATCH` / `DELETE`: verify the row's `owner_id` matches `user.id` (or is NULL → reject for safety). If no user → 401.
-- On `GET`: filter by `owner_id IS NULL OR owner_id = user.id`. If no user → return empty list.
+All three paths land on `/` with the new team selected and onboarding flag retired.
 
-### 6 · TeamContext interplay
-- `fetchTeams()` will now return only owned + legacy teams for the signed-in user. The existing auto-correct logic already picks the first populated team and persists to localStorage — works unchanged.
-- When the user signs out, clear `localStorage["nba_selected_team_id"]` so the next user doesn't inherit a stale selection.
+---
 
-### Acceptance checklist
-- Visiting `/` while signed out → redirected to `/auth`.
-- Magic link tab → enter email → toast → click link in inbox → land on `/` signed in.
-- Email+password signup → immediately signed in (since email confirm is off).
-- Header shows the signed-in email + Sign out button.
-- Creating a new team while signed in → team is created with `owner_id = your uid`. Signing out and signing up as a second user → second user does NOT see your new team, but DOES see the pre-existing legacy teams.
-- Trying to rename/delete a team you don't own → fails with a toast (RLS rejects).
+### Visual ingredients (premium polish)
+- Background: layered radial gradients in `--primary` and `--accent` HSL with subtle animated noise overlay (CSS `background-image` + `@keyframes`).
+- Typography: existing `font-heading` at `text-6xl/8xl`, `tracking-[0.25em]`, uppercase. Tagline in `font-body` italic.
+- Buttons: extra-large rounded-full with NBA yellow glow (`shadow-[0_0_40px_-8px_hsl(var(--accent))]`), hover lifts `translate-y-[-2px]` + shadow intensifies.
+- Player photo carousel: 200px avatars in a horizontal `flex` strip, `animation: marquee 40s linear infinite`, `mask-image` fades the edges.
+- Step indicator: two dots that fill yellow as the user progresses.
+- Confetti burst (simple CSS, no library) on successful auto-draft.
 
-### Files touched
-- New: `src/contexts/AuthContext.tsx`, `src/pages/AuthPage.tsx`, `src/components/auth/RequireAuth.tsx`
-- Edited: `src/App.tsx`, `src/lib/api.ts`, `src/components/layout/AppLayout.tsx`, `supabase/functions/teams/index.ts`
-- New migration: add `owner_id` column + new RLS policies on `public.teams`
+### Files
+
+**New**
+- `src/pages/OnboardingPage.tsx` — the 3-step flow, fully self-contained.
+- `src/hooks/useFirstRunGate.ts` — returns `{ shouldOnboard: boolean }` based on auth + teams + owner_id check.
+- `src/components/onboarding/OnboardingHero.tsx`, `NameStep.tsx`, `DraftStep.tsx`, `PlayerMarquee.tsx` — split for readability.
+
+**Edited**
+- `src/App.tsx` — add `<Route path="/welcome" element={<RequireAuth><OnboardingPage /></RequireAuth>} />` (sits OUTSIDE `<AppLayout>` so it's full-screen).
+- `src/components/auth/RequireAuth.tsx` — after auth check, also run `useFirstRunGate` and `<Navigate to="/welcome" replace />` when triggered (skip if route is already `/welcome`).
+- `src/contexts/TeamContext.tsx` — expose `ownedTeams` (filtered by current user id) so the gate can detect "no owned team". Requires reading `auth.uid()`-equivalent from `AuthContext`. The `teams` returned from the edge function include `owner_id`; we just filter client-side.
+- `src/integrations/supabase/types.ts` — already has `owner_id` from prior migration, no change.
+
+### Acceptance
+- Sign up brand-new account → redirected to `/welcome`. Hero shows player marquee.
+- Click `Start Your Draft` → name step with random suggestion pre-filled. Click a suggestion chip → input updates. Click `next` → team is created with `owner_id = me`.
+- Click `Auto-Draft` → 10-player roster appears on `/` within ~2s, $100M-compliant, captain not yet set, ready to play.
+- Reload `/` → no longer redirected (team now exists and is owned).
+- Sign out, sign in as a different new user → onboarding fires again for that user. Existing user's team is invisible (RLS).
+- Existing users with at least one owned team never see `/welcome` (unless they manually navigate).
 
