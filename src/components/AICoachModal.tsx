@@ -209,7 +209,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-3xl rounded-lg max-h-[92vh] h-[92vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading">
             <Bot className="h-5 w-5 text-accent" />
@@ -226,7 +226,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <TabsTrigger value="explain" className="font-heading text-[10px] uppercase rounded-lg"><HelpCircle className="h-3 w-3 mr-1" />Explain</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 min-h-0 overflow-y-auto mt-3 space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto mt-3 space-y-2.5">
             {/* Analyze */}
             <TabsContent value="analyze" className="mt-0 space-y-3">
               <Button size="sm" onClick={handleAnalyze} disabled={analyzeLoading} className="w-full">
@@ -564,7 +564,7 @@ function ExplainReport({ result, player }: { result: any; player: any }) {
             {result.why_it_scores.map((f: any, i: number) => {
               const Icon = factorIcon(f.factor);
               return (
-                <div key={i} className="px-3 py-2 space-y-1">
+                <div key={i} className="px-3 py-1.5 space-y-0.5">
                   <div className="flex items-center gap-2">
                     <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <span className="text-[11px] font-heading font-bold uppercase tracking-wider">{f.factor}</span>
