@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { z } from "zod";
 import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
 interface ScheduleListProps {
   games: ScheduleGame[];
+  viewMode?: "list" | "grid";
 }
 
 function formatTipoff(utc: string): string {
