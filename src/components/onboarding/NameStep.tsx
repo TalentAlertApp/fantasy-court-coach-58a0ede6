@@ -27,24 +27,27 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
   const canSubmit = trimmed.length >= 2 && !submitting;
 
   return (
-    <div className="relative flex flex-col min-h-screen px-6 py-10 items-center justify-center">
-      <StepIndicator step={1} />
+    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
+      <StepIndicator step={2} />
 
       <div className="w-full max-w-2xl text-center animate-fade-in">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 1 of 2</p>
-        <h2 className="font-heading font-black uppercase tracking-[0.15em] text-5xl md:text-7xl text-foreground">
+        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 2 of 3</p>
+        <h2
+          className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
+          style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}
+        >
           Name Your
           <br />
           <span className="text-accent">Franchise</span>
         </h2>
 
-        <div className="mt-12 relative">
+        <div className="mt-8 relative">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Court Kings"
             maxLength={48}
-            className="h-20 text-2xl md:text-3xl font-heading uppercase tracking-[0.1em] text-center rounded-2xl bg-background/60 border-foreground/15 focus-visible:ring-accent"
+            className="h-16 text-2xl md:text-3xl font-heading uppercase tracking-[0.1em] text-center rounded-2xl bg-background/60 border-foreground/15 focus-visible:ring-accent"
             disabled={submitting}
             onKeyDown={(e) => {
               if (e.key === "Enter" && canSubmit) onSubmit(trimmed);
@@ -54,14 +57,14 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
             type="button"
             onClick={() => setName(pickRandom())}
             disabled={submitting}
-            className="absolute right-3 top-1/2 -translate-y-1/2 h-12 w-12 rounded-xl flex items-center justify-center text-foreground/50 hover:text-accent hover:bg-foreground/5 transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl flex items-center justify-center text-foreground/50 hover:text-accent hover:bg-foreground/5 transition-colors"
             title="Random suggestion"
           >
             <Shuffle className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           <span className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mr-2">
             Suggestions
           </span>
@@ -78,7 +81,7 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
           ))}
         </div>
 
-        <div className="mt-14 flex items-center justify-center gap-4">
+        <div className="mt-10 flex items-center justify-center gap-4">
           <Button
             variant="ghost"
             onClick={onBack}
@@ -108,12 +111,14 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
   );
 }
 
-function StepIndicator({ step }: { step: 1 | 2 }) {
+function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   return (
     <div className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3">
       <span className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 1 ? "bg-accent" : "bg-foreground/20"}`} />
       <span className="h-px w-8 bg-foreground/15" />
       <span className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 2 ? "bg-accent" : "bg-foreground/20"}`} />
+      <span className="h-px w-8 bg-foreground/15" />
+      <span className={`h-2.5 w-2.5 rounded-full transition-colors ${step >= 3 ? "bg-accent" : "bg-foreground/20"}`} />
     </div>
   );
 }
