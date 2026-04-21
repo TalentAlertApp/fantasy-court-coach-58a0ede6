@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { z } from "zod";
 import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -879,14 +879,14 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
     return (
       <div className="grid gap-2 px-1 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {games.map((g, i) => (
-          <>
-            <div key={g.game_id}>{renderCard(g, true)}</div>
+          <Fragment key={g.game_id}>
+            <div>{renderCard(g, true)}</div>
             {i === lastIndexOfRow && expandedGame && (
-              <div key={`exp-${expandedGame.game_id}`} className="col-span-full">
+              <div className="col-span-full">
                 {renderExpandedPanel(expandedGame)}
               </div>
             )}
-          </>
+          </Fragment>
         ))}
 
         <PlayerModal

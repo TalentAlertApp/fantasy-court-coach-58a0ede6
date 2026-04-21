@@ -8,7 +8,7 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -52,6 +52,13 @@ export default function SchedulePage() {
   const [day, setDay] = useState(current.day);
   const [totwOpen, setTotwOpen] = useState(false);
   const [potdOpen, setPotdOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
+    if (typeof window === "undefined") return "grid";
+    return (localStorage.getItem("schedule_view_mode") as "list" | "grid") || "grid";
+  });
+  useEffect(() => {
+    localStorage.setItem("schedule_view_mode", viewMode);
+  }, [viewMode]);
   const navigate = useNavigate();
   const { data, isLoading, isError, isSuccess, refetch } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
