@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
