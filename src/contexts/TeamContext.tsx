@@ -50,8 +50,28 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // This only runs once at startup — manual switches are preserved.
   const [autoCorrected, setAutoCorrected] = useState(false);
   useEffect(() => {
-    if (isLoading || teams.length === 0 || autoCorrected) return;
+    if (isLoading || autoCorrected) return;
     const exists = teams.some((t: any) => t.id === selectedTeamId);
+
+    // No teams at all (e.g. brand-new signed-in user pre-onboarding):
+    // wipe any stale saved id so team-scoped queries don't fire with a
+    // ghost team_id and 500 the edge functions.
+    if (teams.length === 0) {
+      setAutoCorrected(true);
+      if (selectedTeamId) {
+        setSelectedTeamIdRaw(null);
+        try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+      }
+      return;
+    }
+
+    // Saved id doesn't match any team in the user's list → clear it now,
+    // before any async roster lookup, then continue with the normal
+    // populated-team picker below.
+    if (selectedTeamId && !exists) {
+      try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+      setSelectedTeamIdRaw(null);
+    }
 
     const pickPopulatedTeam = async (): Promise<string | null> => {
       // Query roster counts for all teams; pick the first team with rows.
