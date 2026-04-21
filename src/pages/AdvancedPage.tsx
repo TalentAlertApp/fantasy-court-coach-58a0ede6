@@ -197,23 +197,18 @@ function NBAPlaySearchSection() {
     setDate(d.toISOString().slice(0, 10));
   };
 
-  const handleMatchupOpen = async () => {
-    const url =
-      `https://www.nbaplaydb.com/search` +
-      `?actionplayer=${encodeURIComponent(offensivePlayer)}` +
-      `&defensivePlayers=${encodeURIComponent(defensivePlayer)}` +
-      `&offensivePlayers=${encodeURIComponent(offensivePlayer)}`;
-    open(url);
-    try {
-      await navigator.clipboard?.writeText(defensivePlayer);
-      toast.success("Opening NBAPlayDB", {
-        description: `Offensive filter applied for ${offensivePlayer}. Defender "${defensivePlayer}" copied to clipboard — paste into Matchups → Defensive Player.`,
-      });
-    } catch {
-      toast.success("Opening NBAPlayDB", {
-        description: `Offensive filter applied for ${offensivePlayer}. Paste "${defensivePlayer}" into Matchups → Defensive Player.`,
-      });
-    }
+  const handleMatchupOpen = () => {
+    const params = new URLSearchParams({
+      actionplayer: offensivePlayer,
+      defensivePlayers: defensivePlayer,
+      offensivePlayers: offensivePlayer,
+    });
+    const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
+    window.open(url, "_blank");
+    navigator.clipboard?.writeText(defensivePlayer).catch(() => {});
+    toast.success("Opening NBAPlayDB", {
+      description: `Filters: ${offensivePlayer} (off) + ${defensivePlayer} (def). Defender copied to clipboard.`,
+    });
   };
 
   return (
