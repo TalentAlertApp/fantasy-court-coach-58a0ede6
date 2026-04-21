@@ -223,7 +223,7 @@ function NBAPlaySearchSection() {
       </div>
       <div className="p-4 space-y-4">
         <Tabs defaultValue="matchup">
-          <TabsList className="rounded-lg">
+          <TabsList className="rounded-lg grid grid-cols-2 w-full max-w-md mx-auto">
             <TabsTrigger value="matchup" className="font-heading text-xs uppercase rounded-lg">🏀 Player Matchup</TabsTrigger>
             <TabsTrigger value="game" className="font-heading text-xs uppercase rounded-lg">🏀 By Game</TabsTrigger>
           </TabsList>
