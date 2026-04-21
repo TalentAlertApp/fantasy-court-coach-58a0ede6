@@ -271,14 +271,14 @@ function NBAPlaySearchSection() {
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-[230px_1fr_auto] gap-3 items-end">
+            <div className="grid sm:grid-cols-[200px_1fr_auto] gap-3 items-end">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
                 <div className="flex items-stretch gap-1">
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="h-10 w-9 rounded-lg shrink-0"
+                    className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
                     onClick={() => shiftDate(-1)}
                     aria-label="Previous day"
                   >
@@ -286,9 +286,9 @@ function NBAPlaySearchSection() {
                   </Button>
                   <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg flex-1 min-w-0" />
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="h-10 w-9 rounded-lg shrink-0"
+                    className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
                     onClick={() => shiftDate(1)}
                     aria-label="Next day"
                   >
