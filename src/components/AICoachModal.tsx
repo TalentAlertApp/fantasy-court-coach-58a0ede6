@@ -13,10 +13,12 @@ import { useTeam } from "@/contexts/TeamContext";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import {
   aiAnalyzeRoster, aiPickCaptain, aiSuggestTransfers, aiInjuryMonitor, aiExplainPlayer,
-  saveRoster, simulateTransactions, commitTransaction,
+  saveRoster, simulateTransactions, commitTransaction, autoPickRoster,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import InjuryReportModal from "@/components/InjuryReportModal";
+import { getCurrentGameday } from "@/lib/deadlines";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AICoachModalProps {
   open: boolean;
@@ -38,6 +40,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const queryClient = useQueryClient();
 
   const [analyzeResult, setAnalyzeResult] = useState<any>(null);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
@@ -61,11 +64,53 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const [simulatingIdx, setSimulatingIdx] = useState<number | null>(null);
   const [committingIdx, setCommittingIdx] = useState<number | null>(null);
   const [simResults, setSimResults] = useState<Record<number, any>>({});
+  const [draftingFromEmpty, setDraftingFromEmpty] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const gw = rosterData?.roster?.gw ?? 1;
   const day = rosterData?.roster?.day ?? 1;
   const allPlayers = playersData?.items ?? [];
+
+  // True when the active team has zero real players on its roster.
+  const isRosterEmpty = useMemo(() => {
+    const starters = rosterData?.roster?.starters ?? [];
+    const bench = rosterData?.roster?.bench ?? [];
+    return [...starters, ...bench].every((id: number) => !id || id === 0);
+  }, [rosterData]);
+
+  const handleDraftFromEmpty = async () => {
+    if (!selectedTeamId) return;
+    setDraftingFromEmpty(true);
+    try {
+      const { gw: cgw, day: cday } = getCurrentGameday();
+      await autoPickRoster({ gw: cgw, day: cday, strategy: "value5" }, selectedTeamId);
+      // Pick captain on the freshly drafted roster (best-effort).
+      try {
+        const cap = await aiPickCaptain({ gw: cgw, day: cday }, selectedTeamId);
+        await queryClient.invalidateQueries({ queryKey: ["roster-current", selectedTeamId] });
+        // Re-fetch roster so we can save with the AI-picked captain.
+        const fresh = await (await import("@/lib/api")).fetchRosterCurrent(selectedTeamId);
+        if (fresh?.roster && cap?.captain_id) {
+          await saveRoster({
+            gw: cgw, day: cday,
+            starters: fresh.roster.starters,
+            bench: fresh.roster.bench,
+            captain_id: cap.captain_id,
+          }, selectedTeamId);
+        }
+      } catch (capErr) {
+        // Captain step is non-fatal — roster is already drafted.
+        console.warn("AI captain pick skipped:", capErr);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["roster-current", selectedTeamId] });
+      toast({ title: "Squad drafted with AI!", description: `Saved under GW${cgw} · Day ${cday}.` });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: "AI draft failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    } finally {
+      setDraftingFromEmpty(false);
+    }
+  };
 
   const getPlayerName = (id: number) => {
     const p = allPlayers.find((i: any) => i.core.id === id);
@@ -218,6 +263,26 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </DialogHeader>
 
         <Tabs defaultValue="analyze" className="flex-1 min-h-0 flex flex-col">
+          {isRosterEmpty && (
+            <div className="shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
+                <Sparkles className="h-5 w-5 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-heading uppercase tracking-wider text-sm font-bold">No roster yet</p>
+                <p className="text-xs text-muted-foreground">Let me build a balanced 10-player squad and pick your captain.</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={handleDraftFromEmpty}
+                disabled={draftingFromEmpty}
+                className="rounded-lg font-heading uppercase text-xs shrink-0"
+              >
+                {draftingFromEmpty ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Bot className="h-4 w-4 mr-1" />}
+                Draft my squad with AI
+              </Button>
+            </div>
+          )}
           <TabsList className="rounded-lg shrink-0 grid grid-cols-5">
             <TabsTrigger value="analyze" className="font-heading text-[10px] uppercase rounded-lg"><Activity className="h-3 w-3 mr-1" />Analyze</TabsTrigger>
             <TabsTrigger value="captain" className="font-heading text-[10px] uppercase rounded-lg"><Star className="h-3 w-3 mr-1" />Captain</TabsTrigger>
