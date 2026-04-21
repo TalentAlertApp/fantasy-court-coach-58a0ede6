@@ -228,6 +228,24 @@ export default function SchedulePage() {
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
+              <div className="inline-flex items-center rounded-xl border border-border overflow-hidden">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  title="List view"
+                  aria-pressed={viewMode === "list"}
+                >
+                  <Rows3 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1 transition-colors ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  title="Grid view"
+                  aria-pressed={viewMode === "grid"}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* CENTER: TOTW | POTD (absolute on md+, inline on mobile) */}
@@ -303,7 +321,7 @@ export default function SchedulePage() {
             </Button>
           </div>
         ) : (
-          <ScheduleList games={data?.games ?? []} />
+          <ScheduleList games={data?.games ?? []} viewMode={viewMode} />
         )}
       </div>
 
