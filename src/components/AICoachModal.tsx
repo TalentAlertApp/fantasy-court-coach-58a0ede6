@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle } from "lucide-react";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
@@ -355,24 +356,30 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                   })}
                 </div>
               )}
-              <div className="relative" ref={dropdownRef}>
+              <Popover open={showDropdown && explainMatches.length > 0} onOpenChange={setShowDropdown}>
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="Search player name or team..."
-                    value={explainSearch}
-                    onChange={(e) => handleExplainSearchChange(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleExplain()}
-                    className="rounded-lg flex-1"
-                  />
+                  <PopoverAnchor asChild>
+                    <Input
+                      placeholder="Search player name or team..."
+                      value={explainSearch}
+                      onChange={(e) => handleExplainSearchChange(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleExplain()}
+                      className="rounded-lg flex-1"
+                    />
+                  </PopoverAnchor>
                   <Button size="sm" onClick={handleExplain} disabled={explainLoading || (!selectedExplainPlayer && explainMatches.length === 0)}>
                     {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
                   </Button>
                 </div>
 
-                {/* Autocomplete dropdown */}
-                {showDropdown && explainMatches.length > 0 && (
-                  <div className="absolute left-0 right-0 top-full mt-1 bg-card border rounded-xl shadow-lg z-50 max-h-[240px] overflow-y-auto">
-                    {explainMatches.map((p) => {
+                <PopoverContent
+                  align="start"
+                  side="bottom"
+                  sideOffset={4}
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)] max-h-[260px] overflow-y-auto z-[100]"
+                >
+                  {explainMatches.map((p) => {
                       const logo = getTeamLogo(p.core.team);
                       const teamFullName = getTeamFullName(p.core.team);
                       return (
@@ -415,9 +422,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                         </button>
                       );
                     })}
-                  </div>
-                )}
-              </div>
+                </PopoverContent>
+              </Popover>
 
               {explainLoading && <Skeleton className="h-20 w-full" />}
               {explainResult && (

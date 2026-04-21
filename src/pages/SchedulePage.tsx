@@ -105,7 +105,7 @@ export default function SchedulePage() {
             <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
             <span className="text-xs font-body dark:text-[hsl(var(--nba-yellow))]">{dateRange}</span>
           </div>
-          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1">
+          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1 pr-2">
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
               const isCurrent = w === current.gw;
@@ -129,6 +129,7 @@ export default function SchedulePage() {
                 </button>
               );
             })}
+            <span className="shrink-0 w-1" aria-hidden />
           </div>
         </div>
 
@@ -148,7 +149,7 @@ export default function SchedulePage() {
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
 
-          <div className="flex-1 flex overflow-x-auto scrollbar-hide">
+          <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide px-1">
             {weekDays.map((wd) => {
               const isSelected = wd.day === day;
               const isDayToday = wd.date === todayStr;
@@ -160,9 +161,9 @@ export default function SchedulePage() {
                 <button
                   key={wd.day}
                   onClick={() => setDay(wd.day)}
-                className={`flex-1 min-w-[80px] py-2 px-2 transition-all border-r border-border/60 last:border-r-0 ${
+                  className={`flex-1 min-w-[80px] py-2 px-2 transition-all rounded-xl border border-[hsl(var(--nba-navy))] dark:border-[hsl(var(--nba-yellow))]/60 ${
                     isSelected
-                      ? "bg-primary text-primary-foreground shadow-md rounded-xl border-r-transparent"
+                      ? "bg-primary text-primary-foreground shadow-md"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
@@ -223,21 +224,6 @@ export default function SchedulePage() {
                 </>
               )}
               <span className="text-muted-foreground/40">·</span>
-              <button
-                onClick={() => setInjuryOpen(true)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                title="Injury Report"
-                aria-label="Open injury report"
-              >
-                <Shield className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                title="Advanced Schedule Grid"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
               <div className="inline-flex items-center rounded-xl border border-border overflow-hidden">
                 <button
                   onClick={() => setViewMode("list")}
@@ -256,6 +242,23 @@ export default function SchedulePage() {
                   <LayoutGrid className="h-3.5 w-3.5" />
                 </button>
               </div>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                onClick={() => setInjuryOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Injury Report"
+                aria-label="Open injury report"
+              >
+                <Shield className="h-4 w-4" />
+              </button>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Advanced Schedule Grid"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
             </div>
 
             {/* CENTER: TOTW | POTD (absolute on md+, inline on mobile) */}
