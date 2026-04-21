@@ -316,26 +316,54 @@ function NBAPlaySearchSection() {
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-[200px_1fr_auto] gap-3 items-end">
+            <div className="grid sm:grid-cols-[280px_1fr_auto] gap-3 items-end">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
+                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+                  Gameday <span className="text-foreground/70 normal-case tracking-normal">· {lisbonDateLabel}</span>
+                </Label>
                 <div className="flex items-stretch gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => shiftDate(-1)}
-                    aria-label="Previous day"
+                    onClick={() => shiftDay(-1)}
+                    disabled={!canPrev}
+                    aria-label="Previous gameday"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg flex-1 min-w-0" />
+                  <Select value={String(gw)} onValueChange={(v) => {
+                    const newGw = Number(v);
+                    setGw(newGw);
+                    const days = DEADLINES.filter((d) => d.gw === newGw).map((d) => d.day);
+                    if (!days.includes(day)) setDay(days[0] ?? 1);
+                  }}>
+                    <SelectTrigger className="rounded-lg flex-1 min-w-0 h-10">
+                      <SelectValue placeholder="GW" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg max-h-[320px]">
+                      {allGws.map((g) => (
+                        <SelectItem key={g} value={String(g)}>GW {g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(day)} onValueChange={(v) => setDay(Number(v))}>
+                    <SelectTrigger className="rounded-lg flex-1 min-w-0 h-10">
+                      <SelectValue placeholder="Day" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg max-h-[320px]">
+                      {daysInGw.map((d) => (
+                        <SelectItem key={d} value={String(d)}>Day {d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => shiftDate(1)}
-                    aria-label="Next day"
+                    onClick={() => shiftDay(1)}
+                    disabled={!canNext}
+                    aria-label="Next gameday"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -348,7 +376,7 @@ function NBAPlaySearchSection() {
                     <SelectValue placeholder={
                       gamesLoading
                         ? "Loading games…"
-                        : (gamesByDate?.length ? "Pick a game" : "No games on this date")
+                        : (gamesByDate?.length ? "Pick a game" : "No games on this gameday")
                     } />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
