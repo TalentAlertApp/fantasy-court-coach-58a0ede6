@@ -64,12 +64,21 @@ export default function TeamSwitcher() {
     }
     setDeleting(true);
     try {
+      const deletingActiveTeam = selectedTeamId === deleteId;
+      const fallbackTeam = teams.find((t) => t.id !== deleteId) ?? null;
+
+      // Switch away from the team before deleting it so no subscriber refetches
+      // roster-current with an id that is about to disappear.
+      if (deletingActiveTeam && fallbackTeam) {
+        setSelectedTeamId(fallbackTeam.id);
+      }
+
+      await queryClient.cancelQueries({ queryKey: ["roster-current", deleteId] });
+      queryClient.removeQueries({ queryKey: ["roster-current", deleteId] });
+
       await deleteTeam(deleteId);
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
-      if (selectedTeamId === deleteId) {
-        const remaining = teams.find((t) => t.id !== deleteId);
-        if (remaining) setSelectedTeamId(remaining.id);
-      }
+      await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       setDeleteOpen(false);
       toast({ title: "Team deleted" });
     } catch (e: any) {
