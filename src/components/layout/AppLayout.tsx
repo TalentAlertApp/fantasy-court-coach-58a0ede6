@@ -1,9 +1,11 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Trophy } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Trophy, LogOut } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const navItems = [
   { to: "/", label: "My Roster", icon: ClipboardList, end: true },
@@ -16,6 +18,8 @@ const navItems = [
 ];
 
 export default function AppLayout() {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(() =>
     localStorage.getItem("nba_theme") === "dark" ||
@@ -76,6 +80,24 @@ export default function AppLayout() {
 
         {/* Bottom controls */}
         <div className="flex flex-col gap-2 p-3 border-t" style={{ borderColor: "hsl(var(--sidebar-border))" }}>
+          {user && (
+            <div className={`flex items-center gap-2 px-1 ${collapsed ? "justify-center" : ""}`}>
+              {!collapsed && (
+                <span className="text-[10px] uppercase tracking-wider truncate flex-1"
+                      style={{ color: "hsl(var(--sidebar-foreground) / 0.7)" }}
+                      title={user.email ?? ""}>
+                  {user.email}
+                </span>
+              )}
+              <button
+                onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
+                className="theme-toggle"
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setDark(d => !d)}
             className="theme-toggle w-full"
