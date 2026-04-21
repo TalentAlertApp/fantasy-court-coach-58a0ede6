@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
