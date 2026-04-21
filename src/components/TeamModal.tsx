@@ -23,7 +23,6 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const team = tricode ? getTeamByTricode(tricode) : null;
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
-  const [expandedRecap, setExpandedRecap] = useState<string | null>(null);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
     queryKey: ["team-games", tricode],
@@ -166,28 +165,24 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                                   <ExternalLink className="h-3.5 w-3.5" />
                                 </a>
                               )}
-                              <button
-                                className={`${g.youtube_recap_id ? "text-green-500 hover:text-green-400 cursor-pointer" : "text-muted-foreground/30 cursor-default"} transition-colors p-0.5`}
-                                onClick={(e) => { e.stopPropagation(); if (g.youtube_recap_id) setExpandedRecap(expandedRecap === g.game_id ? null : g.game_id); }}
-                                title="Video Recap"
-                                disabled={!g.youtube_recap_id}
-                              >
-                                <Tv2 className="h-3.5 w-3.5" />
-                              </button>
+                              {g.game_recap_url ? (
+                                <a
+                                  href={g.game_recap_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-green-500 hover:text-green-400 transition-colors p-0.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Watch Recap on NBA.com"
+                                >
+                                  <Tv2 className="h-3.5 w-3.5" />
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground/30 p-0.5" title="Recap unavailable">
+                                  <Tv2 className="h-3.5 w-3.5" />
+                                </span>
+                              )}
                             </div>
                           </div>
-                          {expandedRecap === g.game_id && g.youtube_recap_id && (
-                            <div className="px-3 py-2 border-b border-border/40 bg-muted/30">
-                              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-                                <iframe
-                                  className="absolute inset-0 w-full h-full rounded-lg"
-                                  src={`https://www.youtube.com/embed/${g.youtube_recap_id}`}
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
                       );
                     })}

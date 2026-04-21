@@ -17,37 +17,41 @@ import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 
-/* ---------- Recap Video Embed ---------- */
-function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
-  if (youtubeVideoId) {
+/* ---------- Recap Card (NBA.com link) ---------- */
+function RecapCard({ url, awayTeam, homeTeam }: { url?: string | null; awayTeam: string; homeTeam: string }) {
+  if (!url) {
     return (
-      <div className="w-full h-full overflow-hidden rounded-xl bg-black">
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
-          title={title}
-          className="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowFullScreen
-          loading="lazy"
-        />
+      <div className="flex w-full h-full items-center justify-center rounded-xl bg-muted/30 text-sm text-muted-foreground p-6 text-center">
+        Official recap unavailable
       </div>
     );
   }
-
-  if (url) {
-    return (
-      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-black/80">
-        <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
-          Watch on NBA.com
-        </a>
-      </div>
-    );
-  }
-
+  const awayLogo = getTeamLogo(awayTeam);
+  const homeLogo = getTeamLogo(homeTeam);
   return (
-    <div className="flex w-full h-full items-center justify-center rounded-xl bg-muted/30 text-sm text-muted-foreground">
-      Recap unavailable
-    </div>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="group relative flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-card via-muted/40 to-card border overflow-hidden hover:border-green-500/50 transition-colors"
+    >
+      <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-[0.08] group-hover:opacity-[0.15] transition-opacity">
+        {awayLogo && <img src={awayLogo} alt="" className="w-32 h-32" />}
+        {homeLogo && <img src={homeLogo} alt="" className="w-32 h-32" />}
+      </div>
+      <div className="relative z-10 flex flex-col items-center gap-2">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/15 border border-green-500/40 group-hover:bg-green-500/25 transition-colors">
+          <Tv2 className="h-7 w-7 text-green-500" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-heading font-bold uppercase tracking-wider">Watch Recap</p>
+          <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+            on NBA.com <ExternalLink className="h-3 w-3" />
+          </p>
+        </div>
+      </div>
+    </a>
   );
 }
 
@@ -223,11 +227,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
         </div>
       </div>
       <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
-        <RecapVideoEmbed
-          youtubeVideoId={youtubeRecapId}
-          url={recapUrl}
-          title="Game Recap"
-        />
+        <RecapCard url={recapUrl} awayTeam={awayTeam} homeTeam={homeTeam} />
       </div>
     </div>
   );
@@ -361,7 +361,6 @@ function useAllTeamsForm(enabled: boolean) {
 }
 
 function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const [showRecap, setShowRecap] = useState(false);
   if (!game) return null;
   const awayLogo = getTeamLogo(game.away_team);
   const homeLogo = getTeamLogo(game.home_team);
@@ -406,24 +405,16 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
             </a>
           )}
         </div>
-        {game.youtube_recap_id && (
-          <div>
-            <button
-              onClick={() => setShowRecap(!showRecap)}
-              className="flex items-center gap-1 text-xs text-green-500 hover:text-green-400 transition-colors mx-auto py-1"
+        {game.game_recap_url && (
+          <div className="flex justify-center pt-1">
+            <a
+              href={game.game_recap_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded-xl border border-green-500/40"
             >
-              <Tv2 className="h-3.5 w-3.5" /> {showRecap ? "Hide" : "Watch"} Recap
-            </button>
-            {showRecap && (
-              <div className="relative w-full mt-1" style={{ paddingBottom: "56.25%" }}>
-                <iframe
-                  className="absolute inset-0 w-full h-full rounded-xl"
-                  src={`https://www.youtube.com/embed/${game.youtube_recap_id}`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            )}
+              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on NBA.com <ExternalLink className="h-3 w-3" />
+            </a>
           </div>
         )}
       </DialogContent>
@@ -560,9 +551,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                   <div className="space-y-1">
                     {team.last5.map((g, i) => {
                       const oppLogo = getTeamLogo(g.opp);
-                      const recapHref = g.youtube_recap_id
-                        ? `https://www.youtube.com/watch?v=${g.youtube_recap_id}`
-                        : null;
+                      const recapHref = g.game_recap_url ?? null;
                       return (
                         <div key={i} className="flex items-center gap-2 text-xs">
                           <button onClick={() => onGameClick(g)}>

@@ -7,6 +7,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const TEAM_FULL_NAME: Record<string, string> = {
+  ATL: "Atlanta Hawks", BOS: "Boston Celtics", BKN: "Brooklyn Nets", CHA: "Charlotte Hornets",
+  CHI: "Chicago Bulls", CLE: "Cleveland Cavaliers", DAL: "Dallas Mavericks", DEN: "Denver Nuggets",
+  DET: "Detroit Pistons", GSW: "Golden State Warriors", HOU: "Houston Rockets", IND: "Indiana Pacers",
+  LAC: "LA Clippers", LAL: "Los Angeles Lakers", MEM: "Memphis Grizzlies", MIA: "Miami Heat",
+  MIL: "Milwaukee Bucks", MIN: "Minnesota Timberwolves", NOP: "New Orleans Pelicans", NYK: "New York Knicks",
+  OKC: "Oklahoma City Thunder", ORL: "Orlando Magic", PHI: "Philadelphia 76ers", PHX: "Phoenix Suns",
+  POR: "Portland Trail Blazers", SAC: "Sacramento Kings", SAS: "San Antonio Spurs", TOR: "Toronto Raptors",
+  UTA: "Utah Jazz", WAS: "Washington Wizards",
+};
+
+const TEAM_CITY: Record<string, string> = {
+  ATL: "atlanta", BOS: "boston", BKN: "brooklyn", CHA: "charlotte", CHI: "chicago",
+  CLE: "cleveland", DAL: "dallas", DEN: "denver", DET: "detroit", GSW: "golden state",
+  HOU: "houston", IND: "indiana", LAC: "clippers", LAL: "lakers", MEM: "memphis",
+  MIA: "miami", MIL: "milwaukee", MIN: "minnesota", NOP: "new orleans", NYK: "new york",
+  OKC: "oklahoma", ORL: "orlando", PHI: "philadelphia", PHX: "phoenix", POR: "portland",
+  SAC: "sacramento", SAS: "san antonio", TOR: "toronto", UTA: "utah", WAS: "washington",
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -26,7 +46,7 @@ serve(async (req: Request) => {
     // Find FINAL games without youtube_recap_id
     const { data: games, error: fetchErr } = await supabase
       .from("schedule_games")
-      .select("game_id, away_team, home_team")
+      .select("game_id, away_team, home_team, tipoff_utc")
       .eq("status", "FINAL")
       .is("youtube_recap_id", null)
       .limit(limit);
@@ -43,8 +63,11 @@ serve(async (req: Request) => {
 
     for (const game of games) {
       try {
-        const query = `Motion Station ${game.away_team} vs ${game.home_team} recap`;
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=1&key=${YOUTUBE_API_KEY}`;
+        const awayFull = TEAM_FULL_NAME[game.away_team] ?? game.away_team;
+        const homeFull = TEAM_FULL_NAME[game.home_team] ?? game.home_team;
+        const dateStr = game.tipoff_utc ? new Date(game.tipoff_utc).toISOString().slice(0, 10) : "";
+        const query = `${awayFull} vs ${homeFull} game recap ${dateStr}`.trim();
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoEmbeddable=true&order=relevance&maxResults=5&key=${YOUTUBE_API_KEY}`;
 
         const ytRes = await fetch(searchUrl);
         if (!ytRes.ok) {
@@ -59,7 +82,25 @@ serve(async (req: Request) => {
         }
 
         const ytData = await ytRes.json();
-        const videoId = ytData?.items?.[0]?.id?.videoId;
+        const items: any[] = ytData?.items ?? [];
+        const awayCity = TEAM_CITY[game.away_team] ?? game.away_team.toLowerCase();
+        const homeCity = TEAM_CITY[game.home_team] ?? game.home_team.toLowerCase();
+
+        // Score each item by how well its title matches both teams + recap/highlights keywords
+        let best: any = null;
+        let bestScore = -1;
+        for (const item of items) {
+          const title = (item?.snippet?.title ?? "").toLowerCase();
+          let score = 0;
+          if (title.includes(awayCity)) score += 2;
+          if (title.includes(homeCity)) score += 2;
+          if (title.includes("recap")) score += 2;
+          else if (title.includes("highlights")) score += 1;
+          if (dateStr && title.includes(dateStr.slice(5))) score += 1; // mm-dd token match bonus
+          if (score > bestScore) { bestScore = score; best = item; }
+        }
+        // Require at least both team mentions OR a recap/highlights keyword to accept.
+        const videoId = bestScore >= 3 ? best?.id?.videoId : (items[0]?.id?.videoId ?? null);
 
         if (videoId) {
           const { error: updateErr } = await supabase

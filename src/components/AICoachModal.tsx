@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle } from "lucide-react";
+import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote } from "lucide-react";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -425,31 +425,15 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 </PopoverContent>
               </Popover>
 
-              {explainLoading && <Skeleton className="h-20 w-full" />}
-              {explainResult && (
-                <div className="space-y-2 text-sm">
-                  {selectedExplainPlayer && (
-                    <p className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
-                      Explanation for {selectedExplainPlayer.core.name}
-                    </p>
-                  )}
-                  <p className="font-semibold">{explainResult.summary}</p>
-                  {explainResult.why_it_scores?.map((f: any, i: number) => (
-                    <div key={i} className="flex items-center gap-2 text-xs mb-1">
-                      <Badge variant="outline" className="rounded-lg text-[9px]">{f.factor}</Badge>
-                      <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-lg text-[9px]">{f.impact}</Badge>
-                      <span>{f.note}</span>
-                    </div>
-                  ))}
-                  {explainResult.recommendation && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant={explainResult.recommendation.action === "add" ? "default" : explainResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-lg">
-                        {explainResult.recommendation.action.toUpperCase()}
-                      </Badge>
-                      <span className="text-xs">{explainResult.recommendation.rationale}</span>
-                    </div>
-                  )}
+              {explainLoading && (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                  <Skeleton className="h-10 w-full rounded-xl" />
+                  <Skeleton className="h-24 w-full rounded-xl" />
                 </div>
+              )}
+              {!explainLoading && explainResult && (
+                <ExplainReport result={explainResult} player={selectedExplainPlayer} />
               )}
             </TabsContent>
           </div>
@@ -458,5 +442,153 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     </Dialog>
     <InjuryReportModal open={injuryModalOpen} onOpenChange={setInjuryModalOpen} />
     </>
+  );
+}
+
+/* ---------- Explain Report (premium UI) ---------- */
+
+function factorIcon(factor: string) {
+  const f = (factor || "").toLowerCase();
+  if (f.includes("reb")) return Disc;
+  if (f.includes("ast") || f.includes("assist")) return Users;
+  if (f.includes("block") || f.includes("stocks") || f.includes("steal") || f.includes("def")) return Shield;
+  if (f.includes("min")) return Clock;
+  if (f.includes("usage") || f.includes("score") || f.includes("pts") || f.includes("scoring")) return Activity;
+  return Sparkles;
+}
+
+function impactClasses(impact: string): string {
+  switch ((impact || "").toLowerCase()) {
+    case "very_high":
+      return "bg-emerald-500 text-white border border-emerald-500";
+    case "high":
+      return "bg-emerald-500/15 text-emerald-500 border border-emerald-500/40";
+    case "medium":
+      return "bg-amber-500/15 text-amber-500 border border-amber-500/40";
+    default:
+      return "bg-muted text-muted-foreground border border-border";
+  }
+}
+
+function actionPalette(action: string): { chip: string; band: string; label: string } {
+  switch ((action || "").toLowerCase()) {
+    case "add":
+      return {
+        chip: "bg-emerald-500 text-white",
+        band: "bg-gradient-to-r from-emerald-500/15 via-emerald-500/5 to-transparent border-emerald-500/40",
+        label: "ADD",
+      };
+    case "drop":
+      return {
+        chip: "bg-destructive text-destructive-foreground",
+        band: "bg-gradient-to-r from-destructive/15 via-destructive/5 to-transparent border-destructive/40",
+        label: "DROP",
+      };
+    default:
+      return {
+        chip: "bg-amber-500 text-white",
+        band: "bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border-amber-500/40",
+        label: (action || "HOLD").toUpperCase(),
+      };
+  }
+}
+
+function ExplainReport({ result, player }: { result: any; player: any }) {
+  const teamTricode = player?.core?.team;
+  const teamLogo = teamTricode ? getTeamLogo(teamTricode) : null;
+  const teamFullName = teamTricode ? getTeamFullName(teamTricode) : "";
+  const fp5 = Number(player?.last5?.fp5 ?? 0);
+  const seasonFp = Number(player?.season?.fp ?? 0);
+  const palette = actionPalette(result?.recommendation?.action ?? "hold");
+
+  return (
+    <div className="space-y-3">
+      {/* Player header */}
+      {player && (
+        <div className="relative overflow-hidden rounded-xl border bg-gradient-to-r from-card via-muted/30 to-card">
+          {teamLogo && (
+            <img
+              src={teamLogo}
+              alt=""
+              aria-hidden
+              className="absolute -right-4 -top-2 w-24 h-24 opacity-[0.08] pointer-events-none select-none"
+            />
+          )}
+          <div className="relative flex items-center gap-3 px-3 py-2.5">
+            {player.core?.photo ? (
+              <img src={player.core.photo} alt="" className="w-14 h-14 rounded-full object-cover bg-muted shrink-0 ring-2 ring-border" />
+            ) : (
+              <div className="w-14 h-14 rounded-full bg-muted shrink-0 inline-flex items-center justify-center text-sm font-bold">
+                {player.core?.name?.slice(0, 2)?.toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-heading font-bold uppercase truncate">{player.core?.name}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
+                <span className="text-[11px] text-muted-foreground truncate">{teamFullName} · {teamTricode}</span>
+                <Badge variant={player.core?.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg text-[8px] px-1 py-0 h-4">
+                  {player.core?.fc_bc}
+                </Badge>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-mono font-black text-2xl leading-none tabular-nums">{fp5.toFixed(1)}</p>
+              <p className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground mt-0.5">FP5</p>
+              <p className="text-[10px] font-mono text-muted-foreground tabular-nums mt-0.5">Season {seasonFp.toFixed(1)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Summary */}
+      {result.summary && (
+        <div>
+          <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Explanation{player?.core?.name ? ` for ${player.core.name}` : ""}
+          </p>
+          <div className="border-l-4 border-accent pl-3 py-1 italic text-sm leading-relaxed">
+            <Quote className="h-3 w-3 inline mr-1 text-accent -mt-1" />
+            {result.summary}
+          </div>
+        </div>
+      )}
+
+      {/* Why it scores */}
+      {result.why_it_scores?.length > 0 && (
+        <div>
+          <p className="text-[10px] font-heading font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
+            Why it scores
+          </p>
+          <div className="border rounded-xl divide-y bg-card">
+            {result.why_it_scores.map((f: any, i: number) => {
+              const Icon = factorIcon(f.factor);
+              return (
+                <div key={i} className="px-3 py-2 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider">{f.factor}</span>
+                    <span className={`ml-auto text-[9px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${impactClasses(f.impact)}`}>
+                      {(f.impact || "").replace("_", " ")}
+                    </span>
+                  </div>
+                  {f.note && <p className="text-xs text-muted-foreground leading-snug pl-5">{f.note}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recommendation banner */}
+      {result.recommendation && (
+        <div className={`rounded-xl border ${palette.band} px-3 py-2.5 flex items-center gap-3`}>
+          <span className={`shrink-0 inline-flex items-center justify-center font-heading font-black text-sm px-3 py-1 rounded-lg ${palette.chip}`}>
+            {palette.label}
+          </span>
+          <span className="text-xs leading-snug">{result.recommendation.rationale}</span>
+        </div>
+      )}
+    </div>
   );
 }
