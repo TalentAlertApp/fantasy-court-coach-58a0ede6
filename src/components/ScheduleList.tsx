@@ -17,37 +17,41 @@ import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 
-/* ---------- Recap Video Embed ---------- */
-function RecapVideoEmbed({ youtubeVideoId, url, title = "Game recap" }: { youtubeVideoId?: string | null; url?: string | null; title?: string }) {
-  if (youtubeVideoId) {
+/* ---------- Recap Card (NBA.com link) ---------- */
+function RecapCard({ url, awayTeam, homeTeam }: { url?: string | null; awayTeam: string; homeTeam: string }) {
+  if (!url) {
     return (
-      <div className="w-full h-full overflow-hidden rounded-xl bg-black">
-        <iframe
-          src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1`}
-          title={title}
-          className="w-full h-full"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-          allowFullScreen
-          loading="lazy"
-        />
+      <div className="flex w-full h-full items-center justify-center rounded-xl bg-muted/30 text-sm text-muted-foreground p-6 text-center">
+        Official recap unavailable
       </div>
     );
   }
-
-  if (url) {
-    return (
-      <div className="flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-black/80">
-        <a href={url} target="_blank" rel="noreferrer" className="text-xs font-medium text-primary underline-offset-4 hover:underline">
-          Watch on NBA.com
-        </a>
-      </div>
-    );
-  }
-
+  const awayLogo = getTeamLogo(awayTeam);
+  const homeLogo = getTeamLogo(homeTeam);
   return (
-    <div className="flex w-full h-full items-center justify-center rounded-xl bg-muted/30 text-sm text-muted-foreground">
-      Recap unavailable
-    </div>
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="group relative flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-card via-muted/40 to-card border overflow-hidden hover:border-green-500/50 transition-colors"
+    >
+      <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-[0.08] group-hover:opacity-[0.15] transition-opacity">
+        {awayLogo && <img src={awayLogo} alt="" className="w-32 h-32" />}
+        {homeLogo && <img src={homeLogo} alt="" className="w-32 h-32" />}
+      </div>
+      <div className="relative z-10 flex flex-col items-center gap-2">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/15 border border-green-500/40 group-hover:bg-green-500/25 transition-colors">
+          <Tv2 className="h-7 w-7 text-green-500" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-heading font-bold uppercase tracking-wider">Watch Recap</p>
+          <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
+            on NBA.com <ExternalLink className="h-3 w-3" />
+          </p>
+        </div>
+      </div>
+    </a>
   );
 }
 
