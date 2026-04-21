@@ -199,15 +199,13 @@ function NBAPlaySearchSection() {
 
   const handleMatchupOpen = () => {
     const params = new URLSearchParams({
-      actionplayer: offensivePlayer,
       defensivePlayers: defensivePlayer,
       offensivePlayers: offensivePlayer,
     });
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
     window.open(url, "_blank");
-    navigator.clipboard?.writeText(defensivePlayer).catch(() => {});
     toast.success("Opening NBAPlayDB", {
-      description: `Filters: ${offensivePlayer} (off) + ${defensivePlayer} (def). Defender copied to clipboard.`,
+      description: `Matchup: ${offensivePlayer} (off) vs ${defensivePlayer} (def).`,
     });
   };
 
@@ -266,7 +264,7 @@ function NBAPlaySearchSection() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Offensive player auto-applied as filter. Defender name copied to clipboard for one-paste selection.
+              Both players auto-applied as Matchup filters on NBAPlayDB.
             </p>
           </TabsContent>
 
