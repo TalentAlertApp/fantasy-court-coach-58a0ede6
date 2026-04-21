@@ -108,7 +108,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className="relative min-h-screen w-full bg-background text-foreground overflow-hidden"
+      className="relative h-screen w-full bg-background text-foreground overflow-hidden"
       style={{
         backgroundImage: `
           radial-gradient(ellipse at 20% 10%, hsl(var(--primary) / 0.18), transparent 55%),
