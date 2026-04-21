@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
@@ -6,7 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -142,31 +142,74 @@ function NBAPlaySearchSection() {
   const [offensivePlayer, setOffensivePlayer] = useState("");
   const [defensivePlayer, setDefensivePlayer] = useState("");
 
-  const today = new Date().toISOString().slice(0, 10);
-  const [date, setDate] = useState(today);
+  const initial = useMemo(() => getCurrentGameday(), []);
+  const [gw, setGw] = useState<number>(initial.gw);
+  const [day, setDay] = useState<number>(initial.day);
   const [gameId, setGameId] = useState("");
 
+  // Lisbon-day label + yyyymmdd derived from the matched deadline
+  const currentDeadline = useMemo(
+    () => DEADLINES.find((d) => d.gw === gw && d.day === day) ?? initial,
+    [gw, day, initial],
+  );
+  const lisbonDateLabel = useMemo(() => {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Lisbon",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(new Date(currentDeadline.deadline_utc));
+  }, [currentDeadline]);
+  const yyyymmdd = useMemo(() => {
+    // Lisbon Y-M-D for the deadline date
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Lisbon",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date(currentDeadline.deadline_utc));
+    const y = parts.find((p) => p.type === "year")?.value ?? "";
+    const m = parts.find((p) => p.type === "month")?.value ?? "";
+    const d = parts.find((p) => p.type === "day")?.value ?? "";
+    return `${y}${m}${d}`;
+  }, [currentDeadline]);
+
+  // Step through DEADLINES chronologically
+  const currentIndex = useMemo(
+    () => DEADLINES.findIndex((d) => d.gw === gw && d.day === day),
+    [gw, day],
+  );
+  const canPrev = currentIndex > 0;
+  const canNext = currentIndex >= 0 && currentIndex < DEADLINES.length - 1;
+  const shiftDay = (delta: number) => {
+    const next = DEADLINES[currentIndex + delta];
+    if (!next) return;
+    setGw(next.gw);
+    setDay(next.day);
+  };
+
+  const daysInGw = useMemo(() => DEADLINES.filter((d) => d.gw === gw).map((d) => d.day), [gw]);
+  const allGws = useMemo(() => Array.from(new Set(DEADLINES.map((d) => d.gw))), []);
+
+  // Reset selected game when (gw, day) changes — proper effect, not useMemo
+  useEffect(() => {
+    setGameId("");
+  }, [gw, day]);
+
   const { data: gamesByDate, isLoading: gamesLoading } = useQuery({
-    queryKey: ["games-by-date", date],
+    queryKey: ["games-by-gw-day", gw, day],
     queryFn: async () => {
-      if (!date) return [];
-      const start = new Date(date + "T00:00:00");
-      const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, away_team, home_team, tipoff_utc, status")
-        .gte("tipoff_utc", start.toISOString())
-        .lt("tipoff_utc", end.toISOString())
+        .eq("gw", gw)
+        .eq("day", day)
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 2 * 60 * 60 * 1000,
-    enabled: !!date,
   });
-
-  // Reset gameId when date changes / list reloads to avoid stale selection
-  useMemo(() => { setGameId(""); }, [date]);
 
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
   const players = useMemo(() => {
@@ -185,17 +228,10 @@ function NBAPlaySearchSection() {
   const matchupDisabled = !offensivePlayer || !defensivePlayer;
 
   const selectedGame = (gamesByDate ?? []).find((g: any) => g.game_id === gameId);
-  const yyyymmdd = date.split("-").join("");
   const gamecode = selectedGame ? `${yyyymmdd}/${selectedGame.away_team}${selectedGame.home_team}` : "";
   const gameSearchDisabled = !selectedGame;
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
-
-  const shiftDate = (delta: number) => {
-    const d = new Date(date + "T00:00:00");
-    d.setDate(d.getDate() + delta);
-    setDate(d.toISOString().slice(0, 10));
-  };
 
   const handleMatchupOpen = () => {
     const params = new URLSearchParams({
@@ -203,9 +239,19 @@ function NBAPlaySearchSection() {
       offensivePlayers: offensivePlayer,
     });
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
-    window.open(url, "_blank");
+    // Synchronous anchor click — more reliable than window.open against SPAs that strip popups
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener,noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Fallback: copy URL so the user can paste if NBAPlayDB strips params on hydration
+    navigator.clipboard?.writeText(url).catch(() => {});
     toast.success("Opening NBAPlayDB", {
-      description: `Matchup: ${offensivePlayer} (off) vs ${defensivePlayer} (def).`,
+      description: `Matchup URL copied to clipboard. If filters don't apply, paste it into the address bar.`,
+      duration: 6000,
     });
   };
 
@@ -269,26 +315,54 @@ function NBAPlaySearchSection() {
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-[200px_1fr_auto] gap-3 items-end">
+            <div className="grid sm:grid-cols-[280px_1fr_auto] gap-3 items-end">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
+                <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+                  Gameday <span className="text-foreground/70 normal-case tracking-normal">· {lisbonDateLabel}</span>
+                </Label>
                 <div className="flex items-stretch gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => shiftDate(-1)}
-                    aria-label="Previous day"
+                    onClick={() => shiftDay(-1)}
+                    disabled={!canPrev}
+                    aria-label="Previous gameday"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg flex-1 min-w-0" />
+                  <Select value={String(gw)} onValueChange={(v) => {
+                    const newGw = Number(v);
+                    setGw(newGw);
+                    const days = DEADLINES.filter((d) => d.gw === newGw).map((d) => d.day);
+                    if (!days.includes(day)) setDay(days[0] ?? 1);
+                  }}>
+                    <SelectTrigger className="rounded-lg flex-1 min-w-0 h-10">
+                      <SelectValue placeholder="GW" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg max-h-[320px]">
+                      {allGws.map((g) => (
+                        <SelectItem key={g} value={String(g)}>GW {g}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(day)} onValueChange={(v) => setDay(Number(v))}>
+                    <SelectTrigger className="rounded-lg flex-1 min-w-0 h-10">
+                      <SelectValue placeholder="Day" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg max-h-[320px]">
+                      {daysInGw.map((d) => (
+                        <SelectItem key={d} value={String(d)}>Day {d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-10 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => shiftDate(1)}
-                    aria-label="Next day"
+                    onClick={() => shiftDay(1)}
+                    disabled={!canNext}
+                    aria-label="Next gameday"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -301,7 +375,7 @@ function NBAPlaySearchSection() {
                     <SelectValue placeholder={
                       gamesLoading
                         ? "Loading games…"
-                        : (gamesByDate?.length ? "Pick a game" : "No games on this date")
+                        : (gamesByDate?.length ? "Pick a game" : "No games on this gameday")
                     } />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
