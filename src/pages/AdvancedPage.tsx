@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +18,7 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -190,6 +191,31 @@ function NBAPlaySearchSection() {
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
+  const shiftDate = (delta: number) => {
+    const d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    setDate(d.toISOString().slice(0, 10));
+  };
+
+  const handleMatchupOpen = async () => {
+    const url =
+      `https://www.nbaplaydb.com/search` +
+      `?actionplayer=${encodeURIComponent(offensivePlayer)}` +
+      `&defensivePlayers=${encodeURIComponent(defensivePlayer)}` +
+      `&offensivePlayers=${encodeURIComponent(offensivePlayer)}`;
+    open(url);
+    try {
+      await navigator.clipboard?.writeText(defensivePlayer);
+      toast.success("Opening NBAPlayDB", {
+        description: `Offensive filter applied for ${offensivePlayer}. Defender "${defensivePlayer}" copied to clipboard — paste into Matchups → Defensive Player.`,
+      });
+    } catch {
+      toast.success("Opening NBAPlayDB", {
+        description: `Offensive filter applied for ${offensivePlayer}. Paste "${defensivePlayer}" into Matchups → Defensive Player.`,
+      });
+    }
+  };
+
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
@@ -226,11 +252,7 @@ function NBAPlaySearchSection() {
               <div className="flex items-center gap-2">
                 <Button
                   disabled={matchupDisabled}
-                  onClick={() =>
-                    open(
-                      `https://www.nbaplaydb.com/search?defensivePlayers=${encodeURIComponent(defensivePlayer)}&offensivePlayers=${encodeURIComponent(offensivePlayer)}`
-                    )
-                  }
+                  onClick={handleMatchupOpen}
                   className="rounded-lg h-10"
                 >
                   Open Matchup on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
@@ -249,15 +271,35 @@ function NBAPlaySearchSection() {
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
-              Both players are applied as Matchup filters on NBAPlayDB.
+              Offensive player auto-applied as filter. Defender name copied to clipboard for one-paste selection.
             </p>
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
-            <div className="grid sm:grid-cols-[180px_1fr_auto] gap-3 items-end">
+            <div className="grid sm:grid-cols-[230px_1fr_auto] gap-3 items-end">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game date</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg" />
+                <div className="flex items-stretch gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-9 rounded-lg shrink-0"
+                    onClick={() => shiftDate(-1)}
+                    aria-label="Previous day"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg flex-1 min-w-0" />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-9 rounded-lg shrink-0"
+                    onClick={() => shiftDate(1)}
+                    aria-label="Next day"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game</Label>
