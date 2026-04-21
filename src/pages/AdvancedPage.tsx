@@ -41,7 +41,7 @@ function NBAPlaySearchSection() {
   const composedQ = [player.trim(), playTypeLabel, team.trim()].filter(Boolean).join(" ").trim();
   const playerSearchDisabled = !player.trim() && !playTypeLabel;
 
-  const yyyymmdd = date.replaceAll("-", "");
+  const yyyymmdd = date.split("-").join("");
   const gamecode = `${yyyymmdd}/${away}${home}`;
   const gameSearchDisabled = !date || !away || !home;
 
