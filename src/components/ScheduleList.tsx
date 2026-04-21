@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { z } from "zod";
 import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +55,7 @@ type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
 interface ScheduleListProps {
   games: ScheduleGame[];
+  viewMode?: "list" | "grid";
 }
 
 function formatTipoff(utc: string): string {
@@ -611,17 +612,298 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   );
 }
 
-export default function ScheduleList({ games }: ScheduleListProps) {
+function useColsPerRow() {
+  const [cols, setCols] = useState(() => {
+    if (typeof window === "undefined") return 4;
+    const w = window.innerWidth;
+    if (w >= 1280) return 4;
+    if (w >= 1024) return 3;
+    if (w >= 640) return 2;
+    return 1;
+  });
+  useEffect(() => {
+    const onResize = () => {
+      const w = window.innerWidth;
+      if (w >= 1280) setCols(4);
+      else if (w >= 1024) setCols(3);
+      else if (w >= 640) setCols(2);
+      else setCols(1);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return cols;
+}
+
+export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
+  const colsPerRow = useColsPerRow();
 
   if (games.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
         <p className="text-lg font-heading uppercase">No Games Scheduled</p>
         <p className="text-sm font-body">Try navigating to a different day</p>
+      </div>
+    );
+  }
+
+  const renderExpandedPanel = (g: ScheduleGame) => {
+    const isFinal = isGameFinal(g.status);
+    const isScheduled = !isFinal && !isGameLive(g.status);
+    return (
+      <div className={`bg-card border border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-xl overflow-hidden`}>
+        {isFinal && (
+          <GameBoxScore
+            gameId={g.game_id}
+            awayTeam={g.away_team}
+            homeTeam={g.home_team}
+            recapUrl={g.game_recap_url}
+            youtubeRecapId={g.youtube_recap_id}
+            onPlayerClick={setSelectedPlayerId}
+          />
+        )}
+        {isScheduled && (
+          <UpcomingGamePreview awayTeam={g.away_team} homeTeam={g.home_team} onGameClick={setSelectedLast5Game} onTeamClick={setSelectedTeamTricode} />
+        )}
+      </div>
+    );
+  };
+
+  const renderCard = (g: ScheduleGame, compact: boolean) => {
+    const isFinal = isGameFinal(g.status);
+    const isLive = isGameLive(g.status);
+    const isScheduled = !isFinal && !isLive;
+    const isExpandable = isFinal || isScheduled;
+    const isExpanded = expandedId === g.game_id;
+    const hasYoutubeRecap = !!g.youtube_recap_id;
+    const venue = getVenue(g.home_team);
+
+    return (
+      <div
+        onClick={() => isExpandable && setExpandedId(isExpanded ? null : g.game_id)}
+        className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} ${
+          compact ? "flex flex-col px-3 py-2.5 gap-2" : "flex items-center px-5 py-3"
+        } ${isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""} ${
+          isExpanded && !compact ? "rounded-b-none border-b-0" : ""
+        } ${isExpanded && compact ? "ring-2 ring-primary/40" : ""}`}
+      >
+        {venue?.image && (
+          <img
+            src={venue.image}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.28] dark:opacity-[0.40]"
+          />
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
+
+        {compact ? (
+          <>
+            {/* Compact card body */}
+            <div className="relative z-10 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {getTeamLogo(g.away_team) && (
+                  <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-7 h-7 shrink-0" />
+                )}
+                <span className="font-heading font-bold text-xs uppercase">{g.away_team}</span>
+                {(isFinal || isLive) && (
+                  <span className={`font-mono text-sm ${isFinal && g.away_pts > g.home_pts ? "font-black" : "opacity-60"}`}>{g.away_pts}</span>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground font-heading font-bold">@</span>
+              <div className="flex items-center gap-1.5 min-w-0">
+                {(isFinal || isLive) && (
+                  <span className={`font-mono text-sm ${isFinal && g.home_pts > g.away_pts ? "font-black" : "opacity-60"}`}>{g.home_pts}</span>
+                )}
+                <span className="font-heading font-bold text-xs uppercase">{g.home_team}</span>
+                {getTeamLogo(g.home_team) && (
+                  <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-7 h-7 shrink-0" />
+                )}
+              </div>
+            </div>
+            <div className="relative z-10 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 min-w-0">
+                {isLive ? (
+                  <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
+                ) : (
+                  <span className={`text-[10px] font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
+                    {g.status}
+                  </span>
+                )}
+                {g.tipoff_utc && (
+                  <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                    {formatTipoff(g.tipoff_utc)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1">
+                {isFinal && (
+                  <span
+                    onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
+                    className={`p-0.5 cursor-pointer transition-colors ${hasYoutubeRecap ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
+                    title="Game Recap"
+                  >
+                    <Tv2 className="h-3.5 w-3.5" />
+                  </span>
+                )}
+                <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
+                <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
+                <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
+                {g.nba_game_url && (
+                  <a
+                    href={g.nba_game_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+                {isExpandable && (
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                )}
+              </div>
+            </div>
+            {venue?.name && (
+              <div className="relative z-10 text-[10px] italic text-muted-foreground/80 truncate" title={venue.name}>
+                {venue.name}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Teams */}
+            <div className="relative z-10 flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
+                <div>
+                  <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
+                  {(isFinal || isLive) && (
+                    <p className={`text-2xl font-mono leading-tight ${
+                      isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
+                    }`}>{g.away_pts}</p>
+                  )}
+                </div>
+                {getTeamLogo(g.away_team) && (
+                  <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-12 h-12 transition-transform hover:scale-110" />
+                )}
+              </div>
+
+              {/* Center: status */}
+              <div className="flex flex-col items-center min-w-[80px]">
+                <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
+                {isLive ? (
+                  <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                ) : (
+                  <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
+                    {g.status}
+                  </span>
+                )}
+                {g.tipoff_utc && (
+                  <span className="text-xs font-mono font-bold text-muted-foreground mt-0.5">
+                    {formatTipoff(g.tipoff_utc)}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 min-w-[100px]">
+                {getTeamLogo(g.home_team) && (
+                  <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 transition-transform hover:scale-110" />
+                )}
+                <div>
+                  <p className="font-heading font-bold text-sm uppercase leading-tight">{g.home_team}</p>
+                  {(isFinal || isLive) && (
+                    <p className={`text-2xl font-mono leading-tight ${
+                      isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
+                    }`}>{g.home_pts}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: action icons */}
+            <div className="relative z-10 flex items-center gap-1.5">
+              {venue?.name && (
+                <span
+                  className="hidden sm:inline-block text-[10px] italic text-muted-foreground/80 truncate max-w-[140px] mr-1"
+                  title={venue.name}
+                >
+                  {venue.name}
+                </span>
+              )}
+              {isFinal && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
+                  className={`p-0.5 cursor-pointer transition-colors ${hasYoutubeRecap ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
+                  title="Game Recap"
+                >
+                  <Tv2 className="h-4 w-4" />
+                </span>
+              )}
+              <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
+              <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
+              <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
+              {g.nba_game_url && (
+                <a
+                  href={g.nba_game_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+              {isExpandable && (
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const expandedGame = expandedId ? games.find((x) => x.game_id === expandedId) : null;
+  const expandedIndex = expandedGame ? games.findIndex((x) => x.game_id === expandedId) : -1;
+
+  if (viewMode === "grid") {
+    const rowOfExpanded = expandedIndex >= 0 ? Math.floor(expandedIndex / colsPerRow) : -1;
+    const lastIndexOfRow = rowOfExpanded >= 0 ? Math.min((rowOfExpanded + 1) * colsPerRow - 1, games.length - 1) : -1;
+
+    return (
+      <div className="grid gap-2 px-1 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {games.map((g, i) => (
+          <Fragment key={g.game_id}>
+            <div>{renderCard(g, true)}</div>
+            {i === lastIndexOfRow && expandedGame && (
+              <div className="col-span-full">
+                {renderExpandedPanel(expandedGame)}
+              </div>
+            )}
+          </Fragment>
+        ))}
+
+        <PlayerModal
+          playerId={selectedPlayerId}
+          open={selectedPlayerId !== null}
+          onOpenChange={(open) => !open && setSelectedPlayerId(null)}
+        />
+        <TeamModal
+          tricode={selectedTeamTricode}
+          open={selectedTeamTricode !== null}
+          onOpenChange={(open) => !open && setSelectedTeamTricode(null)}
+        />
+        <GameDetailDialog
+          game={selectedLast5Game}
+          open={selectedLast5Game !== null}
+          onOpenChange={(open) => !open && setSelectedLast5Game(null)}
+        />
       </div>
     );
   }

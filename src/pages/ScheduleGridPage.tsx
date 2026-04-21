@@ -201,21 +201,21 @@ export default function ScheduleGridPage() {
             </div>
           ) : (
             <table className="w-full text-sm border-collapse min-w-[700px]">
-              <thead className="sticky top-0 z-10">
+              <thead>
                 <tr className="bg-[hsl(var(--nba-navy))] text-white">
-                  <th className="text-left px-3 py-2.5 font-heading text-[11px] uppercase tracking-wider w-[140px] sticky left-0 bg-[hsl(var(--nba-navy))] z-20 border-r border-white/10">
+                  <th className="text-left px-3 py-2.5 font-heading text-[11px] uppercase tracking-wider w-[140px] sticky top-0 left-0 bg-[hsl(var(--nba-navy))] z-30 border-r border-white/10">
                     Team
                   </th>
-                  <th className="px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider w-[50px] text-center border-r border-white/10">
+                  <th className="px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider w-[50px] text-center border-r border-white/10 sticky top-0 z-20 bg-[hsl(var(--nba-navy))]">
                     G
                   </th>
                   {weekDays.map((wd) => (
                     <th
                       key={wd.day}
-                      className={`px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider text-center min-w-[80px] transition-colors ${
+                      className={`px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider text-center min-w-[80px] transition-colors sticky top-0 z-10 ${
                         selectedDays.has(wd.day)
                           ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))]"
-                          : ""
+                          : "bg-[hsl(var(--nba-navy))]"
                       }`}
                     >
                       <div className="font-bold">{wd.dayOfWeek}</div>
@@ -225,17 +225,17 @@ export default function ScheduleGridPage() {
                 </tr>
                 {/* Totals row */}
                 <tr className="bg-muted/80 border-b-2 border-border">
-                  <td className="px-3 py-1.5 font-heading text-[10px] uppercase text-muted-foreground font-bold sticky left-0 bg-muted/80 z-20 border-r border-border">
+                  <td className="px-3 py-1.5 font-heading text-[10px] uppercase text-muted-foreground font-bold sticky top-[41px] left-0 bg-muted z-30 border-r border-border">
                     # Games
                   </td>
-                  <td className="px-2 py-1.5 text-center font-mono font-bold text-xs">
+                  <td className="px-2 py-1.5 text-center font-mono font-bold text-xs sticky top-[41px] z-20 bg-muted">
                     {Object.values(dayTotals).reduce((a, b) => a + b, 0)}
                   </td>
                   {weekDays.map((wd) => (
                     <td
                       key={wd.day}
-                      className={`px-2 py-1.5 text-center font-mono font-bold text-xs ${
-                        selectedDays.has(wd.day) ? "bg-[hsl(var(--nba-yellow))]/10" : ""
+                      className={`px-2 py-1.5 text-center font-mono font-bold text-xs sticky top-[41px] z-10 ${
+                        selectedDays.has(wd.day) ? "bg-[hsl(var(--nba-yellow))]/10" : "bg-muted"
                       }`}
                     >
                       {dayTotals[wd.day] || "—"}

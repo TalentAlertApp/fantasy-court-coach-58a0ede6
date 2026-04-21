@@ -8,7 +8,7 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -52,6 +52,13 @@ export default function SchedulePage() {
   const [day, setDay] = useState(current.day);
   const [totwOpen, setTotwOpen] = useState(false);
   const [potdOpen, setPotdOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
+    if (typeof window === "undefined") return "grid";
+    return (localStorage.getItem("schedule_view_mode") as "list" | "grid") || "grid";
+  });
+  useEffect(() => {
+    localStorage.setItem("schedule_view_mode", viewMode);
+  }, [viewMode]);
   const navigate = useNavigate();
   const { data, isLoading, isError, isSuccess, refetch } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
@@ -221,6 +228,24 @@ export default function SchedulePage() {
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
+              <div className="inline-flex items-center rounded-xl border border-border overflow-hidden">
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`p-1 transition-colors ${viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  title="List view"
+                  aria-pressed={viewMode === "list"}
+                >
+                  <Rows3 className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1 transition-colors ${viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                  title="Grid view"
+                  aria-pressed={viewMode === "grid"}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
 
             {/* CENTER: TOTW | POTD (absolute on md+, inline on mobile) */}
@@ -296,7 +321,7 @@ export default function SchedulePage() {
             </Button>
           </div>
         ) : (
-          <ScheduleList games={data?.games ?? []} />
+          <ScheduleList games={data?.games ?? []} viewMode={viewMode} />
         )}
       </div>
 
