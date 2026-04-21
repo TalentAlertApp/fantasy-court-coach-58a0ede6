@@ -227,11 +227,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
         </div>
       </div>
       <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
-        <RecapVideoEmbed
-          youtubeVideoId={youtubeRecapId}
-          url={recapUrl}
-          title="Game Recap"
-        />
+        <RecapCard url={recapUrl} awayTeam={awayTeam} homeTeam={homeTeam} />
       </div>
     </div>
   );
