@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle } from "lucide-react";
+import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote } from "lucide-react";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -427,28 +427,13 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
               {explainLoading && <Skeleton className="h-20 w-full" />}
               {explainResult && (
-                <div className="space-y-2 text-sm">
-                  {selectedExplainPlayer && (
-                    <p className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
-                      Explanation for {selectedExplainPlayer.core.name}
-                    </p>
-                  )}
-                  <p className="font-semibold">{explainResult.summary}</p>
-                  {explainResult.why_it_scores?.map((f: any, i: number) => (
-                    <div key={i} className="flex items-center gap-2 text-xs mb-1">
-                      <Badge variant="outline" className="rounded-lg text-[9px]">{f.factor}</Badge>
-                      <Badge variant={f.impact === "very_high" || f.impact === "high" ? "default" : "secondary"} className="rounded-lg text-[9px]">{f.impact}</Badge>
-                      <span>{f.note}</span>
-                    </div>
-                  ))}
-                  {explainResult.recommendation && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant={explainResult.recommendation.action === "add" ? "default" : explainResult.recommendation.action === "drop" ? "destructive" : "secondary"} className="rounded-lg">
-                        {explainResult.recommendation.action.toUpperCase()}
-                      </Badge>
-                      <span className="text-xs">{explainResult.recommendation.rationale}</span>
-                    </div>
-                  )}
+                <ExplainReport result={explainResult} player={selectedExplainPlayer} />
+              )}
+              {explainLoading && (
+                <div className="space-y-2">
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                  <Skeleton className="h-10 w-full rounded-xl" />
+                  <Skeleton className="h-24 w-full rounded-xl" />
                 </div>
               )}
             </TabsContent>
