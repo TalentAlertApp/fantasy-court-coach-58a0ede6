@@ -1,70 +1,69 @@
 
 
-## Plan: Sticky grid header, relocate Active Team selector, and add daily Grid view
+## Plan: Players-of-the-Day swap, day tab borders, and Injury Report shortcut
 
-### 1. `/schedule/grid` — make TEAM column header + #GAMES totals row truly sticky on vertical scroll
-File: `src/pages/ScheduleGridPage.tsx`
+### 1. `/schedule` Players of the Day — swap photo ↔ team logo (with effects)
+File: `src/components/TopPlayersStrip.tsx` (`renderPlayer`)
 
-The current markup puts `sticky top-0` on `<thead>`, but `position: sticky` on `<thead>`/`<tr>` is ignored by most browsers — only `<th>`/`<td>` cells become sticky. That's why on vertical scroll the team header row and the `#GAMES` totals row drift away. Fix:
+Currently the team logo is the watermarked background that scales/brightens on hover, and the player photo is the small foreground avatar. Swap their roles:
 
-- Remove `sticky top-0 z-10` from `<thead>`.
-- Header row 1 (`Team` / `G` / day columns): add `sticky top-0 z-20` to **every `<th>`** in the row. The corner `Team` cell becomes `sticky top-0 left-0 z-30` so it pins to both top + left. The `G` cell becomes `sticky top-0 z-20`. Day columns become `sticky top-0 z-10`.
-- Header row 2 (`# Games` totals): each `<td>` gets `sticky top-[37px] z-20` (37px ≈ height of row 1; we'll use a CSS variable or a fixed `top-[36px]` matching `py-2.5` height). The corner `# Games` cell becomes `sticky top-[37px] left-0 z-30`. Day total cells get `sticky top-[37px] z-10`.
-- Body `<td>` for the team-name cell keeps `sticky left-0 z-10` (already correct) so the team column stays pinned during horizontal scroll.
-- Result: the corner `Team` label + the `#GAMES` totals row stay pinned at top during vertical scroll, while the team rows beneath them scroll. Day columns continue to scroll horizontally.
+- **New background (watermark with surge)**: render the **player photo** as the absolutely-positioned watermark.
+  - Replace the existing `<img src={getTeamLogo(p.team)} ... opacity-30 group-hover:scale-125 group-hover:opacity-60 />` with an `<img src={p.photo} ... />` using the same opacity/transition/group-hover classes (`opacity-30 → group-hover:opacity-60`, `group-hover:scale-125`).
+  - Keep `object-contain` and the same h-14/w-14 sizing so the watermark behaves identically.
+  - If `p.photo` is missing, fall back to the team logo so the row never goes blank.
+- **New foreground avatar**: render the **team logo** in place of the current `<Avatar>` (the small h-8 w-8 element next to the FC/BC badge).
+  - Use the same `<Avatar className="relative z-10 h-8 w-8 shrink-0">` wrapper, with `<AvatarImage src={getTeamLogo(p.team)!} className="object-contain p-0.5" />` and an `AvatarFallback` of the tricode (e.g. first 3 letters of `p.team`).
+- All other elements unchanged: FC/BC badge stays on the left, name + team + salary stay center, FP / value number stays on the right with the same `relative z-10` stacking. Hover behaviour (scale 1.25, opacity surge to 0.60) is preserved — it now applies to the player photo instead of the team logo.
 
-### 2. Remove the Active Team header pill from the top of every page
-File: `src/components/layout/AppLayout.tsx`
+This affects both the **Fantasy Points** and **Value (FP/$)** tabs, FC and BC sides, because all four lists go through the same `renderPlayer` function.
 
-The "Active Team" pill on the top-right is redundant — `TeamSwitcher` already lives in the left sidebar (line 75 of `AppLayout.tsx`). It also wastes ~40px of vertical space on every page (visible in the user's screenshot as a near-empty bar above the GW header).
+### 2. `/schedule` daily day-tab visual separation
+File: `src/pages/SchedulePage.tsx` (the "Day Navigator" block at lines ~133-194)
 
-Changes:
-- Delete the `<div className="sticky top-0 z-30 flex justify-end ... border-b">` wrapper that renders `<HeaderTeamPill />` (lines 111-113).
-- Drop the `import HeaderTeamPill` line.
-- The `<HowToPlayModal>` icon already lives inside the sidebar brand area, so accessibility isn't impacted.
-- Keep `src/components/layout/HeaderTeamPill.tsx` on disk (unreferenced) in case we want it back — minimal cost.
-- `TeamSwitcher` in the sidebar already shows the currently selected team and lets the user switch — no functional regression.
+Right now the day tabs sit flush next to each other inside the `<div className="flex-1 flex overflow-x-auto scrollbar-hide">` strip with no separators. Add subtle vertical dividers so the user can clearly see each tab's boundary.
 
-### 3. `/schedule` — add a Grid view toggle for the daily games list
-File: `src/components/ScheduleList.tsx` (+ tiny addition to `src/pages/SchedulePage.tsx`)
+- On every day `<button>`, add `border-r border-border/60 last:border-r-0` so each tab gets a 1px right divider, except the final one.
+- Drop `rounded-xl` from the unselected state (it currently rounds corners that don't visually exist due to the flush layout) and keep `rounded-xl` only when `isSelected` so the active tab still pops as a rounded pill.
+- Concrete className change:
+  ```tsx
+  className={`flex-1 min-w-[80px] py-2 px-2 transition-all border-r border-border/60 last:border-r-0 ${
+    isSelected
+      ? "bg-primary text-primary-foreground shadow-md rounded-xl border-r-transparent"
+      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+  }`}
+  ```
+- Result: each day tab has a clear vertical divider, the active tab still renders as a rounded primary pill, and dark-mode contrast stays consistent via `border-border/60`.
 
-Add a List ↔ Grid view switcher for the day's games. Default view is **Grid** (4 cards per row on desktop, fewer on smaller viewports). When a card is clicked it expands the **same full-width preview block underneath** (identical content to today's expanded list row — `GameBoxScore` for finals, `UpcomingGamePreview` for scheduled). No layout changes inside the expanded block.
+### 3. `/schedule` Injury Report shortcut icon
+File: `src/pages/SchedulePage.tsx`
 
-#### 3a. View toggle
-- In `SchedulePage.tsx`, next to the existing `Grid3X3` icon (advanced grid link), add a small two-button segmented toggle: `List` icon (`Rows3`) and `Grid` icon (`LayoutGrid`). Persist the choice in `localStorage` (`schedule_view_mode`, default `"grid"`).
-- Pass the mode down to `<ScheduleList games={...} viewMode={mode} />`.
+Add a small shield icon button that opens the existing `<InjuryReportModal>` directly — same modal already triggered from the AI Coach → Injuries → "Scan Injuries" flow on `/`.
 
-#### 3b. Grid layout in `ScheduleList`
-- Add `viewMode?: "list" | "grid"` to `ScheduleListProps` (default `"grid"`).
-- In **list mode**: render exactly today's layout — unchanged.
-- In **grid mode**: replace the outer `<div className="space-y-2 px-1">` with a responsive grid container `grid gap-2 px-1 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`.
-- Each game becomes a compact **card**:
-  - The same arena background image + gradient overlay as today.
-  - Vertical layout: `[Away logo][Away tricode]   @   [Home logo][Home tricode]` on one line; status (`SCHEDULED` / `FINAL` / `LIVE`) + tipoff time below; venue name in italic at the bottom.
-  - Score (when final/live) shown next to each tricode.
-  - Action icons (Recap, Box Score, Charts, Play-by-Play, External link, Chevron) in a compact row at the card's bottom.
-  - Card border + status border-l-4 + rounded-xl identical to list.
-- Click handling: clicking the card toggles `expandedId` exactly as today.
-
-#### 3c. Same-window full-width expansion
-- Wrap the grid in a `<div>` and render the cards inside. When `expandedId` is set, immediately after the **row containing that card** (computed by `Math.floor(index / colsPerRow)`), insert a full-width `<div className="col-span-full">` that renders the same `GameBoxScore` / `UpcomingGamePreview` block already used today.
-- Implementation: instead of computing rows manually, render two nested loops — split `games` into chunks of `colsPerRow` (track `colsPerRow` via a Tailwind-aware breakpoint hook OR use CSS-only by giving the expanded panel `col-span-full` via grid auto-flow). Simplest approach:
-  - Use a **CSS grid** with `grid-flow-row-dense` and give each card a wrapper. After every row of cards, conditionally render the expanded panel as a sibling with `className="col-span-full"`. Determine row by index `Math.floor(i / colsPerRow)` — read `colsPerRow` from a `useMediaQuery`-style hook (`1` < sm, `2` < lg, `3` < xl, `4` ≥ xl).
-  - The expanded block keeps full width below the card row, no width changes — exactly what the user requested.
-
-#### 3d. Edge cases
-- Clicking a different card while one is open: closes the previous, opens the new (existing behaviour unchanged).
-- Live games: card shows pulsing `LIVE` badge identical to list view.
-- Empty state ("No Games Scheduled"): unchanged regardless of mode.
+- Import `InjuryReportModal` from `@/components/InjuryReportModal` and the `Shield` icon from `lucide-react`.
+- Add local state `const [injuryOpen, setInjuryOpen] = useState(false);`.
+- In the icon row right before the existing `Grid3X3` button (line ~217-223), insert:
+  ```tsx
+  <button
+    onClick={() => setInjuryOpen(true)}
+    className="text-muted-foreground hover:text-foreground transition-colors p-1"
+    title="Injury Report"
+    aria-label="Open injury report"
+  >
+    <Shield className="h-4 w-4" />
+  </button>
+  ```
+- At the bottom of the component (next to `<TeamOfTheWeekModal …/>`), render:
+  ```tsx
+  <InjuryReportModal open={injuryOpen} onOpenChange={setInjuryOpen} />
+  ```
+- The modal is fully self-contained: it lazy-loads the injury report from the `nba-injury-report` edge function (with its own 30 min localStorage cache) on first open, exactly as it does from the AI Coach. No prop wiring needed. Closing the modal returns the user to the schedule view.
 
 ### Files touched
-- `src/pages/ScheduleGridPage.tsx` — switch sticky-positioning from `<thead>` to individual `<th>`/`<td>` cells so the TEAM column header and the #GAMES totals row remain pinned during vertical scroll.
-- `src/components/layout/AppLayout.tsx` — remove the top Active Team pill bar; drop the `HeaderTeamPill` import.
-- `src/components/ScheduleList.tsx` — add `viewMode` prop and a card-grid layout with full-width in-place expansion.
-- `src/pages/SchedulePage.tsx` — add a List/Grid view toggle (persisted in `localStorage`) and pass `viewMode` to `<ScheduleList>`.
+- `src/components/TopPlayersStrip.tsx` — swap player photo and team logo positions in `renderPlayer`, preserving the hover surge effect.
+- `src/pages/SchedulePage.tsx` — add `border-r border-border/60 last:border-r-0` to day-tab buttons; add a Shield icon button before the Grid3X3 link that opens the existing `InjuryReportModal`.
 
 ### Verification
-- `/schedule/grid`: scroll vertically — `Team` column header and the `# Games` totals row stay pinned at the top while team rows scroll under them. Scroll horizontally — `Team` column stays pinned to the left as today.
-- Any page: the "Active Team" pill no longer appears at the top right; the sidebar Team Switcher remains the single control.
-- `/schedule`: a List/Grid toggle sits next to the existing Grid3X3 icon. Default loads in Grid view showing 4 cards per row on wide screens; clicking a card expands a full-width panel below the card's row containing the same boxscore/preview content as today, with no width clipping.
+- `/schedule` → Players of the Day, both tabs (Fantasy Points and Value), FC and BC: each player row now shows the team logo as the small avatar on the left and the **player photo** as a larger faded watermark behind it; hovering the row makes the player-photo watermark scale up and brighten (the same surge effect previously applied to the team logo).
+- `/schedule` day strip: every day tab has a clear vertical divider line between it and its neighbours; the active day still renders as a rounded primary pill.
+- `/schedule` icon row: a shield icon sits immediately to the left of the existing Grid3X3 (advanced grid) icon. Clicking it opens the league-wide Injury Report modal — identical to the modal opened from the AI Coach → Injuries → Scan Injuries flow on the My Roster page.
 
