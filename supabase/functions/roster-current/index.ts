@@ -14,11 +14,17 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { team_id, team_name } = await resolveTeam(req, sb);
 
-    const { data: rows, error } = await sb
-      .from("roster")
-      .select("*")
-      .eq("team_id", team_id);
-    if (error) throw error;
+    // Single retry for transient upstream 502s
+    let rows: any[] | null = null;
+    let lastErr: any = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await sb.from("roster").select("*").eq("team_id", team_id);
+      if (!error) { rows = data ?? []; lastErr = null; break; }
+      lastErr = error;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    if (lastErr) throw lastErr;
+    rows = rows ?? [];
 
     const starters = rows
       .filter((r: any) => r.slot === "STARTER")
@@ -80,12 +86,13 @@ Deno.serve(async (req) => {
       },
     });
   } catch (e) {
-    console.error("[roster-current] Error:", e);
-    return errorResponse(
-      "ROSTER_ERROR",
-      e instanceof Error ? e.message : "Unknown",
-      null,
-      500
-    );
+    const msg =
+      e instanceof Error ? e.message :
+      typeof e === "string" ? e :
+      (e && typeof e === "object" && "message" in (e as any))
+        ? String((e as any).message)
+        : JSON.stringify(e);
+    console.error("[roster-current] Error:", msg, e);
+    return errorResponse("ROSTER_ERROR", msg || "Unknown", null, 500);
   }
 });
