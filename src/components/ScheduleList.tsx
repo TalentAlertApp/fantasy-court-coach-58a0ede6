@@ -17,8 +17,64 @@ import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 
-/* ---------- Recap Card (NBA.com link) ---------- */
-function RecapCard({ url, awayTeam, homeTeam }: { url?: string | null; awayTeam: string; homeTeam: string }) {
+/* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
+function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
+  url?: string | null;
+  youtubeRecapId?: string | null;
+  awayTeam: string;
+  homeTeam: string;
+}) {
+  const [nbaExpanded, setNbaExpanded] = useState(false);
+  const [nbaBlocked, setNbaBlocked] = useState(false);
+
+  // Case 1: YouTube embed available — best inline experience
+  if (youtubeRecapId) {
+    return (
+      <div className="relative w-full h-full rounded-xl overflow-hidden bg-black">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${youtubeRecapId}?rel=0&modestbranding=1`}
+          title="Game Recap"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full border-0"
+        />
+        {url && (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 text-[10px] font-heading uppercase tracking-wider text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20 transition-colors"
+            title="Open on NBA.com"
+          >
+            NBA.com <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  // Case 2: NBA.com URL only — try inline iframe with graceful fallback
+  if (url && nbaExpanded && !nbaBlocked) {
+    return (
+      <div className="relative w-full h-full rounded-xl overflow-hidden bg-black">
+        <iframe
+          src={url}
+          title="NBA.com Recap"
+          referrerPolicy="no-referrer-when-downgrade"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          onError={() => {
+            setNbaBlocked(true);
+            window.open(url, "_blank", "noopener,noreferrer");
+          }}
+          className="w-full h-full border-0"
+        />
+      </div>
+    );
+  }
+
+  // Case 3: Nothing
   if (!url) {
     return (
       <div className="flex w-full h-full items-center justify-center rounded-xl bg-muted/30 text-sm text-muted-foreground p-6 text-center">
@@ -26,14 +82,17 @@ function RecapCard({ url, awayTeam, homeTeam }: { url?: string | null; awayTeam:
       </div>
     );
   }
+
+  // NBA.com placeholder (click to expand inline)
   const awayLogo = getTeamLogo(awayTeam);
   const homeLogo = getTeamLogo(homeTeam);
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setNbaExpanded(true);
+      }}
       className="group relative flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-card via-muted/40 to-card border overflow-hidden hover:border-green-500/50 transition-colors"
     >
       <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-[0.08] group-hover:opacity-[0.15] transition-opacity">
@@ -47,11 +106,11 @@ function RecapCard({ url, awayTeam, homeTeam }: { url?: string | null; awayTeam:
         <div className="text-center">
           <p className="text-sm font-heading font-bold uppercase tracking-wider">Watch Recap</p>
           <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
-            on NBA.com <ExternalLink className="h-3 w-3" />
+            {nbaBlocked ? "Opened in new tab" : "Click to play inline"}
           </p>
         </div>
       </div>
-    </a>
+    </button>
   );
 }
 
@@ -227,7 +286,7 @@ function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, on
         </div>
       </div>
       <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
-        <RecapCard url={recapUrl} awayTeam={awayTeam} homeTeam={homeTeam} />
+        <RecapCard url={recapUrl} youtubeRecapId={youtubeRecapId} awayTeam={awayTeam} homeTeam={homeTeam} />
       </div>
     </div>
   );
