@@ -1,66 +1,81 @@
 
 
-## Plan: Match /schedule's game list, fix next-day arrow, harden Matchup link
+## Plan: Replace "Player Matchup" with "Player Action" search
 
-### Issue 1a — By Game shows wrong date's games
+### Why
+Image-212 proves the URL `?actionplayer=Neemias%20Queta&actiontype=rebound&actiontype=2pt` works perfectly on NBAPlayDB (lands on Play Filters with Actionplayer + multiple Actiontype chips active, 1,856 results). The Matchup URL keeps getting stripped by NBAPlayDB's hydration — abandon it and ship the Player Action variant instead.
 
-Root cause: AdvancedPage queries `schedule_games` by `tipoff_utc` between `[date 00:00 UTC, +24h)`. NBA games with Lisbon-evening tipoffs (e.g. Apr 12 22:30 Lisbon) are stored as UTC `01:30` of Apr 13, so they fall into the **next** UTC bucket. That's why selecting `12/04/2026` listed Apr 13 games (image-209 vs image-210).
+### File touched
+`src/pages/AdvancedPage.tsx` — `NBAPlaySearchSection`
 
-Fix — switch the picker from a calendar date to the `gw/day` model the rest of the app uses (SchedulePage, deadlines.ts).
+### 1. Replace tab label and state
+- Rename tab `matchup` → `action` and label `🏀 Player Matchup` → `🏀 Player Action`. Keep By Game tab as-is.
+- Replace state `offensivePlayer` / `defensivePlayer` with:
+  - `actionPlayer: string` (single player name)
+  - `actionTypes: string[]` (multi-select; empty = "All")
 
-File: `src/pages/AdvancedPage.tsx`
+### 2. Action Type catalogue
+Constant inside the component:
+```ts
+const ACTION_TYPES = [
+  { value: "rebound",  label: "Rebound" },
+  { value: "2pt",      label: "2pt" },
+  { value: "3pt",      label: "3pt" },
+  { value: "freethrow",label: "Free Throw" },
+  { value: "block",    label: "Block" },
+  { value: "steal",    label: "Steal" },
+  { value: "foul",     label: "Foul" },
+  { value: "turnover", label: "Turnover" },
+  { value: "violation",label: "Violation" },
+  { value: "jumpball", label: "Jumpball" },
+];
+```
 
-- Replace `date` state with `gw` + `day` state, initialized from `getCurrentGameday()` (already used by SchedulePage).
-- Replace the `<Input type="date">` cell with a compact two-select control: **GW** select (1–25) + **Day** select (1..N for that GW, derived from `DEADLINES.filter(d => d.gw === gw)`).
-- Show the Lisbon date label next to the selects (e.g. `Sun, Apr 12`) computed from the deadline lookup, so the user still sees the calendar day.
-- Replace the query with the same shape SchedulePage uses — fetch from `schedule_games` by `gw=<gw>&day=<day>`:
-  ```ts
-  supabase.from("schedule_games")
-    .select("game_id, away_team, home_team, tipoff_utc, status")
-    .eq("gw", gw).eq("day", day)
-    .order("tipoff_utc", { ascending: true });
-  ```
-- Derive `yyyymmdd` for the NBAPlayDB URL from the matched deadline's date (Lisbon day), not from a UTC-coerced field, so the gamecode (e.g. `20260412/ORLBOS`) matches the displayed Lisbon date.
+### 3. UI layout (Player Action tab)
+Three-column row, same shell as the previous Matchup tab so the rest of the section is unchanged:
 
-### Issue 1b — Right-arrow not advancing
+```text
+[ Player (combobox)        ] [ Action Type (multi-popover) ] [ Open · Clear ]
+```
 
-Two bugs:
-1. `useMemo(() => { setGameId(""); }, [date])` calls a setter inside `useMemo` — React's render-phase rule violation, the side effect fires inconsistently and is the reason the right arrow appears dead while the left works (the second click can short-circuit). Move the reset into `useEffect`.
-2. Switching to gw/day means arrows now step through `DEADLINES` — implement `shiftDay(+1)` / `shiftDay(-1)`:
-   - Build the ordered list `DEADLINES` (already chronological).
-   - Find current index by `(gw, day)`; arrow moves to neighbor's `(gw, day)`.
-   - Disable left arrow at first deadline, right arrow at last.
-- Wire arrows around the GW/Day controls, same borderless ghost styling as today.
+- **Player**: reuse existing `PlayerCombobox` with `value={actionPlayer}` and label "Player".
+- **Action Type**: Popover + Command list with checkbox items. Trigger button shows:
+  - `All actions` when `actionTypes.length === 0`
+  - First label + `+N` chip when multiple selected (e.g. `Rebound +2`)
+  - Single label when exactly one
+  Each Command item toggles its value in/out of `actionTypes`. Add a "Clear actions" footer item that empties the array.
+- **Buttons**:
+  - `Open Plays on NBAPlayDB` — disabled when `!actionPlayer`.
+  - Ghost `Clear` — resets `actionPlayer = ""` and `actionTypes = []`.
+- Helper line beneath: `Player + selected action types open as Play Filters on NBAPlayDB.`
 
-### Issue 2 — Matchup URL converted to bare `/search`
+### 4. URL construction
+```ts
+const handleActionOpen = () => {
+  const params = new URLSearchParams();
+  params.set("actionplayer", actionPlayer);
+  for (const t of actionTypes) params.append("actiontype", t); // repeats the key
+  const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
+  const a = document.createElement("a");
+  a.href = url; a.target = "_blank"; a.rel = "noopener,noreferrer";
+  document.body.appendChild(a); a.click(); a.remove();
+  toast.success("Opening NBAPlayDB", {
+    description: actionTypes.length
+      ? `${actionPlayer} · ${actionTypes.join(", ")}`
+      : `${actionPlayer} · All actions`,
+  });
+};
+```
+- `URLSearchParams.append` produces the exact repeated-key shape the user verified (`?actionplayer=…&actiontype=rebound&actiontype=2pt`).
+- Encoding handles diacritics automatically (Queta, Dončić, Šengün).
 
-NBAPlayDB's client app appears to strip unknown/unmatched query params on landing. Two pragmatic improvements (we can't change their server):
-
-File: `src/pages/AdvancedPage.tsx` (`handleMatchupOpen`)
-
-1. **Open URL synchronously with `target="_blank"` link click** instead of `window.open`. Some Chrome/Edge configs treat `window.open(url, "_blank")` from a handler that also touches state as a popup the SPA strips on hydration. Build an `<a>` with `href`, `target="_blank"`, `rel="noopener"`, and `.click()` it:
-   ```ts
-   const a = document.createElement("a");
-   a.href = url; a.target = "_blank"; a.rel = "noopener,noreferrer";
-   document.body.appendChild(a); a.click(); a.remove();
-   ```
-2. **Copy the URL to the clipboard** as a guaranteed fallback, and update the toast:
-   ```ts
-   navigator.clipboard?.writeText(url).catch(() => {});
-   toast.success("Opening NBAPlayDB", {
-     description: `Matchup URL copied to clipboard. If filters don't apply, paste it into the address bar.`,
-     duration: 6000,
-   });
-   ```
-3. Keep the URL exactly as proven-working in image-208:
-   `https://www.nbaplaydb.com/search?defensivePlayers=<def>&offensivePlayers=<off>` (no `actionplayer`, no extra params).
-
-### Files touched
-- `src/pages/AdvancedPage.tsx`
+### 5. Remove obsolete code
+- Delete `handleMatchupOpen`, `matchupDisabled`, the matchup clipboard fallback, and the unused `defensivePlayer` state.
+- Keep By Game tab and all its logic (gameday selectors, arrows, NBAPlayDB game URL) untouched.
 
 ### Verification
-- `/advanced` → By Game → set **GW 25 / Day 6** → Lisbon label shows `Sun, Apr 12` → game dropdown lists exactly the 7 games from image-210 (ORL@BOS, WAS@CLE, DET@IND, ATL@MIA, CHA@NYK, MIL@PHI, BKN@TOR), in tipoff order.
-- Right arrow advances to **GW 25 / Day 7** (or next valid deadline) and the games list reloads; left arrow steps back. Both disabled at season boundaries.
-- Pick `Orlando Magic @ Boston Celtics` → `Open Game on NBAPlayDB` opens `…/games/20260412-ORLBOS`; gamecode badge shows `20260412/ORLBOS`.
-- Player Matchup → Anthony Edwards (off) + Aaron Gordon (def) → click opens `https://www.nbaplaydb.com/search?defensivePlayers=Aaron+Gordon&offensivePlayers=Anthony+Edwards` via anchor click; toast confirms URL is on clipboard so the user can paste if NBAPlayDB strips it.
+- `/advanced` → Player Action tab → pick `Neemias Queta` → leave actions empty → `Open Plays on NBAPlayDB` opens `https://www.nbaplaydb.com/search?actionplayer=Neemias%20Queta` (Active Filters chip: `Actionplayer: Neemias Queta`).
+- Same player → check `Rebound` + `2pt` → opens `https://www.nbaplaydb.com/search?actionplayer=Neemias%20Queta&actiontype=rebound&actiontype=2pt` (matches image-212 exactly: 1,856 results, both action chips active).
+- Trigger button reads `Rebound +1`; multi-popover lets the user toggle any of the 10 action types.
+- By Game tab continues to work exactly as today.
 
