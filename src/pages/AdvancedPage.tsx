@@ -139,8 +139,22 @@ function PlayerCombobox({
 }
 
 function NBAPlaySearchSection() {
-  const [offensivePlayer, setOffensivePlayer] = useState("");
-  const [defensivePlayer, setDefensivePlayer] = useState("");
+  const [actionPlayer, setActionPlayer] = useState("");
+  const [actionTypes, setActionTypes] = useState<string[]>([]);
+  const [actionPopoverOpen, setActionPopoverOpen] = useState(false);
+
+  const ACTION_TYPES = [
+    { value: "rebound", label: "Rebound" },
+    { value: "2pt", label: "2pt" },
+    { value: "3pt", label: "3pt" },
+    { value: "freethrow", label: "Free Throw" },
+    { value: "block", label: "Block" },
+    { value: "steal", label: "Steal" },
+    { value: "foul", label: "Foul" },
+    { value: "turnover", label: "Turnover" },
+    { value: "violation", label: "Violation" },
+    { value: "jumpball", label: "Jumpball" },
+  ];
 
   const initial = useMemo(() => getCurrentGameday(), []);
   const [gw, setGw] = useState<number>(initial.gw);
@@ -225,21 +239,17 @@ function NBAPlaySearchSection() {
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [playersData]);
 
-  const matchupDisabled = !offensivePlayer || !defensivePlayer;
-
   const selectedGame = (gamesByDate ?? []).find((g: any) => g.game_id === gameId);
   const gamecode = selectedGame ? `${yyyymmdd}/${selectedGame.away_team}${selectedGame.home_team}` : "";
   const gameSearchDisabled = !selectedGame;
 
   const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
-  const handleMatchupOpen = () => {
-    const params = new URLSearchParams({
-      defensivePlayers: defensivePlayer,
-      offensivePlayers: offensivePlayer,
-    });
+  const handleActionOpen = () => {
+    const params = new URLSearchParams();
+    params.set("actionplayer", actionPlayer);
+    for (const t of actionTypes) params.append("actiontype", t);
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
-    // Synchronous anchor click — more reliable than window.open against SPAs that strip popups
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
@@ -247,13 +257,28 @@ function NBAPlaySearchSection() {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    // Fallback: copy URL so the user can paste if NBAPlayDB strips params on hydration
-    navigator.clipboard?.writeText(url).catch(() => {});
+    const labels = actionTypes
+      .map((v) => ACTION_TYPES.find((x) => x.value === v)?.label ?? v)
+      .join(", ");
     toast.success("Opening NBAPlayDB", {
-      description: `Matchup URL copied to clipboard. If filters don't apply, paste it into the address bar.`,
-      duration: 6000,
+      description: actionTypes.length
+        ? `${actionPlayer} · ${labels}`
+        : `${actionPlayer} · All actions`,
     });
   };
+
+  const actionDisabled = !actionPlayer;
+  const toggleActionType = (v: string) => {
+    setActionTypes((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
+    );
+  };
+  const actionTriggerLabel = (() => {
+    if (actionTypes.length === 0) return "All actions";
+    const first = ACTION_TYPES.find((x) => x.value === actionTypes[0])?.label ?? actionTypes[0];
+    if (actionTypes.length === 1) return first;
+    return `${first} +${actionTypes.length - 1}`;
+  })();
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
