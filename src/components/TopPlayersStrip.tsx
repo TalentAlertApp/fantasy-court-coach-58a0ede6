@@ -97,17 +97,17 @@ export function TopPlayersPanel({ gw, day }: TopPlayersStripProps) {
       className="group relative overflow-hidden flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-accent/50 transition-colors cursor-pointer"
       onClick={() => setSelectedPlayerId(p.id)}
     >
-      {getTeamLogo(p.team) && (
+      {(p.photo || getTeamLogo(p.team)) && (
         <img
-          src={getTeamLogo(p.team)!}
+          src={p.photo || getTeamLogo(p.team)!}
           aria-hidden
           className="pointer-events-none absolute inset-0 m-auto h-14 w-14 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60"
         />
       )}
       <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="relative z-10 text-[8px] px-1 py-0 rounded-lg shrink-0">{p.fc_bc}</Badge>
       <Avatar className="relative z-10 h-8 w-8 shrink-0">
-        {p.photo && <AvatarImage src={p.photo} />}
-        <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
+        {getTeamLogo(p.team) && <AvatarImage src={getTeamLogo(p.team)!} className="object-contain p-0.5" />}
+        <AvatarFallback className="text-[9px]">{p.team.slice(0, 3).toUpperCase()}</AvatarFallback>
       </Avatar>
       <div className="relative z-10 flex-1 min-w-0">
         <span className="text-sm font-heading font-bold truncate block">{p.name}</span>
