@@ -8,7 +8,8 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Shield } from "lucide-react";
+import InjuryReportModal from "@/components/InjuryReportModal";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
@@ -52,6 +53,7 @@ export default function SchedulePage() {
   const [day, setDay] = useState(current.day);
   const [totwOpen, setTotwOpen] = useState(false);
   const [potdOpen, setPotdOpen] = useState(false);
+  const [injuryOpen, setInjuryOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "grid";
     return (localStorage.getItem("schedule_view_mode") as "list" | "grid") || "grid";
@@ -158,9 +160,9 @@ export default function SchedulePage() {
                 <button
                   key={wd.day}
                   onClick={() => setDay(wd.day)}
-                  className={`flex-1 min-w-[80px] py-2 px-2 transition-all rounded-xl ${
+                className={`flex-1 min-w-[80px] py-2 px-2 transition-all border-r border-border/60 last:border-r-0 ${
                     isSelected
-                      ? "bg-primary text-primary-foreground shadow-md"
+                      ? "bg-primary text-primary-foreground shadow-md rounded-xl border-r-transparent"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
@@ -221,6 +223,14 @@ export default function SchedulePage() {
                 </>
               )}
               <span className="text-muted-foreground/40">·</span>
+              <button
+                onClick={() => setInjuryOpen(true)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Injury Report"
+                aria-label="Open injury report"
+              >
+                <Shield className="h-4 w-4" />
+              </button>
               <button
                 onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1"
@@ -326,6 +336,7 @@ export default function SchedulePage() {
       </div>
 
       <TeamOfTheWeekModal open={totwOpen} onOpenChange={setTotwOpen} gw={gw} />
+      <InjuryReportModal open={injuryOpen} onOpenChange={setInjuryOpen} />
     </div>
   );
 }
