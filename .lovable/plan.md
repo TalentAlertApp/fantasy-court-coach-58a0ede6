@@ -1,125 +1,79 @@
 
 
-## Plan: Premium Explain UI, NBA.com recaps, and NBA Play Search
+## Plan: Modal height fix, inline Game Recap, and Player Matchup search
 
-### 1. AI Coach → Explain: premium UI redesign
-File: `src/components/AICoachModal.tsx` (Explain `TabsContent` block, lines ~330-454)
+### 1. AI Coach modal — give the Explain panel more vertical room
+File: `src/components/AICoachModal.tsx` (line 212)
 
-The current explanation is a wall of bold paragraph + flat factor rows + a tiny recommendation chip. Redesign as a structured "scouting report" card:
+The dialog is currently capped at `max-h-[85vh]` and the Explain "scouting report" overflows on shorter viewports.
 
-- **Player header card** (shown above results when a player is selected):
-  - Left: rounded photo `w-14 h-14` + faded team-logo watermark behind it.
-  - Middle: player name (heading), team full name + tricode + FC/BC badge.
-  - Right: large `FP5` value, smaller `Season FP` underneath, both tabular.
-  - Subtle gradient background (`bg-gradient-to-r from-card via-muted/30 to-card`), `rounded-xl border`.
+- Bump the dialog to `max-h-[92vh] h-[92vh]` so it claims most of the viewport on 13-15" laptops and the user can read the player header + summary + factor list + recommendation banner without scrolling.
+- Increase `max-w-2xl` → `max-w-3xl` so the factor rows breathe horizontally. The other tabs (Analyze / Captain / Transfers / Injuries) gain space too at zero cost — they already render comfortably.
+- Tighten the Explain inner spacing one notch (`space-y-3` → `space-y-2.5`, factor rows `py-2` → `py-1.5`) so the full report fits without internal scroll on a 1318×773 viewport (current preview).
 
-- **Summary block**:
-  - Section label `EXPLANATION FOR <NAME>` (kept), then summary in a quoted card: `border-l-4 border-accent pl-3 py-1 italic text-sm` so it reads like an analyst's verdict.
+### 2. `/schedule` Game Recap — play inline inside the game card
+File: `src/components/ScheduleList.tsx` (`RecapCard` at lines 20-56, plus the boxscore wrapper at line 229)
 
-- **"Why it scores" — factor grid**:
-  - Replace the flat row layout with a 1-column stack of factor "rows" inside a `border rounded-xl divide-y` container.
-  - Each row: `[icon for factor] [factor label, uppercase] [impact pill, color-coded] — [note text]`.
-  - Impact color mapping (Tailwind classes only, no new tokens):
-    - `very_high` → solid `bg-emerald-500 text-white`
-    - `high` → `bg-emerald-500/20 text-emerald-300 border border-emerald-500/40`
-    - `medium` → `bg-amber-500/20 text-amber-300 border border-amber-500/40`
-    - `low` → `bg-muted text-muted-foreground border`
-  - Factor icons via lucide (e.g. `rebounds → Disc`, `assists → Users`, `stocks/blocks → Shield`, `minutes → Clock`, `usage → Activity`, fallback → `Sparkles`).
-  - The note sits on its own line below the factor+impact header at `text-xs text-muted-foreground`.
+NBA.com sets `X-Frame-Options: SAMEORIGIN`, so `https://www.nba.com/game/...` cannot be iframed directly. However, every recap video is also indexed on YouTube (column `youtube_recap_id`, already populated by the commissioner job) and YouTube embeds are CORS-friendly. Plan:
 
-- **Recommendation banner** (bottom):
-  - Full-width pill: large action chip (`HOLD` / `ADD` / `DROP`) styled per action color (green/red/amber), with rationale text on the right.
-  - Wrap inside a card with `bg-gradient-to-r` matching the action sentiment.
+- Rework `RecapCard` to a small state machine:
+  1. **YouTube available** (`youtube_recap_id` present): render the embed inline using `https://www.youtube-nocookie.com/embed/{id}?rel=0&modestbranding=1` inside an `<iframe>` that fills the existing `aspect-video` container. Add a tiny corner overlay link `Open on NBA.com ↗` (uses `game_recap_url`) so League Pass users still have one-click access to the official recap.
+  2. **NBA.com only** (no YouTube id, but `game_recap_url` present): keep today's branded card UI but turn it into a **click-to-expand** affordance — clicking it swaps the placeholder for an `<iframe src={game_recap_url}>` with `referrerPolicy="no-referrer-when-downgrade"`. If the iframe load fails (detected via `onError`/blocked-frame fallback timer), the card auto-falls-back to opening the URL in a new tab and shows a small "Recap blocked from embedding — opened in new tab" notice. This satisfies "watch directly inside the card" whenever NBA.com permits it, and degrades gracefully when it doesn't.
+  3. **Nothing available**: keep the existing "Official recap unavailable" placeholder.
+- Pass `youtubeRecapId` into `<RecapCard>` from `GameBoxScore` (it's already on the parent — just thread it through). Same wiring for any other place that mounts `RecapCard`.
+- No change to `PlayerModal`/`TeamModal` recap links — they remain quick external links inside compact rows; inline embedding only makes sense in the schedule's expanded boxscore panel where there's a dedicated 640-wide / `aspect-video` slot.
 
-- **Loading state**: replace the lone `Skeleton` with three stacked skeletons (`h-16` header, `h-10` summary, `h-24` factors) for a better perceived load.
+Net effect: when YouTube has the recap (the vast majority of FINAL games after the commissioner job runs), the user watches the video without leaving the page; otherwise we attempt the official NBA.com embed and only kick out to a new tab as a last resort.
 
-- All other Explain logic (search, popover, recents, recently-explained chips) stays unchanged.
+### 3. `/advanced` NBA Play Search
 
-### 2. `/schedule` Game Recaps — switch from YouTube embed to official NBA.com recap
-Files: `src/components/ScheduleList.tsx`, `src/components/TeamModal.tsx`, `src/components/PlayerModal.tsx`
+#### 3a. By Game — restyle Away/Home selects to match the `/transactions` Team filter
+File: `src/pages/AdvancedPage.tsx` (lines ~138-167)
 
-Every FINAL game already stores `game_recap_url` like `https://www.nba.com/game/orl-vs-por-0022500420?watchRecap=true` (verified in DB). NBA.com auto-opens the recap player when `?watchRecap=true` is present, perfect for League Pass users. We'll route the "Watch Recap" experience through this URL and stop relying on the unreliable YouTube auto-search.
+Replicate the exact pattern used in `src/components/FiltersPanel.tsx` (lines 51-78): full team **name** as the visible label, with the team **logo as a watermark** on the right, opacity surge + scale on hover.
 
-#### 2a. `ScheduleList.tsx`
-- Replace the in-card iframe + `youtube_recap_id` toggle with a single **"Watch Recap"** button-link:
+- Replace the current `<SelectItem value={t.tricode}>{t.tricode} — {t.name}</SelectItem>` with:
   ```tsx
-  {game.game_recap_url && (
-    <a href={game.game_recap_url} target="_blank" rel="noreferrer"
-       className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 px-3 py-1.5 rounded-xl border border-green-500/40">
-      <Tv2 className="h-3.5 w-3.5" /> Watch Recap on NBA.com <ExternalLink className="h-3 w-3" />
-    </a>
-  )}
+  <SelectItem key={t.tricode} value={t.tricode}>
+    <div className="relative flex items-center w-full gap-2 pr-10">
+      <span>{t.name}</span>
+      {logo && (
+        <img src={logo} alt="" className="absolute right-0 w-10 h-10 opacity-20 hover:opacity-50 hover:scale-110 transition-all" />
+      )}
+    </div>
+  </SelectItem>
   ```
-- Remove the `showRecap` state, the inline iframe block, and the `youtube_recap_id` rendering branch (still keep the `youtube_recap_id` prop on the type so other components keep compiling). Drives users straight to the official recap — no more wrong-game embeds.
+- Apply to **both** Away and Home selects. URL composition (`gamecode = YYYYMMDD/AWAYHOME`) stays exactly as it is — the value is still the tricode. No other changes to the By Game tab.
 
-#### 2b. `TeamModal.tsx` and `PlayerModal.tsx`
-- Replace the current `Tv2` button that depended on `youtube_recap_id` with an `<a>` that opens `g.game_recap_url` (or `h.game_recap_url`) in a new tab. Disabled/grayed if `game_recap_url` is null.
-- Drop the inline YouTube iframe expansion in `TeamModal`.
+#### 3b. Replace Tab 1 with "Player Matchup"
+File: `src/pages/AdvancedPage.tsx` (entirely replace the `TabsContent value="player"` block, lines ~67-118; rename trigger label)
 
-#### 2c. Improve the "Populate Recaps" flow on `/commissioner` (kept as fallback)
-File: `supabase/functions/youtube-recap-lookup/index.ts`
-
-Even though the schedule UI now uses NBA.com URLs, keep the YouTube job for legacy mini-thumbnails but make its results dramatically more accurate:
-
-- Build the search query from **actual matchup metadata** with the date so the right game wins:
-  ```ts
-  const dateStr = game.date ? new Date(game.date).toISOString().slice(0, 10) : "";
-  const awayFull = TEAM_FULL_NAME[game.away_team];
-  const homeFull = TEAM_FULL_NAME[game.home_team];
-  const query = `${awayFull} vs ${homeFull} game recap ${dateStr}`;
-  ```
-- Add an inline `TEAM_FULL_NAME` map (30 tricodes → full names) inside the function.
-- Select the response to also fetch `date, home_team, away_team`.
-- Request `maxResults=5` and pick the first item whose `snippet.title` (lowercased) contains both team city names AND the words "recap" or "highlights" — fall back to the first item only if none match.
-- Add `videoEmbeddable=true&type=video` and `order=relevance` to the YouTube call.
-- Result: dramatically reduces wrong-game / wrong-context videos for any feature still using `youtube_recap_id`.
-
-### 3. `/advanced` — new "NBA Play Search" section
-File: `src/pages/AdvancedPage.tsx` (insert ABOVE the existing "Playing Time Trends" header)
-
-Add a self-contained section using the existing project styling. No new files, no routes.
-
-- Wrap in the same surface treatment used by the Trends table: `border border-border rounded-lg overflow-hidden`. Header bar styled like the existing `bg-muted/40` strip with icon + label `NBA PLAY SEARCH` + small subtitle `Search play-by-play clips on NBAPlayDB — results open in a new tab` + an `ExternalLink` icon.
-- Body (`p-4 space-y-4`) contains a `<Tabs defaultValue="player">` with two triggers:
-  - `🔍 By Player / Play`
-  - `🏀 By Game`
-
-#### 3a. Tab "By Player / Play"
-Three fields in a responsive grid (`grid sm:grid-cols-3 gap-3`):
-- Player name — shadcn `Input`, placeholder `"e.g. Nikola Jokić"`.
-- Play type — shadcn `Select` with options exactly as specified (`""`, `dunk`, `3pt`, `assist`, `rebound`, `block`, `steal`, `turnover`, `foul`, `freethrow`).
-- Team — `Input`, placeholder `"e.g. Denver Nuggets"`.
-
-Compose `q = [player, playType, team].filter(Boolean).join(" ").trim()`.
-Primary `Button` "Open on NBAPlayDB ↗":
-- Disabled when `!player.trim() && !playType` (per spec: at least one of player or play type).
-- `onClick = () => window.open("https://www.nbaplaydb.com/search?q=" + encodeURIComponent(q), "_blank", "noopener,noreferrer")`.
-
-#### 3b. Tab "By Game"
-Three fields in `grid sm:grid-cols-3 gap-3`:
-- Game date — `<Input type="date">` defaulting to today (`new Date().toISOString().slice(0,10)`).
-- Away team — shadcn `Select` with the 30-team list (sorted alphabetically by city full name; value = abbrev).
-- Home team — same `Select`.
-
-Build `yyyymmdd = date.replaceAll("-", "")` and `gamecode = ${yyyymmdd}/${away}${home}`.
-Two buttons in a row:
-- Primary "Open on NBAPlayDB ↗": opens `https://www.nbaplaydb.com/search?gamecode=${encodeURIComponent(gamecode)}`.
-- Ghost "View Game Page ↗": opens `https://www.nbaplaydb.com/games/${yyyymmdd}-${away}${home}`.
-- Both disabled until `date && away && home` are all set.
-
-All state is `useState` local. No Supabase, no edge functions, no new files. Existing imports cover everything except `Card`/`CardHeader`/`CardContent` (already in `src/components/ui/card.tsx`), `Tabs`/triggers, `Input`, `Label`, `Select`, `Button`, `ExternalLink`, `Search` from lucide.
+- Change the trigger from `🔍 By Player / Play` to `🏀 Player Matchup`.
+- Pull the player roster from the same data source the other Advanced features use — `usePlayersQuery` hook (`src/hooks/usePlayersQuery.ts`), called with `{ limit: 1000 }` to get the entire pool. This is identical to how `AICoachModal` and `PlayerPickerDialog` source players, so no new fetcher is needed.
+- Build two side-by-side searchable comboboxes (`grid sm:grid-cols-2 gap-3` on desktop, stacked on mobile) using the existing shadcn `Popover` + `Command` (`CommandInput`, `CommandList`, `CommandEmpty`, `CommandGroup`, `CommandItem`) components — the same recipe `PlayerPickerDialog` already follows for searching players.
+  - Left selector label: `OFFENSIVE PLAYER`, placeholder `Pick offensive player…`.
+  - Right selector label: `DEFENSIVE PLAYER`, placeholder `Pick defensive player…`.
+  - Each `CommandItem` shows the player photo (or initials), full name, FC/BC badge, and a faded team-logo watermark on the right (same visual pattern as the AI Coach Explain dropdown). Selection stores the player's full `core.name`.
+  - Search filters case- and diacritic-insensitively (`normalize` helper, copied inline — strip combining marks).
+- Buttons row:
+  - Primary: `Open Matchup on NBAPlayDB ↗`. Disabled until both players are picked. On click:
+    ```tsx
+    window.open(
+      `https://www.nbaplaydb.com/search?offensivePlayers=${encodeURIComponent(off)}&defensivePlayers=${encodeURIComponent(def)}`,
+      "_blank", "noopener,noreferrer"
+    );
+    ```
+  - Ghost: `Clear` — resets both selections.
+- All state local (`useState`). No new files, no Supabase calls beyond `usePlayersQuery` (already in the hook layer). `Popover`, `Command`, `Button`, `Badge` are all already in the project.
 
 ### Files touched
-- `src/components/AICoachModal.tsx` — redesign Explain results: player header card, quoted summary, factor grid with color-coded impact pills + factor icons, action banner.
-- `src/components/ScheduleList.tsx` — replace YouTube iframe recap with a "Watch Recap on NBA.com" link using `game_recap_url`.
-- `src/components/TeamModal.tsx` — same: recap button now opens `game_recap_url` in a new tab; remove inline iframe block.
-- `src/components/PlayerModal.tsx` — recap icon turns into a link to `game_recap_url`; greyed when null.
-- `supabase/functions/youtube-recap-lookup/index.ts` — query the right matchup with full team names + date, score titles by city/team match, pick best video instead of blind first hit.
-- `src/pages/AdvancedPage.tsx` — add the new "NBA Play Search" section above Playing Time Trends, with two tabs and external-link buttons.
+- `src/components/AICoachModal.tsx` — bump `DialogContent` to `max-w-3xl max-h-[92vh] h-[92vh]`; tighten Explain inner spacing.
+- `src/components/ScheduleList.tsx` — `RecapCard` becomes a 3-state inline player (YouTube embed / NBA.com iframe-with-fallback / placeholder); thread `youtubeRecapId` through `GameBoxScore`.
+- `src/pages/AdvancedPage.tsx` — restyle Away/Home Selects in By Game tab to use full-name + watermark pattern; replace `By Player / Play` tab with a `Player Matchup` tab using `usePlayersQuery` + `Popover`+`Command` comboboxes; rename trigger label.
 
 ### Verification
-- AI Coach → Explain → pick "Neemias Queta": result now shows a player header card (photo + team logo watermark + FP5 number), an italic verdict block, factor rows with green/amber color-coded impact pills and factor icons, and a colored HOLD banner — matches the screenshot's intent at a premium polish level.
-- `/schedule` → click any FINAL game card → "Watch Recap" link opens the official NBA.com recap (auto-plays for League Pass users) instead of an embedded YouTube video. No more wrong-game clips.
-- `/commissioner` → "Populate YouTube Recaps" still runs; videos found use the full-name + date query and pick the best-matching title.
-- `/advanced` page now has a "NBA Play Search" card above Playing Time Trends with the two tabs; selecting fields and clicking the buttons opens the correct `nbaplaydb.com` URLs in a new tab; buttons stay disabled until required fields are filled.
+- AI Coach → Explain → Neemias Queta on a 1318×773 viewport: full scouting report (header card + verdict + 5 factor rows + HOLD banner) is visible without inner scroll.
+- `/schedule` → click any FINAL game → Recap panel auto-loads the YouTube video inline; play/pause works inside the card; small `Open on NBA.com ↗` link sits in the corner. For games with no `youtube_recap_id`, the NBA.com card stays clickable; if the inline iframe is blocked, the card opens NBA.com in a new tab and shows a notice.
+- `/advanced` → NBA Play Search → By Game: Away/Home dropdowns show full team names with the team logo as a faded right-aligned watermark that surges on hover; URL behaviour unchanged.
+- `/advanced` → NBA Play Search → Player Matchup: pick `Alperen Sengun` (offense) and `Rudy Gobert` (defense), click `Open Matchup on NBAPlayDB ↗` → opens `https://www.nbaplaydb.com/search?offensivePlayers=Alperen%20Sengun&defensivePlayers=Rudy%20Gobert` in a new tab. Clear resets both.
 
