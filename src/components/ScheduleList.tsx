@@ -752,30 +752,23 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
 
         {compact ? (
           <>
-            {/* Compact card body */}
-            <div className="relative z-10 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+            {/* Top row: large centered team badges with @ in middle */}
+            <div className="relative z-10 flex items-center justify-center gap-3">
+              <div className="flex flex-col items-center gap-0.5">
                 {getTeamLogo(g.away_team) && (
-                  <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-7 h-7 shrink-0" />
+                  <img
+                    src={getTeamLogo(g.away_team)}
+                    alt={g.away_team}
+                    className="w-14 h-14 transition-transform duration-200 hover:scale-110 drop-shadow-[0_0_18px_hsl(var(--accent)/0.45)]"
+                  />
                 )}
-                <span className="font-heading font-bold text-xs uppercase">{g.away_team}</span>
+                <span className="font-heading font-bold text-[10px] uppercase">{g.away_team}</span>
                 {(isFinal || isLive) && (
-                  <span className={`font-mono text-sm ${isFinal && g.away_pts > g.home_pts ? "font-black" : "opacity-60"}`}>{g.away_pts}</span>
+                  <span className={`font-mono text-base leading-none ${isFinal && g.away_pts > g.home_pts ? "font-black" : "opacity-60"}`}>{g.away_pts}</span>
                 )}
               </div>
-              <span className="text-[10px] text-muted-foreground font-heading font-bold">@</span>
-              <div className="flex items-center gap-1.5 min-w-0">
-                {(isFinal || isLive) && (
-                  <span className={`font-mono text-sm ${isFinal && g.home_pts > g.away_pts ? "font-black" : "opacity-60"}`}>{g.home_pts}</span>
-                )}
-                <span className="font-heading font-bold text-xs uppercase">{g.home_team}</span>
-                {getTeamLogo(g.home_team) && (
-                  <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-7 h-7 shrink-0" />
-                )}
-              </div>
-            </div>
-            <div className="relative z-10 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex flex-col items-center gap-0.5 px-1">
+                <span className="text-[10px] text-muted-foreground font-heading font-bold">@</span>
                 {isLive ? (
                   <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
                 ) : (
@@ -789,7 +782,29 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-col items-center gap-0.5">
+                {getTeamLogo(g.home_team) && (
+                  <img
+                    src={getTeamLogo(g.home_team)}
+                    alt={g.home_team}
+                    className="w-14 h-14 transition-transform duration-200 hover:scale-110 drop-shadow-[0_0_18px_hsl(var(--accent)/0.45)]"
+                  />
+                )}
+                <span className="font-heading font-bold text-[10px] uppercase">{g.home_team}</span>
+                {(isFinal || isLive) && (
+                  <span className={`font-mono text-base leading-none ${isFinal && g.home_pts > g.away_pts ? "font-black" : "opacity-60"}`}>{g.home_pts}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom row: venue (left) + action icons (right) */}
+            <div className="relative z-10 flex items-center justify-between gap-2">
+              {venue?.name ? (
+                <span className="text-[10px] italic text-muted-foreground/80 truncate min-w-0 flex-1" title={venue.name}>
+                  {venue.name}
+                </span>
+              ) : <span className="flex-1" />}
+              <div className="flex items-center gap-1 shrink-0">
                 {isFinal && (
                   <span
                     onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
@@ -818,11 +833,6 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                 )}
               </div>
             </div>
-            {venue?.name && (
-              <div className="relative z-10 text-[10px] italic text-muted-foreground/80 truncate" title={venue.name}>
-                {venue.name}
-              </div>
-            )}
           </>
         ) : (
           <>
@@ -928,7 +938,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
       <div className="grid gap-2 px-1 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {games.map((g, i) => (
           <Fragment key={g.game_id}>
-            <div>{renderCard(g, true)}</div>
+            <div className="p-px">{renderCard(g, true)}</div>
             {i === lastIndexOfRow && expandedGame && (
               <div className="col-span-full">
                 {renderExpandedPanel(expandedGame)}
