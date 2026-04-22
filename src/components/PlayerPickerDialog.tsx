@@ -11,7 +11,6 @@ import { Users, Wallet, ShieldHalf, Target, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { getRowPositions } from "@/lib/court-layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SchedulePreviewCollapsible } from "@/components/SchedulePreviewPanel";
 import {
   AlertDialog,
   AlertDialogAction,
