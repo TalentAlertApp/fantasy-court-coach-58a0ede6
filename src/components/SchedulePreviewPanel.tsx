@@ -34,7 +34,11 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
   const lastGwRef = useRef<number>(gw);
   const snappedRef = useRef<boolean>(false);
   useEffect(() => {
-    if (daysWithGames.length === 0) return;
+    if (daysWithGames.length === 0) {
+      // Empty week — reset so the next non-empty refill snaps fresh.
+      snappedRef.current = false;
+      return;
+    }
     const gwChanged = lastGwRef.current !== gw;
     if (snappedRef.current && !gwChanged) return;
     const target = gw === initial.gw ? initial.day : 1;
