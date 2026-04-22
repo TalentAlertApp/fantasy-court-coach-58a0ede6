@@ -77,6 +77,44 @@ export type Database = {
         }
         Relationships: []
       }
+      leagues: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          scoring_system_id: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          scoring_system_id: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          scoring_system_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leagues_scoring_system_id_fkey"
+            columns: ["scoring_system_id"]
+            isOneToOne: false
+            referencedRelation: "scoring_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       player_game_logs: {
         Row: {
           ast: number
@@ -463,6 +501,86 @@ export type Database = {
         }
         Relationships: []
       }
+      scoring_rules: {
+        Row: {
+          applies_to: string
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          rule_type: string
+          scoring_system_id: string
+          sort_order: number
+          stat_key: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          applies_to?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          rule_type?: string
+          scoring_system_id: string
+          sort_order?: number
+          stat_key: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          applies_to?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          rule_type?: string
+          scoring_system_id?: string
+          sort_order?: number
+          stat_key?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scoring_rules_scoring_system_id_fkey"
+            columns: ["scoring_system_id"]
+            isOneToOne: false
+            referencedRelation: "scoring_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scoring_systems: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sport: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sport?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sport?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sync_runs: {
         Row: {
           created_at: string
@@ -533,6 +651,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          league_id: string
           name: string
           owner_id: string
           updated_at: string
@@ -541,6 +660,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          league_id: string
           name: string
           owner_id: string
           updated_at?: string
@@ -549,11 +669,20 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          league_id?: string
           name?: string
           owner_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "teams_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {
@@ -601,7 +730,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_league_teams: {
+        Args: { _league_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          league_id: string
+          name: string
+          owner_id: string
+          owner_label: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
