@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirstRunGate } from "@/hooks/useFirstRunGate";
 import { Loader2 } from "lucide-react";
@@ -19,6 +19,7 @@ interface Props {
 export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { ready, shouldOnboard } = useFirstRunGate();
   // Recap is one-shot per session. Compute *after* auth resolves so the
   // user id is reliably available — initializing in useState would race
@@ -27,8 +28,10 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   useEffect(() => {
     if (loading) return;
     if (!user?.id) return;
-    setWelcomeOpen(shouldShowWelcomeBack(user.id));
-  }, [loading, user?.id]);
+    // Force-open via ?welcomeback=1 for testing
+    const forced = new URLSearchParams(location.search).get("welcomeback") === "1";
+    setWelcomeOpen(forced || shouldShowWelcomeBack(user.id));
+  }, [loading, user?.id, location.search]);
 
   if (loading) {
     return (
@@ -61,6 +64,10 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
           markWelcomeBackSeenThisSession();
           clearLastSignOut(user.id);
           setWelcomeOpen(false);
+          // Strip the preview query param if present
+          if (new URLSearchParams(location.search).get("welcomeback") === "1") {
+            navigate(location.pathname, { replace: true });
+          }
         }}
       />
     );
