@@ -8,7 +8,7 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Shield } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, BandageIcon } from "lucide-react";
 import InjuryReportModal from "@/components/InjuryReportModal";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
@@ -110,6 +110,9 @@ export default function SchedulePage() {
               const isPast = w < current.gw;
               const isCurrent = w === current.gw;
               const isSelected = w === gw;
+              // A GW is fully "played" only if it is strictly before the lastPlayed gw,
+              // OR equals lastPlayed.gw (in-progress played gw — emerald only when not currently selected as live).
+              const isPlayed = !!lastPlayed && w < lastPlayed.gw;
               return (
                 <button
                   key={w}
@@ -118,6 +121,8 @@ export default function SchedulePage() {
                   className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-xl transition-all ${
                     isSelected
                       ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
+                      : isPlayed
+                      ? "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
                       : isPast
                       ? "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50"
                       : isCurrent
@@ -157,6 +162,10 @@ export default function SchedulePage() {
               const dayNum = wd.dateObj.getDate();
               const gameCount = weekCounts?.[wd.day] ?? 0;
               const dayIdx = dayIndexMap[wd.day] ?? 1;
+              // Played = strictly before the latest played day (per useLastPlayedDay).
+              const isPlayed =
+                !!lastPlayed &&
+                (gw < lastPlayed.gw || (gw === lastPlayed.gw && wd.day <= lastPlayed.day));
               return (
                 <button
                   key={wd.day}
@@ -164,6 +173,8 @@ export default function SchedulePage() {
                   className={`flex-1 min-w-[80px] py-2 px-2 transition-all rounded-xl border border-[hsl(var(--nba-navy))] dark:border-[hsl(var(--nba-yellow))]/60 ${
                     isSelected
                       ? "bg-primary text-primary-foreground shadow-md"
+                      : isPlayed
+                      ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
@@ -174,6 +185,9 @@ export default function SchedulePage() {
                       <span className="text-sm font-mono font-bold leading-tight">{dayNum}</span>
                       {isDayToday && (
                         <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
+                      )}
+                      {isPlayed && !isDayToday && (
+                        <CircleCheckBig className={`h-2.5 w-2.5 ${isSelected ? "text-primary-foreground/70" : "text-emerald-500"}`} />
                       )}
                     </div>
                     {/* Center: GW.DAY */}
@@ -245,11 +259,11 @@ export default function SchedulePage() {
               <span className="text-muted-foreground/40">·</span>
               <button
                 onClick={() => setInjuryOpen(true)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                className="text-muted-foreground hover:text-destructive transition-colors p-1"
                 title="Injury Report"
                 aria-label="Open injury report"
               >
-                <Shield className="h-4 w-4" />
+                <BandageIcon className="h-4 w-4" />
               </button>
               <span className="text-muted-foreground/40">·</span>
               <button
