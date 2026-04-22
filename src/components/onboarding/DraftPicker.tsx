@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Zap, Hand, Bot, Loader2, Trophy, Check } from "lucide-react";
+import { Zap, Hand, Bot, Loader2, Trophy, Check, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { autoPickRoster, saveRoster } from "@/lib/api";
 import { useTeam } from "@/contexts/TeamContext";
@@ -21,10 +21,10 @@ const SALARY_CAP = 100;
 interface Props {
   teamName: string;
   onFinish: () => void;
-  variant?: "onboarding" | "embedded";
+  onBack?: () => void;
 }
 
-export default function DraftPicker({ teamName, onFinish, variant = "onboarding" }: Props) {
+export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
   const { toast } = useToast();
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
