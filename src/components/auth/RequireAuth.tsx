@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFirstRunGate } from "@/hooks/useFirstRunGate";
@@ -20,10 +20,15 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   const { user, loading } = useAuth();
   const location = useLocation();
   const { ready, shouldOnboard } = useFirstRunGate();
-  // Compute once on mount; recap is one-shot per session.
-  const [welcomeOpen, setWelcomeOpen] = useState<boolean>(() =>
-    shouldShowWelcomeBack(user?.id)
-  );
+  // Recap is one-shot per session. Compute *after* auth resolves so the
+  // user id is reliably available — initializing in useState would race
+  // with the loading state and silently produce false.
+  const [welcomeOpen, setWelcomeOpen] = useState<boolean>(false);
+  useEffect(() => {
+    if (loading) return;
+    if (!user?.id) return;
+    setWelcomeOpen(shouldShowWelcomeBack(user.id));
+  }, [loading, user?.id]);
 
   if (loading) {
     return (

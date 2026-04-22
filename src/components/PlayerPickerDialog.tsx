@@ -195,7 +195,7 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-[1fr_110px] gap-2 shrink-0 mt-2">
+          <div className="grid grid-cols-[1fr_88px] gap-2 shrink-0 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -206,30 +206,49 @@ export default function PlayerPickerDialog({
               />
             </div>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-2">
-                <SelectValue placeholder="All Teams" />
+              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-1.5 justify-center">
+                {teamFilter === "ALL" ? (
+                  <SelectValue placeholder="All" />
+                ) : (
+                  <span className="flex items-center justify-center gap-1.5 w-full">
+                    {(() => {
+                      const logo = getTeamLogo(teamFilter);
+                      return logo ? (
+                        <img src={logo} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
+                      ) : null;
+                    })()}
+                    <span>{teamFilter}</span>
+                  </span>
+                )}
               </SelectTrigger>
-              <SelectContent className="max-h-72">
-                <SelectItem value="ALL" className="text-xs font-heading uppercase">All Teams</SelectItem>
+              <SelectContent className="max-h-72 min-w-[88px]">
+                <SelectItem value="ALL" className="text-xs font-heading uppercase justify-center [&>span:first-child]:hidden">
+                  <span className="block text-center w-full">All</span>
+                </SelectItem>
                 {teamOptions.map((t) => {
                   const logo = getTeamLogo(t);
+                  const count = teamCounts[t] || 0;
                   return (
                     <SelectItem
                       key={t}
                       value={t}
-                      className="text-xs font-heading uppercase relative overflow-hidden group pr-2 pl-8"
+                      className="text-xs font-heading uppercase relative overflow-hidden group px-1 [&>span:first-child]:hidden"
                     >
-                      {logo && (
-                        <img
-                          src={logo}
-                          alt=""
-                          aria-hidden="true"
-                          className="absolute -left-1 top-1/2 -translate-y-1/2 h-8 w-8 object-contain pointer-events-none opacity-25 transition-all duration-300 group-hover:opacity-80 group-hover:scale-110 group-data-[state=checked]:opacity-90 group-data-[highlighted]:opacity-80 group-data-[highlighted]:scale-110 z-0"
-                        />
-                      )}
-                      <span className="relative z-10">
-                        {t}
-                        {(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
+                      <span className="flex items-center justify-center gap-1.5 w-full relative">
+                        {logo && (
+                          <img
+                            src={logo}
+                            alt=""
+                            aria-hidden="true"
+                            className="h-6 w-6 object-contain pointer-events-none opacity-50 transition-all duration-300 group-hover:opacity-95 group-hover:scale-110 group-data-[state=checked]:opacity-100 group-data-[highlighted]:opacity-95 group-data-[highlighted]:scale-110"
+                          />
+                        )}
+                        <span>{t}</span>
+                        {count > 0 && (
+                          <span className="absolute right-0 top-1/2 -translate-y-1/2 text-[9px] tabular-nums text-muted-foreground">
+                            {count}
+                          </span>
+                        )}
                       </span>
                     </SelectItem>
                   );
