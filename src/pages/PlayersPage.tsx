@@ -289,7 +289,7 @@ export default function PlayersPage() {
                 <CommandList className="max-h-[480px]">
                   <CommandEmpty>No roster players</CommandEmpty>
                   <CommandGroup heading="Your Roster">
-                    {rosterPlayers.map((p) => {
+                    {[...rosterPlayers].sort((a, b) => (b.salary ?? 0) - (a.salary ?? 0)).map((p) => {
                       const sel = releasing.includes(p.player_id);
                       return (
                         <CommandItem
