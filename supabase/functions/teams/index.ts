@@ -52,7 +52,14 @@ Deno.serve(async (req) => {
       }
       const { data: team, error } = await sb
         .from("teams")
-        .insert({ name: name.trim(), description: description ?? null, owner_id: userId })
+        .insert({
+          name: name.trim(),
+          description: description ?? null,
+          owner_id: userId,
+          // All new teams join the single shared league for now.
+          // Schema is ready for multi-league later.
+          league_id: "00000000-0000-0000-0000-000000000010",
+        })
         .select()
         .single();
       if (error) throw error;
