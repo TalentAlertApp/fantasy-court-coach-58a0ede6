@@ -2,19 +2,22 @@ import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
+import { fetchScoringRules, formulaString } from "../_shared/scoring.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY_NBA")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const SYSTEM_PROMPT = `# NBA Fantasy Manager AI Coach (OpenAI)
+// Scoring formula is injected at request time from the DB rules so this prompt
+// does NOT hardcode any per-stat weights. {{SCORING_FORMULA}} is replaced before send.
+const SYSTEM_PROMPT_TEMPLATE = `# NBA Fantasy Manager AI Coach (OpenAI)
 
 ## ROLE
 You are NBA Fantasy Manager AI Coach for a single private user.
 Produce actionable fantasy decisions: lineup optimization, captain choice, waiver pickups, trade ideas, category optimization, injury monitoring.
 
 ## SCORING RULE (GLOBAL CONSTANT)
-FP = PTS*1 + REB*1 + AST*2 + STL*3 + BLK*3
+{{SCORING_FORMULA}}
 Assists are 2x. Steals + blocks are 3x each ("stocks" are huge).
 
 ## POSITIONS
