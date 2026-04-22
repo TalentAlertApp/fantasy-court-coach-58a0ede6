@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Search, X, Volume2, VolumeX } from "lucide-react";
+import { Users, Wallet, ShieldHalf, Target, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { getRowPositions } from "@/lib/court-layout";
 import courtBg from "@/assets/court-bg.png";
@@ -29,6 +30,10 @@ interface PlayerPickerDialogProps {
   showCourtPreview?: boolean;
   picks?: PlayerListItem[];
   onRemovePick?: (id: number) => void;
+  /** Roster is fully valid (10 players, 5 FC + 5 BC, ≤ cap, ≤ 2 per NBA team) */
+  canConfirm?: boolean;
+  /** Called when the user clicks the centered "Save Current Roster" CTA at 10/10 */
+  onConfirm?: () => void;
 }
 
 const SFX_KEY = "nba_picker_sfx";
@@ -37,6 +42,7 @@ export default function PlayerPickerDialog({
   open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
   bankRemaining, swapPlayerSalary, swapPlayerPosition,
   showCourtPreview = false, picks = [], onRemovePick,
+  canConfirm = false, onConfirm,
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
