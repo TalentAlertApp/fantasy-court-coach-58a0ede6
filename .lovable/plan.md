@@ -1,89 +1,91 @@
 
 
-## Four targeted fixes + a new "Welcome Back" recap screen
+## Five fixes for the Pick Player dropdown, Welcome Back recap, schedule preview & game cards
 
-### 1. PICK PLAYER team dropdown — tighten layout
+### 1. PICK PLAYER team dropdown — center watermark + tricode, narrower
 File: `src/components/PlayerPickerDialog.tsx`
 
-- Move the 3-letter tricode label from `ml-7` → sits **immediately after** the watermark (left-aligned, ~28px from start). Restructure the `SelectItem` content so the tricode + count uses `pl-8` (just clears the now-tighter watermark) instead of `ml-7`.
-- Shrink the watermark from `h-10 w-10 -left-2` → `h-8 w-8 -left-1` so it doesn't dominate the now-narrower row.
-- Reduce the dropdown width: change the grid template from `grid-cols-[1fr_140px]` → `grid-cols-[1fr_110px]`, and update the `SelectTrigger` text so "All Teams" still fits (`text-[11px]`).
-- `SelectContent` width follows the trigger automatically; no extra change needed.
+- Change grid template from `grid-cols-[1fr_110px]` → `grid-cols-[1fr_88px]` (matches the screenshot's tight ~80px width).
+- `SelectTrigger`: drop padding from `px-2` → `px-1.5`, justify content centered (`justify-center` via shadcn — already inline-flex). When `teamFilter !== "ALL"`, render the small team logo + tricode inside the trigger (centered).
+- `SelectItem` layout: switch from left-anchored `pl-8` + absolute watermark to **a centered flex container**:
+  - Wrapper: `flex items-center justify-center gap-1.5 relative px-1`
+  - Watermark: change positioning from `absolute -left-1` → in-flow `relative` `h-6 w-6` sitting just before the tricode (no longer absolute / overflowing).
+  - Both watermark and tricode share the centered group, identical to the dropdown trigger row.
+  - Keep the surge effect (`group-hover:scale-110`, `group-data-[highlighted]:opacity-90`) on the in-flow watermark.
+  - Drop the `· {n}/2` count suffix to keep the row narrow; reveal the count instead as a tiny right-edge badge `text-[9px] tabular-nums text-muted-foreground` only when `> 0`.
 
-### 2. Roster Schedule panel — overlay instead of pushing layout
-File: `src/pages/RosterPage.tsx`
+### 2. Welcome Back — fix roster shape to actually render data
+File: `src/components/welcome-back/WelcomeBackHero.tsx`
 
-Currently the `<Collapsible>` between the toolbar and the court pushes the Starting 5 / Bench down when opened. Convert it to an **absolutely positioned overlay**:
-
-- Wrap the page body in `relative` (already implied by `h-full flex flex-col`).
-- Replace the inline `<Collapsible>` block (lines ~533-537) with an absolute panel:
-  - `absolute left-0 right-0 top-[~145px] z-30` (positioned just under the toolbar row).
-  - `bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl` for premium feel.
-  - Smooth open via `data-[state=open]:animate-accordion-down` (already in tailwind config) or a simple `max-h` transition.
-  - Closed by default; clicking the SCHEDULE button toggles `scheduleOpen`.
-  - Add a small close X in the top-right of the overlay for explicit dismissal.
-- The court layout stays fixed in place; only the overlay floats over the toolbar+court area.
-
-### 3. SchedulePreview — default to current day for the selected GW
-File: `src/components/SchedulePreviewPanel.tsx`
-
-The current `useEffect` only switches day if the current `day` isn't in `daysWithGames`, falling back to the **first** available day. Two issues:
-- When the user changes GW, `day` stays stuck on the previously selected one.
-- "Current day" is only resolved once at mount.
+The contract `RosterCurrentPayloadSchema` returns `starters: number[]`, `bench: number[]`, `captain_id: number` — **not full player objects**. The current `topScorer` / `captain` lookup operates on `p.core?.name`, `p.last5?.fp5`, `p.is_captain` and silently produces nothing.
 
 Fix:
-- Recompute the desired default day whenever `gw` changes:
-  - If `gw === initial.gw` → target = `initial.day` (today's day in the current GW).
-  - Else → target = `1` (first day of any other selected GW).
-- After `daysWithGames` resolves, snap `day` to: `target` if present, else the closest day ≥ `target`, else the first available.
-- Track GW changes with a ref so we only re-snap on GW transitions or when `daysWithGames` first arrives — never when the user manually clicks a chip.
+- Add `usePlayersQuery({ limit: 250 })` so we have the full `PlayerListItem[]` (with `core.name`, `core.photo`, `last5.fp5`).
+- Build `rosterIds = [...starters, ...bench]` from `rosterData.roster`.
+- Resolve roster players: `players.filter(p => rosterIds.includes(p.core.id))`.
+- `topScorer` = highest `last5.fp5` among resolved roster.
+- `captain` = `players.find(p => p.core.id === rosterData.roster.captain_id)`.
+- Graceful empty states already in place; ensure the cards also render fallback text when `rosterData` is loading or when `players` query is loading (skeleton-style "—").
+- Guard against `null` captain_id (contract says it's required `IntSchema` but old saves may have 0; treat `0` / falsy as "no captain").
 
-### 4. "Welcome Back" recap screen — premium full-screen takeover
-New file: `src/components/welcome-back/WelcomeBackHero.tsx`
-New file: `src/lib/welcome-back-store.ts`
-Edit: `src/App.tsx` (mount the gate), `src/contexts/AuthContext.tsx` (record sign-out timestamp).
+### 3. RequireAuth welcome-back gating — compile sanity check
+File: `src/components/auth/RequireAuth.tsx`
 
-**Trigger logic** (`welcome-back-store.ts`):
-- On `signOut`, persist `localStorage["nba_last_signout:{userId}"] = ISO timestamp`.
-- On next successful sign-in for the **same user**, if a previous timestamp exists AND it's > 1 hour ago AND not yet shown this session, render the recap once. After dismissal, write `sessionStorage["nba_welcome_back_seen"] = "1"` and clear the signout timestamp.
-- Skip entirely for first-time users (no prior signout entry → it's their first session) and for users in onboarding (`useFirstRunGate.shouldOnboard === true`).
+Already compiles cleanly: `welcomeOpen`, `skipOnboardingGate`, `ready`, `shouldOnboard`, `user` are all defined and the conditional block only references defined state. **One minor improvement**: `useState` initializer reads `user?.id` but at first render `user` may still be `loading` — currently we early-return `<Loader2/>` before anything checks `welcomeOpen`. To avoid a race where `welcomeOpen=false` was computed pre-auth-resolution:
 
-**Mount point**: gate inside `RequireAuth`'s authenticated branch (or a new `<WelcomeBackGate>` wrapping `AppLayout` route element). Renders **full-screen**, identical chrome to onboarding (no sidebar, no header) — same `h-screen w-full bg-background` shell with the radial-gradient + grid backdrop used in `OnboardingPage`.
+- Move `welcomeOpen` from `useState` initializer to a `useEffect` that runs once `loading === false && user?.id` is known, then sets state.
+- Also: explicitly type the `Props` interface (`React.ReactNode` import is already present via JSX) — no change needed.
 
-**Layout** (matches onboarding stages 1 & 2):
-- Top bar: NBA logo + "Fantasy" wordmark left, sign-out icon right (mirrors `OnboardingHero`).
-- Hero center: `text-[11px] uppercase tracking-[0.4em] text-accent` eyebrow saying "Welcome back" with the team name; large `font-heading uppercase` headline "Here's what you missed".
-- Below the headline: a **3-card recap strip** (`grid grid-cols-3 gap-5 max-w-5xl`) — each card is `bg-card/40 border border-border rounded-2xl p-6 backdrop-blur` with an icon, value, and caption:
-  1. **Roster pulse** — show top scorer from current roster's last 5 games (resolve from `useRosterQuery` + `last5.fp5`). Card shows player photo (circular, 64px), name, "FP last 5: {value}".
-  2. **Captain check** — current captain name + their FP5; if no captain set, show "No captain locked yet — set one before deadline".
-  3. **Next deadline** — `getCurrentGameday()` GW · Day, formatted deadline, live countdown. Tinted with NBA-yellow accent.
-- Below the cards: a **"What's new" bullet list** of 3-4 hard-coded curated items (premium, sports-editorial copy):
-  - "AI Coach now ignores diacritics in player search."
-  - "Pick Player modal: schedule preview + team filter with badge watermarks."
-  - "Roster: in-place schedule overlay, no more layout jumps."
-  - "Wishlist & Player Comparison improvements."
-  Items rendered as small chips with a `Sparkles` icon — same `border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10` styling as the onboarding chip strip at the bottom.
-- Primary CTA: `Button size="lg"` "Enter Court →" with the same shadow/glow treatment as `OnboardingHero`'s "Start Your Draft" button. Click → dismiss + navigate to `/`.
-- Secondary text link below: "Tour what's changed" — opens the existing How-to-Play / Guide modal.
-- Same animated `PlayerMarquee` background as onboarding so it feels visually continuous.
+No other code changes required; document the audit in a brief inline comment.
 
-**Premium polish**:
-- Subtle `framer-motion` stagger entry on the eyebrow → headline → cards → chips → CTA (200ms cascade).
-- Card hover: `hover:border-accent/40 transition-colors`.
-- Time-since-last-visit micro line under the eyebrow: "Last visit: 3 days ago" (computed from the stored timestamp via a small `formatDistanceToNow` helper — no new dependency, write inline).
+### 4. SchedulePreviewPanel day-default — confirm + harden
+File: `src/components/SchedulePreviewPanel.tsx`
+
+Current logic uses `lastGwRef` + `snappedRef` and only re-snaps when `gwChanged || !snappedRef.current`. This already preserves manual day clicks. Two small hardenings:
+
+- When the user clicks a day chip, mark `snappedRef.current = true` explicitly (defensive — already true at that point, but makes intent clear).
+- Reset `snappedRef.current = false` if `daysWithGames` becomes empty then refills (e.g. switching across an empty GW). This guarantees the next non-empty week gets a fresh snap.
+- No behavior change for the common case; confirms #4's intent.
+
+### 5. SchedulePreview — enrich each game card with team form & standings
+File: `src/components/SchedulePreviewPanel.tsx`
+
+Each game row is currently a single 28px-tall line. Convert to a richer **two-line card** (kept compact, ~64px tall):
+
+**Top line** (existing): away logo + tricode + `@` + home logo + tricode + tip-off time. Yellow highlights for roster-involved teams stay.
+
+**Bottom line — split in two halves** (away on left, home on right, separated by the `@`):
+
+For each side render three micro-stats, in the team's primary color tint:
+1. **Last 5 result strip** — five colored squares (W=`bg-emerald-500/80`, L=`bg-red-500/80`), `h-2 w-2 rounded-sm`, ordered oldest → newest left to right.
+2. **Overall record + pct** — `28-15 · .651` in `text-[10px] font-mono tabular-nums text-muted-foreground`.
+3. **Venue split** — for the **away team** show their **away record** `Away 12-9`; for the **home team** show their **home record** `Home 18-5`. Same mono micro-text.
+4. **Division position** — small chip `1st Atl` / `3rd Pac` (computed by sorting all teams within their division by pct), `text-[9px] uppercase tracking-wider text-foreground/60`, no border.
+
+**Data sources**:
+- Add a **new query** `useScheduleStandingsContext()` (defined locally inside the panel file or as a tiny new hook `src/hooks/useStandingsContext.ts`) that pulls all `schedule_games(home_team, away_team, home_pts, away_pts, status, tipoff_utc)` once with `staleTime: 5min`, then derives:
+  - The existing `useNBAStandings` rows (records, home/away splits, division).
+  - A `last5ByTeam: Record<string, ("W"|"L")[]>` map by sorting FINAL games per team by `tipoff_utc` desc, taking the 5 most recent results.
+  - A `divisionRankByTeam: Record<string, { rank: number; divLabel: string }>` map by grouping standings by division, sorting by pct then `w-l`, then assigning ordinals (`1st`, `2nd`, …) and a 3-letter division label (`Atl`, `Cen`, `SE`, `NW`, `Pac`, `SW`).
+- Pass the resolved per-team stats into each row at render time. If a team has zero finals (preseason / injury-skipped), render `—` placeholders.
+
+**Layout polish**:
+- Wrap each row in a `flex flex-col gap-1.5 px-2.5 py-2` card (was `h-7`); container `max-h-44` becomes `max-h-72` for breathing room.
+- Top line keeps existing tricodes & yellow highlight.
+- Bottom line uses `grid grid-cols-[1fr_auto_1fr] items-center gap-2` with the away cluster on the left, the `@`/time stamp center, and home cluster on the right (right-aligned).
+- Last-5 strips are color-tinted with the team's accent (`style={{ color: NBA_TEAM_META[t]?.primaryColor }}`) for the chip background border to feel team-specific.
 
 ### Files touched
-- `src/components/PlayerPickerDialog.tsx` — dropdown layout (item 1).
-- `src/pages/RosterPage.tsx` — convert schedule panel to absolute overlay (item 2).
-- `src/components/SchedulePreviewPanel.tsx` — day default logic (item 3).
-- `src/contexts/AuthContext.tsx` — write sign-out timestamp (item 4).
-- `src/lib/welcome-back-store.ts` — NEW, storage helpers (item 4).
-- `src/components/welcome-back/WelcomeBackHero.tsx` — NEW, full-screen recap UI (item 4).
-- `src/components/auth/RequireAuth.tsx` — mount the gate before children (item 4).
+- `src/components/PlayerPickerDialog.tsx` — narrower dropdown, centered watermark + tricode (item 1).
+- `src/components/welcome-back/WelcomeBackHero.tsx` — resolve roster IDs against `usePlayersQuery`, fix top-scorer / captain (item 2).
+- `src/components/auth/RequireAuth.tsx` — defer `welcomeOpen` to `useEffect` after auth resolves; comment audit (item 3).
+- `src/components/SchedulePreviewPanel.tsx` — defensive snap-ref handling + new enriched game card layout (items 4 & 5).
+- `src/hooks/useStandingsContext.ts` — NEW. Pulls all schedule games once and exposes `{ standings, last5ByTeam, divisionRankByTeam }` (item 5).
 
 ### Outcome
-- Tighter, cleaner team dropdown with the tricode reading immediately after the badge.
-- Schedule overlay floats over the roster — Starting 5 / Bench never shift.
-- Day chips always land on today (when viewing the current GW) or D1 (when browsing ahead).
-- Returning users get a one-time premium "what's new + roster pulse" hero that visually matches onboarding stages 1 & 2 — full-screen, no sidebar, marquee-backed.
+- Dropdown is as narrow as possible with the watermark and 3-letter code stacked center, matching the screenshot.
+- Welcome Back actually shows the user's top scorer + captain (it was silently empty before).
+- Auth gating is race-safe: recap only computed after the user is loaded.
+- Day chip selection persists across user clicks; only changing GW or first load auto-snaps.
+- Every Schedule Preview matchup now reads like a sports-app card: form strip, record, home/away split, division rank — premium at a glance.
 
