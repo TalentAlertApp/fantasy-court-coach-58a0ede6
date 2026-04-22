@@ -13,6 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import PlayerCompareModal from "@/components/PlayerCompareModal";
 import { useWishlist } from "@/hooks/useWishlist";
+import nbaLogo from "@/assets/nba-logo.svg";
+import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 
 function BreakdownCard({ data }: { data: any }) {
   const [view, setView] = useState<"season" | "lastGame">("season");
@@ -90,6 +92,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [boxscoreGameId, setBoxscoreGameId] = useState<string | null>(null);
   const [boxscorePlayerId, setBoxscorePlayerId] = useState<number | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
@@ -126,6 +129,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
         <DialogContent className="max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden">
+          {/* NBA logo watermark — visible on every tab */}
+          <img
+            src={nbaLogo}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 m-auto w-1/3 max-w-[160px] opacity-[0.04] select-none"
+          />
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
