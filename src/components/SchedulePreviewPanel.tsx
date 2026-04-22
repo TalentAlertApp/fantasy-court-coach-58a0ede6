@@ -4,6 +4,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { getTeamLogo } from "@/lib/nba-teams";
+import { useStandingsContext } from "@/hooks/useStandingsContext";
+import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
+import { NBA_TEAMS } from "@/lib/nba-teams";
 
 interface BodyProps {
   rosterTeams: string[];
@@ -56,6 +59,13 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
   );
 
   const rosterTeamSet = useMemo(() => new Set(rosterTeams), [rosterTeams]);
+
+  const { standingsByTeam, last5ByTeam, divisionRankByTeam } = useStandingsContext();
+  const primaryByTeam = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const t of NBA_TEAMS) m[t.tricode] = t.primaryColor;
+    return m;
+  }, []);
 
   const fmtTime = (iso: string | null) => {
     if (!iso) return "—";
