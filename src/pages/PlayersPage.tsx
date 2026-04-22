@@ -17,12 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday } from "@/lib/deadlines";
 import AICoachModal from "@/components/AICoachModal";
+import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
