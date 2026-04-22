@@ -223,12 +223,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* History Tab */}
-                <TabsContent value="history" className="flex-1 min-h-0">
-                  <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">This Season</p>
+                <TabsContent value="history" className="flex-1 min-h-0 flex flex-col">
+                  <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 shrink-0">This Season</p>
                   {data.history.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
+                    <p className="text-sm text-muted-foreground py-4 text-center mt-auto">No history available</p>
                   ) : (
-                    <ScrollArea className="h-[40vh]">
+                    <ScrollArea className="flex-1 mt-auto h-[40vh]">
                       <div className="pr-4">
                       <Table>
                         <TableHeader>
@@ -255,7 +255,20 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             return (
                               <TableRow
                                 key={i}
-                                className="hover:bg-accent/50"
+                                className="hover:bg-accent/50 cursor-pointer"
+                                onClick={() => setSelectedGame({
+                                  game_id: h.game_id,
+                                  home_team: h.home_team,
+                                  away_team: h.away_team,
+                                  home_pts: h.home_pts,
+                                  away_pts: h.away_pts,
+                                  game_boxscore_url: h.game_boxscore_url ?? null,
+                                  game_charts_url: h.game_charts_url ?? null,
+                                  game_playbyplay_url: h.game_playbyplay_url ?? null,
+                                  game_recap_url: h.game_recap_url ?? null,
+                                  nba_game_url: h.nba_game_url ?? null,
+                                  played: true,
+                                })}
                               >
                                 <TableCell className="px-1.5 py-1 text-xs font-bold font-mono whitespace-nowrap">
                                   GW{h.gw}.{h.day}
@@ -493,6 +506,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
           }}
         />
       )}
+
+      <GameDetailModal
+        game={selectedGame}
+        open={selectedGame !== null}
+        onOpenChange={(o) => !o && setSelectedGame(null)}
+      />
     </>
   );
 }
