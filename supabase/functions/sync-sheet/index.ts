@@ -489,6 +489,9 @@ async function syncSchedule(supabase: any, token: string): Promise<{ schedule_ga
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authFail = requireAdmin(req);
+  if (authFail) return authFail;
+
   try {
     const body = req.method === "POST" ? await req.json() : {};
     const type: string = (body.type || "FULL").toUpperCase();

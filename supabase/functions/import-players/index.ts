@@ -59,6 +59,9 @@ function looksCorrupted(name: string): boolean {
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authFail = requireAdmin(req);
+  if (authFail) return authFail;
+
   try {
     if (req.method !== "POST") return err("METHOD_NOT_ALLOWED", "POST only", null, 405);
 
