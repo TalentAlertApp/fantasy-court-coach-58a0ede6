@@ -44,6 +44,27 @@ export default function AuthPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
+    // Client-side password strength checks (compensating control for
+    // Supabase free-tier lacking leaked-password protection).
+    if (password.length < 8) {
+      toast.error("Password too short", {
+        description: "Use at least 8 characters.",
+      });
+      return;
+    }
+    if (/^\d+$/.test(password)) {
+      toast.error("Password too weak", {
+        description: "Avoid all-numeric passwords.",
+      });
+      return;
+    }
+    const localPart = email.split("@")[0]?.toLowerCase() ?? "";
+    if (localPart && password.toLowerCase() === localPart) {
+      toast.error("Password too weak", {
+        description: "Password must not match your email.",
+      });
+      return;
+    }
     setBusy(true);
     const redirectUrl = `${window.location.origin}/`;
     const { error } = await supabase.auth.signUp({
@@ -127,9 +148,12 @@ export default function AuthPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="current-password"
-                    minLength={6}
+                    minLength={8}
                     required
                   />
+                  <p className="text-xs text-muted-foreground">
+                    At least 8 characters. Avoid common or reused passwords.
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <Button
