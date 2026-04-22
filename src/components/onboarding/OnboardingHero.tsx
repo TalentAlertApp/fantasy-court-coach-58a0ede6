@@ -94,7 +94,7 @@ export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Pr
           ].map((chip) => (
             <span
               key={chip}
-              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
+              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black dark:text-[hsl(var(--nba-yellow))] font-bold"
             >
               {chip}
             </span>

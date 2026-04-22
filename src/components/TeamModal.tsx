@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table2, BarChart3, Mic, ExternalLink, Tv2 } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
+import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -23,6 +24,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const team = tricode ? getTeamByTricode(tricode) : null;
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
+  const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
     queryKey: ["team-games", tricode],
@@ -132,17 +134,41 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       const opp = isHome ? g.away_team : g.home_team;
                       const oppLogo = getTeamLogo(opp);
                       const won = isHome ? g.home_pts > g.away_pts : g.away_pts > g.home_pts;
+                      const myScore = isHome ? g.home_pts : g.away_pts;
+                      const oppScore = isHome ? g.away_pts : g.home_pts;
+                      const openDetail = () => setSelectedGame({
+                        game_id: g.game_id,
+                        home_team: g.home_team,
+                        away_team: g.away_team,
+                        home_pts: g.home_pts,
+                        away_pts: g.away_pts,
+                        status: g.status,
+                        game_boxscore_url: g.game_boxscore_url,
+                        game_charts_url: g.game_charts_url,
+                        game_playbyplay_url: g.game_playbyplay_url,
+                        game_recap_url: g.game_recap_url,
+                        nba_game_url: g.nba_game_url,
+                        played: true,
+                      });
                       return (
                         <div key={g.game_id}>
                           <div
                             className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm"
                           >
-                            <Badge variant={won ? "default" : "destructive"} className="rounded-lg text-[9px] w-5 justify-center">{won ? "W" : "L"}</Badge>
-                            {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
-                            <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
-                            <span className="ml-auto font-mono text-xs font-bold">
-                              {isHome ? g.home_pts : g.away_pts}-{isHome ? g.away_pts : g.home_pts}
+                            <button onClick={openDetail} className="hover:opacity-80 transition-opacity">
+                              <Badge variant={won ? "default" : "destructive"} className="rounded-lg text-[9px] w-5 justify-center cursor-pointer">{won ? "W" : "L"}</Badge>
+                            </button>
+                            <span className="font-heading text-xs uppercase inline-flex items-center gap-1">
+                              {isHome ? "vs" : "@"} {opp}
+                              {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
                             </span>
+                            <button
+                              onClick={openDetail}
+                              className="ml-auto font-mono text-xs font-bold hover:text-primary transition-colors cursor-pointer"
+                              title="Open game details"
+                            >
+                              {myScore}-{oppScore}
+                            </button>
                             <span className="text-[10px] text-muted-foreground font-mono">GW{g.gw}.{g.day}</span>
                             <div className="flex items-center gap-0.5">
                               {g.game_boxscore_url && (
@@ -257,6 +283,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
         playerId={selectedPlayerId}
         open={selectedPlayerId !== null}
         onOpenChange={(o) => { if (!o) setSelectedPlayerId(null); }}
+      />
+
+      <GameDetailModal
+        game={selectedGame}
+        open={selectedGame !== null}
+        onOpenChange={(o) => !o && setSelectedGame(null)}
       />
 
     </>

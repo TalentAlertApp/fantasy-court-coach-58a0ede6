@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Zap, Hand, Bot, Loader2, Trophy, Check, ChevronLeft } from "lucide-react";
+import { Wand2, MousePointerClick, Sparkles, Bot, Loader2, Check, ChevronLeft, ListPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { autoPickRoster, saveRoster } from "@/lib/api";
 import { useTeam } from "@/contexts/TeamContext";
@@ -156,9 +156,9 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
   };
 
   const options: { id: Strategy; icon: any; title: string; subtitle: string; recommended?: boolean }[] = [
-    { id: "auto", icon: Zap, title: "Auto-Draft", subtitle: "Balanced 10-player squad, optimised for the next 5 games.", recommended: true },
-    { id: "manual", icon: Hand, title: "Manual", subtitle: "Hand-pick all 10 players yourself — we enforce the rules." },
-    { id: "ai", icon: Bot, title: "AI Coach", subtitle: "Tell the coach your style and get a personalised roster." },
+    { id: "auto", icon: Wand2, title: "Auto-Draft", subtitle: "Balanced 10-player squad, optimised for the next 5 games.", recommended: true },
+    { id: "manual", icon: MousePointerClick, title: "Manual", subtitle: "Hand-pick all 10 players yourself — we enforce the rules." },
+    { id: "ai", icon: Sparkles, title: "AI Coach", subtitle: "Tell the coach your style and get a personalised roster." },
   ];
 
   const ctaLabel =
@@ -167,12 +167,25 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
     picks.length === 0 ? "Start Picking" : isManualValid ? "Save Roster · Go to Court" : `Pick ${10 - picks.length} More`;
 
   return (
-    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
+    <div className="relative flex flex-col h-screen px-6 py-8 items-center">
       {(drafting || success) && <DraftingOverlay success={success} />}
 
       <StepIndicator step={3} />
 
-      <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={drafting}
+          aria-label="Back to previous step"
+          className="absolute top-7 left-6 inline-flex items-center gap-1 h-9 px-3 rounded-full text-[11px] uppercase tracking-[0.25em] text-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </button>
+      )}
+
+      <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center flex-1 justify-center">
         <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
         <h2
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
@@ -220,58 +233,18 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           })}
         </div>
 
-        {strategy === "manual" && picks.length > 0 && (
+        {strategy === "manual" && picks.length > 0 && picks.length < 10 && (
           <div className="mt-5 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-3">
-            <div className="flex flex-wrap items-center justify-center gap-3 text-[11px] uppercase tracking-[0.2em] font-bold">
-              <span className="px-3 py-1 rounded-full border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black">
-                Picked {picks.length}/10
-              </span>
-              <span className={`px-3 py-1 rounded-full border bg-[hsl(var(--nba-yellow))]/10 text-black ${fcCount === 5 ? "border-[hsl(var(--nba-yellow))]" : "border-destructive/60"}`}>
-                {fcCount} FC / 5
-              </span>
-              <span className={`px-3 py-1 rounded-full border bg-[hsl(var(--nba-yellow))]/10 text-black ${bcCount === 5 ? "border-[hsl(var(--nba-yellow))]" : "border-destructive/60"}`}>
-                {bcCount} BC / 5
-              </span>
-              <span className={`px-3 py-1 rounded-full border bg-[hsl(var(--nba-yellow))]/10 text-black ${totalSalary <= SALARY_CAP ? "border-[hsl(var(--nba-yellow))]" : "border-destructive/60"}`}>
-                ${totalSalary.toFixed(1)}M / ${SALARY_CAP}M
-              </span>
-            </div>
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-              {picks.map((p) => (
-                <button
-                  key={p.core.id}
-                  onClick={() => removePick(p.core.id)}
-                  className="px-2 py-1 rounded-full text-[10px] font-semibold bg-foreground/10 text-foreground/80 hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                  title="Remove"
-                >
-                  {p.core.name} ✕
-                </button>
-              ))}
-            </div>
-            {picks.length < 10 && (
-              <button
-                onClick={() => setManualOpen(true)}
-                className="mt-2 text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
-              >
-                + Add more players
-              </button>
-            )}
+            <button
+              onClick={() => setManualOpen(true)}
+              className="text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
+            >
+              + Add more players ({picks.length}/10)
+            </button>
           </div>
         )}
 
         <div className="mt-8 flex items-center gap-3">
-          {onBack && (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onBack}
-              disabled={drafting}
-              className="h-14 px-5 rounded-full text-foreground/60 hover:text-foreground hover:bg-foreground/5"
-            >
-              <ChevronLeft className="mr-1 h-5 w-5" />
-              Back
-            </Button>
-          )}
           <Button
             onClick={handleGo}
             disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
@@ -282,8 +255,14 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
               <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving…</>
             ) : strategy === "manual" && isManualValid ? (
               <><Check className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            ) : strategy === "manual" && picks.length > 0 && picks.length < 10 ? (
+              <><ListPlus className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            ) : strategy === "ai" ? (
+              <><Sparkles className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            ) : strategy === "manual" ? (
+              <><MousePointerClick className="mr-2 h-5 w-5" /> {ctaLabel}</>
             ) : (
-              <><Trophy className="mr-2 h-5 w-5" /> {ctaLabel}</>
+              <><Wand2 className="mr-2 h-5 w-5" /> {ctaLabel}</>
             )}
           </Button>
         </div>
@@ -293,17 +272,17 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
             Need exactly 5 FC + 5 BC, ≤ ${SALARY_CAP}M, max 2 per NBA team
           </p>
         )}
+      </div>
 
-        <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3">
+      <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3 w-full">
           {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
             <span
               key={chip}
-              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
+              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black dark:text-[hsl(var(--nba-yellow))] font-bold"
             >
               {chip}
             </span>
           ))}
-        </div>
       </div>
 
       {strategy === "manual" && (
@@ -316,6 +295,9 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           onSelect={handlePick}
           title={`Pick player ${picks.length + 1} of 10`}
           bankRemaining={bankRemaining}
+          showCourtPreview
+          picks={picks}
+          onRemovePick={removePick}
         />
       )}
 
@@ -344,7 +326,7 @@ function DraftingOverlay({ success }: { success: boolean }) {
         {success ? (
           <Check className="relative h-20 w-20 text-accent" />
         ) : (
-          <Trophy className="relative h-20 w-20 text-accent" />
+          <Wand2 className="relative h-20 w-20 text-accent" />
         )}
       </div>
       <p className="mt-8 font-heading uppercase tracking-[0.4em] text-sm text-foreground/80">

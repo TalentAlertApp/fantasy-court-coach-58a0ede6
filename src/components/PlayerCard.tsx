@@ -185,12 +185,6 @@ export default function PlayerCard({
       )}
 
       {/* Team logo watermark behind player */}
-      {teamLogo && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-15">
-          <img src={teamLogo} alt="" className="w-28 h-28" />
-        </div>
-      )}
-
       {/* Photo — large, cinematic, NO circle border */}
       <div className="relative z-10">
         {core.photo ? (
@@ -202,6 +196,11 @@ export default function PlayerCard({
         ) : (
           <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-black/40 flex items-center justify-center text-2xl font-heading font-bold text-white/80">
             {core.name.substring(0, 2).toUpperCase()}
+          </div>
+        )}
+        {teamLogo && (
+          <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-card ring-2 ring-white shadow-lg flex items-center justify-center overflow-hidden">
+            <img src={teamLogo} alt={core.team} className="w-7 h-7 object-contain" />
           </div>
         )}
       </div>

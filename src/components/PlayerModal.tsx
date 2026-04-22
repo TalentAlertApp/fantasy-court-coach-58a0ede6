@@ -13,6 +13,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import PlayerCompareModal from "@/components/PlayerCompareModal";
 import { useWishlist } from "@/hooks/useWishlist";
+import nbaLogo from "@/assets/nba-logo.svg";
+import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 
 function BreakdownCard({ data }: { data: any }) {
   const [view, setView] = useState<"season" | "lastGame">("season");
@@ -90,6 +92,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [boxscoreGameId, setBoxscoreGameId] = useState<string | null>(null);
   const [boxscorePlayerId, setBoxscorePlayerId] = useState<number | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
@@ -126,6 +129,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
         <DialogContent className="max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden">
+          {/* NBA logo watermark — visible on every tab */}
+          <img
+            src={nbaLogo}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 m-auto w-1/3 max-w-[160px] opacity-[0.04] select-none"
+          />
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
           )}
@@ -213,12 +223,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* History Tab */}
-                <TabsContent value="history" className="flex-1 min-h-0">
-                  <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">This Season</p>
+                <TabsContent value="history" className="flex-1 min-h-0 flex flex-col">
+                  <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 shrink-0">This Season</p>
                   {data.history.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">No history available</p>
+                    <p className="text-sm text-muted-foreground py-4 text-center mt-auto">No history available</p>
                   ) : (
-                    <ScrollArea className="h-[40vh]">
+                    <ScrollArea className="flex-1 mt-auto h-[40vh]">
                       <div className="pr-4">
                       <Table>
                         <TableHeader>
@@ -245,7 +255,20 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             return (
                               <TableRow
                                 key={i}
-                                className="hover:bg-accent/50"
+                                className="hover:bg-accent/50 cursor-pointer"
+                                onClick={() => setSelectedGame({
+                                  game_id: h.game_id,
+                                  home_team: h.home_team,
+                                  away_team: h.away_team,
+                                  home_pts: h.home_pts,
+                                  away_pts: h.away_pts,
+                                  game_boxscore_url: h.game_boxscore_url ?? null,
+                                  game_charts_url: h.game_charts_url ?? null,
+                                  game_playbyplay_url: h.game_playbyplay_url ?? null,
+                                  game_recap_url: h.game_recap_url ?? null,
+                                  nba_game_url: h.nba_game_url ?? null,
+                                  played: true,
+                                })}
                               >
                                 <TableCell className="px-1.5 py-1 text-xs font-bold font-mono whitespace-nowrap">
                                   GW{h.gw}.{h.day}
@@ -483,6 +506,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
           }}
         />
       )}
+
+      <GameDetailModal
+        game={selectedGame}
+        open={selectedGame !== null}
+        onOpenChange={(o) => !o && setSelectedGame(null)}
+      />
     </>
   );
 }
