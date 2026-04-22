@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { resolveTeam } from "../_shared/resolve-team.ts";
+import { computeFpFromRules, fetchScoringRules } from "../_shared/scoring.ts";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -14,6 +15,9 @@ Deno.serve(async (req) => {
     );
 
     const { team_id } = await resolveTeam(req, sb);
+
+    // Load scoring rules from DB (single source of truth).
+    const scoringRules = await fetchScoringRules(sb);
 
     // 1. Get current roster player IDs
     const { data: rosterRows, error: rErr } = await sb
