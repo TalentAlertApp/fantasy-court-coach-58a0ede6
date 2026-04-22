@@ -129,6 +129,15 @@ async function callOpenAI(
   const schemaDesc = SCHEMA_DESCRIPTIONS[action];
   const devMessage = `ACTION: ${action}\n\nRESPONSE SCHEMA:\n${schemaDesc}\n\nINTERNAL DATA:\n${contextPayload}${extraInput ? `\n\nUSER INPUT:\n${extraInput}` : ""}${retryAttempt ? "\n\nPREVIOUS ATTEMPT FAILED VALIDATION. Return JSON only matching the schema above. No markdown. No extra keys. No wrapping in code blocks." : ""}`;
 
+  // Inject scoring formula from DB rules so this prompt is never hardcoded.
+  let scoringFormula = "FP = PTS×1 + REB×1 + AST×2 + STL×3 + BLK×3";
+  try {
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const rules = await fetchScoringRules(sb);
+    scoringFormula = formulaString(rules);
+  } catch (_) { /* fall back to default */ }
+  const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{SCORING_FORMULA}}", scoringFormula);
+
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -137,7 +146,7 @@ async function callOpenAI(
     },
     body: JSON.stringify({
       model: "gpt-4.1-mini",
-      instructions: SYSTEM_PROMPT,
+      instructions: systemPrompt,
       input: [{ role: "developer", content: devMessage }],
       text: { format: { type: "json_object" } },
     }),
