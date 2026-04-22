@@ -250,6 +250,7 @@ interface MatchupCardProps {
   divisionRankByTeam: Record<string, { rank: number; divLabel: string; ordinal: string }>;
   primaryByTeam: Record<string, string>;
   fmtTime: (iso: string | null) => string;
+  onOpenGame: (g: GameDetailGame) => void;
 }
 
 function fmtPct(pct: number) {
@@ -269,10 +270,12 @@ function ResultDots({
   details,
   align = "start",
   ownTri,
+  onOpenGame,
 }: {
   details: Last5Detail[];
   align?: "start" | "end";
   ownTri: string;
+  onOpenGame: (g: GameDetailGame) => void;
 }) {
   const padded: (Last5Detail | null)[] = [];
   // oldest → newest, left to right; pad placeholders on the LEFT so the
@@ -292,16 +295,35 @@ function ResultDots({
             />
           );
         }
+        const handleOpen = () => {
+          if (!d.game_id) return;
+          onOpenGame({
+            game_id: d.game_id,
+            home_team: d.homeTeam,
+            away_team: d.awayTeam,
+            home_pts: d.homePts,
+            away_pts: d.awayPts,
+            status: "FINAL",
+            game_boxscore_url: d.game_boxscore_url ?? null,
+            game_charts_url: d.game_charts_url ?? null,
+            game_playbyplay_url: d.game_playbyplay_url ?? null,
+            game_recap_url: d.game_recap_url ?? null,
+            nba_game_url: d.nba_game_url ?? null,
+            played: true,
+          });
+        };
         const dot = (
-          <span
-            className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[8px] font-mono font-black leading-none cursor-help transition-all duration-200 hover:scale-125 ${
+          <button
+            type="button"
+            onClick={handleOpen}
+            className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[8px] font-mono font-black leading-none cursor-pointer transition-all duration-200 hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 ${
               d.result === "W"
                 ? "bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-400/70 shadow-[0_0_8px_hsl(142_70%_50%/0.45)]"
                 : "bg-red-500/25 text-red-300 ring-1 ring-red-400/70 shadow-[0_0_8px_hsl(0_70%_55%/0.45)]"
             }`}
           >
             {d.result}
-          </span>
+          </button>
         );
         return (
           <Tooltip key={i}>
@@ -312,7 +334,7 @@ function ResultDots({
               sideOffset={6}
               collisionPadding={16}
               avoidCollisions
-              className="z-[60] whitespace-nowrap text-[10px] font-mono py-1.5 px-2.5 border-border/60 bg-popover/95 backdrop-blur-md shadow-xl"
+              className="z-[200] max-w-none whitespace-nowrap text-[10px] font-mono py-1.5 px-2.5 border-border/60 bg-popover/95 backdrop-blur-md shadow-xl"
             >
               <span className={`font-bold ${d.result === "W" ? "text-emerald-400" : "text-red-400"}`}>
                 {d.result} {d.ownPts}-{d.oppPts}
