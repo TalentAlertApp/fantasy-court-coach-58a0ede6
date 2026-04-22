@@ -14,12 +14,15 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday } from "@/lib/deadlines";
+import AICoachModal from "@/components/AICoachModal";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -39,6 +42,11 @@ export default function PlayersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortCol, setSortCol] = useState<string>("fp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [releasing, setReleasing] = useState<number[]>([]);
+  const [chipAllStar, setChipAllStar] = useState(false);
+  const [chipWildcard, setChipWildcard] = useState(false);
+  const [aiCoachOpen, setAiCoachOpen] = useState(false);
+  const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
 
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
