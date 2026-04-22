@@ -557,7 +557,7 @@ function CourtPreviewPanel({
       </div>
 
       {/* Schedule preview — collapsible */}
-      <SchedulePreview rosterTeams={rosterTeams} />
+      <SchedulePreviewCollapsible rosterTeams={rosterTeams} variant="dark" className="mt-2" />
     </div>
   );
 }
