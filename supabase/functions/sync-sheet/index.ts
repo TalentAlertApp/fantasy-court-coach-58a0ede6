@@ -90,11 +90,9 @@ function toInt(v: string | undefined | null): number {
   return Math.round(toNum(v));
 }
 
-// ── FP Formula: FP = PS + R + 2*A + 3*S + 3*B ──
-// Sheet columns: PTS(N)=FP, MP(O), PS(P)=points scored, R(Q)=reb, A(R)=ast, B(S)=blk, S(T)=stl
-function computeFP(ps: number, r: number, a: number, b: number, s: number): number {
-  return ps + r + (2 * a) + (3 * s) + (3 * b);
-}
+// FP is now computed via DB-driven scoring rules (scoring_systems + scoring_rules).
+// See supabase/functions/_shared/scoring.ts for the canonical helper.
+import { computeFpFromRules, fetchScoringRules, type ScoringRule } from "../_shared/scoring.ts";
 
 // ── SALARY SYNC ──
 // deno-lint-ignore no-explicit-any
