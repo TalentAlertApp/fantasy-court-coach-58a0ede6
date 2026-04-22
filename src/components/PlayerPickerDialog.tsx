@@ -5,8 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
+import courtBg from "@/assets/court-bg.png";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -21,11 +22,16 @@ interface PlayerPickerDialogProps {
   bankRemaining?: number;
   swapPlayerSalary?: number;
   swapPlayerPosition?: string | null;
+  /** When true, renders a basketball court preview on the right with the current picks */
+  showCourtPreview?: boolean;
+  picks?: PlayerListItem[];
+  onRemovePick?: (id: number) => void;
 }
 
 export default function PlayerPickerDialog({
   open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
   bankRemaining, swapPlayerSalary, swapPlayerPosition,
+  showCourtPreview = false, picks = [], onRemovePick,
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
@@ -61,12 +67,16 @@ export default function PlayerPickerDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); } }}>
-      <DialogContent className="max-w-md h-[min(80vh,42rem)] flex flex-col rounded-lg overflow-hidden">
-        <DialogHeader className="pr-10">
+      <DialogContent
+        className={`${showCourtPreview ? "max-w-4xl" : "max-w-md"} h-[min(80vh,42rem)] rounded-lg overflow-hidden p-0`}
+      >
+        <div className={`flex h-full ${showCourtPreview ? "" : "flex-col"}`}>
+        <div className={`flex flex-col min-h-0 ${showCourtPreview ? "w-[55%] border-r" : "w-full"} p-4`}>
+        <DialogHeader className="pr-10 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <DialogTitle className="font-heading">{title}</DialogTitle>
-              {budgetAvailable != null && (
+              {budgetAvailable != null && !showCourtPreview && (
                 <Badge variant="outline" className="text-[10px] font-mono rounded-lg">
                   Budget: ${budgetAvailable.toFixed(1)}M
                 </Badge>
@@ -86,7 +96,7 @@ export default function PlayerPickerDialog({
             )}
           </div>
         </DialogHeader>
-        <div className="relative">
+        <div className="relative shrink-0 mt-2">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search player or team..."
@@ -102,6 +112,7 @@ export default function PlayerPickerDialog({
               const teamFull = (teamCounts[p.core.team] || 0) >= 2;
               const overBudget = budgetAvailable != null && p.core.salary > budgetAvailable;
               const isDisabled = teamFull || overBudget;
+              const seasonFp = (p.season as any)?.fp ?? 0;
               return (
                 <button
                   key={p.core.id}
@@ -141,7 +152,7 @@ export default function PlayerPickerDialog({
                   </div>
                   <div className="text-right relative z-10">
                     <p className="text-sm font-mono font-semibold">${p.core.salary}</p>
-                    <p className="text-[10px] text-muted-foreground">FP5: {p.last5.fp5.toFixed(1)}</p>
+                    <p className="text-[10px] text-muted-foreground">FP: {Number(seasonFp).toFixed(1)}</p>
                   </div>
                 </button>
               );
@@ -151,7 +162,110 @@ export default function PlayerPickerDialog({
             )}
           </div>
         </div>
+        </div>
+
+        {showCourtPreview && (
+          <CourtPreviewPanel
+            picks={picks}
+            bankRemaining={bankRemaining ?? 0}
+            onRemove={(id) => onRemovePick?.(id)}
+          />
+        )}
+        </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CourtPreviewPanel({
+  picks,
+  bankRemaining,
+  onRemove,
+}: {
+  picks: PlayerListItem[];
+  bankRemaining: number;
+  onRemove: (id: number) => void;
+}) {
+  const fcs = picks.filter((p) => p.core.fc_bc === "FC").slice(0, 5);
+  const bcs = picks.filter((p) => p.core.fc_bc === "BC").slice(0, 5);
+  const fcSlots: (PlayerListItem | null)[] = Array.from({ length: 5 }, (_, i) => fcs[i] ?? null);
+  const bcSlots: (PlayerListItem | null)[] = Array.from({ length: 5 }, (_, i) => bcs[i] ?? null);
+  const budgetClass =
+    bankRemaining > 0 ? "text-emerald-500" : bankRemaining < 0 ? "text-destructive" : "text-foreground";
+
+  const Slot = ({ p }: { p: PlayerListItem | null }) => {
+    if (!p) {
+      return (
+        <div className="aspect-square w-full rounded-full bg-black/20 border border-dashed border-white/30 flex items-center justify-center">
+          <span className="text-[8px] uppercase tracking-wider text-white/40">Empty</span>
+        </div>
+      );
+    }
+    return (
+      <div className="relative group">
+        {p.core.photo ? (
+          <img
+            src={p.core.photo}
+            alt={p.core.name}
+            className="aspect-square w-full rounded-full object-cover bg-black/30 ring-1 ring-white/40 shadow-md"
+          />
+        ) : (
+          <div className="aspect-square w-full rounded-full bg-black/40 flex items-center justify-center text-[10px] font-bold text-white/80">
+            {p.core.name.substring(0, 2).toUpperCase()}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onRemove(p.core.id)}
+          aria-label={`Remove ${p.core.name}`}
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow opacity-90 hover:opacity-100 hover:scale-110 transition-all"
+        >
+          <X className="h-3 w-3" />
+        </button>
+        <p className="mt-0.5 text-[8px] text-center text-white font-bold truncate drop-shadow">
+          {p.core.name.split(/\s+/).slice(-1)[0].toUpperCase()}
+        </p>
+        <p className="text-[8px] text-center text-white/80 font-mono">${p.core.salary}</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex-1 min-w-0 flex flex-col p-3 bg-muted/40">
+      <div className="grid grid-cols-2 gap-2 text-[10px] uppercase tracking-wider font-heading mb-2 shrink-0">
+        <span className="px-2 py-1 rounded-md bg-background/80 border text-center">
+          Picked <span className="font-mono font-bold">{picks.length}/10</span>
+        </span>
+        <span className={`px-2 py-1 rounded-md bg-background/80 border text-center font-bold ${budgetClass}`}>
+          ${bankRemaining.toFixed(1)}M left
+        </span>
+        <span className="px-2 py-1 rounded-md bg-destructive/15 border border-destructive/30 text-center text-destructive">
+          FC <span className="font-mono font-bold">{fcs.length}/5</span>
+        </span>
+        <span className="px-2 py-1 rounded-md bg-primary/15 border border-primary/30 text-center text-primary">
+          BC <span className="font-mono font-bold">{bcs.length}/5</span>
+        </span>
+      </div>
+
+      <div
+        className="flex-1 rounded-lg overflow-hidden flex flex-col justify-around p-2 gap-2"
+        style={{
+          backgroundImage: `url(${courtBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="grid grid-cols-5 gap-1.5">
+          {fcSlots.map((p, i) => (
+            <Slot key={`fc-${i}`} p={p} />
+          ))}
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {bcSlots.map((p, i) => (
+            <Slot key={`bc-${i}`} p={p} />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
