@@ -575,7 +575,7 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
   return (
     <li
       className={cn(
-        "group relative flex items-center gap-2 py-2.5 px-1 text-xs rounded-sm",
+        "group relative flex items-center gap-2 py-2.5 px-1 text-xs rounded-sm overflow-hidden",
         clickable && "cursor-pointer hover:bg-muted/40 transition-colors",
       )}
       onClick={handleClick}
@@ -588,34 +588,39 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
         }
       }}
     >
+      {/* Player photo as centered watermark */}
+      {rec.photo && (
+        <img
+          src={rec.photo}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-12 w-12 object-cover rounded-full opacity-[0.06] group-hover:opacity-[0.18] group-hover:scale-110 transition-all duration-300"
+        />
+      )}
+
       <span
         className={cn(
-          "inline-flex items-center justify-center px-2 h-5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0",
+          "relative z-10 inline-flex items-center justify-center px-2 h-5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0",
           statusClasses(rec.status),
         )}
       >
         {rec.status}
       </span>
 
-      {/* Player photo */}
-      {rec.photo ? (
+      {/* Team badge — moved next to status */}
+      {team?.logo ? (
         <img
-          src={rec.photo}
-          alt={rec.player_name}
-          className="h-7 w-7 rounded-full object-cover border border-border/60 shrink-0 bg-muted"
+          src={team.logo}
+          alt={team.tricode}
+          className="relative z-10 h-7 w-7 object-contain shrink-0 transition-transform duration-200 group-hover:scale-110"
         />
       ) : (
-        <span
-          className="h-7 w-7 rounded-full border border-border/60 shrink-0 bg-muted text-muted-foreground flex items-center justify-center text-[9px] font-bold opacity-70"
-          aria-hidden="true"
-        >
-          {initials || "—"}
-        </span>
+        <span className="relative z-10 h-7 w-7 shrink-0" aria-hidden="true" />
       )}
 
       <span
         className={cn(
-          "font-heading font-bold whitespace-nowrap shrink-0",
+          "relative z-10 font-heading font-bold whitespace-nowrap shrink-0",
           !rec.on_roster && "text-muted-foreground italic",
         )}
       >
@@ -626,34 +631,24 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
       </span>
 
       {rec.on_roster && rec.pos && (
-        <Badge variant="outline" className="h-4 px-1 text-[9px] rounded-md shrink-0 bg-background/70">
+        <Badge variant="outline" className="relative z-10 h-4 px-1 text-[9px] rounded-md shrink-0 bg-background/70">
           {rec.pos}
         </Badge>
       )}
 
-      <span className="text-muted-foreground shrink-0">·</span>
-      <span className="text-foreground/80 truncate flex-1 min-w-0" title={rec.injury_type}>
+      <span className="relative z-10 text-muted-foreground shrink-0">·</span>
+      <span className="relative z-10 text-foreground/80 truncate flex-1 min-w-0 text-right" title={rec.injury_type}>
         {injury}
       </span>
 
       <span
         className={cn(
-          "shrink-0 font-mono text-[11px]",
+          "relative z-10 shrink-0 font-mono text-[11px]",
           dateColorClass(ret),
         )}
       >
         {ret.label}
       </span>
-
-      {team?.logo ? (
-        <img
-          src={team.logo}
-          alt={team.tricode}
-          className="h-7 w-7 object-contain shrink-0 transition-transform duration-200 group-hover:scale-110"
-        />
-      ) : (
-        <span className="h-7 w-7 shrink-0" aria-hidden="true" />
-      )}
 
       {rec.notes && rec.notes.trim().length > 0 && (
         <Tooltip>
@@ -661,7 +656,7 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
             <button
               type="button"
               onClick={(e) => e.stopPropagation()}
-              className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              className="relative z-10 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Show notes"
             >
               <Info className="h-3.5 w-3.5" />
