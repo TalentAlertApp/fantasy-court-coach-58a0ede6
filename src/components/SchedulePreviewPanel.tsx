@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
+import type { Last5Detail } from "@/hooks/useStandingsContext";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 
 interface BodyProps {
@@ -63,7 +65,7 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
 
   const rosterTeamSet = useMemo(() => new Set(rosterTeams), [rosterTeams]);
 
-  const { standingsByTeam, last5ByTeam, divisionRankByTeam } = useStandingsContext();
+  const { standingsByTeam, last5ByTeam, last5DetailByTeam, divisionRankByTeam } = useStandingsContext();
   const primaryByTeam = useMemo(() => {
     const m: Record<string, string> = {};
     for (const t of NBA_TEAMS) m[t.tricode] = t.primaryColor;
@@ -148,138 +150,24 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
           No games
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto">
-          {dayGames.map((g) => {
-            const homeLogo = getTeamLogo(g.home_team);
-            const awayLogo = getTeamLogo(g.away_team);
-            const homeInvolved = rosterTeamSet.has(g.home_team);
-            const awayInvolved = rosterTeamSet.has(g.away_team);
-            const involved = homeInvolved || awayInvolved;
-            const homeStanding = standingsByTeam[g.home_team];
-            const awayStanding = standingsByTeam[g.away_team];
-            const homeLast5 = last5ByTeam[g.home_team] ?? [];
-            const awayLast5 = last5ByTeam[g.away_team] ?? [];
-            const homeRank = divisionRankByTeam[g.home_team];
-            const awayRank = divisionRankByTeam[g.away_team];
-
-            const fmtPct = (pct: number) =>
-              pct > 0 ? `.${String(Math.round(pct * 1000)).padStart(3, "0")}` : ".000";
-
-            const renderLast5 = (results: ("W" | "L")[], color?: string) => (
-              <div className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = results.length - 5 + i;
-                  const r = idx >= 0 ? results[idx] : null;
-                  return (
-                    <span
-                      key={i}
-                      className={`h-2 w-2 rounded-sm ${
-                        r === "W"
-                          ? "bg-emerald-500/80"
-                          : r === "L"
-                          ? "bg-red-500/80"
-                          : "bg-muted-foreground/20"
-                      }`}
-                      style={r ? { boxShadow: color ? `0 0 0 1px ${color}55` : undefined } : undefined}
-                    />
-                  );
-                })}
-              </div>
-            );
-
-            return (
-              <div
+        <TooltipProvider delayDuration={120}>
+          <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pr-1">
+            {dayGames.map((g) => (
+              <MatchupCard
                 key={g.game_id}
-                className={`flex flex-col gap-1.5 px-2.5 py-2 rounded-md ${rowBg} border-l-2 ${
-                  involved ? "border-l-[hsl(var(--nba-yellow))]" : "border-l-transparent"
-                }`}
-              >
-                {/* Top line — matchup */}
-                <div className="flex items-center justify-between gap-2 min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {awayLogo && (
-                      <img src={awayLogo} alt={g.away_team} className="h-4 w-4 object-contain" />
-                    )}
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        awayInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground/90"
-                      }`}
-                    >
-                      {g.away_team}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground">@</span>
-                    {homeLogo && (
-                      <img src={homeLogo} alt={g.home_team} className="h-4 w-4 object-contain" />
-                    )}
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        homeInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground/90"
-                      }`}
-                    >
-                      {g.home_team}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
-                    {fmtTime(g.tipoff_utc)}
-                  </span>
-                </div>
-
-                {/* Bottom line — split team stats */}
-                <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 text-[9px]">
-                  {/* Away cluster (left) */}
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    {renderLast5(awayLast5, primaryByTeam[g.away_team])}
-                    {awayStanding && awayStanding.gp > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        {awayStanding.w}-{awayStanding.l} · {fmtPct(awayStanding.pct)}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">—</span>
-                    )}
-                    {awayStanding && (awayStanding.awayW + awayStanding.awayL) > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        Away {awayStanding.awayW}-{awayStanding.awayL}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">Away —</span>
-                    )}
-                    {awayRank && (
-                      <span className="uppercase tracking-wider text-foreground/60">
-                        {awayRank.ordinal} {awayRank.divLabel}
-                      </span>
-                    )}
-                  </div>
-
-                  <span className="text-[9px] text-muted-foreground/50 self-center">@</span>
-
-                  {/* Home cluster (right-aligned) */}
-                  <div className="flex flex-col gap-0.5 items-end min-w-0">
-                    {renderLast5(homeLast5, primaryByTeam[g.home_team])}
-                    {homeStanding && homeStanding.gp > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        {homeStanding.w}-{homeStanding.l} · {fmtPct(homeStanding.pct)}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">—</span>
-                    )}
-                    {homeStanding && (homeStanding.homeW + homeStanding.homeL) > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        Home {homeStanding.homeW}-{homeStanding.homeL}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">Home —</span>
-                    )}
-                    {homeRank && (
-                      <span className="uppercase tracking-wider text-foreground/60">
-                        {homeRank.ordinal} {homeRank.divLabel}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                game={g}
+                rowBg={rowBg}
+                rosterTeamSet={rosterTeamSet}
+                standingsByTeam={standingsByTeam}
+                last5ByTeam={last5ByTeam}
+                last5DetailByTeam={last5DetailByTeam}
+                divisionRankByTeam={divisionRankByTeam}
+                primaryByTeam={primaryByTeam}
+                fmtTime={fmtTime}
+              />
+            ))}
+          </div>
+        </TooltipProvider>
       )}
     </div>
   );
@@ -329,5 +217,232 @@ export function SchedulePreviewCollapsible({
         <SchedulePreviewBody rosterTeams={rosterTeams} defaultGw={defaultGw} variant={variant} />
       </CollapsibleContent>
     </Collapsible>
+  );
+}
+
+/* -----------------------------------------------------------------------
+ * MatchupCard — premium 2-row card with full-height team-badge watermarks
+ * --------------------------------------------------------------------- */
+
+interface GameLite {
+  game_id: string;
+  home_team: string;
+  away_team: string;
+  tipoff_utc: string | null;
+}
+
+interface MatchupCardProps {
+  game: GameLite;
+  rowBg: string;
+  rosterTeamSet: Set<string>;
+  standingsByTeam: Record<string, any>;
+  last5ByTeam: Record<string, ("W" | "L")[]>;
+  last5DetailByTeam: Record<string, Last5Detail[]>;
+  divisionRankByTeam: Record<string, { rank: number; divLabel: string; ordinal: string }>;
+  primaryByTeam: Record<string, string>;
+  fmtTime: (iso: string | null) => string;
+}
+
+function fmtPct(pct: number) {
+  return pct > 0 ? `.${String(Math.round(pct * 1000)).padStart(3, "0")}` : ".000";
+}
+
+function fmtGameDate(iso: string | null): string {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+function ResultDots({
+  details,
+  align = "start",
+  ownTri,
+}: {
+  details: Last5Detail[];
+  align?: "start" | "end";
+  ownTri: string;
+}) {
+  const padded: (Last5Detail | null)[] = [];
+  // oldest → newest, left to right; pad placeholders on the LEFT so the
+  // most-recent result always sits flush at the same edge.
+  const empties = Math.max(0, 5 - details.length);
+  for (let i = 0; i < empties; i++) padded.push(null);
+  for (const d of details) padded.push(d);
+
+  return (
+    <div className={`flex items-center gap-0.5 ${align === "end" ? "justify-end" : "justify-start"}`}>
+      {padded.map((d, i) => {
+        if (!d) {
+          return <span key={i} className="h-2 w-2 rounded-full bg-muted-foreground/15" />;
+        }
+        const dot = (
+          <span
+            className={`h-2 w-2 rounded-full ${
+              d.result === "W" ? "bg-emerald-500/85" : "bg-red-500/85"
+            } hover:scale-150 transition-transform cursor-help`}
+          />
+        );
+        return (
+          <Tooltip key={i}>
+            <TooltipTrigger asChild>{dot}</TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px] font-mono py-1 px-2">
+              <span className="font-bold">
+                {d.result} {d.ownPts}-{d.oppPts}
+              </span>{" "}
+              <span className="text-muted-foreground">vs {d.opp}</span>
+              <span className="ml-1 text-muted-foreground/70">· {fmtGameDate(d.date)}</span>
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
+
+function MatchupCard({
+  game: g,
+  rowBg,
+  rosterTeamSet,
+  standingsByTeam,
+  last5DetailByTeam,
+  divisionRankByTeam,
+  primaryByTeam,
+  fmtTime,
+}: MatchupCardProps) {
+  const homeLogo = getTeamLogo(g.home_team);
+  const awayLogo = getTeamLogo(g.away_team);
+  const homeInvolved = rosterTeamSet.has(g.home_team);
+  const awayInvolved = rosterTeamSet.has(g.away_team);
+  const involved = homeInvolved || awayInvolved;
+
+  const homeStanding = standingsByTeam[g.home_team];
+  const awayStanding = standingsByTeam[g.away_team];
+  const homeDetail = last5DetailByTeam[g.home_team] ?? [];
+  const awayDetail = last5DetailByTeam[g.away_team] ?? [];
+  const homeRank = divisionRankByTeam[g.home_team];
+  const awayRank = divisionRankByTeam[g.away_team];
+  const awayPrimary = primaryByTeam[g.away_team];
+  const homePrimary = primaryByTeam[g.home_team];
+
+  return (
+    <div
+      className={`group relative overflow-hidden rounded-md ${rowBg} border-l-2 ${
+        involved ? "border-l-[hsl(var(--nba-yellow))]" : "border-l-transparent"
+      }`}
+    >
+      {/* Full-height team badges — left = away, right = home. */}
+      <div className="absolute inset-y-0 left-0 w-[36%] pointer-events-none flex items-center justify-start overflow-hidden">
+        {awayLogo && (
+          <img
+            src={awayLogo}
+            alt=""
+            aria-hidden
+            className="h-[150%] w-auto -translate-x-[18%] opacity-[0.10] transition-all duration-500 ease-out group-hover:opacity-[0.32] group-hover:scale-110 group-hover:-translate-x-[10%]"
+            style={{ filter: awayPrimary ? `drop-shadow(0 0 12px ${awayPrimary}55)` : undefined }}
+          />
+        )}
+      </div>
+      <div className="absolute inset-y-0 right-0 w-[36%] pointer-events-none flex items-center justify-end overflow-hidden">
+        {homeLogo && (
+          <img
+            src={homeLogo}
+            alt=""
+            aria-hidden
+            className="h-[150%] w-auto translate-x-[18%] opacity-[0.10] transition-all duration-500 ease-out group-hover:opacity-[0.32] group-hover:scale-110 group-hover:translate-x-[10%]"
+            style={{ filter: homePrimary ? `drop-shadow(0 0 12px ${homePrimary}55)` : undefined }}
+          />
+        )}
+      </div>
+
+      {/* Content — 2 rows, mirrored about center */}
+      <div className="relative z-10 px-3 py-2 flex flex-col gap-1">
+        {/* Row 1 — matchup header */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          {/* Away cluster */}
+          <div className="flex items-center gap-2 min-w-0 justify-start">
+            <span
+              className={`text-[12px] font-mono font-black tracking-wide ${
+                awayInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground"
+              }`}
+            >
+              {g.away_team}
+            </span>
+            {awayRank && (
+              <span className="text-[8.5px] uppercase font-heading tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 whitespace-nowrap">
+                {awayRank.ordinal} {awayRank.divLabel}
+              </span>
+            )}
+          </div>
+
+          {/* Center anchor — @ + tip-off time */}
+          <div className="flex flex-col items-center leading-none gap-0.5 px-1">
+            <span className="text-[9px] text-muted-foreground/70">@</span>
+            <span className="text-[10px] font-mono text-muted-foreground tabular-nums whitespace-nowrap">
+              {fmtTime(g.tipoff_utc)}
+            </span>
+          </div>
+
+          {/* Home cluster (mirrored) */}
+          <div className="flex items-center gap-2 min-w-0 justify-end">
+            {homeRank && (
+              <span className="text-[8.5px] uppercase font-heading tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 whitespace-nowrap">
+                {homeRank.ordinal} {homeRank.divLabel}
+              </span>
+            )}
+            <span
+              className={`text-[12px] font-mono font-black tracking-wide ${
+                homeInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground"
+              }`}
+            >
+              {g.home_team}
+            </span>
+          </div>
+        </div>
+
+        {/* Row 2 — stats line */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[9.5px] font-mono tabular-nums text-muted-foreground">
+          {/* Away stats */}
+          <div className="flex items-center gap-1.5 justify-start min-w-0">
+            <ResultDots details={awayDetail} align="start" ownTri={g.away_team} />
+            {awayStanding && awayStanding.gp > 0 ? (
+              <span className="whitespace-nowrap">
+                {awayStanding.w}-{awayStanding.l}
+                <span className="text-muted-foreground/60">·{fmtPct(awayStanding.pct)}</span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground/40">—</span>
+            )}
+            {awayStanding && (awayStanding.awayW + awayStanding.awayL) > 0 && (
+              <span className="whitespace-nowrap text-muted-foreground/70">
+                A {awayStanding.awayW}-{awayStanding.awayL}
+              </span>
+            )}
+          </div>
+
+          <span className="text-[9px] text-muted-foreground/40">·</span>
+
+          {/* Home stats (mirrored) */}
+          <div className="flex items-center gap-1.5 justify-end min-w-0">
+            {homeStanding && (homeStanding.homeW + homeStanding.homeL) > 0 && (
+              <span className="whitespace-nowrap text-muted-foreground/70">
+                H {homeStanding.homeW}-{homeStanding.homeL}
+              </span>
+            )}
+            {homeStanding && homeStanding.gp > 0 ? (
+              <span className="whitespace-nowrap">
+                {homeStanding.w}-{homeStanding.l}
+                <span className="text-muted-foreground/60">·{fmtPct(homeStanding.pct)}</span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground/40">—</span>
+            )}
+            <ResultDots details={homeDetail} align="end" ownTri={g.home_team} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
