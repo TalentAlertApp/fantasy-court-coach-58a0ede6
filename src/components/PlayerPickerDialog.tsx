@@ -616,26 +616,26 @@ function CourtSlot({
             />
           )}
 
-          {player.core.photo ? (
-            <img
-              src={player.core.photo}
-              alt={player.core.name}
-              className="aspect-square w-full rounded-full object-cover bg-black/30 shadow-md transition-transform duration-200 group-hover:scale-105"
-            />
-          ) : (
-            <div className="aspect-square w-full rounded-full bg-black/40 flex items-center justify-center text-[12px] font-heading font-bold text-white/80">
-              {player.core.name.substring(0, 2).toUpperCase()}
-            </div>
-          )}
-          {/* Team badge — appears on hover; helps user track per-team picks */}
-          {teamLogo && (
-            <div
-              className="absolute -bottom-1 -left-1 h-7 w-7 rounded-full bg-background/95 border border-white/20 shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-200 z-20 pointer-events-none"
-              title={player.core.team}
-            >
-              <img src={teamLogo} alt={player.core.team} className="h-5 w-5 object-contain" />
-            </div>
-          )}
+          <div className="relative aspect-square w-full" title={player.core.team}>
+            {player.core.photo ? (
+              <img
+                src={player.core.photo}
+                alt={player.core.name}
+                className="absolute inset-0 aspect-square w-full rounded-full object-cover bg-black/30 shadow-md transition-opacity duration-200 group-hover:opacity-0"
+              />
+            ) : (
+              <div className="absolute inset-0 aspect-square w-full rounded-full bg-black/40 flex items-center justify-center text-[12px] font-heading font-bold text-white/80 transition-opacity duration-200 group-hover:opacity-0">
+                {player.core.name.substring(0, 2).toUpperCase()}
+              </div>
+            )}
+            {teamLogo && (
+              <img
+                src={teamLogo}
+                alt={player.core.team}
+                className="absolute inset-0 aspect-square w-full object-contain opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
+              />
+            )}
+          </div>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRemove(player.core.id); }}
