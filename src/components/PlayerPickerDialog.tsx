@@ -60,7 +60,9 @@ export default function PlayerPickerDialog({
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
+  const [teamFilter, setTeamFilter] = useState<string>("ALL");
   const [lastPickId, setLastPickId] = useState<number | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<PlayerListItem | null>(null);
   const [muted, setMuted] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(SFX_KEY) === "0";
