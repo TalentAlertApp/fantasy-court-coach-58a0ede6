@@ -375,6 +375,7 @@ function CourtPreviewPanel({
   picks,
   bankRemaining,
   onRemove,
+  rosterTeams,
   lastPickId,
   muted,
   onToggleMute,
@@ -384,6 +385,7 @@ function CourtPreviewPanel({
   picks: PlayerListItem[];
   bankRemaining: number;
   onRemove: (id: number) => void;
+  rosterTeams: string[];
   lastPickId: number | null;
   muted: boolean;
   onToggleMute: () => void;
