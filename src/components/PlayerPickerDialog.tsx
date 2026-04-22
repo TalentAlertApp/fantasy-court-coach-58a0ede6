@@ -211,11 +211,29 @@ export default function PlayerPickerDialog({
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="ALL" className="text-xs font-heading uppercase">All Teams</SelectItem>
-                {teamOptions.map((t) => (
-                  <SelectItem key={t} value={t} className="text-xs font-heading uppercase">
-                    {t}{(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
-                  </SelectItem>
-                ))}
+                {teamOptions.map((t) => {
+                  const logo = getTeamLogo(t);
+                  return (
+                    <SelectItem
+                      key={t}
+                      value={t}
+                      className="text-xs font-heading uppercase relative overflow-hidden group pr-2"
+                    >
+                      {logo && (
+                        <img
+                          src={logo}
+                          alt=""
+                          aria-hidden="true"
+                          className="absolute -left-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain pointer-events-none opacity-20 transition-all duration-300 group-hover:opacity-70 group-hover:scale-110 group-data-[state=checked]:opacity-80 group-data-[highlighted]:opacity-70 group-data-[highlighted]:scale-110 z-0"
+                        />
+                      )}
+                      <span className="relative z-10 ml-7">
+                        {t}
+                        {(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
