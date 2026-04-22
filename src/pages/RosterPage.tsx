@@ -529,6 +529,13 @@ export default function RosterPage() {
             </div>
           </div>
 
+          {/* Schedule preview — full-width, expands downwards */}
+          <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
+            <CollapsibleContent className="mb-3 w-full max-h-72 overflow-hidden">
+              <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* ── Layout ── */}
           <div className="min-w-0 flex-1">
             {viewMode === "court" ? (
