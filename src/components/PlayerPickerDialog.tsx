@@ -557,6 +557,9 @@ function CourtPreviewPanel({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Schedule preview — collapsible */}
+      <SchedulePreview rosterTeams={rosterTeams} />
     </div>
   );
 }
