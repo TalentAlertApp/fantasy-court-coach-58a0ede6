@@ -411,17 +411,33 @@ export default function PlayersPage() {
                     const teamLogo = getTeamLogo(p.core.team);
                     const isOnRoster = rosterPlayerIds.has(p.core.id);
                     const teamAtMax = (teamCounts[p.core.team] ?? 0) >= 2;
-                    const canAdd = !isOnRoster && !teamAtMax && rosterPlayerIds.size < 10;
+                    const isReleasing = releasing.includes(p.core.id);
+                    const effectiveRosterSize = rosterPlayerIds.size - releasing.length;
+                    const overBudget = p.core.salary > availableBudget;
+                    const canAdd = !isOnRoster && !teamAtMax && effectiveRosterSize < 10 && !overBudget;
+                    const addTitle = teamAtMax
+                      ? "Max 2 per team"
+                      : effectiveRosterSize >= 10
+                        ? "Roster full"
+                        : overBudget
+                          ? `Over budget ($${availableBudget.toFixed(1)}M left)`
+                          : "Add to roster";
 
                     return (
                       <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
                         <td className="px-1 py-1">
                           {isOnRoster ? (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={(e) => handleRemovePlayer(p.core.id, e)} title="Remove from roster">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-6 w-6 ${isReleasing ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"}`}
+                              onClick={(e) => { e.stopPropagation(); toggleRelease(p.core.id); }}
+                              title={isReleasing ? "Cancel release" : "Mark for release"}
+                            >
                               <Minus className="h-3.5 w-3.5" />
                             </Button>
                           ) : (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={teamAtMax ? "Max 2 per team" : "Add to roster"}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={addTitle}>
                               <Plus className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -485,6 +501,7 @@ export default function PlayersPage() {
       )}
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
+      <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
     </div>
   );
 }
