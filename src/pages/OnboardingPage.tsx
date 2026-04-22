@@ -159,7 +159,11 @@ export default function OnboardingPage() {
         />
       )}
       {step === "draft" && (
-        <DraftStep teamName={createdTeamName} onFinish={handleFinish} />
+        <DraftStep
+          teamName={createdTeamName}
+          onFinish={handleFinish}
+          onBack={() => setStep("name")}
+        />
       )}
     </div>
   );
