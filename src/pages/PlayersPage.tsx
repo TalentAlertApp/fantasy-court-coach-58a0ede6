@@ -49,6 +49,7 @@ export default function PlayersPage() {
   const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
@@ -316,6 +317,18 @@ export default function PlayersPage() {
               </Command>
             </PopoverContent>
           </Popover>
+
+          {/* Schedule toggle — sits right after Trade */}
+          <Button
+            variant={scheduleOpen ? "default" : "outline"}
+            size="sm"
+            onClick={() => setScheduleOpen((v) => !v)}
+            className={`rounded-xl h-9 font-heading text-xs uppercase gap-1.5 ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+            title="Toggle schedule preview"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Schedule
+          </Button>
 
           {/* Selected pills */}
           {Array.from(releasingMap.values()).map((p) => (
