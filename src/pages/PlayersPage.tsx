@@ -24,7 +24,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday } from "@/lib/deadlines";
 import AICoachModal from "@/components/AICoachModal";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
