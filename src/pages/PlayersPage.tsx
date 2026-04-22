@@ -272,8 +272,8 @@ export default function PlayersPage() {
           <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
         </div>
 
-        {/* Trade toolbar */}
-        <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card/40 px-3 py-2">
+        {/* Trade toolbar — relative so the schedule preview can overlay below it */}
+        <div className="relative flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card/40 px-3 py-2">
           {/* Trade dropdown */}
           <Popover open={tradePopoverOpen} onOpenChange={setTradePopoverOpen}>
             <PopoverTrigger asChild>
@@ -392,17 +392,29 @@ export default function PlayersPage() {
           >
             <Bot className="h-3.5 w-3.5" />AI Coach
           </Button>
-        </div>
 
-        {/* Schedule preview — full-width, expands downwards below the trade toolbar */}
-        <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
-          <CollapsibleContent className="w-full max-h-72 overflow-hidden">
-            <SchedulePreviewBody
-              rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
-              variant="panel"
-            />
-          </CollapsibleContent>
-        </Collapsible>
+          {/* Schedule preview — absolute overlay so the players table never shifts */}
+          {scheduleOpen && (
+            <div
+              className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down"
+            >
+              <button
+                type="button"
+                onClick={() => setScheduleOpen(false)}
+                className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
+                aria-label="Close schedule"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <div className="overflow-y-auto max-h-[440px] pr-1">
+                <SchedulePreviewBody
+                  rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
+                  variant="panel"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {isLoading ? (
