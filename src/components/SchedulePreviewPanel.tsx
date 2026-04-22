@@ -22,6 +22,7 @@ interface BodyProps {
 export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" }: BodyProps) {
   const initial = useMemo(() => getCurrentGameday(), []);
   const [gw, setGw] = useState<number>(defaultGw ?? initial.gw);
+  const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
 
   const { data: games = [], isLoading } = useScheduleWeekGames(gw);
 
@@ -166,11 +167,17 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
                 divisionRankByTeam={divisionRankByTeam}
                 primaryByTeam={primaryByTeam}
                 fmtTime={fmtTime}
+                onOpenGame={setSelectedGame}
               />
             ))}
           </div>
         </TooltipProvider>
       )}
+      <GameDetailModal
+        game={selectedGame}
+        open={selectedGame !== null}
+        onOpenChange={(open) => { if (!open) setSelectedGame(null); }}
+      />
     </div>
   );
 }
