@@ -587,7 +587,7 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
           src={rec.photo}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-12 w-12 object-cover rounded-full opacity-[0.06] group-hover:opacity-[0.18] group-hover:scale-110 transition-all duration-300"
+          className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full opacity-[0.22] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.6] group-hover:scale-110 group-hover:saturate-200 group-hover:brightness-125 group-hover:ring-2 group-hover:ring-accent/40 transition-all duration-300"
         />
       )}
 

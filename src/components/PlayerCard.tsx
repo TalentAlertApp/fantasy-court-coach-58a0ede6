@@ -177,7 +177,7 @@ export default function PlayerCard({
       {onSwap && (
         <button
           onClick={(e) => { e.stopPropagation(); onSwap(); }}
-          className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 z-20"
+          className="absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 z-20"
           title="Swap player"
         >
           <ArrowLeftRight className="h-4 w-4" />

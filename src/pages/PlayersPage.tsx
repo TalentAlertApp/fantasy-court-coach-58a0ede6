@@ -54,30 +54,30 @@ export default function PlayersPage() {
   const { data: rosterData } = useRosterQuery();
   const allPlayers = playersData?.items ?? [];
 
-  const rosterPlayerIds = useMemo(() => {
-    if (!rosterData?.starters && !rosterData?.bench) return new Set<number>();
-    const ids = new Set<number>();
-    for (const s of rosterData?.starters ?? []) if (s.player_id) ids.add(s.player_id);
-    for (const b of rosterData?.bench ?? []) if (b.player_id) ids.add(b.player_id);
-    return ids;
+  // roster-current returns { roster: { starters: number[], bench: number[], bank_remaining } }
+  // — IDs only. Hydrate names/teams/salaries from the already-loaded `allPlayers` list.
+  const rosterIdList = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    const starters: number[] = Array.isArray(r?.starters) ? r.starters : [];
+    const bench: number[] = Array.isArray(r?.bench) ? r.bench : [];
+    return [...starters, ...bench].filter((id) => typeof id === "number" && id > 0);
   }, [rosterData]);
 
+  const rosterPlayerIds = useMemo(() => new Set<number>(rosterIdList), [rosterIdList]);
+
   const rosterPlayers = useMemo(() => {
-    const all: Array<{ player_id: number; name: string; team: string; salary: number; fc_bc: string; photo: string | null }> = [];
-    const slots = [...(rosterData?.starters ?? []), ...(rosterData?.bench ?? [])];
-    for (const s of slots) {
-      if (!s.player_id) continue;
-      all.push({
-        player_id: s.player_id,
-        name: (s as any).name ?? `#${s.player_id}`,
-        team: (s as any).team ?? "",
-        salary: (s as any).salary ?? 0,
-        fc_bc: (s as any).fc_bc ?? "",
-        photo: (s as any).photo ?? null,
-      });
-    }
-    return all;
-  }, [rosterData]);
+    return rosterIdList
+      .map((id) => allPlayers.find((p) => p.core.id === id))
+      .filter((p): p is PlayerListItem => !!p)
+      .map((p) => ({
+        player_id: p.core.id,
+        name: p.core.name,
+        team: p.core.team,
+        salary: p.core.salary,
+        fc_bc: p.core.fc_bc,
+        photo: p.core.photo ?? null,
+      }));
+  }, [rosterIdList, allPlayers]);
 
   const releasingMap = useMemo(() => {
     const m = new Map<number, typeof rosterPlayers[number]>();
@@ -86,7 +86,7 @@ export default function PlayersPage() {
   }, [rosterPlayers, releasing]);
 
   const releaseCap = chipAllStar || chipWildcard ? 10 : 2;
-  const bankRemaining = (rosterData as any)?.bank_remaining ?? 0;
+  const bankRemaining = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
   const releasedSalary = useMemo(
     () => Array.from(releasingMap.values()).reduce((s, p) => s + (p.salary ?? 0), 0),
     [releasingMap],
@@ -121,15 +121,11 @@ export default function PlayersPage() {
 
   const teamCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    if (!rosterData) return counts;
-    const allSlots = [...(rosterData.starters ?? []), ...(rosterData.bench ?? [])];
-    for (const s of allSlots) {
-      if (s.player_id && s.team) {
-        counts[s.team] = (counts[s.team] || 0) + 1;
-      }
+    for (const p of rosterPlayers) {
+      if (p.team) counts[p.team] = (counts[p.team] || 0) + 1;
     }
     return counts;
-  }, [rosterData]);
+  }, [rosterPlayers]);
 
   const maxSalaryLimit = useMemo(() => {
     if (allPlayers.length === 0) return 50;
@@ -202,15 +198,17 @@ export default function PlayersPage() {
     e.stopPropagation();
     if (!selectedTeamId) { toast.error("Select a team first"); return; }
     const current = getCurrentGameday();
-    const starters = rosterData?.starters ?? [];
-    const bench = rosterData?.bench ?? [];
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    const starters: number[] = Array.isArray(r?.starters) ? r.starters : [];
+    const bench: number[] = Array.isArray(r?.bench) ? r.bench : [];
     let slot: string | null = null;
+    // edge fn pads with 0 — empty slot = id 0 or missing
     for (let i = 0; i < 5; i++) {
-      if (!starters[i] || !starters[i].player_id) { slot = `starter_${i + 1}`; break; }
+      if (!starters[i]) { slot = "STARTER"; break; }
     }
     if (!slot) {
       for (let i = 0; i < 5; i++) {
-        if (!bench[i] || !bench[i].player_id) { slot = `bench_${i + 1}`; break; }
+        if (!bench[i]) { slot = "BENCH"; break; }
       }
     }
     if (!slot) { toast.error("Roster is full (10/10)"); return; }
