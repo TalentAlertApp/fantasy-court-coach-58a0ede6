@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useScoringHistory, type ScoringGameDay } from "@/hooks/useScoringHistory";
 import { useLeagueStandings } from "@/hooks/useLeagueStandings";
@@ -47,21 +48,62 @@ export default function ScoringPage() {
 
   return (
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Trophy className="h-6 w-6 text-[hsl(var(--nba-yellow))]" />
-        <h1 className="text-2xl font-heading font-bold uppercase tracking-wider">Scoring</h1>
+      {/* Header — premium NBA bar with court-line gradient */}
+      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            background:
+              "radial-gradient(circle at 0% 50%, hsl(var(--nba-yellow) / 0.18), transparent 40%), radial-gradient(circle at 100% 50%, hsl(var(--primary) / 0.18), transparent 40%)",
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-[hsl(var(--nba-yellow))]/15 ring-1 ring-[hsl(var(--nba-yellow))]/40 flex items-center justify-center">
+            <Activity className="h-5 w-5 text-[hsl(var(--nba-yellow))]" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-heading font-black uppercase tracking-wider leading-none">Scoring</h1>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-heading mt-1">
+              League standings · Team performance
+            </p>
+          </div>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
-        <TabsList className="grid grid-cols-2 w-full max-w-md">
-          <TabsTrigger value="league" className="font-heading uppercase text-xs tracking-wider gap-2">
-            <Crown className="h-3.5 w-3.5" /> League
-          </TabsTrigger>
-          <TabsTrigger value="team" className="font-heading uppercase text-xs tracking-wider gap-2">
-            <Trophy className="h-3.5 w-3.5" /> Your Team
-          </TabsTrigger>
-        </TabsList>
+        {/* Tab bar + (when on Your Team) inline team selector at far right */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <TabsList className="grid grid-cols-2 w-full max-w-sm bg-card border border-border h-10 p-1 rounded-xl">
+            <TabsTrigger
+              value="league"
+              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--nba-yellow))]/15 data-[state=active]:text-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none"
+            >
+              <Crown className="h-3.5 w-3.5" /> League
+            </TabsTrigger>
+            <TabsTrigger
+              value="team"
+              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none"
+            >
+              <Shield className="h-3.5 w-3.5" /> Your Team
+            </TabsTrigger>
+          </TabsList>
+          {tab === "team" && myTeams.length > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[10px] uppercase font-heading tracking-[0.2em] text-muted-foreground">Team</span>
+              <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
+                <SelectTrigger className="w-64 h-10 rounded-xl bg-card border-border font-heading text-xs uppercase tracking-wider">
+                  <SelectValue placeholder="Pick a team…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {myTeams.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
 
         {/* ════════════════════════ LEAGUE TAB ════════════════════════ */}
         <TabsContent value="league" className="space-y-5 mt-5">
@@ -81,26 +123,9 @@ export default function ScoringPage() {
 
         {/* ════════════════════════ YOUR TEAM TAB ════════════════════════ */}
         <TabsContent value="team" className="space-y-5 mt-5">
-          {/* Team selector */}
-          {myTeams.length > 0 && (
-            <div className="flex items-center gap-3">
-              <span className="text-xs uppercase font-heading tracking-wider text-muted-foreground">Team</span>
-              <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
-                <SelectTrigger className="w-64 h-9 rounded-xl">
-                  <SelectValue placeholder="Pick a team…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {myTeams.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {myTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-card border border-border rounded-xl">
-              <Trophy className="h-12 w-12 text-muted-foreground/30" />
+              <Shield className="h-12 w-12 text-muted-foreground/30" />
               <p className="text-muted-foreground font-heading">You don't own any teams yet</p>
               <Button onClick={() => navigate("/onboarding")} size="sm" className="rounded-xl">
                 Create your first team
@@ -138,6 +163,8 @@ export default function ScoringPage() {
   );
 }
 
+type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
+
 // ══════════════════════════════ LEAGUE VIEW ══════════════════════════════
 function LeagueView({
   data, isLoading, isError, refetch, currentUserId, selectedTeamId, onSelectMyTeam,
@@ -147,6 +174,25 @@ function LeagueView({
   currentUserId: string | null; selectedTeamId: string | null;
   onSelectMyTeam: (teamId: string) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<StandSortKey>("rank");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: StandSortKey) => {
+    if (sortBy === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(key);
+      setSortDir(key === "rank" ? "asc" : "desc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: StandSortKey }) => {
+    if (sortBy !== col) return <ArrowUpDown className="h-3 w-3 opacity-40 inline-block ml-1" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="h-3 w-3 inline-block ml-1 text-[hsl(var(--nba-yellow))]" />
+      : <ArrowDown className="h-3 w-3 inline-block ml-1 text-[hsl(var(--nba-yellow))]" />;
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse font-heading">Loading league…</div>;
   }
@@ -161,6 +207,18 @@ function LeagueView({
   }
 
   const { teams, summary } = data;
+
+  const filtered = teams.filter((t) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return t.team_name.toLowerCase().includes(q) || (t.owner_label ?? "").toLowerCase().includes(q);
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const av = a[sortBy] as number;
+    const bv = b[sortBy] as number;
+    return sortDir === "asc" ? av - bv : bv - av;
+  });
 
   return (
     <>
@@ -194,29 +252,83 @@ function LeagueView({
 
       {/* Standings table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-muted/50">
-          <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">Standings</h2>
+        <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-muted/60 via-muted/30 to-transparent flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-2">
+            <Crown className="h-4 w-4 text-[hsl(var(--nba-yellow))]" /> Standings
+          </h2>
+          <div className="flex items-center gap-2 ml-auto">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search team or owner…"
+                className="pl-8 h-9 w-56 rounded-xl text-xs"
+              />
+            </div>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as StandSortKey)}>
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs font-heading uppercase tracking-wider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rank" className="text-xs font-heading uppercase">Sort: Rank</SelectItem>
+                <SelectItem value="total_fp" className="text-xs font-heading uppercase">Sort: Total FP</SelectItem>
+                <SelectItem value="current_week_fp" className="text-xs font-heading uppercase">Sort: This Week</SelectItem>
+                <SelectItem value="latest_day_fp" className="text-xs font-heading uppercase">Sort: Last Day</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="h-9 rounded-xl px-2"
+              title={sortDir === "asc" ? "Ascending" : "Descending"}
+            >
+              {sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
-                <th className="px-3 py-2 text-left w-10">#</th>
+              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground bg-muted/20">
+                <th
+                  className="px-3 py-2 text-left w-12 cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("rank")}
+                >
+                  #<SortIcon col="rank" />
+                </th>
                 <th className="px-3 py-2 text-left">Team</th>
                 <th className="px-3 py-2 text-left">Owner</th>
-                <th className="px-3 py-2 text-right">Total FP</th>
-                <th className="px-3 py-2 text-right">This Wk</th>
-                <th className="px-3 py-2 text-right">Last Day</th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("total_fp")}
+                >
+                  Total FP<SortIcon col="total_fp" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("current_week_fp")}
+                >
+                  This Wk<SortIcon col="current_week_fp" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("latest_day_fp")}
+                >
+                  Last Day<SortIcon col="latest_day_fp" />
+                </th>
                 <th className="px-3 py-2 text-right">Avg/GW</th>
                 <th className="px-3 py-2 text-right">Best Wk</th>
                 <th className="px-3 py-2 text-right">Worst Wk</th>
               </tr>
             </thead>
             <tbody>
-              {teams.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground font-heading">No teams yet</td></tr>
+              {sorted.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground font-heading">
+                  {teams.length === 0 ? "No teams yet" : "No teams match your search"}
+                </td></tr>
               )}
-              {teams.map(t => {
+              {sorted.map(t => {
                 const isMine = t.owner_id === currentUserId;
                 const isSelected = t.team_id === selectedTeamId;
                 const clickable = isMine;
@@ -256,12 +368,16 @@ function LeagueView({
 
 function KpiCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+    <div className="group relative overflow-hidden bg-card border border-border rounded-xl p-3.5 transition-all duration-300 hover:border-[hsl(var(--nba-yellow))]/40 hover:shadow-[0_0_24px_hsl(var(--nba-yellow)/0.08)]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-6 -right-6 h-20 w-20 rounded-full bg-[hsl(var(--nba-yellow))]/8 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+      />
+      <div className="relative flex items-center gap-1.5 text-[10px] font-heading uppercase tracking-[0.2em] text-muted-foreground">
         {icon}{label}
       </div>
-      <div className="mt-1 font-heading font-bold text-base truncate" title={value}>{value}</div>
-      {sub && <div className="text-[10px] text-muted-foreground font-mono truncate">{sub}</div>}
+      <div className="relative mt-1.5 font-heading font-black text-lg truncate uppercase tracking-tight" title={value}>{value}</div>
+      {sub && <div className="relative text-[10px] text-muted-foreground font-mono truncate mt-0.5">{sub}</div>}
     </div>
   );
 }

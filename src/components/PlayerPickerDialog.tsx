@@ -194,7 +194,7 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-[1fr_104px] gap-2 shrink-0 mt-2">
+          <div className="grid grid-cols-[1fr_140px] gap-2 shrink-0 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -220,7 +220,7 @@ export default function PlayerPickerDialog({
                   </span>
                 )}
               </SelectTrigger>
-              <SelectContent className="max-h-72 min-w-[104px]">
+              <SelectContent className="max-h-72 min-w-[140px]">
                 <SelectItem value="ALL" className="text-xs font-heading uppercase justify-center [&>span:first-child]:hidden">
                   <span className="block text-center w-full">All</span>
                 </SelectItem>

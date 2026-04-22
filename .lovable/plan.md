@@ -189,3 +189,12 @@ Wrap existing content in shadcn `<Tabs>`:
 - Per-league transactions audit (already isolated by `team_id`, but a `league_id` denormalization would speed cross-league reports).
 - Multi-league signup flow + league join codes.
 
+---
+
+## Carry-over follow-ups (to tackle next)
+- **Materialized standings cache**: precomputed `league_standings_cache` table refreshed on roster/game-log change for sub-100ms standings reads at scale.
+- **Multi-league signup flow**: league creation, join codes, per-user league switcher.
+- **Per-league transactions report**: denormalize `league_id` onto `transactions` for fast cross-league analytics.
+- **Captain bonus rule wiring**: seed an `applies_to='captain'` rule and surface it inside `computeFpFromRules`.
+- **Standings live refresh**: Supabase realtime subscription on `player_game_logs` to invalidate `league-standings` query.
+
