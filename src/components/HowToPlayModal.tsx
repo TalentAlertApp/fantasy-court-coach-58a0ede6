@@ -100,10 +100,10 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
                   <p>Fantasy Points (FP) are calculated per game using this formula:</p>
                   <div className="bg-muted rounded-lg p-3 font-mono text-xs text-center">
-                    FP = PTS×1 + REB×1 + AST×2 + BLK×3 + STL×3
+                    {formula}
                   </div>
                   <p>Only <strong>starters</strong> (or auto-subbed bench players) score points for your team each gameday.</p>
-                  <p>The Gameday Captain chip <strong>doubles</strong> the selected player's FP for that day.</p>
+                  <p>The Gameday Captain chip multiplies the selected player's FP for that day by <strong>{captainMult}×</strong>.</p>
                 </AccordionContent>
               </AccordionItem>
 
