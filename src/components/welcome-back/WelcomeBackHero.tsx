@@ -8,6 +8,7 @@ import PlayerMarquee from "@/components/onboarding/PlayerMarquee";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
 
@@ -41,6 +42,7 @@ export default function WelcomeBackHero({ onEnter }: Props) {
   const { user, signOut } = useAuth();
   const { teams, selectedTeamId } = useTeam();
   const { data: rosterData } = useRosterQuery();
+  const { data: playersData } = usePlayersQuery({ limit: 250 });
 
   const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "Your Team";
   const lastSignOut = useMemo(() => getLastSignOut(user?.id), [user?.id]);
@@ -49,21 +51,27 @@ export default function WelcomeBackHero({ onEnter }: Props) {
   const currentGameday = useMemo(() => getCurrentGameday(), []);
   const countdown = useCountdown(currentGameday.deadline_utc);
 
-  // Resolve top scorer and captain from current roster
-  const allPlayers = useMemo(() => {
+  // Roster payload returns IDs only — resolve against the full players list.
+  const players = (playersData as any)?.players ?? (playersData as any)?.items ?? [];
+  const rosterPlayers = useMemo(() => {
     const r = rosterData?.roster;
-    if (!r) return [] as any[];
-    return [...(r.starters ?? []), ...(r.bench ?? [])];
-  }, [rosterData]);
+    if (!r || players.length === 0) return [] as any[];
+    const ids = new Set<number>([...(r.starters ?? []), ...(r.bench ?? [])]);
+    return players.filter((p: any) => ids.has(p?.core?.id));
+  }, [rosterData, players]);
 
-  const captain = useMemo(() => allPlayers.find((p: any) => p.is_captain), [allPlayers]);
+  const captain = useMemo(() => {
+    const cid = rosterData?.roster?.captain_id;
+    if (!cid) return null;
+    return players.find((p: any) => p?.core?.id === cid) ?? null;
+  }, [rosterData, players]);
 
   const topScorer = useMemo(() => {
-    if (allPlayers.length === 0) return null;
-    return [...allPlayers].sort(
+    if (rosterPlayers.length === 0) return null;
+    return [...rosterPlayers].sort(
       (a: any, b: any) => (b?.last5?.fp5 ?? 0) - (a?.last5?.fp5 ?? 0)
     )[0];
-  }, [allPlayers]);
+  }, [rosterPlayers]);
 
   const handleSignOut = async () => {
     await signOut();
