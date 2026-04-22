@@ -277,20 +277,36 @@ function ResultDots({
     <div className={`flex items-center gap-0.5 ${align === "end" ? "justify-end" : "justify-start"}`}>
       {padded.map((d, i) => {
         if (!d) {
-          return <span key={i} className="h-2 w-2 rounded-full bg-muted-foreground/15" />;
+          return (
+            <span
+              key={i}
+              className="h-3 w-3 rounded-full bg-muted-foreground/10 ring-1 ring-inset ring-muted-foreground/20"
+            />
+          );
         }
         const dot = (
           <span
-            className={`h-2 w-2 rounded-full ${
-              d.result === "W" ? "bg-emerald-500/85" : "bg-red-500/85"
-            } hover:scale-150 transition-transform cursor-help`}
-          />
+            className={`inline-flex items-center justify-center h-4 w-4 rounded-full text-[8px] font-mono font-black leading-none cursor-help transition-all duration-200 hover:scale-125 ${
+              d.result === "W"
+                ? "bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-400/70 shadow-[0_0_8px_hsl(142_70%_50%/0.45)]"
+                : "bg-red-500/25 text-red-300 ring-1 ring-red-400/70 shadow-[0_0_8px_hsl(0_70%_55%/0.45)]"
+            }`}
+          >
+            {d.result}
+          </span>
         );
         return (
           <Tooltip key={i}>
             <TooltipTrigger asChild>{dot}</TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px] font-mono py-1 px-2">
-              <span className="font-bold">
+            <TooltipContent
+              side="top"
+              align="center"
+              sideOffset={6}
+              collisionPadding={16}
+              avoidCollisions
+              className="z-[60] whitespace-nowrap text-[10px] font-mono py-1.5 px-2.5 border-border/60 bg-popover/95 backdrop-blur-md shadow-xl"
+            >
+              <span className={`font-bold ${d.result === "W" ? "text-emerald-400" : "text-red-400"}`}>
                 {d.result} {d.ownPts}-{d.oppPts}
               </span>{" "}
               <span className="text-muted-foreground">vs {d.opp}</span>
