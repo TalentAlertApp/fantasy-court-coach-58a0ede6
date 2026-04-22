@@ -252,29 +252,83 @@ function LeagueView({
 
       {/* Standings table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-muted/50">
-          <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">Standings</h2>
+        <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-muted/60 via-muted/30 to-transparent flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-2">
+            <Crown className="h-4 w-4 text-[hsl(var(--nba-yellow))]" /> Standings
+          </h2>
+          <div className="flex items-center gap-2 ml-auto">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search team or owner…"
+                className="pl-8 h-9 w-56 rounded-xl text-xs"
+              />
+            </div>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as StandSortKey)}>
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs font-heading uppercase tracking-wider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="rank" className="text-xs font-heading uppercase">Sort: Rank</SelectItem>
+                <SelectItem value="total_fp" className="text-xs font-heading uppercase">Sort: Total FP</SelectItem>
+                <SelectItem value="current_week_fp" className="text-xs font-heading uppercase">Sort: This Week</SelectItem>
+                <SelectItem value="latest_day_fp" className="text-xs font-heading uppercase">Sort: Last Day</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline" size="sm"
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="h-9 rounded-xl px-2"
+              title={sortDir === "asc" ? "Ascending" : "Descending"}
+            >
+              {sortDir === "asc" ? <ArrowUp className="h-3.5 w-3.5" /> : <ArrowDown className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
-                <th className="px-3 py-2 text-left w-10">#</th>
+              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground bg-muted/20">
+                <th
+                  className="px-3 py-2 text-left w-12 cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("rank")}
+                >
+                  #<SortIcon col="rank" />
+                </th>
                 <th className="px-3 py-2 text-left">Team</th>
                 <th className="px-3 py-2 text-left">Owner</th>
-                <th className="px-3 py-2 text-right">Total FP</th>
-                <th className="px-3 py-2 text-right">This Wk</th>
-                <th className="px-3 py-2 text-right">Last Day</th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("total_fp")}
+                >
+                  Total FP<SortIcon col="total_fp" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("current_week_fp")}
+                >
+                  This Wk<SortIcon col="current_week_fp" />
+                </th>
+                <th
+                  className="px-3 py-2 text-right cursor-pointer hover:text-foreground select-none"
+                  onClick={() => toggleSort("latest_day_fp")}
+                >
+                  Last Day<SortIcon col="latest_day_fp" />
+                </th>
                 <th className="px-3 py-2 text-right">Avg/GW</th>
                 <th className="px-3 py-2 text-right">Best Wk</th>
                 <th className="px-3 py-2 text-right">Worst Wk</th>
               </tr>
             </thead>
             <tbody>
-              {teams.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground font-heading">No teams yet</td></tr>
+              {sorted.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground font-heading">
+                  {teams.length === 0 ? "No teams yet" : "No teams match your search"}
+                </td></tr>
               )}
-              {teams.map(t => {
+              {sorted.map(t => {
                 const isMine = t.owner_id === currentUserId;
                 const isSelected = t.team_id === selectedTeamId;
                 const clickable = isMine;
