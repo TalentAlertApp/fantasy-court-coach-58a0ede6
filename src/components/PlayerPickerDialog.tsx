@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Search, X, Volume2, VolumeX } from "lucide-react";
+import { Users, Wallet, ShieldHalf, Target, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { getRowPositions } from "@/lib/court-layout";
 import courtBg from "@/assets/court-bg.png";
@@ -29,6 +30,10 @@ interface PlayerPickerDialogProps {
   showCourtPreview?: boolean;
   picks?: PlayerListItem[];
   onRemovePick?: (id: number) => void;
+  /** Roster is fully valid (10 players, 5 FC + 5 BC, ≤ cap, ≤ 2 per NBA team) */
+  canConfirm?: boolean;
+  /** Called when the user clicks the centered "Save Current Roster" CTA at 10/10 */
+  onConfirm?: () => void;
 }
 
 const SFX_KEY = "nba_picker_sfx";
@@ -37,6 +42,7 @@ export default function PlayerPickerDialog({
   open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
   bankRemaining, swapPlayerSalary, swapPlayerPosition,
   showCourtPreview = false, picks = [], onRemovePick,
+  canConfirm = false, onConfirm,
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
@@ -215,6 +221,8 @@ export default function PlayerPickerDialog({
             lastPickId={lastPickId}
             muted={muted}
             onToggleMute={() => setMuted((m) => !m)}
+            canConfirm={canConfirm}
+            onConfirm={onConfirm}
           />
         )}
       </DialogContent>
@@ -229,6 +237,8 @@ function CourtPreviewPanel({
   lastPickId,
   muted,
   onToggleMute,
+  canConfirm,
+  onConfirm,
 }: {
   picks: PlayerListItem[];
   bankRemaining: number;
@@ -236,6 +246,8 @@ function CourtPreviewPanel({
   lastPickId: number | null;
   muted: boolean;
   onToggleMute: () => void;
+  canConfirm: boolean;
+  onConfirm?: () => void;
 }) {
   const fcs = picks.filter((p) => p.core.fc_bc === "FC").slice(0, 5);
   const bcs = picks.filter((p) => p.core.fc_bc === "BC").slice(0, 5);
@@ -247,32 +259,73 @@ function CourtPreviewPanel({
   const budgetClass =
     bankRemaining > 0 ? "text-emerald-500" : bankRemaining < 0 ? "text-destructive" : "text-foreground";
 
+  const isFull = picks.length >= 10;
+  const fcMaxed = fcs.length >= 5;
+  const bcMaxed = bcs.length >= 5;
+  const budgetOk = bankRemaining >= 0;
+
   return (
     <div className="flex flex-col min-h-0 p-3 bg-muted/40">
-      {/* Counters + mute toggle */}
+      {/* Premium glassmorphic chips */}
       <div className="flex items-center gap-1.5 mb-2 shrink-0">
-        <div className="grid grid-cols-4 gap-1.5 text-[10px] uppercase tracking-wider font-heading flex-1">
-          <span className="px-2 h-8 rounded-md bg-background/80 border text-center inline-flex items-center justify-center">
-            Picked&nbsp;<span className="font-mono font-bold">{picks.length}/10</span>
-          </span>
-          <span className={`px-2 h-8 rounded-md bg-background/80 border text-center font-bold inline-flex items-center justify-center ${budgetClass}`}>
-            ${bankRemaining.toFixed(1)}M
-          </span>
-          <span className="px-2 h-8 rounded-md bg-destructive/15 border border-destructive/30 text-center text-destructive inline-flex items-center justify-center">
-            FC&nbsp;<span className="font-mono font-bold">{fcs.length}/5</span>
-          </span>
-          <span className="px-2 h-8 rounded-md bg-primary/15 border border-primary/30 text-center text-primary inline-flex items-center justify-center">
-            BC&nbsp;<span className="font-mono font-bold">{bcs.length}/5</span>
-          </span>
+        <div className="grid grid-cols-4 gap-1.5 flex-1">
+          {/* Picked */}
+          <div
+            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
+              isFull
+                ? "bg-accent/25 border-accent text-accent shadow-[0_0_28px_-6px_hsl(var(--accent))] animate-[pulse_2.4s_ease-in-out_infinite]"
+                : "bg-black/40 border-white/10 text-foreground/90"
+            }`}
+          >
+            <Users className="h-3.5 w-3.5 opacity-80" />
+            <span className="text-[9px] uppercase tracking-[0.25em] font-heading opacity-70">Picked</span>
+            <span className="font-mono font-black text-sm tabular-nums ml-auto">{picks.length}<span className="opacity-50 text-[10px]">/10</span></span>
+          </div>
+          {/* Budget */}
+          <div
+            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
+              budgetOk
+                ? "bg-black/40 border-emerald-500/40"
+                : "bg-destructive/15 border-destructive/60 animate-[pulse_1.6s_ease-in-out_infinite]"
+            }`}
+          >
+            <Wallet className={`h-3.5 w-3.5 ${budgetOk ? "text-emerald-500" : "text-destructive"}`} />
+            <span className="text-[9px] uppercase tracking-[0.25em] font-heading opacity-70">Bank</span>
+            <span className={`font-mono font-black text-sm tabular-nums ml-auto ${budgetClass}`}>${bankRemaining.toFixed(1)}M</span>
+          </div>
+          {/* FC */}
+          <div
+            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
+              fcMaxed
+                ? "bg-destructive/25 border-destructive shadow-[0_0_24px_-8px_hsl(var(--destructive))]"
+                : "bg-destructive/10 border-destructive/40 text-destructive"
+            }`}
+          >
+            <ShieldHalf className="h-3.5 w-3.5 text-destructive" />
+            <span className="text-[9px] uppercase tracking-[0.25em] font-heading text-destructive/80">FC</span>
+            <span className="font-mono font-black text-sm tabular-nums ml-auto text-destructive">{fcs.length}<span className="opacity-50 text-[10px]">/5</span></span>
+          </div>
+          {/* BC */}
+          <div
+            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
+              bcMaxed
+                ? "bg-primary/25 border-primary shadow-[0_0_24px_-8px_hsl(var(--primary))]"
+                : "bg-primary/10 border-primary/40 text-primary"
+            }`}
+          >
+            <Target className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[9px] uppercase tracking-[0.25em] font-heading text-primary/80">BC</span>
+            <span className="font-mono font-black text-sm tabular-nums ml-auto text-primary">{bcs.length}<span className="opacity-50 text-[10px]">/5</span></span>
+          </div>
         </div>
         <button
           type="button"
           onClick={onToggleMute}
           aria-label={muted ? "Unmute crowd cheer" : "Mute crowd cheer"}
           title={muted ? "Sound off" : "Sound on"}
-          className="h-8 w-8 inline-flex items-center justify-center rounded-md border bg-background/80 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+          className="h-10 w-10 inline-flex items-center justify-center rounded-xl backdrop-blur-md bg-black/40 border border-white/10 text-foreground/70 hover:text-foreground hover:bg-black/60 transition-colors shrink-0"
         >
-          {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
       </div>
 
@@ -330,6 +383,35 @@ function CourtPreviewPanel({
               isLastPick={!!bcs[i] && bcs[i].core.id === lastPickId}
             />
           ))}
+
+          {/* Completion CTA — appears once 10 players are picked */}
+          <AnimatePresence>
+            {isFull && lastPickId === null && (
+              <motion.div
+                key="confirm-cta"
+                initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 220, damping: 20 }}
+                className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+              >
+                <button
+                  type="button"
+                  onClick={() => onConfirm?.()}
+                  disabled={!canConfirm || !onConfirm}
+                  className={`pointer-events-auto group relative inline-flex items-center gap-3 h-16 px-10 rounded-full font-heading uppercase tracking-[0.3em] text-base transition-all ${
+                    canConfirm
+                      ? "bg-accent text-accent-foreground shadow-[0_0_60px_-10px_hsl(var(--accent))] hover:scale-105 hover:shadow-[0_0_80px_-10px_hsl(var(--accent))] animate-[pulse_2.4s_ease-in-out_infinite]"
+                      : "bg-background/80 backdrop-blur-md border border-destructive/60 text-destructive cursor-not-allowed"
+                  }`}
+                  title={canConfirm ? "Save current roster" : "Need 5 FC + 5 BC and within budget"}
+                >
+                  <Check className="h-5 w-5" />
+                  {canConfirm ? "Save Current Roster" : "Fix roster to save"}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

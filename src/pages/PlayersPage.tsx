@@ -283,10 +283,10 @@ export default function PlayersPage() {
                 </Badge>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-72 p-0" align="start">
+            <PopoverContent className="w-80 p-0" align="start">
               <Command>
                 <CommandInput placeholder="Find player to release..." className="h-9" />
-                <CommandList>
+                <CommandList className="max-h-[480px]">
                   <CommandEmpty>No roster players</CommandEmpty>
                   <CommandGroup heading="Your Roster">
                     {rosterPlayers.map((p) => {

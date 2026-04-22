@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
+import { requireAdmin } from "../_shared/admin-guard.ts";
 
 interface CSVRow {
   week: number;
@@ -58,6 +59,9 @@ function normalizeTime(raw: string): string | null {
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
+
+  const authFail = requireAdmin(req);
+  if (authFail) return authFail;
 
   try {
     if (req.method !== "POST") {

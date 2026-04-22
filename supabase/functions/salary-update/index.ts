@@ -2,12 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
+import { requireAdmin } from "../_shared/admin-guard.ts";
 
 function round2(n: number): number { return Math.round(n * 100) / 100; }
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return errorResponse("METHOD_NOT_ALLOWED", "POST only", null, 405);
+
+  const authFail = requireAdmin(req);
+  if (authFail) return authFail;
 
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 

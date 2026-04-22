@@ -50,12 +50,23 @@ export async function apiFetch<T extends z.ZodTypeAny>(
   } catch {
     // ignore — fall back to apikey-only request
   }
+  // Admin-only endpoints carry a shared secret, persisted in localStorage
+  // and entered on the Commissioner page. This is matched on the server.
+  let adminHeader: Record<string, string> = {};
+  try {
+    const adminSecret =
+      typeof window !== "undefined" ? localStorage.getItem("nba_admin_secret") : null;
+    if (adminSecret) adminHeader = { "x-admin-secret": adminSecret };
+  } catch {
+    // ignore
+  }
   const res = await fetch(url, {
     ...init,
     headers: {
       "Content-Type": "application/json",
       apikey: SUPABASE_PUBLISHABLE_KEY,
       ...authHeader,
+      ...adminHeader,
       ...(init?.headers ?? {}),
     },
   });

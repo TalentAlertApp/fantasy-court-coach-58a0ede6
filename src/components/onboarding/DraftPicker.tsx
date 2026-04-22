@@ -293,11 +293,13 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           rosterIds={rosterIds}
           rosterTeams={rosterTeams}
           onSelect={handlePick}
-          title={`Pick player ${picks.length + 1} of 10`}
+          title={picks.length >= 10 ? "Roster Complete · 10/10" : `Pick player ${picks.length + 1} of 10`}
           bankRemaining={bankRemaining}
           showCourtPreview
           picks={picks}
           onRemovePick={removePick}
+          canConfirm={isManualValid}
+          onConfirm={() => { setManualOpen(false); submitManual(); }}
         />
       )}
 
