@@ -368,12 +368,16 @@ function LeagueView({
 
 function KpiCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-3">
-      <div className="flex items-center gap-1.5 text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+    <div className="group relative overflow-hidden bg-card border border-border rounded-xl p-3.5 transition-all duration-300 hover:border-[hsl(var(--nba-yellow))]/40 hover:shadow-[0_0_24px_hsl(var(--nba-yellow)/0.08)]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-6 -right-6 h-20 w-20 rounded-full bg-[hsl(var(--nba-yellow))]/8 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+      />
+      <div className="relative flex items-center gap-1.5 text-[10px] font-heading uppercase tracking-[0.2em] text-muted-foreground">
         {icon}{label}
       </div>
-      <div className="mt-1 font-heading font-bold text-base truncate" title={value}>{value}</div>
-      {sub && <div className="text-[10px] text-muted-foreground font-mono truncate">{sub}</div>}
+      <div className="relative mt-1.5 font-heading font-black text-lg truncate uppercase tracking-tight" title={value}>{value}</div>
+      {sub && <div className="relative text-[10px] text-muted-foreground font-mono truncate mt-0.5">{sub}</div>}
     </div>
   );
 }
