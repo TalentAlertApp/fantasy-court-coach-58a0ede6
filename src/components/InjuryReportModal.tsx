@@ -558,13 +558,6 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
   const ret = formatReturn(rec.estimated_return);
   const injury = truncate(rec.injury_type || "—", 40);
   const team = getTeamByTricode(rec.team_tricode);
-  const initials = rec.player_name
-    .split(/\s+/)
-    .map((s) => s[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
   const clickable = rec.on_roster && rec.player_id != null;
 
