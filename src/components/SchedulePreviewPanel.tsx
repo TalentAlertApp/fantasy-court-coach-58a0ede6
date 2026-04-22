@@ -358,6 +358,7 @@ function MatchupCard({
   divisionRankByTeam,
   primaryByTeam,
   fmtTime,
+  onOpenGame,
 }: MatchupCardProps) {
   const homeLogo = getTeamLogo(g.home_team);
   const awayLogo = getTeamLogo(g.away_team);
@@ -396,80 +397,39 @@ function MatchupCard({
       {/* Readability gradient over venue */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/85 via-card/55 to-card/85" />
 
-      {/* Center watermarks — away badge sits left of @, home badge sits right of @ */}
-      <div className="absolute inset-y-0 left-0 right-0 pointer-events-none flex items-center justify-center gap-[14%]">
-        {awayLogo && (
-          <img
-            src={awayLogo}
-            alt=""
-            aria-hidden
-            className="h-[160%] w-auto opacity-[0.16] transition-all duration-500 ease-out group-hover:opacity-[0.42] group-hover:scale-110"
-            style={{ filter: awayPrimary ? `drop-shadow(0 0 14px ${awayPrimary}66)` : undefined }}
-          />
-        )}
-        {homeLogo && (
-          <img
-            src={homeLogo}
-            alt=""
-            aria-hidden
-            className="h-[160%] w-auto opacity-[0.16] transition-all duration-500 ease-out group-hover:opacity-[0.42] group-hover:scale-110"
-            style={{ filter: homePrimary ? `drop-shadow(0 0 14px ${homePrimary}66)` : undefined }}
-          />
-        )}
-      </div>
+      {/* Content — flex row: away badge | away name+stats | center @+time | home name+stats | home badge */}
+      <div className="relative z-10 flex items-stretch gap-2 px-2 py-1.5 min-h-[64px]">
+        {/* Away badge — full card height, with surge on hover */}
+        <div className="flex items-center justify-center shrink-0 w-14">
+          {awayLogo && (
+            <img
+              src={awayLogo}
+              alt={awayName}
+              className="h-14 w-14 object-contain transition-all duration-300 ease-out group-hover:scale-125 group-hover:drop-shadow-[0_0_18px_hsl(var(--nba-yellow)/0.55)]"
+              style={{ filter: awayPrimary ? `drop-shadow(0 0 6px ${awayPrimary}55)` : undefined }}
+            />
+          )}
+        </div>
 
-      {/* Content — 2 rows, mirrored about center */}
-      <div className="relative z-10 px-3 py-2 flex flex-col gap-1">
-        {/* Row 1 — matchup header (full team names) */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          {/* Away cluster */}
-          <div className="flex items-center gap-2 min-w-0 justify-start">
+        {/* Away cluster — name + stats, centered vertically */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 items-end pr-1">
+          <div className="flex items-center gap-1.5 justify-end min-w-0 w-full">
+            {awayRank && (
+              <span className="text-[8.5px] uppercase font-heading tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 whitespace-nowrap shrink-0">
+                {awayRank.ordinal} {awayRank.divLabel}
+              </span>
+            )}
             <span
-              className={`text-[12px] font-heading font-black uppercase tracking-wide truncate ${
+              className={`text-[15px] font-heading font-black uppercase tracking-tight truncate text-right ${
                 awayInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground"
               }`}
               title={awayName}
             >
               {awayName}
             </span>
-            {awayRank && (
-              <span className="text-[8.5px] uppercase font-heading tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 whitespace-nowrap shrink-0">
-                {awayRank.ordinal} {awayRank.divLabel}
-              </span>
-            )}
           </div>
-
-          {/* Center anchor — @ + tip-off time */}
-          <div className="flex flex-col items-center leading-none gap-0.5 px-2 shrink-0">
-            <span className="text-[10px] text-muted-foreground/80 font-bold">@</span>
-            <span className="text-[10px] font-mono text-muted-foreground tabular-nums whitespace-nowrap">
-              {fmtTime(g.tipoff_utc)}
-            </span>
-          </div>
-
-          {/* Home cluster (mirrored) */}
-          <div className="flex items-center gap-2 min-w-0 justify-end">
-            {homeRank && (
-              <span className="text-[8.5px] uppercase font-heading tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 whitespace-nowrap shrink-0">
-                {homeRank.ordinal} {homeRank.divLabel}
-              </span>
-            )}
-            <span
-              className={`text-[12px] font-heading font-black uppercase tracking-wide truncate text-right ${
-                homeInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground"
-              }`}
-              title={homeName}
-            >
-              {homeName}
-            </span>
-          </div>
-        </div>
-
-        {/* Row 2 — premium stats line: form pills + record chips */}
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-          {/* Away stats */}
-          <div className="flex items-center gap-2 justify-start min-w-0">
-            <ResultDots details={awayDetail} align="start" ownTri={g.away_team} />
+          <div className="flex items-center gap-1.5 justify-end min-w-0 w-full">
+            <ResultDots details={awayDetail} align="end" ownTri={g.away_team} onOpenGame={onOpenGame} />
             {awayStanding && awayStanding.gp > 0 ? (
               <span className="inline-flex items-baseline gap-1 px-1.5 py-0.5 rounded-md bg-foreground/[0.04] border border-foreground/10 text-[10px] font-mono tabular-nums whitespace-nowrap">
                 <span className="font-bold text-foreground/90">{awayStanding.w}-{awayStanding.l}</span>
@@ -478,24 +438,35 @@ function MatchupCard({
             ) : (
               <span className="text-muted-foreground/40 text-[10px] font-mono">—</span>
             )}
-            {awayStanding && (awayStanding.awayW + awayStanding.awayL) > 0 && (
-              <span className="inline-flex items-center gap-1 text-[9px] font-mono tabular-nums text-muted-foreground/80 whitespace-nowrap">
-                <span className="text-[8.5px] uppercase font-heading tracking-wider text-muted-foreground/60">A</span>
-                {awayStanding.awayW}-{awayStanding.awayL}
+          </div>
+        </div>
+
+        {/* Center anchor — @ + tip-off time */}
+        <div className="flex flex-col items-center justify-center leading-none gap-0.5 px-1 shrink-0">
+          <span className="text-[11px] text-muted-foreground/80 font-bold">@</span>
+          <span className="text-[10px] font-mono text-muted-foreground tabular-nums whitespace-nowrap">
+            {fmtTime(g.tipoff_utc)}
+          </span>
+        </div>
+
+        {/* Home cluster — mirrored */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 items-start pl-1">
+          <div className="flex items-center gap-1.5 justify-start min-w-0 w-full">
+            <span
+              className={`text-[15px] font-heading font-black uppercase tracking-tight truncate ${
+                homeInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground"
+              }`}
+              title={homeName}
+            >
+              {homeName}
+            </span>
+            {homeRank && (
+              <span className="text-[8.5px] uppercase font-heading tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/5 border border-foreground/10 text-foreground/70 whitespace-nowrap shrink-0">
+                {homeRank.ordinal} {homeRank.divLabel}
               </span>
             )}
           </div>
-
-          <span className="h-3 w-px bg-foreground/10" aria-hidden />
-
-          {/* Home stats (mirrored) */}
-          <div className="flex items-center gap-2 justify-end min-w-0">
-            {homeStanding && (homeStanding.homeW + homeStanding.homeL) > 0 && (
-              <span className="inline-flex items-center gap-1 text-[9px] font-mono tabular-nums text-muted-foreground/80 whitespace-nowrap">
-                <span className="text-[8.5px] uppercase font-heading tracking-wider text-muted-foreground/60">H</span>
-                {homeStanding.homeW}-{homeStanding.homeL}
-              </span>
-            )}
+          <div className="flex items-center gap-1.5 justify-start min-w-0 w-full">
             {homeStanding && homeStanding.gp > 0 ? (
               <span className="inline-flex items-baseline gap-1 px-1.5 py-0.5 rounded-md bg-foreground/[0.04] border border-foreground/10 text-[10px] font-mono tabular-nums whitespace-nowrap">
                 <span className="font-bold text-foreground/90">{homeStanding.w}-{homeStanding.l}</span>
@@ -504,8 +475,20 @@ function MatchupCard({
             ) : (
               <span className="text-muted-foreground/40 text-[10px] font-mono">—</span>
             )}
-            <ResultDots details={homeDetail} align="end" ownTri={g.home_team} />
+            <ResultDots details={homeDetail} align="start" ownTri={g.home_team} onOpenGame={onOpenGame} />
           </div>
+        </div>
+
+        {/* Home badge — full card height, with surge on hover */}
+        <div className="flex items-center justify-center shrink-0 w-14">
+          {homeLogo && (
+            <img
+              src={homeLogo}
+              alt={homeName}
+              className="h-14 w-14 object-contain transition-all duration-300 ease-out group-hover:scale-125 group-hover:drop-shadow-[0_0_18px_hsl(var(--nba-yellow)/0.55)]"
+              style={{ filter: homePrimary ? `drop-shadow(0 0 6px ${homePrimary}55)` : undefined }}
+            />
+          )}
         </div>
       </div>
     </div>
