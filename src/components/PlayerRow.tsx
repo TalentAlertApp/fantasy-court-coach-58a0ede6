@@ -24,6 +24,7 @@ interface PlayerRowProps {
 export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const teamLogo = getTeamLogo(core.team);
+  const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
 
   return (
     <TableRow
@@ -40,31 +41,32 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           {draggable && (
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing flex-shrink-0" />
           )}
-          {teamLogo && (
-            <img src={teamLogo} alt={core.team} className="w-5 h-5 flex-shrink-0 opacity-60" />
-          )}
           {core.photo ? (
-            <img src={core.photo} alt={core.name} className="w-7 h-7 rounded-lg object-cover bg-muted" />
+            <img src={core.photo} alt={core.name} className="w-10 h-10 rounded-lg object-cover bg-muted" />
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[9px] font-heading font-bold text-muted-foreground">
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
               {core.name.substring(0, 2).toUpperCase()}
             </div>
           )}
           <div>
             <p className="text-sm font-heading font-semibold uppercase leading-tight">{core.name}</p>
-            <p className="text-[10px] text-muted-foreground">{core.team}</p>
+            <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+              <span>{core.team}</span>
+              {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
+            </p>
           </div>
         </div>
       </TableCell>
-      <TableCell>
+      <TableCell className="text-center w-20">
         <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-lg">
           {core.fc_bc}
         </Badge>
       </TableCell>
-      <TableCell className="text-right font-mono text-sm">${core.salary}</TableCell>
-      <TableCell className="text-right font-mono text-sm">{last5.fp5.toFixed(1)}</TableCell>
-      <TableCell className="text-right font-mono text-sm">{computed.value5.toFixed(2)}</TableCell>
-      <TableCell className="text-right font-mono text-sm">{lastGame.fp.toFixed(1)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24">${core.salary}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24">{last5.fp5.toFixed(1)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24">{computed.value5.toFixed(2)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24">{lastGame.fp.toFixed(1)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24 font-bold">{Number(totalFp).toFixed(0)}</TableCell>
       <TableCell className="text-right">
         {onSwap && (
           <Button

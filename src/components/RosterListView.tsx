@@ -43,11 +43,12 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
     <TableHeader>
       <TableRow>
         <TableHead>Player</TableHead>
-        <TableHead>FC/BC</TableHead>
-        <TableHead className="text-right">Salary</TableHead>
-        <TableHead className="text-right">FP5</TableHead>
-        <TableHead className="text-right">Value5</TableHead>
-        <TableHead className="text-right">Last FP</TableHead>
+        <TableHead className="text-center w-20">FC/BC</TableHead>
+        <TableHead className="text-right w-24">Salary</TableHead>
+        <TableHead className="text-right w-24">FP5</TableHead>
+        <TableHead className="text-right w-24">Value5</TableHead>
+        <TableHead className="text-right w-24">Last FP</TableHead>
+        <TableHead className="text-right w-24">Total FP</TableHead>
         <TableHead className="text-right w-10"></TableHead>
       </TableRow>
     </TableHeader>
