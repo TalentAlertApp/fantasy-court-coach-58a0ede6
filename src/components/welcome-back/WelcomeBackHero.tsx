@@ -52,7 +52,7 @@ export default function WelcomeBackHero({ onEnter }: Props) {
   const countdown = useCountdown(currentGameday.deadline_utc);
 
   // Roster payload returns IDs only — resolve against the full players list.
-  const players = (playersData as any)?.players ?? (playersData as any)?.items ?? [];
+  const players: any[] = (playersData as any)?.items ?? [];
   const rosterPlayers = useMemo(() => {
     const r = rosterData?.roster;
     if (!r || players.length === 0) return [] as any[];
