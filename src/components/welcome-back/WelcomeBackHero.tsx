@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy, BookOpen } from "lucide-react";
+import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -10,7 +10,6 @@ import { useTeam } from "@/contexts/TeamContext";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
-import HowToPlayModal from "@/components/HowToPlayModal";
 
 interface Props {
   onEnter: () => void;
@@ -42,7 +41,6 @@ export default function WelcomeBackHero({ onEnter }: Props) {
   const { user, signOut } = useAuth();
   const { teams, selectedTeamId } = useTeam();
   const { data: rosterData } = useRosterQuery();
-  const [guideOpen, setGuideOpen] = useState(false);
 
   const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "Your Team";
   const lastSignOut = useMemo(() => getLastSignOut(user?.id), [user?.id]);
@@ -280,19 +278,12 @@ export default function WelcomeBackHero({ onEnter }: Props) {
               Enter Court
               <ChevronRight className="ml-1 h-5 w-5" />
             </Button>
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              className="mt-3 inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.2em] text-foreground/50 hover:text-foreground/90 underline-offset-4 hover:underline transition-colors"
-            >
-              <BookOpen className="h-3 w-3" />
-              Tour what's changed
-            </button>
+            <p className="mt-3 text-[10px] uppercase tracking-[0.3em] text-foreground/40">
+              Tap the Guide icon any time for the full tour
+            </p>
           </motion.div>
         </main>
       </div>
-
-      <HowToPlayModal open={guideOpen} onOpenChange={setGuideOpen} />
     </div>
   );
 }
