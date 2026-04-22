@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HowToPlayModalProps {
@@ -10,6 +11,7 @@ interface HowToPlayModalProps {
 
 export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -126,6 +128,20 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
               </AccordionItem>
 
             </Accordion>
+          </div>
+          <div className="pt-3 border-t border-border shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full font-heading uppercase text-xs gap-2"
+              onClick={() => {
+                setOpen(false);
+                navigate("/?welcomeback=1");
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              Preview "Welcome Back" screen
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
