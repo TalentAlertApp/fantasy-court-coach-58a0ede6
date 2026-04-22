@@ -86,6 +86,9 @@ export default function PlayerPickerDialog({
     return counts;
   }, [rosterTeams]);
 
+  const fcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "FC").length, [picks]);
+  const bcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "BC").length, [picks]);
+
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
     if (effectiveFilter !== "ALL") {
@@ -159,7 +162,11 @@ export default function PlayerPickerDialog({
                 const teamLogo = getTeamLogo(p.core.team);
                 const teamFull = (teamCounts[p.core.team] || 0) >= 2;
                 const overBudget = budgetAvailable != null && p.core.salary > budgetAvailable;
-                const isDisabled = teamFull || overBudget;
+                const groupFull =
+                  showCourtPreview &&
+                  ((p.core.fc_bc === "FC" && fcPicked >= 5) ||
+                    (p.core.fc_bc === "BC" && bcPicked >= 5));
+                const isDisabled = teamFull || overBudget || groupFull;
                 const seasonFp = (p.season as any)?.fp ?? 0;
                 return (
                   <button
@@ -169,7 +176,15 @@ export default function PlayerPickerDialog({
                     className={`w-full flex items-center gap-3 px-2 py-2 border-b transition-colors text-left group relative overflow-hidden ${
                       isDisabled ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
                     }`}
-                    title={teamFull ? "Max 2 players per NBA team" : overBudget ? "Exceeds budget" : undefined}
+                    title={
+                      groupFull
+                        ? `${p.core.fc_bc} slots full (5/5)`
+                        : teamFull
+                        ? "Max 2 players per NBA team"
+                        : overBudget
+                        ? "Exceeds budget"
+                        : undefined
+                    }
                   >
                     {teamLogo && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07] group-hover:opacity-[0.18] transition-opacity duration-300">
@@ -194,6 +209,9 @@ export default function PlayerPickerDialog({
                         )}
                         {overBudget && !teamFull && (
                           <span className="text-[8px] text-destructive font-semibold shrink-0">OVER BUDGET</span>
+                        )}
+                        {groupFull && !teamFull && !overBudget && (
+                          <span className="text-[8px] text-destructive font-semibold shrink-0">{p.core.fc_bc} FULL</span>
                         )}
                       </div>
                       <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
@@ -432,6 +450,7 @@ function CourtSlot({
   isLastPick: boolean;
 }) {
   const isFc = fallbackLabel === "FC";
+  const teamLogo = player ? getTeamLogo(player.core.team) : undefined;
 
   return (
     <div
@@ -480,6 +499,15 @@ function CourtSlot({
               {player.core.name.substring(0, 2).toUpperCase()}
             </div>
           )}
+          {/* Team badge — appears on hover; helps user track per-team picks */}
+          {teamLogo && (
+            <div
+              className="absolute -bottom-1 -left-1 h-7 w-7 rounded-full bg-background/95 border border-white/20 shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-200 z-20 pointer-events-none"
+              title={player.core.team}
+            >
+              <img src={teamLogo} alt={player.core.team} className="h-5 w-5 object-contain" />
+            </div>
+          )}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRemove(player.core.id); }}
@@ -488,17 +516,17 @@ function CourtSlot({
           >
             <X className="h-3 w-3" />
           </button>
-          <p className="mt-0.5 text-[10px] text-center text-white font-heading font-bold truncate drop-shadow leading-tight">
+          <p className="mt-1 text-xs text-center text-white font-heading font-bold truncate drop-shadow leading-tight">
             {(() => {
               const parts = player.core.name.trim().split(/\s+/);
               return parts.length === 1 ? parts[0].toUpperCase() : `${parts[0][0]}.${parts[parts.length - 1]}`.toUpperCase();
             })()}
           </p>
-          <div className="mt-0.5 flex items-center justify-center gap-1">
-            <span className={`inline-flex items-center justify-center px-1 h-3.5 rounded text-[8px] font-heading font-bold ${isFc ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
+          <div className="mt-1 flex items-center justify-center gap-1.5">
+            <span className={`inline-flex items-center justify-center px-1.5 h-4 rounded text-[10px] font-heading font-bold ${isFc ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
               {player.core.fc_bc}
             </span>
-            <span className="text-[9px] text-white font-mono font-bold drop-shadow">${player.core.salary}M</span>
+            <span className="text-[11px] text-white font-mono font-bold drop-shadow">${player.core.salary}M</span>
           </div>
         </motion.div>
       )}
