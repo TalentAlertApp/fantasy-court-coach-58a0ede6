@@ -74,7 +74,7 @@ export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Pr
         </Button>
 
         <p className="mt-4 text-[11px] uppercase tracking-[0.3em] text-foreground/40">
-          3 quick steps · ~60 seconds
+          3 quick steps
         </p>
 
         <button
