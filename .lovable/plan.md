@@ -1,72 +1,76 @@
 
 
-## Plan: Unify the empty-roster UX, wire all 3 draft options to actually create rosters, document theming
+## Plan: Fix flash, deletion flow, and unify Step 3 to the light cinematic layout
 
-### 1 · Make the "Choose your draft style" card the canonical empty-roster screen
+### Issue 0 · Remove "~60 seconds"
+`src/components/onboarding/OnboardingHero.tsx` — change `"3 quick steps · ~60 seconds"` → `"3 quick steps"`.
 
-**Problem.** Today there are two different "you have no players" experiences:
-- **`/` (RosterPage empty-state)** — old card with two buttons: `AUTO-PICK ROSTER` and `ADD PLAYERS MANUALLY` (image 218).
-- **`/welcome` Step 3** — new premium 3-card picker: Auto-Draft / Manual / AI Coach (image 217).
+### Issue 1 · Kill the light→dark flash on `/welcome`
+**Cause.** When `/welcome` loads with persisted `step="draft"` but the user already owns a team, `OnboardingPage` paints one frame of the (light-themed) Draft step before the redirect-to-`/` effect fires.
 
-Whenever the active team has zero players (whether the user just created it via `/welcome` OR they already had `BUCKETS INC.` from a previous session), they should see the **same** premium 3-card picker. The `/` page should not have its own divergent empty-state.
+**Fix.** Render-gate `OnboardingPage` until we know we're staying:
+```tsx
+if (!ready || !shouldOnboard) {
+  return <div className="h-screen w-full bg-background" aria-hidden />;
+}
+```
+No headline, no marquee — nothing visible to flash.
 
-**Implementation.**
-- Extract the `<DraftStep>` body (the three option cards + progress strip + manual picker + AI coach handoff + auto-pick logic) into a shared component `src/components/onboarding/DraftPicker.tsx`. It accepts:
-  - `teamName: string`
-  - `onFinish: () => void` (defaults to a no-op refetch)
-  - `variant: "onboarding" | "embedded"` — controls whether it renders the step-indicator dot strip + "Step 3 of 3" eyebrow + outer `h-screen` wrapper (onboarding) or just the inner content sized to fill its parent (embedded).
-- `DraftStep.tsx` becomes a thin wrapper that renders `<DraftPicker variant="onboarding" teamName={...} onFinish={...} />`.
-- `RosterPage.tsx` empty-state branch (`isRosterEmpty`) is replaced with `<DraftPicker variant="embedded" teamName={teamName} onFinish={() => refetchRoster()} />`. The big yellow `GAMEWEEK X — DAY Y` header at the top of the page stays — the picker takes over the body region only.
-- Remove the old empty-state card markup (NBA logo + 2 buttons) entirely so there is exactly one design.
+### Issue 2 · Deleting a team must send the user back to Step 2 (NameStep)
+Reverse my prior proposal. Correct behaviour:
 
-**Result.** Whether the user arrives via `/welcome` (first run) or hits `/` with an existing-but-empty team like `BUCKETS INC.`, they see the identical 3-card drafting picker.
+- In `OnboardingPage`'s resume effect, when `step === "draft"` and the saved `createdTeamId` is no longer owned by the user (deleted), do NOT silently re-create. Instead:
+  - Clear `createdTeamId` and `createdTeamName` in local state.
+  - Persist `{ step: "name" }` (no `teamId`, no `teamName`) via `setOnboardingState`.
+  - `setStepRaw("name")` so the user lands on the NameStep ready to choose a fresh name.
+- If multiple owned teams exist (edge case where user deleted only one of several), pick the most recent owned team and stay on `"draft"` — only fall back to NameStep when zero owned teams remain.
 
-### 2 · Make all 3 draft options actually create the roster
-
-The Auto-Draft path already calls the rewritten `roster-auto-pick` edge function. The Manual path already calls `saveRoster`. The AI Coach path is currently broken — clicking "Open AI Coach" opens the modal, but on close `handoff()` runs unconditionally and routes the user to `/` regardless of whether they actually created a roster.
-
-**Wire AI Coach correctly.**
-- `AICoachModal` already exposes the **Transfers** tab with `commitTransaction()` and the **Captain** tab with `saveRoster()` — both write to the active team. But for a brand-new empty team, "Transfers" is meaningless because there is no roster yet. Add a new lightweight first-class action specifically for drafting from empty:
-  - In `AICoachModal`, detect when `rosterData?.roster?.starters` is all zeros (empty roster). When empty, show a banner at the top of the modal: "No roster yet — let me build one for you" with a single primary button **"Draft my squad with AI"**.
-  - That button calls a new helper `aiDraftRoster({ gw, day, style })` (the user's free-text style is already collected via the existing AI prompt input on the Analyze tab — reuse it, default to "balanced"). The helper hits a new edge function action OR — to avoid a new function — calls `aiSuggestTransfers` with a special `objective: "draft_from_empty"` flag and then commits each suggested move.
-  - Simpler path that needs no backend changes: the button calls `autoPickRoster({ gw, day, strategy: "value5" }, teamId)` (deterministic auto-draft) AND then immediately runs `aiPickCaptain` to pick the captain. Then closes the modal and triggers `onFinish()`.
-- In `DraftStep` / `DraftPicker`: when strategy = `"ai"`, do **not** auto-handoff on modal close. Instead, after the modal closes, refetch `roster-current` and only call `onFinish()` when at least one starter > 0. Otherwise leave the user on the picker so they can try again or switch strategy.
-
-**Verify the other two paths** (already in place — just confirming no regression):
-- Auto-Draft → `autoPickRoster()` → edge function writes 10 rows to `roster` table → `handoff()` invalidates queries → router replaces to `/`.
-- Manual → user picks 10 valid players → `saveRoster()` → same handoff.
-
-**Acceptance check.** From an empty roster (either fresh team or zero-player legacy team), each of the three options ends with a populated roster on `/`:
-
-```text
-[Auto-Draft]   click → spinner → roster shows 10 players, captain set
-[Manual]       click → picker dialog × 10 → progress strip 10/10 → save → roster shows 10 players
-[AI Coach]     click → modal banner "Draft my squad with AI" → click → spinner → modal closes → roster shows 10 players + AI-picked captain
+```tsx
+useEffect(() => {
+  if (!ready || step !== "draft") return;
+  const ownedNow = teams.filter((t: any) => t.owner_id === user?.id);
+  const stillOwns = createdTeamId && ownedNow.some((t) => t.id === createdTeamId);
+  if (stillOwns) { setSelectedTeamId(createdTeamId!); return; }
+  if (ownedNow.length > 0) {
+    const fb = ownedNow[ownedNow.length - 1];
+    setCreatedTeamId(fb.id); setCreatedTeamName(fb.name);
+    setSelectedTeamId(fb.id);
+    setOnboardingState(user?.id, { step: "draft", teamId: fb.id, teamName: fb.name });
+    return;
+  }
+  // Zero owned teams → back to NameStep for a fresh franchise name
+  setCreatedTeamId(null); setCreatedTeamName("");
+  setStepRaw("name");
+  setOnboardingState(user?.id, { step: "name" });
+}, [ready, step, createdTeamId, teams, user?.id]);
 ```
 
-### 3 · Theme answer (no code change needed unless requested)
+### Issue 3 · Step 3 must always render the LIGHT cinematic layout — never the embedded dark variant
+Right now `RosterPage` shows the dark `embedded` variant when a team has zero players (image 222). That state should never be reached, but to guarantee it: **collapse the two variants into one canonical Step 3 design (the light cinematic one from `Screenshot_2026-04-21_171006-2.png`)** and always show that.
 
-The two-tone screenshots the user is seeing (light/white version in image 217, dark version in image 219) **are** driven by the app's global light/dark theme toggle in the sidebar (the `LIGHT` / dark switch visible at the bottom-left of image 218). The onboarding components use semantic Tailwind tokens (`bg-background`, `text-foreground`, `text-accent`, `border-foreground/10`, etc.) defined in `src/index.css` — they are not hardcoded to either theme. So:
-- The light-mode screenshot in image 217 is what you see when the app is in `light` mode.
-- The dark-mode screenshot in image 219 is what you see when the app is in `dark` mode (default).
+- `src/components/onboarding/DraftPicker.tsx`: drop the `variant` prop entirely. Single layout = the onboarding (light cinematic) layout: `h-screen` neutral background, 3-dot indicator, `STEP 3 OF 3` eyebrow, big `clamp(2.5rem,8vh,5rem)` heading `Draft <accent>{teamName}</accent>`, subtitle, 3 option cards in `max-w-4xl`, primary CTA, bottom chips pinned `mt-auto`. Add Back ghost button next to CTA (only shown when `onBack` prop is provided).
+- `src/components/onboarding/DraftStep.tsx`: render `<DraftPicker teamName={...} onFinish={...} onBack={() => setStep("name")} />`.
+- `src/pages/RosterPage.tsx`: when `isRosterEmpty`, render `<DraftPicker teamName={teamName} onFinish={() => refetchRoster()} />` **as a full-bleed overlay** that covers the whole RosterPage body (including hiding the yellow GAMEWEEK banner) so the visual is identical to onboarding Step 3. Wrap in:
+  ```tsx
+  <div className="fixed inset-0 z-40 bg-background overflow-auto">
+    <DraftPicker ... />
+  </div>
+  ```
+  This guarantees a single Step 3 UI everywhere — no second design ever appears.
 
-Both renders are correct and intentional. **No change required** unless you want the onboarding flow to lock to dark for a more cinematic feel — say the word and we'll add `<html className="dark">` only on `/welcome`.
+### Theme note
+Both screenshots are correct: the light cinematic look comes from the user's app theme being set to LIGHT. The onboarding components use semantic tokens, so they automatically follow the global theme. No code change to lock theme — request will only ship if explicitly asked.
 
 ### Files
-
-**Create**
-- `src/components/onboarding/DraftPicker.tsx` (extracted shared component, `variant` prop)
-
-**Edit**
-- `src/components/onboarding/DraftStep.tsx` → thin wrapper around `DraftPicker`
-- `src/pages/RosterPage.tsx` → replace `isRosterEmpty` branch with `<DraftPicker variant="embedded" />`, drop old empty-state markup and the unused `handleAutoPick` button block
-- `src/components/AICoachModal.tsx` → add empty-roster banner + "Draft my squad with AI" action that calls `autoPickRoster` + `aiPickCaptain`, plus an `onDraftComplete?: () => void` callback so the picker can detect success
+- `src/components/onboarding/OnboardingHero.tsx` — remove "~60 seconds".
+- `src/pages/OnboardingPage.tsx` — render-gate; deletion → fall back to NameStep (clear name).
+- `src/components/onboarding/DraftPicker.tsx` — remove `variant`, single cinematic layout, optional Back button.
+- `src/components/onboarding/DraftStep.tsx` — pass `onBack` to picker.
+- `src/pages/RosterPage.tsx` — render `DraftPicker` as full-bleed overlay when roster is empty.
 
 ### Acceptance
-
-- Logging in as a user whose only team is empty (e.g. `BUCKETS INC.`) shows the **same 3-card picker** at `/` as `/welcome` Step 3.
-- Auto-Draft, Manual, and AI Coach **all** end with 10 real players on the roster and route to the populated `/` court view.
-- The yellow gameweek banner at the top of `/` is preserved when the picker is embedded.
-- The AI Coach modal, when opened from an empty roster, surfaces the new "Draft my squad with AI" CTA at the top.
-- Light/dark behaviour is confirmed as intended; no theme code changes ship unless explicitly requested.
+- Hero microcopy: `3 quick steps` (no seconds).
+- `/welcome` never shows a one-frame flash before redirecting to `/`.
+- Deleting the team while on Step 3 returns the user to Step 2 (NameStep) with an empty name field, ready for a fresh franchise name.
+- Step 3 looks **exactly** like `Screenshot_2026-04-21_171006-2.png` everywhere — onboarding flow and any zero-roster state on `/`. The dark embedded layout (image 222) is gone.
 
