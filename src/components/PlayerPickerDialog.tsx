@@ -6,12 +6,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Search, X, Volume2, VolumeX, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, AlertTriangle } from "lucide-react";
+import { Search, X, Volume2, VolumeX, AlertTriangle } from "lucide-react";
 import { Users, Wallet, ShieldHalf, Target, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { getRowPositions } from "@/lib/court-layout";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SchedulePreviewCollapsible } from "@/components/SchedulePreviewPanel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
-import { getCurrentGameday } from "@/lib/deadlines";
 import courtBg from "@/assets/court-bg.png";
 import crowdCheerSfx from "@/assets/audio/crowd-cheer.mp3";
 
@@ -213,11 +211,29 @@ export default function PlayerPickerDialog({
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 <SelectItem value="ALL" className="text-xs font-heading uppercase">All Teams</SelectItem>
-                {teamOptions.map((t) => (
-                  <SelectItem key={t} value={t} className="text-xs font-heading uppercase">
-                    {t}{(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
-                  </SelectItem>
-                ))}
+                {teamOptions.map((t) => {
+                  const logo = getTeamLogo(t);
+                  return (
+                    <SelectItem
+                      key={t}
+                      value={t}
+                      className="text-xs font-heading uppercase relative overflow-hidden group pr-2"
+                    >
+                      {logo && (
+                        <img
+                          src={logo}
+                          alt=""
+                          aria-hidden="true"
+                          className="absolute -left-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain pointer-events-none opacity-20 transition-all duration-300 group-hover:opacity-70 group-hover:scale-110 group-data-[state=checked]:opacity-80 group-data-[highlighted]:opacity-70 group-data-[highlighted]:scale-110 z-0"
+                        />
+                      )}
+                      <span className="relative z-10 ml-7">
+                        {t}
+                        {(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -559,7 +575,7 @@ function CourtPreviewPanel({
       </div>
 
       {/* Schedule preview — collapsible */}
-      <SchedulePreview rosterTeams={rosterTeams} />
+      <SchedulePreviewCollapsible rosterTeams={rosterTeams} variant="dark" className="mt-2" />
     </div>
   );
 }
@@ -662,125 +678,3 @@ function CourtSlot({
   );
 }
 
-function SchedulePreview({ rosterTeams }: { rosterTeams: string[] }) {
-  const initial = useMemo(() => getCurrentGameday(), []);
-  const [gw, setGw] = useState<number>(initial.gw);
-  const [open, setOpen] = useState(false);
-
-  const { data: games = [], isLoading } = useScheduleWeekGames(gw);
-
-  const daysWithGames = useMemo(() => {
-    const set = new Set<number>();
-    for (const g of games) set.add(g.day);
-    return Array.from(set).sort((a, b) => a - b);
-  }, [games]);
-
-  const [day, setDay] = useState<number>(initial.day);
-  useEffect(() => {
-    if (daysWithGames.length === 0) return;
-    if (!daysWithGames.includes(day)) setDay(daysWithGames[0]);
-  }, [daysWithGames, day]);
-
-  const dayGames = useMemo(
-    () => games.filter((g) => g.day === day).sort((a, b) => (a.tipoff_utc ?? "").localeCompare(b.tipoff_utc ?? "")),
-    [games, day]
-  );
-
-  const rosterTeamSet = useMemo(() => new Set(rosterTeams), [rosterTeams]);
-
-  const fmtTime = (iso: string | null) => {
-    if (!iso) return "—";
-    try {
-      return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    } catch {
-      return "—";
-    }
-  };
-
-  return (
-    <Collapsible open={open} onOpenChange={setOpen} className="mt-2 shrink-0">
-      <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 px-3 h-9 rounded-lg bg-black/40 border border-white/10 text-foreground/80 hover:text-foreground hover:bg-black/60 transition-colors">
-        <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-heading">
-          <CalendarDays className="h-3.5 w-3.5" />
-          Schedule · GW{gw}
-        </span>
-        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-2 rounded-lg bg-black/30 border border-white/10 p-2.5">
-        {/* GW selector */}
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <button
-            type="button"
-            onClick={() => setGw((g) => Math.max(1, g - 1))}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-black/40 border border-white/10 hover:bg-black/60 disabled:opacity-30"
-            disabled={gw <= 1}
-            aria-label="Previous gameweek"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" />
-          </button>
-          <span className="text-[11px] uppercase tracking-[0.25em] font-heading text-foreground/80">GW {gw}</span>
-          <button
-            type="button"
-            onClick={() => setGw((g) => g + 1)}
-            className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-black/40 border border-white/10 hover:bg-black/60"
-            aria-label="Next gameweek"
-          >
-            <ChevronRight className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {/* Day chips */}
-        {daysWithGames.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {daysWithGames.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDay(d)}
-                className={`h-6 px-2 rounded-md text-[10px] uppercase tracking-wider font-heading transition-colors ${
-                  d === day
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-black/40 border border-white/10 text-foreground/60 hover:text-foreground hover:bg-black/60"
-                }`}
-              >
-                D{d}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Matchups */}
-        {isLoading ? (
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground py-2 text-center">Loading…</p>
-        ) : dayGames.length === 0 ? (
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground py-2 text-center">No games</p>
-        ) : (
-          <div className="grid grid-cols-1 gap-1 max-h-44 overflow-y-auto">
-            {dayGames.map((g) => {
-              const homeLogo = getTeamLogo(g.home_team);
-              const awayLogo = getTeamLogo(g.away_team);
-              const involved = rosterTeamSet.has(g.home_team) || rosterTeamSet.has(g.away_team);
-              return (
-                <div
-                  key={g.game_id}
-                  className={`flex items-center justify-between gap-2 px-2 h-7 rounded-md bg-black/30 ${
-                    involved ? "border-l-2 border-l-[hsl(var(--nba-yellow))]" : "border-l-2 border-l-transparent"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {awayLogo && <img src={awayLogo} alt={g.away_team} className="h-4 w-4 object-contain" />}
-                    <span className="text-[10px] font-mono font-bold text-foreground/90">{g.away_team}</span>
-                    <span className="text-[9px] text-muted-foreground">@</span>
-                    {homeLogo && <img src={homeLogo} alt={g.home_team} className="h-4 w-4 object-contain" />}
-                    <span className="text-[10px] font-mono font-bold text-foreground/90">{g.home_team}</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums">{fmtTime(g.tipoff_utc)}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CollapsibleContent>
-    </Collapsible>
-  );
-}

@@ -17,12 +17,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight, CalendarDays } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday } from "@/lib/deadlines";
 import AICoachModal from "@/components/AICoachModal";
+import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -47,6 +49,7 @@ export default function PlayersPage() {
   const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
@@ -315,6 +318,18 @@ export default function PlayersPage() {
             </PopoverContent>
           </Popover>
 
+          {/* Schedule toggle — sits right after Trade */}
+          <Button
+            variant={scheduleOpen ? "default" : "outline"}
+            size="sm"
+            onClick={() => setScheduleOpen((v) => !v)}
+            className={`rounded-xl h-9 font-heading text-xs uppercase gap-1.5 ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+            title="Toggle schedule preview"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Schedule
+          </Button>
+
           {/* Selected pills */}
           {Array.from(releasingMap.values()).map((p) => (
             <span key={p.player_id} className="inline-flex items-center gap-1 rounded-full bg-destructive/15 border border-destructive/40 text-destructive px-2 h-7 text-[11px] font-heading uppercase">
@@ -379,6 +394,16 @@ export default function PlayersPage() {
             <Bot className="h-3.5 w-3.5" />AI Coach
           </Button>
         </div>
+
+        {/* Schedule preview — full-width, expands downwards below the trade toolbar */}
+        <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
+          <CollapsibleContent className="w-full max-h-72 overflow-hidden">
+            <SchedulePreviewBody
+              rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
+              variant="panel"
+            />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {isLoading ? (

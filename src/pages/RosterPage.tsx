@@ -23,10 +23,12 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays } from "lucide-react";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
 import DraftPicker from "@/components/onboarding/DraftPicker";
+import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -66,6 +68,7 @@ export default function RosterPage() {
   const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -456,6 +459,15 @@ export default function RosterPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                onClick={() => setScheduleOpen((v) => !v)}
+                variant={scheduleOpen ? "default" : "outline"}
+                size="sm"
+                className={`rounded-xl font-heading uppercase text-xs ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                title="Toggle schedule preview"
+              >
+                <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
+              </Button>
+              <Button
                 onClick={() => setChipCaptain(!chipCaptain)}
                 variant={chipCaptain ? "default" : "outline"}
                 size="sm"
@@ -516,6 +528,13 @@ export default function RosterPage() {
               </AlertDialog>
             </div>
           </div>
+
+          {/* Schedule preview — full-width, expands downwards */}
+          <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
+            <CollapsibleContent className="mb-3 w-full max-h-72 overflow-hidden">
+              <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* ── Layout ── */}
           <div className="min-w-0 flex-1">
