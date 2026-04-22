@@ -152,6 +152,8 @@ async function syncSalaries(supabase: any, token: string): Promise<{ updated: nu
 //          PTS(N13)=FP, MP(O14), PS(P15)=pts scored, R(Q16)=reb, A(R17)=ast, B(S18)=blk, S(T19)=stl
 // deno-lint-ignore no-explicit-any
 async function syncGames(supabase: any, token: string): Promise<{ games: number; game_logs: number; players_updated: number }> {
+  // Pull active scoring rules once per invocation (cached for 5 min thereafter).
+  const scoringRules: ScoringRule[] = await fetchScoringRules(supabase);
   const rows = await fetchSheetTab("FP", "A:T", token);
   const dataRows = rows.slice(1).filter(r => r[10] && r[10].trim() !== ""); // Must have Game ID
 
@@ -205,7 +207,7 @@ async function syncGames(supabase: any, token: string): Promise<{ games: number;
     const ast = toInt(row[17]);
     const blk = toInt(row[18]);
     const stl = toInt(row[19]);
-    const fp = computeFP(ps, reb, ast, blk, stl);
+    const fp = computeFpFromRules({ pts: ps, reb, ast, blk, stl }, scoringRules);
 
     // Determine home/away
     const homeTeam = (row[5] || "").trim();
