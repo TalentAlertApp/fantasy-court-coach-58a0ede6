@@ -136,6 +136,8 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
               className="w-full font-heading uppercase text-xs gap-2"
               onClick={() => {
                 setOpen(false);
+                // Allow re-showing the recap even if it was already dismissed this session.
+                try { sessionStorage.removeItem("nba_welcome_back_seen"); } catch { /* noop */ }
                 navigate("/?welcomeback=1");
               }}
             >
