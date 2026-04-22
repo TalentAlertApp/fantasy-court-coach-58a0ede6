@@ -163,6 +163,8 @@ export default function ScoringPage() {
   );
 }
 
+type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
+
 // ══════════════════════════════ LEAGUE VIEW ══════════════════════════════
 function LeagueView({
   data, isLoading, isError, refetch, currentUserId, selectedTeamId, onSelectMyTeam,
@@ -172,6 +174,25 @@ function LeagueView({
   currentUserId: string | null; selectedTeamId: string | null;
   onSelectMyTeam: (teamId: string) => void;
 }) {
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<StandSortKey>("rank");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (key: StandSortKey) => {
+    if (sortBy === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(key);
+      setSortDir(key === "rank" ? "asc" : "desc");
+    }
+  };
+
+  const SortIcon = ({ col }: { col: StandSortKey }) => {
+    if (sortBy !== col) return <ArrowUpDown className="h-3 w-3 opacity-40 inline-block ml-1" />;
+    return sortDir === "asc"
+      ? <ArrowUp className="h-3 w-3 inline-block ml-1 text-[hsl(var(--nba-yellow))]" />
+      : <ArrowDown className="h-3 w-3 inline-block ml-1 text-[hsl(var(--nba-yellow))]" />;
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse font-heading">Loading league…</div>;
   }
@@ -186,6 +207,18 @@ function LeagueView({
   }
 
   const { teams, summary } = data;
+
+  const filtered = teams.filter((t) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return t.team_name.toLowerCase().includes(q) || (t.owner_label ?? "").toLowerCase().includes(q);
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    const av = a[sortBy] as number;
+    const bv = b[sortBy] as number;
+    return sortDir === "asc" ? av - bv : bv - av;
+  });
 
   return (
     <>
