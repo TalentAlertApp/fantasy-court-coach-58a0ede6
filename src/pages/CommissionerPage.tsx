@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar, Youtube } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar, Youtube, Lock, Eye as EyeIcon, EyeOff } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { apiFetch, importGameData, importSchedule } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -178,6 +179,17 @@ function parseCSVLine(line: string): string[] {
 export default function CommissionerPage() {
   const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
   const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+
+  // Admin secret persisted in localStorage so admin edge functions accept calls.
+  const [adminSecret, setAdminSecret] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("nba_admin_secret") ?? "";
+  });
+  const [showSecret, setShowSecret] = useState(false);
+  const saveAdminSecret = (v: string) => {
+    setAdminSecret(v);
+    try { localStorage.setItem("nba_admin_secret", v); } catch { /* noop */ }
+  };
 
   const handleYoutubeRecapLookup = async (rescanAll = false) => {
     setIsLookingUpRecaps(true);
@@ -505,6 +517,41 @@ export default function CommissionerPage() {
         Manage the player database. Upload a TSV file to <strong>fully replace</strong> all player data
         (URL, photo, team, salary, position, DOB, etc.). This is the single source of truth.
       </p>
+
+      {/* Admin Secret — required for write/import endpoints */}
+      <div className="bg-card border border-accent/30 rounded-lg p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4 text-accent" />
+          <Label className="text-sm font-medium">Admin Secret</Label>
+          {adminSecret ? (
+            <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-bold">Saved</span>
+          ) : (
+            <span className="text-[10px] uppercase tracking-wider text-destructive font-bold">Required</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            type={showSecret ? "text" : "password"}
+            value={adminSecret}
+            onChange={(e) => saveAdminSecret(e.target.value)}
+            placeholder="Paste your ADMIN_API_SECRET here"
+            className="font-mono text-xs"
+            autoComplete="off"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            onClick={() => setShowSecret((s) => !s)}
+            aria-label={showSecret ? "Hide secret" : "Show secret"}
+          >
+            {showSecret ? <EyeOff className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+          </Button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Stored locally in your browser only. Required to call player imports, sync, salary, schedule and game-data endpoints.
+        </p>
+      </div>
 
       {/* Encoding Selector */}
       <div className="flex items-center gap-3">
