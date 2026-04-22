@@ -86,6 +86,9 @@ export default function PlayerPickerDialog({
     return counts;
   }, [rosterTeams]);
 
+  const fcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "FC").length, [picks]);
+  const bcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "BC").length, [picks]);
+
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
     if (effectiveFilter !== "ALL") {
@@ -159,7 +162,11 @@ export default function PlayerPickerDialog({
                 const teamLogo = getTeamLogo(p.core.team);
                 const teamFull = (teamCounts[p.core.team] || 0) >= 2;
                 const overBudget = budgetAvailable != null && p.core.salary > budgetAvailable;
-                const isDisabled = teamFull || overBudget;
+                const groupFull =
+                  showCourtPreview &&
+                  ((p.core.fc_bc === "FC" && fcPicked >= 5) ||
+                    (p.core.fc_bc === "BC" && bcPicked >= 5));
+                const isDisabled = teamFull || overBudget || groupFull;
                 const seasonFp = (p.season as any)?.fp ?? 0;
                 return (
                   <button
@@ -169,7 +176,15 @@ export default function PlayerPickerDialog({
                     className={`w-full flex items-center gap-3 px-2 py-2 border-b transition-colors text-left group relative overflow-hidden ${
                       isDisabled ? "opacity-40 cursor-not-allowed" : "hover:bg-muted"
                     }`}
-                    title={teamFull ? "Max 2 players per NBA team" : overBudget ? "Exceeds budget" : undefined}
+                    title={
+                      groupFull
+                        ? `${p.core.fc_bc} slots full (5/5)`
+                        : teamFull
+                        ? "Max 2 players per NBA team"
+                        : overBudget
+                        ? "Exceeds budget"
+                        : undefined
+                    }
                   >
                     {teamLogo && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07] group-hover:opacity-[0.18] transition-opacity duration-300">
@@ -194,6 +209,9 @@ export default function PlayerPickerDialog({
                         )}
                         {overBudget && !teamFull && (
                           <span className="text-[8px] text-destructive font-semibold shrink-0">OVER BUDGET</span>
+                        )}
+                        {groupFull && !teamFull && !overBudget && (
+                          <span className="text-[8px] text-destructive font-semibold shrink-0">{p.core.fc_bc} FULL</span>
                         )}
                       </div>
                       <span className="text-[10px] text-muted-foreground font-semibold">{p.core.team}</span>
