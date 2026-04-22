@@ -12,6 +12,12 @@ interface SchedRow {
   away_pts: number;
   status: string;
   tipoff_utc: string | null;
+  game_id?: string | null;
+  game_boxscore_url?: string | null;
+  game_charts_url?: string | null;
+  game_playbyplay_url?: string | null;
+  game_recap_url?: string | null;
+  nba_game_url?: string | null;
 }
 
 export interface Last5Detail {
@@ -20,6 +26,17 @@ export interface Last5Detail {
   ownPts: number;
   oppPts: number;
   date: string | null;
+  game_id?: string | null;
+  isHome: boolean;
+  homeTeam: string;
+  awayTeam: string;
+  homePts: number;
+  awayPts: number;
+  game_boxscore_url?: string | null;
+  game_charts_url?: string | null;
+  game_playbyplay_url?: string | null;
+  game_recap_url?: string | null;
+  nba_game_url?: string | null;
 }
 
 const DIV_ABBR: Record<string, string> = {
@@ -40,7 +57,7 @@ async function fetchAllScheduleGames(): Promise<SchedRow[]> {
   while (true) {
     const { data, error } = await supabase
       .from("schedule_games")
-      .select("home_team,away_team,home_pts,away_pts,status,tipoff_utc")
+      .select("home_team,away_team,home_pts,away_pts,status,tipoff_utc,game_id,game_boxscore_url,game_charts_url,game_playbyplay_url,game_recap_url,nba_game_url")
       .order("tipoff_utc", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
@@ -87,12 +104,26 @@ export function useStandingsContext() {
     const map: Record<string, Last5Detail[]> = {};
     for (const g of finals) {
       const homeWon = g.home_pts > g.away_pts;
+      const linkBundle = {
+        game_id: g.game_id ?? null,
+        homeTeam: g.home_team,
+        awayTeam: g.away_team,
+        homePts: g.home_pts,
+        awayPts: g.away_pts,
+        game_boxscore_url: g.game_boxscore_url ?? null,
+        game_charts_url: g.game_charts_url ?? null,
+        game_playbyplay_url: g.game_playbyplay_url ?? null,
+        game_recap_url: g.game_recap_url ?? null,
+        nba_game_url: g.nba_game_url ?? null,
+      };
       (map[g.home_team] ||= []).push({
         result: homeWon ? "W" : "L",
         opp: g.away_team,
         ownPts: g.home_pts,
         oppPts: g.away_pts,
         date: g.tipoff_utc,
+        isHome: true,
+        ...linkBundle,
       });
       (map[g.away_team] ||= []).push({
         result: homeWon ? "L" : "W",
@@ -100,6 +131,8 @@ export function useStandingsContext() {
         ownPts: g.away_pts,
         oppPts: g.home_pts,
         date: g.tipoff_utc,
+        isHome: false,
+        ...linkBundle,
       });
     }
     const out: Record<string, Last5Detail[]> = {};
