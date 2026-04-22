@@ -197,15 +197,56 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="relative shrink-0 mt-2">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search player or team..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 rounded-lg"
-            />
+          <div className="grid grid-cols-[1fr_140px] gap-2 shrink-0 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search player or team..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 rounded-lg"
+              />
+            </div>
+            <Select value={teamFilter} onValueChange={setTeamFilter}>
+              <SelectTrigger className="rounded-lg h-10 text-xs font-heading uppercase">
+                <SelectValue placeholder="All Teams" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="ALL" className="text-xs font-heading uppercase">All Teams</SelectItem>
+                {teamOptions.map((t) => (
+                  <SelectItem key={t} value={t} className="text-xs font-heading uppercase">
+                    {t}{(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          {teamFilter !== "ALL" && (
+            <div className="mt-2 flex items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2 h-6 rounded-full border border-border bg-muted/50 text-[10px] uppercase tracking-wider font-heading">
+                {teamFilter}
+                <button
+                  type="button"
+                  onClick={() => setTeamFilter("ALL")}
+                  className="hover:text-destructive"
+                  aria-label="Clear team filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+              {showCourtPreview && totalPicked < 10 && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Still need {Math.max(0, 5 - fcPicked)} FC / {Math.max(0, 5 - bcPicked)} BC
+                </span>
+              )}
+            </div>
+          )}
+          {warningMessage && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive px-3 py-2 shrink-0">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p className="text-[11px] uppercase tracking-wider font-heading leading-snug">{warningMessage}</p>
+            </div>
+          )}
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2 mt-2">
             <div className="space-y-0">
               {available.map((p) => {
