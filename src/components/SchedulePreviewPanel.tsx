@@ -5,7 +5,6 @@ import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
-import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 
 interface BodyProps {
@@ -125,7 +124,10 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
             <button
               key={d}
               type="button"
-              onClick={() => setDay(d)}
+              onClick={() => {
+                snappedRef.current = true;
+                setDay(d);
+              }}
               className={`h-6 px-2 rounded-md text-[10px] uppercase tracking-wider font-heading transition-colors ${
                 d === day ? "bg-accent text-accent-foreground" : chipInactive
               }`}
