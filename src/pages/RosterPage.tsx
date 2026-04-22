@@ -459,6 +459,15 @@ export default function RosterPage() {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                onClick={() => setScheduleOpen((v) => !v)}
+                variant={scheduleOpen ? "default" : "outline"}
+                size="sm"
+                className={`rounded-xl font-heading uppercase text-xs ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                title="Toggle schedule preview"
+              >
+                <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
+              </Button>
+              <Button
                 onClick={() => setChipCaptain(!chipCaptain)}
                 variant={chipCaptain ? "default" : "outline"}
                 size="sm"
