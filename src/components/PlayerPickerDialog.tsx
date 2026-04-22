@@ -6,10 +6,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Search, X, Volume2, VolumeX } from "lucide-react";
+import { Search, X, Volume2, VolumeX, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, AlertTriangle } from "lucide-react";
 import { Users, Wallet, ShieldHalf, Target, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { getRowPositions } from "@/lib/court-layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
+import { getCurrentGameday } from "@/lib/deadlines";
 import courtBg from "@/assets/court-bg.png";
 import crowdCheerSfx from "@/assets/audio/crowd-cheer.mp3";
 
@@ -46,7 +60,9 @@ export default function PlayerPickerDialog({
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
+  const [teamFilter, setTeamFilter] = useState<string>("ALL");
   const [lastPickId, setLastPickId] = useState<number | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<PlayerListItem | null>(null);
   const [muted, setMuted] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return localStorage.getItem(SFX_KEY) === "0";
@@ -89,17 +105,50 @@ export default function PlayerPickerDialog({
   const fcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "FC").length, [picks]);
   const bcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "BC").length, [picks]);
 
+  const teamOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of allPlayers) if (p.core.team) set.add(p.core.team);
+    return Array.from(set).sort();
+  }, [allPlayers]);
+
+  const teamFilterIsMaxed =
+    teamFilter !== "ALL" && (teamCounts[teamFilter] || 0) >= 2;
+
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
     if (effectiveFilter !== "ALL") {
       filtered = filtered.filter((p) => p.core.fc_bc === effectiveFilter);
+    }
+    if (teamFilter !== "ALL") {
+      filtered = filtered.filter((p) => p.core.team === teamFilter);
     }
     if (!search.trim()) return filtered;
     const q = search.toLowerCase();
     return filtered.filter((p) =>
       p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
     );
-  }, [allPlayers, rosterIds, search, effectiveFilter]);
+  }, [allPlayers, rosterIds, search, effectiveFilter, teamFilter]);
+
+  // Inline warning state — surfaces when a position group is full but roster not done
+  const fcFull = fcPicked >= 5;
+  const bcFull = bcPicked >= 5;
+  const totalPicked = picks.length;
+  let warningMessage: string | null = null;
+  if (showCourtPreview && totalPicked < 10) {
+    if (teamFilterIsMaxed) {
+      warningMessage = `Max 2 reached for ${teamFilter} — pick from another team`;
+    } else if (fcFull && !bcFull) {
+      warningMessage =
+        effectiveFilter === "FC"
+          ? "FC filter active — all FC slots already filled. Switch to BC."
+          : "FC slots full (5/5) — pick BC players to complete your roster";
+    } else if (bcFull && !fcFull) {
+      warningMessage =
+        effectiveFilter === "BC"
+          ? "BC filter active — all BC slots already filled. Switch to FC."
+          : "BC slots full (5/5) — pick FC players to complete your roster";
+    }
+  }
 
   const handleSelect = (p: PlayerListItem) => {
     onSelect(p);
@@ -112,6 +161,7 @@ export default function PlayerPickerDialog({
       onOpenChange(false);
       setSearch("");
       setFcBcFilter("ALL");
+      setTeamFilter("ALL");
     }
   };
 
@@ -121,7 +171,7 @@ export default function PlayerPickerDialog({
     : "max-w-md h-[min(80vh,42rem)] rounded-lg overflow-hidden p-0 flex flex-col";
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); setLastPickId(null); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); setTeamFilter("ALL"); setLastPickId(null); } }}>
       <DialogContent className={dialogClass}>
         {/* LEFT — search + player list */}
         <div className={`flex flex-col min-h-0 p-4 ${showCourtPreview ? "border-r border-border" : ""}`}>
@@ -147,15 +197,56 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="relative shrink-0 mt-2">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search player or team..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 rounded-lg"
-            />
+          <div className="grid grid-cols-[1fr_140px] gap-2 shrink-0 mt-2">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search player or team..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-8 rounded-lg"
+              />
+            </div>
+            <Select value={teamFilter} onValueChange={setTeamFilter}>
+              <SelectTrigger className="rounded-lg h-10 text-xs font-heading uppercase">
+                <SelectValue placeholder="All Teams" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                <SelectItem value="ALL" className="text-xs font-heading uppercase">All Teams</SelectItem>
+                {teamOptions.map((t) => (
+                  <SelectItem key={t} value={t} className="text-xs font-heading uppercase">
+                    {t}{(teamCounts[t] || 0) > 0 ? ` · ${teamCounts[t]}/2` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+          {teamFilter !== "ALL" && (
+            <div className="mt-2 flex items-center gap-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-2 h-6 rounded-full border border-border bg-muted/50 text-[10px] uppercase tracking-wider font-heading">
+                {teamFilter}
+                <button
+                  type="button"
+                  onClick={() => setTeamFilter("ALL")}
+                  className="hover:text-destructive"
+                  aria-label="Clear team filter"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+              {showCourtPreview && totalPicked < 10 && (
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Still need {Math.max(0, 5 - fcPicked)} FC / {Math.max(0, 5 - bcPicked)} BC
+                </span>
+              )}
+            </div>
+          )}
+          {warningMessage && (
+            <div className="mt-2 flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 text-destructive px-3 py-2 shrink-0">
+              <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p className="text-[11px] uppercase tracking-wider font-heading leading-snug">{warningMessage}</p>
+            </div>
+          )}
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mr-2 pr-2 mt-2">
             <div className="space-y-0">
               {available.map((p) => {
@@ -235,7 +326,11 @@ export default function PlayerPickerDialog({
           <CourtPreviewPanel
             picks={picks}
             bankRemaining={bankRemaining ?? 0}
-            onRemove={(id) => onRemovePick?.(id)}
+            onRemove={(id) => {
+              const player = picks.find((p) => p.core.id === id);
+              if (player) setPendingRemove(player);
+            }}
+            rosterTeams={rosterTeams}
             lastPickId={lastPickId}
             muted={muted}
             onToggleMute={() => setMuted((m) => !m)}
@@ -244,6 +339,34 @@ export default function PlayerPickerDialog({
           />
         )}
       </DialogContent>
+      <AlertDialog
+        open={pendingRemove !== null}
+        onOpenChange={(v) => { if (!v) setPendingRemove(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading uppercase tracking-wider">
+              Remove {pendingRemove?.core.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll free <span className="font-mono font-semibold">${pendingRemove?.core.salary}M</span> and one{" "}
+              <span className="font-semibold">{pendingRemove?.core.fc_bc}</span> slot.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingRemove) onRemovePick?.(pendingRemove.core.id);
+                setPendingRemove(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
@@ -252,6 +375,7 @@ function CourtPreviewPanel({
   picks,
   bankRemaining,
   onRemove,
+  rosterTeams,
   lastPickId,
   muted,
   onToggleMute,
@@ -261,6 +385,7 @@ function CourtPreviewPanel({
   picks: PlayerListItem[];
   bankRemaining: number;
   onRemove: (id: number) => void;
+  rosterTeams: string[];
   lastPickId: number | null;
   muted: boolean;
   onToggleMute: () => void;
@@ -432,6 +557,9 @@ function CourtPreviewPanel({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Schedule preview — collapsible */}
+      <SchedulePreview rosterTeams={rosterTeams} />
     </div>
   );
 }
@@ -488,26 +616,26 @@ function CourtSlot({
             />
           )}
 
-          {player.core.photo ? (
-            <img
-              src={player.core.photo}
-              alt={player.core.name}
-              className="aspect-square w-full rounded-full object-cover bg-black/30 shadow-md transition-transform duration-200 group-hover:scale-105"
-            />
-          ) : (
-            <div className="aspect-square w-full rounded-full bg-black/40 flex items-center justify-center text-[12px] font-heading font-bold text-white/80">
-              {player.core.name.substring(0, 2).toUpperCase()}
-            </div>
-          )}
-          {/* Team badge — appears on hover; helps user track per-team picks */}
-          {teamLogo && (
-            <div
-              className="absolute -bottom-1 -left-1 h-7 w-7 rounded-full bg-background/95 border border-white/20 shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-200 z-20 pointer-events-none"
-              title={player.core.team}
-            >
-              <img src={teamLogo} alt={player.core.team} className="h-5 w-5 object-contain" />
-            </div>
-          )}
+          <div className="relative aspect-square w-full" title={player.core.team}>
+            {player.core.photo ? (
+              <img
+                src={player.core.photo}
+                alt={player.core.name}
+                className="absolute inset-0 aspect-square w-full rounded-full object-cover bg-black/30 shadow-md transition-opacity duration-200 group-hover:opacity-0"
+              />
+            ) : (
+              <div className="absolute inset-0 aspect-square w-full rounded-full bg-black/40 flex items-center justify-center text-[12px] font-heading font-bold text-white/80 transition-opacity duration-200 group-hover:opacity-0">
+                {player.core.name.substring(0, 2).toUpperCase()}
+              </div>
+            )}
+            {teamLogo && (
+              <img
+                src={teamLogo}
+                alt={player.core.team}
+                className="absolute inset-0 aspect-square w-full object-contain opacity-0 transition-opacity duration-200 group-hover:opacity-100 pointer-events-none"
+              />
+            )}
+          </div>
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRemove(player.core.id); }}
@@ -531,5 +659,128 @@ function CourtSlot({
         </motion.div>
       )}
     </div>
+  );
+}
+
+function SchedulePreview({ rosterTeams }: { rosterTeams: string[] }) {
+  const initial = useMemo(() => getCurrentGameday(), []);
+  const [gw, setGw] = useState<number>(initial.gw);
+  const [open, setOpen] = useState(false);
+
+  const { data: games = [], isLoading } = useScheduleWeekGames(gw);
+
+  const daysWithGames = useMemo(() => {
+    const set = new Set<number>();
+    for (const g of games) set.add(g.day);
+    return Array.from(set).sort((a, b) => a - b);
+  }, [games]);
+
+  const [day, setDay] = useState<number>(initial.day);
+  useEffect(() => {
+    if (daysWithGames.length === 0) return;
+    if (!daysWithGames.includes(day)) setDay(daysWithGames[0]);
+  }, [daysWithGames, day]);
+
+  const dayGames = useMemo(
+    () => games.filter((g) => g.day === day).sort((a, b) => (a.tipoff_utc ?? "").localeCompare(b.tipoff_utc ?? "")),
+    [games, day]
+  );
+
+  const rosterTeamSet = useMemo(() => new Set(rosterTeams), [rosterTeams]);
+
+  const fmtTime = (iso: string | null) => {
+    if (!iso) return "—";
+    try {
+      return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    } catch {
+      return "—";
+    }
+  };
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="mt-2 shrink-0">
+      <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 px-3 h-9 rounded-lg bg-black/40 border border-white/10 text-foreground/80 hover:text-foreground hover:bg-black/60 transition-colors">
+        <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-heading">
+          <CalendarDays className="h-3.5 w-3.5" />
+          Schedule · GW{gw}
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2 rounded-lg bg-black/30 border border-white/10 p-2.5">
+        {/* GW selector */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => setGw((g) => Math.max(1, g - 1))}
+            className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-black/40 border border-white/10 hover:bg-black/60 disabled:opacity-30"
+            disabled={gw <= 1}
+            aria-label="Previous gameweek"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-[11px] uppercase tracking-[0.25em] font-heading text-foreground/80">GW {gw}</span>
+          <button
+            type="button"
+            onClick={() => setGw((g) => g + 1)}
+            className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-black/40 border border-white/10 hover:bg-black/60"
+            aria-label="Next gameweek"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Day chips */}
+        {daysWithGames.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {daysWithGames.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDay(d)}
+                className={`h-6 px-2 rounded-md text-[10px] uppercase tracking-wider font-heading transition-colors ${
+                  d === day
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-black/40 border border-white/10 text-foreground/60 hover:text-foreground hover:bg-black/60"
+                }`}
+              >
+                D{d}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Matchups */}
+        {isLoading ? (
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground py-2 text-center">Loading…</p>
+        ) : dayGames.length === 0 ? (
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground py-2 text-center">No games</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-1 max-h-44 overflow-y-auto">
+            {dayGames.map((g) => {
+              const homeLogo = getTeamLogo(g.home_team);
+              const awayLogo = getTeamLogo(g.away_team);
+              const involved = rosterTeamSet.has(g.home_team) || rosterTeamSet.has(g.away_team);
+              return (
+                <div
+                  key={g.game_id}
+                  className={`flex items-center justify-between gap-2 px-2 h-7 rounded-md bg-black/30 ${
+                    involved ? "border-l-2 border-l-[hsl(var(--nba-yellow))]" : "border-l-2 border-l-transparent"
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {awayLogo && <img src={awayLogo} alt={g.away_team} className="h-4 w-4 object-contain" />}
+                    <span className="text-[10px] font-mono font-bold text-foreground/90">{g.away_team}</span>
+                    <span className="text-[9px] text-muted-foreground">@</span>
+                    {homeLogo && <img src={homeLogo} alt={g.home_team} className="h-4 w-4 object-contain" />}
+                    <span className="text-[10px] font-mono font-bold text-foreground/90">{g.home_team}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums">{fmtTime(g.tipoff_utc)}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
