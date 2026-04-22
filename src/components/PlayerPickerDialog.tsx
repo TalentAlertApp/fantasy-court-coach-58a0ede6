@@ -383,6 +383,35 @@ function CourtPreviewPanel({
               isLastPick={!!bcs[i] && bcs[i].core.id === lastPickId}
             />
           ))}
+
+          {/* Completion CTA — appears once 10 players are picked */}
+          <AnimatePresence>
+            {isFull && lastPickId === null && (
+              <motion.div
+                key="confirm-cta"
+                initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 220, damping: 20 }}
+                className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+              >
+                <button
+                  type="button"
+                  onClick={() => onConfirm?.()}
+                  disabled={!canConfirm || !onConfirm}
+                  className={`pointer-events-auto group relative inline-flex items-center gap-3 h-16 px-10 rounded-full font-heading uppercase tracking-[0.3em] text-base transition-all ${
+                    canConfirm
+                      ? "bg-accent text-accent-foreground shadow-[0_0_60px_-10px_hsl(var(--accent))] hover:scale-105 hover:shadow-[0_0_80px_-10px_hsl(var(--accent))] animate-[pulse_2.4s_ease-in-out_infinite]"
+                      : "bg-background/80 backdrop-blur-md border border-destructive/60 text-destructive cursor-not-allowed"
+                  }`}
+                  title={canConfirm ? "Save current roster" : "Need 5 FC + 5 BC and within budget"}
+                >
+                  <Check className="h-5 w-5" />
+                  {canConfirm ? "Save Current Roster" : "Fix roster to save"}
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
