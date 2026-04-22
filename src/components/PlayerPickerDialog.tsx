@@ -105,17 +105,50 @@ export default function PlayerPickerDialog({
   const fcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "FC").length, [picks]);
   const bcPicked = useMemo(() => picks.filter((p) => p.core.fc_bc === "BC").length, [picks]);
 
+  const teamOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of allPlayers) if (p.core.team) set.add(p.core.team);
+    return Array.from(set).sort();
+  }, [allPlayers]);
+
+  const teamFilterIsMaxed =
+    teamFilter !== "ALL" && (teamCounts[teamFilter] || 0) >= 2;
+
   const available = useMemo(() => {
     let filtered = allPlayers.filter((p) => !rosterIds.has(p.core.id));
     if (effectiveFilter !== "ALL") {
       filtered = filtered.filter((p) => p.core.fc_bc === effectiveFilter);
+    }
+    if (teamFilter !== "ALL") {
+      filtered = filtered.filter((p) => p.core.team === teamFilter);
     }
     if (!search.trim()) return filtered;
     const q = search.toLowerCase();
     return filtered.filter((p) =>
       p.core.name.toLowerCase().includes(q) || p.core.team.toLowerCase().includes(q)
     );
-  }, [allPlayers, rosterIds, search, effectiveFilter]);
+  }, [allPlayers, rosterIds, search, effectiveFilter, teamFilter]);
+
+  // Inline warning state — surfaces when a position group is full but roster not done
+  const fcFull = fcPicked >= 5;
+  const bcFull = bcPicked >= 5;
+  const totalPicked = picks.length;
+  let warningMessage: string | null = null;
+  if (showCourtPreview && totalPicked < 10) {
+    if (teamFilterIsMaxed) {
+      warningMessage = `Max 2 reached for ${teamFilter} — pick from another team`;
+    } else if (fcFull && !bcFull) {
+      warningMessage =
+        effectiveFilter === "FC"
+          ? "FC filter active — all FC slots already filled. Switch to BC."
+          : "FC slots full (5/5) — pick BC players to complete your roster";
+    } else if (bcFull && !fcFull) {
+      warningMessage =
+        effectiveFilter === "BC"
+          ? "BC filter active — all BC slots already filled. Switch to FC."
+          : "BC slots full (5/5) — pick FC players to complete your roster";
+    }
+  }
 
   const handleSelect = (p: PlayerListItem) => {
     onSelect(p);
