@@ -166,25 +166,17 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
     strategy === "ai" ? "Open AI Coach" :
     picks.length === 0 ? "Start Picking" : isManualValid ? "Save Roster · Go to Court" : `Pick ${10 - picks.length} More`;
 
-  const isOnboarding = variant === "onboarding";
-
-  const containerClass = isOnboarding
-    ? "relative flex flex-col h-screen px-6 py-8 items-center justify-center"
-    : "relative flex flex-col flex-1 min-h-0 px-6 py-6 items-center justify-center";
-
   return (
-    <div className={containerClass}>
+    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
       {(drafting || success) && <DraftingOverlay success={success} />}
 
-      {isOnboarding && <StepIndicator step={3} />}
+      <StepIndicator step={3} />
 
       <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center">
-        {isOnboarding && (
-          <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
-        )}
+        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
         <h2
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
-          style={{ fontSize: isOnboarding ? "clamp(2.25rem, 7vh, 4.5rem)" : "clamp(1.75rem, 5vh, 3rem)", lineHeight: 1 }}
+          style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}
         >
           Draft <span className="text-accent">{teamName || "Your Squad"}</span>
         </h2>
