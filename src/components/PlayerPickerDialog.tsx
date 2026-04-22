@@ -326,7 +326,11 @@ export default function PlayerPickerDialog({
           <CourtPreviewPanel
             picks={picks}
             bankRemaining={bankRemaining ?? 0}
-            onRemove={(id) => onRemovePick?.(id)}
+            onRemove={(id) => {
+              const player = picks.find((p) => p.core.id === id);
+              if (player) setPendingRemove(player);
+            }}
+            rosterTeams={rosterTeams}
             lastPickId={lastPickId}
             muted={muted}
             onToggleMute={() => setMuted((m) => !m)}
@@ -335,6 +339,34 @@ export default function PlayerPickerDialog({
           />
         )}
       </DialogContent>
+      <AlertDialog
+        open={pendingRemove !== null}
+        onOpenChange={(v) => { if (!v) setPendingRemove(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading uppercase tracking-wider">
+              Remove {pendingRemove?.core.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll free <span className="font-mono font-semibold">${pendingRemove?.core.salary}M</span> and one{" "}
+              <span className="font-semibold">{pendingRemove?.core.fc_bc}</span> slot.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingRemove) onRemovePick?.(pendingRemove.core.id);
+                setPendingRemove(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
