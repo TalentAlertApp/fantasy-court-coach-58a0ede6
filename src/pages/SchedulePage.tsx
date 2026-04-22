@@ -8,7 +8,7 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, BandageIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Bandage } from "lucide-react";
 import InjuryReportModal from "@/components/InjuryReportModal";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
@@ -263,7 +263,7 @@ export default function SchedulePage() {
                 title="Injury Report"
                 aria-label="Open injury report"
               >
-                <BandageIcon className="h-4 w-4" />
+                <Bandage className="h-4 w-4" />
               </button>
               <span className="text-muted-foreground/40">·</span>
               <button
