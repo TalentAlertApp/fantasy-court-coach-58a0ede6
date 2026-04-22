@@ -6,10 +6,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Search, X, Volume2, VolumeX } from "lucide-react";
+import { Search, X, Volume2, VolumeX, ChevronLeft, ChevronRight, ChevronDown, CalendarDays, AlertTriangle } from "lucide-react";
 import { Users, Wallet, ShieldHalf, Target, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { getRowPositions } from "@/lib/court-layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
+import { getCurrentGameday } from "@/lib/deadlines";
 import courtBg from "@/assets/court-bg.png";
 import crowdCheerSfx from "@/assets/audio/crowd-cheer.mp3";
 
