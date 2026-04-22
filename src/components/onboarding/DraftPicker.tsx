@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Zap, Hand, Bot, Loader2, Trophy, Check } from "lucide-react";
+import { Zap, Hand, Bot, Loader2, Trophy, Check, ChevronLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { autoPickRoster, saveRoster } from "@/lib/api";
 import { useTeam } from "@/contexts/TeamContext";
@@ -21,10 +21,10 @@ const SALARY_CAP = 100;
 interface Props {
   teamName: string;
   onFinish: () => void;
-  variant?: "onboarding" | "embedded";
+  onBack?: () => void;
 }
 
-export default function DraftPicker({ teamName, onFinish, variant = "onboarding" }: Props) {
+export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
   const { toast } = useToast();
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
@@ -166,25 +166,17 @@ export default function DraftPicker({ teamName, onFinish, variant = "onboarding"
     strategy === "ai" ? "Open AI Coach" :
     picks.length === 0 ? "Start Picking" : isManualValid ? "Save Roster · Go to Court" : `Pick ${10 - picks.length} More`;
 
-  const isOnboarding = variant === "onboarding";
-
-  const containerClass = isOnboarding
-    ? "relative flex flex-col h-screen px-6 py-8 items-center justify-center"
-    : "relative flex flex-col flex-1 min-h-0 px-6 py-6 items-center justify-center";
-
   return (
-    <div className={containerClass}>
+    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
       {(drafting || success) && <DraftingOverlay success={success} />}
 
-      {isOnboarding && <StepIndicator step={3} />}
+      <StepIndicator step={3} />
 
       <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center">
-        {isOnboarding && (
-          <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
-        )}
+        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
         <h2
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
-          style={{ fontSize: isOnboarding ? "clamp(2.25rem, 7vh, 4.5rem)" : "clamp(1.75rem, 5vh, 3rem)", lineHeight: 1 }}
+          style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}
         >
           Draft <span className="text-accent">{teamName || "Your Squad"}</span>
         </h2>
@@ -267,20 +259,34 @@ export default function DraftPicker({ teamName, onFinish, variant = "onboarding"
           </div>
         )}
 
-        <Button
-          onClick={handleGo}
-          disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
-          size="lg"
-          className="mt-8 h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
-        >
-          {drafting ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving…</>
-          ) : strategy === "manual" && isManualValid ? (
-            <><Check className="mr-2 h-5 w-5" /> {ctaLabel}</>
-          ) : (
-            <><Trophy className="mr-2 h-5 w-5" /> {ctaLabel}</>
+        <div className="mt-8 flex items-center gap-3">
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              disabled={drafting}
+              className="h-14 px-5 rounded-full text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+            >
+              <ChevronLeft className="mr-1 h-5 w-5" />
+              Back
+            </Button>
           )}
-        </Button>
+          <Button
+            onClick={handleGo}
+            disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
+            size="lg"
+            className="h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
+          >
+            {drafting ? (
+              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving…</>
+            ) : strategy === "manual" && isManualValid ? (
+              <><Check className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            ) : (
+              <><Trophy className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            )}
+          </Button>
+        </div>
 
         {strategy === "manual" && picks.length > 0 && !isManualValid && (
           <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-foreground/50">
@@ -288,18 +294,16 @@ export default function DraftPicker({ teamName, onFinish, variant = "onboarding"
           </p>
         )}
 
-        {isOnboarding && (
-          <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3">
-            {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
-              <span
-                key={chip}
-                className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
-              >
-                {chip}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3">
+          {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
+            <span
+              key={chip}
+              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
       </div>
 
       {strategy === "manual" && (

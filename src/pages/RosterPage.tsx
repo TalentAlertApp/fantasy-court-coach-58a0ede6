@@ -427,14 +427,15 @@ export default function RosterPage() {
           </div>
         </div>
       ) : isRosterEmpty ? (
-        <DraftPicker
-          teamName={teamName}
-          variant="embedded"
-          onFinish={() => {
-            queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-            refetchRoster();
-          }}
-        />
+        <div className="fixed inset-0 z-40 bg-background overflow-auto">
+          <DraftPicker
+            teamName={teamName}
+            onFinish={() => {
+              queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+              refetchRoster();
+            }}
+          />
+        </div>
       ) : (
         <>
           {/* ── Toolbar Row ── */}
