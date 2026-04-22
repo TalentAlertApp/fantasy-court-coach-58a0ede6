@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,15 +12,8 @@ const corsHeaders = {
 
 const IsoDateTimeSchema = z.string().datetime({ offset: true });
 
-const ScoringRulesSchema = z
-  .object({
-    pts: z.literal(1),
-    reb: z.literal(1),
-    ast: z.literal(2),
-    stl: z.literal(3),
-    blk: z.literal(3),
-  })
-  .strict();
+// Dynamic scoring rules (DB-driven). Any positive numeric weight per stat key.
+const ScoringRulesSchema = z.record(z.string(), z.number());
 
 const HealthPayloadSchema = z
   .object({
