@@ -1,9 +1,10 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useScoringHistory, type ScoringGameDay } from "@/hooks/useScoringHistory";
 import { useLeagueStandings } from "@/hooks/useLeagueStandings";
@@ -47,21 +48,62 @@ export default function ScoringPage() {
 
   return (
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Trophy className="h-6 w-6 text-[hsl(var(--nba-yellow))]" />
-        <h1 className="text-2xl font-heading font-bold uppercase tracking-wider">Scoring</h1>
+      {/* Header — premium NBA bar with court-line gradient */}
+      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-30"
+          style={{
+            background:
+              "radial-gradient(circle at 0% 50%, hsl(var(--nba-yellow) / 0.18), transparent 40%), radial-gradient(circle at 100% 50%, hsl(var(--primary) / 0.18), transparent 40%)",
+          }}
+        />
+        <div className="relative flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-[hsl(var(--nba-yellow))]/15 ring-1 ring-[hsl(var(--nba-yellow))]/40 flex items-center justify-center">
+            <Activity className="h-5 w-5 text-[hsl(var(--nba-yellow))]" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-heading font-black uppercase tracking-wider leading-none">Scoring</h1>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-heading mt-1">
+              League standings · Team performance
+            </p>
+          </div>
+        </div>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
-        <TabsList className="grid grid-cols-2 w-full max-w-md">
-          <TabsTrigger value="league" className="font-heading uppercase text-xs tracking-wider gap-2">
-            <Crown className="h-3.5 w-3.5" /> League
-          </TabsTrigger>
-          <TabsTrigger value="team" className="font-heading uppercase text-xs tracking-wider gap-2">
-            <Trophy className="h-3.5 w-3.5" /> Your Team
-          </TabsTrigger>
-        </TabsList>
+        {/* Tab bar + (when on Your Team) inline team selector at far right */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <TabsList className="grid grid-cols-2 w-full max-w-sm bg-card border border-border h-10 p-1 rounded-xl">
+            <TabsTrigger
+              value="league"
+              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--nba-yellow))]/15 data-[state=active]:text-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none"
+            >
+              <Crown className="h-3.5 w-3.5" /> League
+            </TabsTrigger>
+            <TabsTrigger
+              value="team"
+              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none"
+            >
+              <Shield className="h-3.5 w-3.5" /> Your Team
+            </TabsTrigger>
+          </TabsList>
+          {tab === "team" && myTeams.length > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[10px] uppercase font-heading tracking-[0.2em] text-muted-foreground">Team</span>
+              <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
+                <SelectTrigger className="w-64 h-10 rounded-xl bg-card border-border font-heading text-xs uppercase tracking-wider">
+                  <SelectValue placeholder="Pick a team…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {myTeams.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
 
         {/* ════════════════════════ LEAGUE TAB ════════════════════════ */}
         <TabsContent value="league" className="space-y-5 mt-5">
@@ -81,26 +123,9 @@ export default function ScoringPage() {
 
         {/* ════════════════════════ YOUR TEAM TAB ════════════════════════ */}
         <TabsContent value="team" className="space-y-5 mt-5">
-          {/* Team selector */}
-          {myTeams.length > 0 && (
-            <div className="flex items-center gap-3">
-              <span className="text-xs uppercase font-heading tracking-wider text-muted-foreground">Team</span>
-              <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
-                <SelectTrigger className="w-64 h-9 rounded-xl">
-                  <SelectValue placeholder="Pick a team…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {myTeams.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {myTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-card border border-border rounded-xl">
-              <Trophy className="h-12 w-12 text-muted-foreground/30" />
+              <Shield className="h-12 w-12 text-muted-foreground/30" />
               <p className="text-muted-foreground font-heading">You don't own any teams yet</p>
               <Button onClick={() => navigate("/onboarding")} size="sm" className="rounded-xl">
                 Create your first team
