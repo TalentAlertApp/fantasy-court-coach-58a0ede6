@@ -450,6 +450,7 @@ function CourtSlot({
   isLastPick: boolean;
 }) {
   const isFc = fallbackLabel === "FC";
+  const teamLogo = player ? getTeamLogo(player.core.team) : undefined;
 
   return (
     <div
@@ -498,6 +499,15 @@ function CourtSlot({
               {player.core.name.substring(0, 2).toUpperCase()}
             </div>
           )}
+          {/* Team badge — appears on hover; helps user track per-team picks */}
+          {teamLogo && (
+            <div
+              className="absolute -bottom-1 -left-1 h-7 w-7 rounded-full bg-background/95 border border-white/20 shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-200 z-20 pointer-events-none"
+              title={player.core.team}
+            >
+              <img src={teamLogo} alt={player.core.team} className="h-5 w-5 object-contain" />
+            </div>
+          )}
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onRemove(player.core.id); }}
@@ -506,17 +516,17 @@ function CourtSlot({
           >
             <X className="h-3 w-3" />
           </button>
-          <p className="mt-0.5 text-[10px] text-center text-white font-heading font-bold truncate drop-shadow leading-tight">
+          <p className="mt-1 text-xs text-center text-white font-heading font-bold truncate drop-shadow leading-tight">
             {(() => {
               const parts = player.core.name.trim().split(/\s+/);
               return parts.length === 1 ? parts[0].toUpperCase() : `${parts[0][0]}.${parts[parts.length - 1]}`.toUpperCase();
             })()}
           </p>
-          <div className="mt-0.5 flex items-center justify-center gap-1">
-            <span className={`inline-flex items-center justify-center px-1 h-3.5 rounded text-[8px] font-heading font-bold ${isFc ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
+          <div className="mt-1 flex items-center justify-center gap-1.5">
+            <span className={`inline-flex items-center justify-center px-1.5 h-4 rounded text-[10px] font-heading font-bold ${isFc ? "bg-destructive text-destructive-foreground" : "bg-primary text-primary-foreground"}`}>
               {player.core.fc_bc}
             </span>
-            <span className="text-[9px] text-white font-mono font-bold drop-shadow">${player.core.salary}M</span>
+            <span className="text-[11px] text-white font-mono font-bold drop-shadow">${player.core.salary}M</span>
           </div>
         </motion.div>
       )}
