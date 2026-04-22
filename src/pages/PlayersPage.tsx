@@ -394,6 +394,16 @@ export default function PlayersPage() {
             <Bot className="h-3.5 w-3.5" />AI Coach
           </Button>
         </div>
+
+        {/* Schedule preview — full-width, expands downwards below the trade toolbar */}
+        <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
+          <CollapsibleContent className="w-full max-h-72 overflow-hidden">
+            <SchedulePreviewBody
+              rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
+              variant="panel"
+            />
+          </CollapsibleContent>
+        </Collapsible>
       </div>
 
       {isLoading ? (
