@@ -121,6 +121,11 @@ Deno.serve(async (req) => {
           const won = isHome ? sched.home_pts > sched.away_pts : sched.away_pts > sched.home_pts;
           resultWL = won ? "W" : "L";
         }
+        // Recompute FP from rules — DB-driven, ignores stale `fp` column writes.
+        const computedFp = computeFpFromRules(
+          { pts: Number(log.pts) || 0, reb: Number(log.reb) || 0, ast: Number(log.ast) || 0, stl: Number(log.stl) || 0, blk: Number(log.blk) || 0 },
+          scoringRules
+        );
         return {
           player_id: log.player_id,
           name: p.name || "Unknown",
@@ -130,7 +135,7 @@ Deno.serve(async (req) => {
           opp: log.opp || "",
           home_away: log.home_away || "",
           result_wl: resultWL,
-          fp: Number(log.fp) || 0,
+          fp: Math.round(computedFp * 10) / 10,
           salary: Number(p.salary) || 0,
           value: Number(p.value5) || 0,
           mp: Number(log.mp) || 0,
