@@ -534,7 +534,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          owner_id: string | null
+          owner_id: string
           updated_at: string
         }
         Insert: {
@@ -542,7 +542,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          owner_id?: string | null
+          owner_id: string
           updated_at?: string
         }
         Update: {
@@ -550,7 +550,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          owner_id?: string | null
+          owner_id?: string
           updated_at?: string
         }
         Relationships: []

@@ -67,8 +67,7 @@ Deno.serve(async (req) => {
         .from("teams").select("owner_id").eq("id", teamIdParam).maybeSingle();
       if (exErr) throw exErr;
       if (!existing) return errorResponse("NOT_FOUND", "Team not found");
-      // Legacy teams (owner_id IS NULL) are shared sandboxes — anyone signed in can manage them.
-      if (existing.owner_id !== null && existing.owner_id !== userId) {
+      if (existing.owner_id !== userId) {
         return errorResponse("FORBIDDEN", "You do not own this team");
       }
       const body = await req.json();
@@ -92,8 +91,7 @@ Deno.serve(async (req) => {
         .from("teams").select("owner_id").eq("id", teamIdParam).maybeSingle();
       if (exErr) throw exErr;
       if (!existing) return errorResponse("NOT_FOUND", "Team not found");
-      // Legacy teams (owner_id IS NULL) can be deleted by any authenticated user.
-      if (existing.owner_id !== null && existing.owner_id !== userId) {
+      if (existing.owner_id !== userId) {
         return errorResponse("FORBIDDEN", "You do not own this team");
       }
       const { error } = await sb.from("teams").delete().eq("id", teamIdParam);
