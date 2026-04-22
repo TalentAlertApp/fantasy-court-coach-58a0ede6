@@ -150,138 +150,24 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
           No games
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto">
-          {dayGames.map((g) => {
-            const homeLogo = getTeamLogo(g.home_team);
-            const awayLogo = getTeamLogo(g.away_team);
-            const homeInvolved = rosterTeamSet.has(g.home_team);
-            const awayInvolved = rosterTeamSet.has(g.away_team);
-            const involved = homeInvolved || awayInvolved;
-            const homeStanding = standingsByTeam[g.home_team];
-            const awayStanding = standingsByTeam[g.away_team];
-            const homeLast5 = last5ByTeam[g.home_team] ?? [];
-            const awayLast5 = last5ByTeam[g.away_team] ?? [];
-            const homeRank = divisionRankByTeam[g.home_team];
-            const awayRank = divisionRankByTeam[g.away_team];
-
-            const fmtPct = (pct: number) =>
-              pct > 0 ? `.${String(Math.round(pct * 1000)).padStart(3, "0")}` : ".000";
-
-            const renderLast5 = (results: ("W" | "L")[], color?: string) => (
-              <div className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = results.length - 5 + i;
-                  const r = idx >= 0 ? results[idx] : null;
-                  return (
-                    <span
-                      key={i}
-                      className={`h-2 w-2 rounded-sm ${
-                        r === "W"
-                          ? "bg-emerald-500/80"
-                          : r === "L"
-                          ? "bg-red-500/80"
-                          : "bg-muted-foreground/20"
-                      }`}
-                      style={r ? { boxShadow: color ? `0 0 0 1px ${color}55` : undefined } : undefined}
-                    />
-                  );
-                })}
-              </div>
-            );
-
-            return (
-              <div
+        <TooltipProvider delayDuration={120}>
+          <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pr-1">
+            {dayGames.map((g) => (
+              <MatchupCard
                 key={g.game_id}
-                className={`flex flex-col gap-1.5 px-2.5 py-2 rounded-md ${rowBg} border-l-2 ${
-                  involved ? "border-l-[hsl(var(--nba-yellow))]" : "border-l-transparent"
-                }`}
-              >
-                {/* Top line — matchup */}
-                <div className="flex items-center justify-between gap-2 min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {awayLogo && (
-                      <img src={awayLogo} alt={g.away_team} className="h-4 w-4 object-contain" />
-                    )}
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        awayInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground/90"
-                      }`}
-                    >
-                      {g.away_team}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground">@</span>
-                    {homeLogo && (
-                      <img src={homeLogo} alt={g.home_team} className="h-4 w-4 object-contain" />
-                    )}
-                    <span
-                      className={`text-[10px] font-mono font-bold ${
-                        homeInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground/90"
-                      }`}
-                    >
-                      {g.home_team}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground tabular-nums shrink-0">
-                    {fmtTime(g.tipoff_utc)}
-                  </span>
-                </div>
-
-                {/* Bottom line — split team stats */}
-                <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2 text-[9px]">
-                  {/* Away cluster (left) */}
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    {renderLast5(awayLast5, primaryByTeam[g.away_team])}
-                    {awayStanding && awayStanding.gp > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        {awayStanding.w}-{awayStanding.l} · {fmtPct(awayStanding.pct)}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">—</span>
-                    )}
-                    {awayStanding && (awayStanding.awayW + awayStanding.awayL) > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        Away {awayStanding.awayW}-{awayStanding.awayL}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">Away —</span>
-                    )}
-                    {awayRank && (
-                      <span className="uppercase tracking-wider text-foreground/60">
-                        {awayRank.ordinal} {awayRank.divLabel}
-                      </span>
-                    )}
-                  </div>
-
-                  <span className="text-[9px] text-muted-foreground/50 self-center">@</span>
-
-                  {/* Home cluster (right-aligned) */}
-                  <div className="flex flex-col gap-0.5 items-end min-w-0">
-                    {renderLast5(homeLast5, primaryByTeam[g.home_team])}
-                    {homeStanding && homeStanding.gp > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        {homeStanding.w}-{homeStanding.l} · {fmtPct(homeStanding.pct)}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">—</span>
-                    )}
-                    {homeStanding && (homeStanding.homeW + homeStanding.homeL) > 0 ? (
-                      <span className="font-mono tabular-nums text-muted-foreground">
-                        Home {homeStanding.homeW}-{homeStanding.homeL}
-                      </span>
-                    ) : (
-                      <span className="font-mono text-muted-foreground/50">Home —</span>
-                    )}
-                    {homeRank && (
-                      <span className="uppercase tracking-wider text-foreground/60">
-                        {homeRank.ordinal} {homeRank.divLabel}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                game={g}
+                rowBg={rowBg}
+                rosterTeamSet={rosterTeamSet}
+                standingsByTeam={standingsByTeam}
+                last5ByTeam={last5ByTeam}
+                last5DetailByTeam={last5DetailByTeam}
+                divisionRankByTeam={divisionRankByTeam}
+                primaryByTeam={primaryByTeam}
+                fmtTime={fmtTime}
+              />
+            ))}
+          </div>
+        </TooltipProvider>
       )}
     </div>
   );
