@@ -4,7 +4,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { getCurrentGameday } from "@/lib/deadlines";
-import { getTeamLogo } from "@/lib/nba-teams";
+import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
+import { getVenue } from "@/lib/nba-venues";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import type { Last5Detail } from "@/hooks/useStandingsContext";
 import { NBA_TEAMS } from "@/lib/nba-teams";
