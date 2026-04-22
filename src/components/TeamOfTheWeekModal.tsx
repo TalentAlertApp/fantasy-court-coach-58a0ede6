@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import courtBg from "@/assets/court-bg.png";
 import PlayerModal from "@/components/PlayerModal";
 import { useWishlist } from "@/hooks/useWishlist";
+import { getRowPositions } from "@/lib/court-layout";
 
 function formatShortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -15,20 +16,6 @@ function formatShortName(fullName: string): string {
   const firstInitial = parts[0][0];
   const lastName = parts[parts.length - 1];
   return `${firstInitial}.${lastName}`.toUpperCase();
-}
-
-function getRowPositions(count: number, topPct: string): { top: string; left: string }[] {
-  if (count === 3) {
-    return [
-      { top: topPct, left: "20%" },
-      { top: topPct, left: "50%" },
-      { top: topPct, left: "80%" },
-    ];
-  }
-  return [
-    { top: topPct, left: "33%" },
-    { top: topPct, left: "67%" },
-  ];
 }
 
 function getFormation(players: TOTWPlayer[]) {
@@ -108,10 +95,9 @@ function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void
         </span>
       </div>
 
-      {/* GW FP — preserve TOTW info */}
-      <div className="mt-1 z-10 text-center">
-        <span className="text-xs font-heading font-bold text-emerald-400 drop-shadow-md">{player.fp_avg} FP</span>
-        <span className="text-[9px] text-white/70 ml-1">({player.gp}G)</span>
+      {/* GW FP — soft-pill matching width of FC + $ row above */}
+      <div className="mt-1 z-10 mx-auto rounded-xl px-3 py-1 bg-emerald-500/85 text-black text-xs font-heading font-bold shadow-md text-center">
+        {player.fp_avg} FP <span className="opacity-70 font-mono">({player.gp}G)</span>
       </div>
     </div>
   );

@@ -14,12 +14,15 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday } from "@/lib/deadlines";
+import AICoachModal from "@/components/AICoachModal";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -39,6 +42,11 @@ export default function PlayersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortCol, setSortCol] = useState<string>("fp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [releasing, setReleasing] = useState<number[]>([]);
+  const [chipAllStar, setChipAllStar] = useState(false);
+  const [chipWildcard, setChipWildcard] = useState(false);
+  const [aiCoachOpen, setAiCoachOpen] = useState(false);
+  const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
 
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
@@ -53,6 +61,63 @@ export default function PlayersPage() {
     for (const b of rosterData?.bench ?? []) if (b.player_id) ids.add(b.player_id);
     return ids;
   }, [rosterData]);
+
+  const rosterPlayers = useMemo(() => {
+    const all: Array<{ player_id: number; name: string; team: string; salary: number; fc_bc: string; photo: string | null }> = [];
+    const slots = [...(rosterData?.starters ?? []), ...(rosterData?.bench ?? [])];
+    for (const s of slots) {
+      if (!s.player_id) continue;
+      all.push({
+        player_id: s.player_id,
+        name: (s as any).name ?? `#${s.player_id}`,
+        team: (s as any).team ?? "",
+        salary: (s as any).salary ?? 0,
+        fc_bc: (s as any).fc_bc ?? "",
+        photo: (s as any).photo ?? null,
+      });
+    }
+    return all;
+  }, [rosterData]);
+
+  const releasingMap = useMemo(() => {
+    const m = new Map<number, typeof rosterPlayers[number]>();
+    for (const p of rosterPlayers) if (releasing.includes(p.player_id)) m.set(p.player_id, p);
+    return m;
+  }, [rosterPlayers, releasing]);
+
+  const releaseCap = chipAllStar || chipWildcard ? 10 : 2;
+  const bankRemaining = (rosterData as any)?.bank_remaining ?? 0;
+  const releasedSalary = useMemo(
+    () => Array.from(releasingMap.values()).reduce((s, p) => s + (p.salary ?? 0), 0),
+    [releasingMap],
+  );
+  const availableBudget = bankRemaining + releasedSalary;
+  const budgetClass = availableBudget > 0 ? "text-emerald-500" : availableBudget < 0 ? "text-destructive" : "text-foreground";
+
+  const toggleRelease = (id: number) => {
+    setReleasing((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= releaseCap) {
+        toast.error(`Max ${releaseCap} releases. Activate All-Star or Wildcard to release more.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const applyTrades = async () => {
+    if (releasing.length === 0) { toast.error("No players selected to release"); return; }
+    if (!selectedTeamId) { toast.error("Select a team first"); return; }
+    const { error } = await supabase
+      .from("roster")
+      .delete()
+      .eq("team_id", selectedTeamId)
+      .in("player_id", releasing);
+    if (error) { toast.error("Failed to release players"); return; }
+    toast.success(`Released ${releasing.length} player${releasing.length === 1 ? "" : "s"}`);
+    setReleasing([]);
+    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+  };
 
   const teamCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -197,13 +262,125 @@ export default function PlayersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 flex-wrap shrink-0 mb-4">
-        <h2 className="text-xl font-heading font-bold">Transactions</h2>
-        <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
-          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
-          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
-        </ToggleGroup>
-        <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
+      <div className="flex flex-col gap-3 shrink-0 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-xl font-heading font-bold">Transactions</h2>
+          <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
+            <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
+            <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
+          </ToggleGroup>
+          <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
+        </div>
+
+        {/* Trade toolbar */}
+        <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card/40 px-3 py-2">
+          {/* Trade dropdown */}
+          <Popover open={tradePopoverOpen} onOpenChange={setTradePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="rounded-xl h-9 font-heading text-xs uppercase gap-1.5">
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                Trade
+                <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[9px] font-mono">
+                  {releasing.length}/{releaseCap}
+                </Badge>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Find player to release..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>No roster players</CommandEmpty>
+                  <CommandGroup heading="Your Roster">
+                    {rosterPlayers.map((p) => {
+                      const sel = releasing.includes(p.player_id);
+                      return (
+                        <CommandItem
+                          key={p.player_id}
+                          value={`${p.name} ${p.team}`}
+                          onSelect={() => toggleRelease(p.player_id)}
+                          className="flex items-center gap-2"
+                        >
+                          <Check className={`h-3.5 w-3.5 ${sel ? "opacity-100 text-destructive" : "opacity-0"}`} />
+                          <Avatar className="h-6 w-6 shrink-0">
+                            {p.photo && <AvatarImage src={p.photo} />}
+                            <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
+                          </Avatar>
+                          <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded">{p.fc_bc}</Badge>
+                          <span className="text-xs font-heading flex-1 truncate">{p.name}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">${p.salary}M</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {/* Selected pills */}
+          {Array.from(releasingMap.values()).map((p) => (
+            <span key={p.player_id} className="inline-flex items-center gap-1 rounded-full bg-destructive/15 border border-destructive/40 text-destructive px-2 h-7 text-[11px] font-heading uppercase">
+              <span className="font-bold">{p.name}</span>
+              <span className="font-mono opacity-70">${p.salary}M</span>
+              <button
+                type="button"
+                onClick={() => toggleRelease(p.player_id)}
+                className="hover:bg-destructive/30 rounded-full p-0.5"
+                aria-label={`Cancel release ${p.name}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+
+          {/* Live budget */}
+          <span className={`ml-auto inline-flex items-center gap-1 rounded-xl border bg-background px-3 h-9 text-xs font-heading uppercase`}>
+            <span className="text-muted-foreground">Budget</span>
+            <span className={`font-mono font-bold ${budgetClass}`}>${availableBudget.toFixed(1)}M</span>
+          </span>
+
+          {/* Chips */}
+          <Button
+            size="sm"
+            variant={chipAllStar ? "default" : "outline"}
+            className={`rounded-xl h-9 font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+            onClick={() => setChipAllStar(!chipAllStar)}
+            title="All-Star chip — boosts release cap"
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
+          </Button>
+          <Button
+            size="sm"
+            variant={chipWildcard ? "default" : "outline"}
+            className={`rounded-xl h-9 font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+            onClick={() => setChipWildcard(!chipWildcard)}
+            title="Wildcard chip — unlimited transfers"
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
+          </Button>
+
+          {/* Apply trades */}
+          {releasing.length > 0 && (
+            <Button
+              size="sm"
+              className="rounded-xl h-9 font-heading uppercase text-xs"
+              onClick={applyTrades}
+            >
+              Apply ({releasing.length})
+            </Button>
+          )}
+
+          {/* AI Coach */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl h-9 font-heading uppercase text-xs gap-1.5"
+            onClick={() => setAiCoachOpen(true)}
+            title="Open AI Coach"
+          >
+            <Bot className="h-3.5 w-3.5" />AI Coach
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -234,17 +411,33 @@ export default function PlayersPage() {
                     const teamLogo = getTeamLogo(p.core.team);
                     const isOnRoster = rosterPlayerIds.has(p.core.id);
                     const teamAtMax = (teamCounts[p.core.team] ?? 0) >= 2;
-                    const canAdd = !isOnRoster && !teamAtMax && rosterPlayerIds.size < 10;
+                    const isReleasing = releasing.includes(p.core.id);
+                    const effectiveRosterSize = rosterPlayerIds.size - releasing.length;
+                    const overBudget = p.core.salary > availableBudget;
+                    const canAdd = !isOnRoster && !teamAtMax && effectiveRosterSize < 10 && !overBudget;
+                    const addTitle = teamAtMax
+                      ? "Max 2 per team"
+                      : effectiveRosterSize >= 10
+                        ? "Roster full"
+                        : overBudget
+                          ? `Over budget ($${availableBudget.toFixed(1)}M left)`
+                          : "Add to roster";
 
                     return (
                       <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
                         <td className="px-1 py-1">
                           {isOnRoster ? (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={(e) => handleRemovePlayer(p.core.id, e)} title="Remove from roster">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-6 w-6 ${isReleasing ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"}`}
+                              onClick={(e) => { e.stopPropagation(); toggleRelease(p.core.id); }}
+                              title={isReleasing ? "Cancel release" : "Mark for release"}
+                            >
                               <Minus className="h-3.5 w-3.5" />
                             </Button>
                           ) : (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={teamAtMax ? "Max 2 per team" : "Add to roster"}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={addTitle}>
                               <Plus className="h-3.5 w-3.5" />
                             </Button>
                           )}
@@ -308,6 +501,7 @@ export default function PlayersPage() {
       )}
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
+      <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
     </div>
   );
 }

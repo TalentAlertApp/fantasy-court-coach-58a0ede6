@@ -7,6 +7,7 @@ import { Users, Star } from "lucide-react";
 import courtBg from "@/assets/court-bg.png";
 import type { UpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 import { getTeamUpcoming } from "@/hooks/useUpcomingByTeam";
+import { getRowPositions } from "@/lib/court-layout";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -29,20 +30,6 @@ interface RosterCourtViewProps {
     bcStarters: number;
     totalSalary: number;
   };
-}
-
-function getRowPositions(count: number, topPct: string): { top: string; left: string }[] {
-  if (count === 3) {
-    return [
-      { top: topPct, left: "20%" },
-      { top: topPct, left: "50%" },
-      { top: topPct, left: "80%" },
-    ];
-  }
-  return [
-    { top: topPct, left: "33%" },
-    { top: topPct, left: "67%" },
-  ];
 }
 
 function getFormationPositions(starters: PlayerListItem[]) {

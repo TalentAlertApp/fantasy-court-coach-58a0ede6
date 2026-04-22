@@ -199,9 +199,11 @@ export default function PlayerCard({
           </div>
         )}
         {teamLogo && (
-          <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-card ring-2 ring-white shadow-lg flex items-center justify-center overflow-hidden">
-            <img src={teamLogo} alt={core.team} className="w-7 h-7 object-contain" />
-          </div>
+          <img
+            src={teamLogo}
+            alt={core.team}
+            className="absolute -top-0.5 -right-0.5 w-7 h-7 object-contain drop-shadow-md pointer-events-none"
+          />
         )}
       </div>
 
