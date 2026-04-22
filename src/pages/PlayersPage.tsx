@@ -62,6 +62,63 @@ export default function PlayersPage() {
     return ids;
   }, [rosterData]);
 
+  const rosterPlayers = useMemo(() => {
+    const all: Array<{ player_id: number; name: string; team: string; salary: number; fc_bc: string; photo: string | null }> = [];
+    const slots = [...(rosterData?.starters ?? []), ...(rosterData?.bench ?? [])];
+    for (const s of slots) {
+      if (!s.player_id) continue;
+      all.push({
+        player_id: s.player_id,
+        name: (s as any).name ?? `#${s.player_id}`,
+        team: (s as any).team ?? "",
+        salary: (s as any).salary ?? 0,
+        fc_bc: (s as any).fc_bc ?? "",
+        photo: (s as any).photo ?? null,
+      });
+    }
+    return all;
+  }, [rosterData]);
+
+  const releasingMap = useMemo(() => {
+    const m = new Map<number, typeof rosterPlayers[number]>();
+    for (const p of rosterPlayers) if (releasing.includes(p.player_id)) m.set(p.player_id, p);
+    return m;
+  }, [rosterPlayers, releasing]);
+
+  const releaseCap = chipAllStar || chipWildcard ? 10 : 2;
+  const bankRemaining = (rosterData as any)?.bank_remaining ?? 0;
+  const releasedSalary = useMemo(
+    () => Array.from(releasingMap.values()).reduce((s, p) => s + (p.salary ?? 0), 0),
+    [releasingMap],
+  );
+  const availableBudget = bankRemaining + releasedSalary;
+  const budgetClass = availableBudget > 0 ? "text-emerald-500" : availableBudget < 0 ? "text-destructive" : "text-foreground";
+
+  const toggleRelease = (id: number) => {
+    setReleasing((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= releaseCap) {
+        toast.error(`Max ${releaseCap} releases. Activate All-Star or Wildcard to release more.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const applyTrades = async () => {
+    if (releasing.length === 0) { toast.error("No players selected to release"); return; }
+    if (!selectedTeamId) { toast.error("Select a team first"); return; }
+    const { error } = await supabase
+      .from("roster")
+      .delete()
+      .eq("team_id", selectedTeamId)
+      .in("player_id", releasing);
+    if (error) { toast.error("Failed to release players"); return; }
+    toast.success(`Released ${releasing.length} player${releasing.length === 1 ? "" : "s"}`);
+    setReleasing([]);
+    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+  };
+
   const teamCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     if (!rosterData) return counts;
@@ -205,13 +262,125 @@ export default function PlayersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 flex-wrap shrink-0 mb-4">
-        <h2 className="text-xl font-heading font-bold">Transactions</h2>
-        <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
-          <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
-          <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
-        </ToggleGroup>
-        <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
+      <div className="flex flex-col gap-3 shrink-0 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <h2 className="text-xl font-heading font-bold">Transactions</h2>
+          <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
+            <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
+            <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
+          </ToggleGroup>
+          <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
+        </div>
+
+        {/* Trade toolbar */}
+        <div className="flex items-center gap-2 flex-wrap rounded-xl border border-border bg-card/40 px-3 py-2">
+          {/* Trade dropdown */}
+          <Popover open={tradePopoverOpen} onOpenChange={setTradePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="rounded-xl h-9 font-heading text-xs uppercase gap-1.5">
+                <ArrowLeftRight className="h-3.5 w-3.5" />
+                Trade
+                <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[9px] font-mono">
+                  {releasing.length}/{releaseCap}
+                </Badge>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Find player to release..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>No roster players</CommandEmpty>
+                  <CommandGroup heading="Your Roster">
+                    {rosterPlayers.map((p) => {
+                      const sel = releasing.includes(p.player_id);
+                      return (
+                        <CommandItem
+                          key={p.player_id}
+                          value={`${p.name} ${p.team}`}
+                          onSelect={() => toggleRelease(p.player_id)}
+                          className="flex items-center gap-2"
+                        >
+                          <Check className={`h-3.5 w-3.5 ${sel ? "opacity-100 text-destructive" : "opacity-0"}`} />
+                          <Avatar className="h-6 w-6 shrink-0">
+                            {p.photo && <AvatarImage src={p.photo} />}
+                            <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
+                          </Avatar>
+                          <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 h-3.5 rounded">{p.fc_bc}</Badge>
+                          <span className="text-xs font-heading flex-1 truncate">{p.name}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">${p.salary}M</span>
+                        </CommandItem>
+                      );
+                    })}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {/* Selected pills */}
+          {Array.from(releasingMap.values()).map((p) => (
+            <span key={p.player_id} className="inline-flex items-center gap-1 rounded-full bg-destructive/15 border border-destructive/40 text-destructive px-2 h-7 text-[11px] font-heading uppercase">
+              <span className="font-bold">{p.name}</span>
+              <span className="font-mono opacity-70">${p.salary}M</span>
+              <button
+                type="button"
+                onClick={() => toggleRelease(p.player_id)}
+                className="hover:bg-destructive/30 rounded-full p-0.5"
+                aria-label={`Cancel release ${p.name}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+
+          {/* Live budget */}
+          <span className={`ml-auto inline-flex items-center gap-1 rounded-xl border bg-background px-3 h-9 text-xs font-heading uppercase`}>
+            <span className="text-muted-foreground">Budget</span>
+            <span className={`font-mono font-bold ${budgetClass}`}>${availableBudget.toFixed(1)}M</span>
+          </span>
+
+          {/* Chips */}
+          <Button
+            size="sm"
+            variant={chipAllStar ? "default" : "outline"}
+            className={`rounded-xl h-9 font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+            onClick={() => setChipAllStar(!chipAllStar)}
+            title="All-Star chip — boosts release cap"
+          >
+            <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
+          </Button>
+          <Button
+            size="sm"
+            variant={chipWildcard ? "default" : "outline"}
+            className={`rounded-xl h-9 font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+            onClick={() => setChipWildcard(!chipWildcard)}
+            title="Wildcard chip — unlimited transfers"
+          >
+            <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
+          </Button>
+
+          {/* Apply trades */}
+          {releasing.length > 0 && (
+            <Button
+              size="sm"
+              className="rounded-xl h-9 font-heading uppercase text-xs"
+              onClick={applyTrades}
+            >
+              Apply ({releasing.length})
+            </Button>
+          )}
+
+          {/* AI Coach */}
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl h-9 font-heading uppercase text-xs gap-1.5"
+            onClick={() => setAiCoachOpen(true)}
+            title="Open AI Coach"
+          >
+            <Bot className="h-3.5 w-3.5" />AI Coach
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
