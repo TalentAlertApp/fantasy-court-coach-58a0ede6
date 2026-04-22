@@ -161,6 +161,7 @@ export default function PlayerPickerDialog({
       onOpenChange(false);
       setSearch("");
       setFcBcFilter("ALL");
+      setTeamFilter("ALL");
     }
   };
 
@@ -170,7 +171,7 @@ export default function PlayerPickerDialog({
     : "max-w-md h-[min(80vh,42rem)] rounded-lg overflow-hidden p-0 flex flex-col";
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); setLastPickId(null); } }}>
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setSearch(""); setFcBcFilter("ALL"); setTeamFilter("ALL"); setLastPickId(null); } }}>
       <DialogContent className={dialogClass}>
         {/* LEFT — search + player list */}
         <div className={`flex flex-col min-h-0 p-4 ${showCourtPreview ? "border-r border-border" : ""}`}>
