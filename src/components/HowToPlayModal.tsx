@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useScoringSystem, buildFormulaString, captainMultiplier } from "@/hooks/useScoringSystem";
 
 interface HowToPlayModalProps {
   iconClassName?: string;
@@ -12,6 +13,9 @@ interface HowToPlayModalProps {
 export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { data: scoringRules } = useScoringSystem();
+  const formula = buildFormulaString(scoringRules);
+  const captainMult = captainMultiplier(scoringRules);
 
   return (
     <>
