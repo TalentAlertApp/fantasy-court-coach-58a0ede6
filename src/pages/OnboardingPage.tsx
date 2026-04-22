@@ -47,16 +47,26 @@ export default function OnboardingPage() {
   // longer in the user's owned teams (deleted, signed out etc.), fall back to
   // the name step. If valid, hydrate selectedTeamId so DraftStep works on refresh.
   useEffect(() => {
-    if (!ready) return;
-    if (step === "draft") {
-      const owned = createdTeamId && teams.some((t: any) => t.id === createdTeamId && t.owner_id === user?.id);
-      if (!owned) {
-        setStepRaw("name");
-        setOnboardingState(user?.id, { step: "name", teamName: createdTeamName });
-        return;
-      }
+    if (!ready || step !== "draft") return;
+    const ownedNow = teams.filter((t: any) => t.owner_id === user?.id);
+    const stillOwns = createdTeamId && ownedNow.some((t: any) => t.id === createdTeamId);
+    if (stillOwns) {
       setSelectedTeamId(createdTeamId!);
+      return;
     }
+    if (ownedNow.length > 0) {
+      const fb = ownedNow[ownedNow.length - 1];
+      setCreatedTeamId(fb.id);
+      setCreatedTeamName(fb.name);
+      setSelectedTeamId(fb.id);
+      setOnboardingState(user?.id, { step: "draft", teamId: fb.id, teamName: fb.name });
+      return;
+    }
+    // Zero owned teams → back to NameStep for a fresh franchise name
+    setCreatedTeamId(null);
+    setCreatedTeamName("");
+    setStepRaw("name");
+    setOnboardingState(user?.id, { step: "name" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, step, createdTeamId, teams, user?.id]);
 
@@ -105,6 +115,11 @@ export default function OnboardingPage() {
     await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
     navigate("/", { replace: true });
   };
+
+  // Render-gate to prevent light→dark flash when bouncing back to /
+  if (!ready || !shouldOnboard) {
+    return <div className="h-screen w-full bg-background" aria-hidden />;
+  }
 
   return (
     <div

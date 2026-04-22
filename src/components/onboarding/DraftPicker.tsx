@@ -259,20 +259,34 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           </div>
         )}
 
-        <Button
-          onClick={handleGo}
-          disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
-          size="lg"
-          className="mt-8 h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
-        >
-          {drafting ? (
-            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving…</>
-          ) : strategy === "manual" && isManualValid ? (
-            <><Check className="mr-2 h-5 w-5" /> {ctaLabel}</>
-          ) : (
-            <><Trophy className="mr-2 h-5 w-5" /> {ctaLabel}</>
+        <div className="mt-8 flex items-center gap-3">
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onBack}
+              disabled={drafting}
+              className="h-14 px-5 rounded-full text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+            >
+              <ChevronLeft className="mr-1 h-5 w-5" />
+              Back
+            </Button>
           )}
-        </Button>
+          <Button
+            onClick={handleGo}
+            disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
+            size="lg"
+            className="h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
+          >
+            {drafting ? (
+              <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Saving…</>
+            ) : strategy === "manual" && isManualValid ? (
+              <><Check className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            ) : (
+              <><Trophy className="mr-2 h-5 w-5" /> {ctaLabel}</>
+            )}
+          </Button>
+        </div>
 
         {strategy === "manual" && picks.length > 0 && !isManualValid && (
           <p className="mt-3 text-[11px] uppercase tracking-[0.25em] text-foreground/50">
@@ -280,18 +294,16 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           </p>
         )}
 
-        {isOnboarding && (
-          <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3">
-            {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
-              <span
-                key={chip}
-                className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
-              >
-                {chip}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3">
+          {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
+            <span
+              key={chip}
+              className="px-4 py-1.5 rounded-full text-[10px] uppercase tracking-[0.25em] border border-[hsl(var(--nba-yellow))] bg-[hsl(var(--nba-yellow))]/10 text-black font-bold"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
       </div>
 
       {strategy === "manual" && (
