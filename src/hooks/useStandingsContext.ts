@@ -14,6 +14,14 @@ interface SchedRow {
   tipoff_utc: string | null;
 }
 
+export interface Last5Detail {
+  result: "W" | "L";
+  opp: string;
+  ownPts: number;
+  oppPts: number;
+  date: string | null;
+}
+
 const DIV_ABBR: Record<string, string> = {
   Atlantic: "Atl",
   Central: "Cen",
@@ -71,6 +79,36 @@ export function useStandingsContext() {
     return out;
   }, [games]);
 
+  const last5DetailByTeam = useMemo(() => {
+    const finals = games
+      .filter((g) => g.status?.toUpperCase().includes("FINAL"))
+      .slice()
+      .sort((a, b) => (a.tipoff_utc ?? "").localeCompare(b.tipoff_utc ?? ""));
+    const map: Record<string, Last5Detail[]> = {};
+    for (const g of finals) {
+      const homeWon = g.home_pts > g.away_pts;
+      (map[g.home_team] ||= []).push({
+        result: homeWon ? "W" : "L",
+        opp: g.away_team,
+        ownPts: g.home_pts,
+        oppPts: g.away_pts,
+        date: g.tipoff_utc,
+      });
+      (map[g.away_team] ||= []).push({
+        result: homeWon ? "L" : "W",
+        opp: g.home_team,
+        ownPts: g.away_pts,
+        oppPts: g.home_pts,
+        date: g.tipoff_utc,
+      });
+    }
+    const out: Record<string, Last5Detail[]> = {};
+    for (const [t, arr] of Object.entries(map)) {
+      out[t] = arr.slice(-5);
+    }
+    return out;
+  }, [games]);
+
   const divisionRankByTeam = useMemo(() => {
     const byDiv: Record<string, StandingRow[]> = {};
     for (const r of standings) {
@@ -100,5 +138,5 @@ export function useStandingsContext() {
     return m;
   }, [standings]);
 
-  return { standings, standingsByTeam, last5ByTeam, divisionRankByTeam, isLoading };
+  return { standings, standingsByTeam, last5ByTeam, last5DetailByTeam, divisionRankByTeam, isLoading };
 }
