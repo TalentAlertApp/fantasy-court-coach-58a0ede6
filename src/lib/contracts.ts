@@ -36,15 +36,9 @@ export const HomeAwaySchema = z.enum(["H", "A"]).nullable();
 
 export const InjurySchema = z.enum(["OUT", "Q", "DTD"]).nullable();
 
-export const ScoringRulesSchema = z
-  .object({
-    pts: z.literal(1),
-    reb: z.literal(1),
-    ast: z.literal(2),
-    stl: z.literal(3),
-    blk: z.literal(3),
-  })
-  .strict();
+// Dynamic scoring rules — rules now come from the DB (scoring_rules table).
+// Any positive numeric weight per stat key is allowed.
+export const ScoringRulesSchema = z.record(z.string(), z.number());
 
 /** Envelope policy: every endpoint returns { ok, data, error? } */
 export const ErrorObjectSchema = z

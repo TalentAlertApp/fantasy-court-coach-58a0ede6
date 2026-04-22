@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { z } from "https://esm.sh/zod@3.25.76";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,15 +12,8 @@ const corsHeaders = {
 
 const IsoDateTimeSchema = z.string().datetime({ offset: true });
 
-const ScoringRulesSchema = z
-  .object({
-    pts: z.literal(1),
-    reb: z.literal(1),
-    ast: z.literal(2),
-    stl: z.literal(3),
-    blk: z.literal(3),
-  })
-  .strict();
+// Dynamic scoring rules (DB-driven). Any positive numeric weight per stat key.
+const ScoringRulesSchema = z.record(z.string(), z.number());
 
 const HealthPayloadSchema = z
   .object({
@@ -50,18 +44,29 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Pull the active scoring rules from the DB (default NBA Classic system).
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: rules } = await sb
+      .from("scoring_rules")
+      .select("stat_key, weight, applies_to, rule_type, is_active")
+      .eq("scoring_system_id", "00000000-0000-0000-0000-000000000001")
+      .eq("applies_to", "player")
+      .eq("rule_type", "multiplier")
+      .eq("is_active", true);
+    const scoringRules: Record<string, number> = {};
+    for (const r of (rules ?? []) as Array<{ stat_key: string; weight: number }>) {
+      scoringRules[r.stat_key] = Number(r.weight);
+    }
+
     const payload = {
       ok: true as const,
       data: {
         data_source_mode: "sheet" as const,
         server_time_utc: new Date().toISOString(),
-        scoring_rules: {
-          pts: 1 as const,
-          reb: 1 as const,
-          ast: 2 as const,
-          stl: 3 as const,
-          blk: 3 as const,
-        },
+        scoring_rules: scoringRules,
       },
     };
 
