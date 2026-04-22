@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { clearAllOnboardingStorage } from "@/lib/onboarding-store";
+import { recordSignOut } from "@/lib/welcome-back-store";
 
 interface AuthContextValue {
   user: User | null;
@@ -42,6 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Record sign-out timestamp BEFORE clearing the session so we can show
+    // a "welcome back" recap if this user returns later.
+    recordSignOut(user?.id);
     // Clear team selection so next user doesn't inherit it
     localStorage.removeItem("nba_selected_team_id");
     // Clear onboarding skip + per-user resume state

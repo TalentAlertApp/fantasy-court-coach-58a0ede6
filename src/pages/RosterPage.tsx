@@ -23,12 +23,11 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays, X } from "lucide-react";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
 import DraftPicker from "@/components/onboarding/DraftPicker";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
-import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -529,15 +528,22 @@ export default function RosterPage() {
             </div>
           </div>
 
-          {/* Schedule preview — full-width, expands downwards */}
-          <Collapsible open={scheduleOpen} onOpenChange={setScheduleOpen}>
-            <CollapsibleContent className="mb-3 w-full max-h-72 overflow-hidden">
-              <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
-            </CollapsibleContent>
-          </Collapsible>
-
           {/* ── Layout ── */}
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 relative">
+            {/* Schedule preview — absolute overlay, never pushes the court */}
+            {scheduleOpen && (
+              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-72 overflow-hidden animate-accordion-down">
+                <button
+                  type="button"
+                  onClick={() => setScheduleOpen(false)}
+                  className="absolute top-2 right-2 z-10 h-6 w-6 inline-flex items-center justify-center rounded-md text-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+                  aria-label="Close schedule"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
+              </div>
+            )}
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}

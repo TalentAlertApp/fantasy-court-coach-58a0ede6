@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
@@ -26,10 +26,26 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
   }, [games]);
 
   const [day, setDay] = useState<number>(initial.day);
+  // Track GW transitions so we only auto-snap the day on GW change or first
+  // load — never overriding a user's manual day-chip click.
+  const lastGwRef = useRef<number>(gw);
+  const snappedRef = useRef<boolean>(false);
   useEffect(() => {
     if (daysWithGames.length === 0) return;
-    if (!daysWithGames.includes(day)) setDay(daysWithGames[0]);
-  }, [daysWithGames, day]);
+    const gwChanged = lastGwRef.current !== gw;
+    if (snappedRef.current && !gwChanged) return;
+    const target = gw === initial.gw ? initial.day : 1;
+    let next: number;
+    if (daysWithGames.includes(target)) {
+      next = target;
+    } else {
+      const ahead = daysWithGames.find((d) => d >= target);
+      next = ahead ?? daysWithGames[0];
+    }
+    setDay(next);
+    lastGwRef.current = gw;
+    snappedRef.current = true;
+  }, [daysWithGames, gw, initial.gw, initial.day]);
 
   const dayGames = useMemo(
     () =>
