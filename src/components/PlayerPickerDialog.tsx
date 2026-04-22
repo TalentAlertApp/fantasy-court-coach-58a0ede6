@@ -194,7 +194,7 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-[1fr_88px] gap-2 shrink-0 mt-2">
+          <div className="grid grid-cols-[1fr_104px] gap-2 shrink-0 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -205,22 +205,22 @@ export default function PlayerPickerDialog({
               />
             </div>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-1.5 justify-center">
+              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-2 [&>svg]:ml-auto">
                 {teamFilter === "ALL" ? (
-                  <SelectValue placeholder="All" />
+                  <span className="flex-1 text-center">ALL</span>
                 ) : (
-                  <span className="flex items-center justify-center gap-1.5 w-full">
+                  <span className="flex-1 flex items-center justify-center gap-1.5 min-w-0">
                     {(() => {
                       const logo = getTeamLogo(teamFilter);
                       return logo ? (
-                        <img src={logo} alt="" aria-hidden="true" className="h-5 w-5 object-contain" />
+                        <img src={logo} alt="" aria-hidden="true" className="h-5 w-5 object-contain shrink-0" />
                       ) : null;
                     })()}
                     <span>{teamFilter}</span>
                   </span>
                 )}
               </SelectTrigger>
-              <SelectContent className="max-h-72 min-w-[88px]">
+              <SelectContent className="max-h-72 min-w-[104px]">
                 <SelectItem value="ALL" className="text-xs font-heading uppercase justify-center [&>span:first-child]:hidden">
                   <span className="block text-center w-full">All</span>
                 </SelectItem>
