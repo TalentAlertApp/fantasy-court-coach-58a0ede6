@@ -431,14 +431,35 @@ export default function RosterPage() {
         </div>
       ) : isRosterEmpty ? (
         createPortal(
-          <div className="fixed inset-0 z-40 bg-background overflow-auto">
-            <DraftPicker
-              teamName={teamName}
-              onFinish={() => {
-                queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-                refetchRoster();
+          <div
+            className="fixed inset-0 z-40 overflow-auto bg-background text-foreground"
+            style={{
+              backgroundImage: `
+                radial-gradient(ellipse at 20% 10%, hsl(var(--primary) / 0.18), transparent 55%),
+                radial-gradient(ellipse at 85% 90%, hsl(var(--accent) / 0.12), transparent 55%),
+                radial-gradient(ellipse at 50% 50%, hsl(var(--background)) 0%, hsl(var(--background)) 100%)
+              `,
+            }}
+          >
+            {/* subtle grid overlay — matches /welcome shell */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
+                backgroundSize: "48px 48px",
               }}
             />
+            <div className="relative">
+              <DraftPicker
+                teamName={teamName}
+                onFinish={() => {
+                  queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+                  refetchRoster();
+                }}
+              />
+            </div>
           </div>,
           document.body,
         )
