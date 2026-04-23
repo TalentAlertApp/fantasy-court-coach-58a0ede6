@@ -86,6 +86,38 @@ export default function PlayersPage() {
       }));
   }, [rosterIdList, allPlayers]);
 
+  // Split roster into starters/bench for the left pane
+  const starterIds = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    return Array.isArray(r?.starters) ? (r.starters as number[]) : [];
+  }, [rosterData]);
+  const benchIds = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    return Array.isArray(r?.bench) ? (r.bench as number[]) : [];
+  }, [rosterData]);
+  const hydrate = (id: number): RosterPanePlayer | null => {
+    const p = allPlayers.find((pp) => pp.core.id === id);
+    if (!p) return null;
+    return {
+      player_id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      salary: p.core.salary,
+      fc_bc: p.core.fc_bc,
+      photo: p.core.photo ?? null,
+    };
+  };
+  const rosterStarters = useMemo(
+    () => starterIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [starterIds, allPlayers],
+  );
+  const rosterBench = useMemo(
+    () => benchIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [benchIds, allPlayers],
+  );
+
   const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
 
   // Current GW for cap counting + commit payload
