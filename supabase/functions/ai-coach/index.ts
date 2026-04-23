@@ -220,6 +220,15 @@ function validateShape(action: string, data: any): string[] {
       if (!Array.isArray(data.items)) errors.push("Missing items array");
       if (!Array.isArray(data.notes)) errors.push("Missing notes array");
       break;
+    case "explain-trade":
+      if (typeof data.summary !== "string") errors.push("Missing summary");
+      if (!Array.isArray(data.pros)) errors.push("Missing pros array");
+      if (!Array.isArray(data.cons)) errors.push("Missing cons array");
+      if (typeof data.confidence !== "number") errors.push("Missing confidence");
+      if (!["favorable", "neutral", "unfavorable"].includes(data.verdict)) {
+        errors.push("Invalid or missing verdict");
+      }
+      break;
   }
   return errors;
 }
