@@ -54,10 +54,18 @@ function PlayerCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between rounded-lg font-normal h-10"
+            className="w-full justify-between rounded-lg font-normal h-10 relative overflow-hidden"
           >
+            {selectedLogo && (
+              <img
+                src={selectedLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 object-contain opacity-[0.18] rotate-12 select-none"
+              />
+            )}
             {selected ? (
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="relative z-10 flex items-center gap-2 min-w-0">
                 {selected.photo ? (
                   <img src={selected.photo} alt="" className="w-6 h-6 rounded-full object-cover bg-muted shrink-0" />
                 ) : (
@@ -66,12 +74,11 @@ function PlayerCombobox({
                   </div>
                 )}
                 <span className="truncate">{selected.name}</span>
-                {selectedLogo && <img src={selectedLogo} alt="" className="w-4 h-4 shrink-0" />}
               </div>
             ) : (
-              <span className="text-muted-foreground">{placeholder}</span>
+              <span className="relative z-10 text-muted-foreground">{placeholder}</span>
             )}
-            <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+            <ChevronsUpDown className="relative z-10 h-4 w-4 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)]" align="start">
@@ -101,7 +108,7 @@ function PlayerCombobox({
                         <img
                           src={logo}
                           alt=""
-                          className="absolute right-2 w-9 h-9 opacity-[0.12] group-hover:opacity-30 group-hover:scale-110 transition-all pointer-events-none"
+                          className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 object-contain opacity-[0.18] rotate-12 select-none group-hover:opacity-[0.28] transition-opacity"
                         />
                       )}
                       <div className="relative z-10 flex items-center gap-2 w-full">
@@ -124,7 +131,7 @@ function PlayerCombobox({
                           </div>
                           <span className="text-[10px] text-muted-foreground">{p.team}</span>
                         </div>
-                        <Check className={cn("h-4 w-4 shrink-0 mr-8", isSelected ? "opacity-100 text-primary" : "opacity-0")} />
+                        <Check className={cn("h-4 w-4 shrink-0 mr-2", isSelected ? "opacity-100 text-primary" : "opacity-0")} />
                       </div>
                     </CommandItem>
                   );
