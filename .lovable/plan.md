@@ -195,6 +195,16 @@ Wrap existing content in shadcn `<Tabs>`:
 - **Materialized standings cache**: precomputed `league_standings_cache` table refreshed on roster/game-log change for sub-100ms standings reads at scale.
 - **Multi-league signup flow**: league creation, join codes, per-user league switcher.
 - **Per-league transactions report**: denormalize `league_id` onto `transactions` for fast cross-league analytics.
-- **Captain bonus rule wiring**: seed an `applies_to='captain'` rule and surface it inside `computeFpFromRules`.
-- **Standings live refresh**: Supabase realtime subscription on `player_game_logs` to invalidate `league-standings` query.
+- ✅ **Captain bonus rule wiring** (done): seeded `applies_to='captain'` 2× multiplier in `scoring_rules`; `league-standings` honors it.
+- ✅ **Standings live refresh** (done, partial): realtime subscription on `roster` + `transactions`. Still TODO: invalidate on `player_game_logs` updates after game ingestion.
+- **Realtime on player_game_logs**: extend the standings subscription to invalidate when fresh game logs land.
+
+## Trade Machine (Round B — deferred)
+Deferred multi-day flagship per `NBA.fantasy.pdf`:
+- Schema: `transaction_batches`, `transaction_items`, indexes, RLS, `commit_transaction_batch()` RPC, legacy backfill.
+- Edge fns: `transactions-simulate`, `transactions-commit` refactored to call the RPC, shared `_shared/transaction-engine.ts` and `_shared/lineup-solver.ts`.
+- Frontend: `TransactionSelectionBar`, `TransactionDeltaModal` (rules → delta table → roster impact → context signals → verdict), `RosterDeltaPanel`. `PlayersPage.tsx` adopts OUT/IN selection with sticky bar.
+- Wires into `nba-injury-report` for incoming-player injury blocks.
+- Captain bonus (Round A item 4) feeds into FP5 / weekly_fp projections.
+- Backward-compat: legacy `transactions` reads still work; new writes go through batches.
 

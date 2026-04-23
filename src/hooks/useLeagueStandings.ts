@@ -69,4 +69,4 @@ export function useLeagueStandings(leagueId?: string) {
 
   return query;
 }
-}
+
