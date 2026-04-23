@@ -515,8 +515,6 @@ export default function PlayersPage() {
                     const fmtPg = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0"; };
                     const fmtTot = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0"; };
                     const teamLogo = getTeamLogo(p.core.team);
-                    const isOnRoster = rosterPlayerIds.has(p.core.id);
-                    const isInOutZone = outZone.includes(p.core.id);
                     const isInInZone = inZone.includes(p.core.id);
                     // Post-trade team count if this player were added to IN zone
                     const tri = (p.core.team ?? "").toUpperCase();
@@ -525,7 +523,7 @@ export default function PlayersPage() {
                     const overBudgetAfter = p.core.salary > validation.availableForNextIn + (isInInZone ? p.core.salary : 0);
                     const inZoneFull = !isInInZone && inZone.length >= Math.max(1, outZone.length);
                     const noOutsYet = outZone.length === 0;
-                    const canAdd = !isOnRoster && !noOutsYet && !inZoneFull && !teamAtMaxAfter && !overBudgetAfter && gwUsed < gwCap;
+                    const canAdd = !noOutsYet && !inZoneFull && !teamAtMaxAfter && !overBudgetAfter && gwUsed < gwCap;
                     const addTitle = isInInZone
                       ? "Click to remove from IN zone"
                       : noOutsYet
@@ -543,28 +541,16 @@ export default function PlayersPage() {
                     return (
                       <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
                         <td className="px-1 py-1">
-                          {isOnRoster ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-6 w-6 ${isInOutZone ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"}`}
-                              onClick={(e) => { e.stopPropagation(); toggleOut(p.core.id); }}
-                              title={isInOutZone ? "Cancel release" : "Stage for release"}
-                            >
-                              <Minus className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : "text-emerald-600 hover:bg-emerald-500/10"}`}
-                              onClick={(e) => stageIn(p.core.id, e)}
-                              disabled={!canAdd && !isInInZone}
-                              title={addTitle}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : "text-emerald-600 hover:bg-emerald-500/10"}`}
+                            onClick={(e) => stageIn(p.core.id, e)}
+                            disabled={!canAdd && !isInInZone}
+                            title={addTitle}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
                         </td>
                         <td className="px-2 py-1.5 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -574,7 +560,6 @@ export default function PlayersPage() {
                             </Avatar>
                             <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
-                            {isOnRoster && <Badge variant="outline" className="text-[7px] px-1 py-0 rounded-lg border-green-500/50 text-green-600">ROSTER</Badge>}
                           </div>
                         </td>
                         <td className="px-2 py-1.5 text-xs">
