@@ -520,65 +520,65 @@ export default function PlayersPage() {
       {isLoading ? (
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
-        <div className="flex gap-4 flex-1 min-h-0">
-          {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
-          {isWideScreen && (
-            <div className="w-64 shrink-0 min-h-0">
-              {rosterPaneNode}
-            </div>
-          )}
+        <>
+          {/* FULL-WIDTH workbench above the 3-column grid */}
+          <div className="relative shrink-0 mb-3">
+            <TradeWorkbench
+              outs={outChips}
+              ins={inChips}
+              bankRemaining={bankRemaining}
+              validation={validation}
+              gwUsed={gwUsed}
+              gwCap={gwCap}
+              gw={gw}
+              capResetLabel={capResetLabel}
+              onRemoveOut={(id) => toggleOut(id)}
+              onRemoveIn={(id) => removeIn(id)}
+              onReset={resetTrade}
+              onGenerateReport={() => setReportOpen(true)}
+              onConfirmAdd={handleCommit}
+              committing={committing}
+              reportOpen={reportOpen}
+              addMode={addMode}
+              rosterSize={rosterIdList.length}
+            />
 
-          {/* CENTER — Workbench + Table */}
-          <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
-            <div className="relative shrink-0">
-              <TradeWorkbench
-                outs={outChips}
-                ins={inChips}
-                bankRemaining={bankRemaining}
-                validation={validation}
-                gwUsed={gwUsed}
-                gwCap={gwCap}
-                gw={gw}
-                capResetLabel={capResetLabel}
-                chipAllStar={chipAllStar}
-                chipWildcard={chipWildcard}
-                onRemoveOut={(id) => toggleOut(id)}
-                onRemoveIn={(id) => removeIn(id)}
-                onReset={resetTrade}
-                onGenerateReport={() => setReportOpen(true)}
-                onToggleAllStar={() => setChipAllStar((v) => !v)}
-                onToggleWildcard={() => setChipWildcard((v) => !v)}
-                reportOpen={reportOpen}
-                addMode={addMode}
-                rosterSize={rosterIdList.length}
-              />
-
-              {scheduleOpen && (
-                <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
-                  <button
-                    type="button"
-                    onClick={() => setScheduleOpen(false)}
-                    className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
-                    aria-label="Close schedule"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                  <div className="overflow-y-auto max-h-[440px] pr-1">
-                    <SchedulePreviewBody
-                      rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
-                      variant="panel"
-                    />
-                  </div>
+            {scheduleOpen && (
+              <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
+                <button
+                  type="button"
+                  onClick={() => setScheduleOpen(false)}
+                  className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
+                  aria-label="Close schedule"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <div className="overflow-y-auto max-h-[440px] pr-1">
+                  <SchedulePreviewBody
+                    rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
+                    variant="panel"
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {reportOpen && validation.isValid && (outZone.length > 0 || inZone.length > 0) && (
-              <TradeReport
-                outPlayers={outPlayersFull}
-                inPlayers={inPlayersFull}
-                bankRemaining={bankRemaining}
-                salaryCap={100}
+          <div className="flex gap-4 flex-1 min-h-0">
+            {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
+            {isWideScreen && (
+              <div className="w-64 shrink-0 min-h-0">
+                {rosterPaneNode}
+              </div>
+            )}
+
+            {/* CENTER — Trade report (when open) + table */}
+            <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
+              {reportOpen && validation.isValid && (outZone.length > 0 || inZone.length > 0) && (
+                <TradeReport
+                  outPlayers={outPlayersFull}
+                  inPlayers={inPlayersFull}
+                  bankRemaining={bankRemaining}
+                  salaryCap={100}
                 rosterPlayers={rosterPlayersFull}
                 gw={gw}
                 day={day}
