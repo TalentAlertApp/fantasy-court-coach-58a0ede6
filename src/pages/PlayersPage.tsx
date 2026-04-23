@@ -64,8 +64,20 @@ export default function PlayersPage() {
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
   const { data: playersData, isLoading } = usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 });
+  // Full pool used ONLY for hydration of roster / IN / OUT / validation lookups.
+  // The table above is sorted+capped at 500 by FP5; deep-bench players (low FP5)
+  // would otherwise vanish from the roster pane. 2000 covers the entire NBA pool.
+  const { data: playersFullData } = usePlayersQuery({ sort: "salary", order: "asc", limit: 2000 });
   const { data: rosterData } = useRosterQuery();
   const allPlayers = playersData?.items ?? [];
+  const allPlayersFull = playersFullData?.items ?? [];
+  const playerById = useMemo(() => {
+    const m = new Map<number, PlayerListItem>();
+    for (const p of allPlayersFull) m.set(p.core.id, p);
+    // Fall back to the table list for any id not yet in the full pool (during loading)
+    for (const p of allPlayers) if (!m.has(p.core.id)) m.set(p.core.id, p);
+    return m;
+  }, [allPlayersFull, allPlayers]);
 
   const rosterIdList = useMemo(() => {
     const r: any = (rosterData as any)?.roster ?? rosterData;
@@ -78,17 +90,32 @@ export default function PlayersPage() {
 
   const rosterPlayers = useMemo(() => {
     return rosterIdList
-      .map((id) => allPlayers.find((p) => p.core.id === id))
-      .filter((p): p is PlayerListItem => !!p)
-      .map((p) => ({
+      .map((id) => {
+        const p = playerById.get(id);
+        if (!p) {
+          if (allPlayersFull.length > 0) {
+            // eslint-disable-next-line no-console
+            console.warn(`[roster] player_id ${id} not found in player pool — rendering stub`);
+          }
+          return {
+            player_id: id,
+            name: "—",
+            team: "",
+            salary: 0,
+            fc_bc: "FC",
+            photo: null as string | null,
+          };
+        }
+        return {
         player_id: p.core.id,
         name: p.core.name,
         team: p.core.team,
         salary: p.core.salary,
         fc_bc: p.core.fc_bc,
         photo: p.core.photo ?? null,
-      }));
-  }, [rosterIdList, allPlayers]);
+        };
+      });
+  }, [rosterIdList, playerById, allPlayersFull.length]);
 
   const starterIds = useMemo(() => {
     const r: any = (rosterData as any)?.roster ?? rosterData;
