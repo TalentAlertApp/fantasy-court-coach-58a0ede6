@@ -1,147 +1,66 @@
 
 
-## Four polish fixes — Pick Your Team grid, Trade workbench buttons, table FC/BC, Schedule dropdown badges
+## Premium sidebar refresh — match the TradeReport aesthetic
 
-### 1. Pick Your Team — equalize all card sizes (`src/pages/TeamPickerPage.tsx`)
+The current sidebar is functional but flat: solid navy fill, plain padded rows, a left border-stripe for the active item, a small NBA logo + "FANTASY" wordmark, and three identical pill buttons at the bottom. The TradeReport feels premium because it layers gradients, accent glows, subtle ring/border treatments, watermark logos, and uppercase tracking. We'll bring those same techniques to the sidebar.
 
-Cards currently grow to fit their content (description vs. no description), so the "New Team" tile is taller than empty ones (image-289 confirms the visual inconsistency). Fix:
+### What changes (visually)
 
-- Add `h-44` (or `min-h-[11rem]`) to every card and the New-Team card so all tiles share identical height regardless of content length.
-- Shorten the New-Team description from "Spin up another franchise from scratch." → **"Start fresh."** (keeps tone, fits the smaller card cleanly).
-- Wrap the description block in a fixed-height container with `overflow-hidden` so a long team description never pushes layout out (`line-clamp-2` already in place — keep).
-- Grid stays `auto-fit, minmax(220px, 1fr)`; widths already equalize via grid, only heights need locking.
+**Brand block (top)**
+- Bigger NBA logo (h-9), tighter spacing.
+- "FANTASY" wordmark on top, small "MANAGER" eyebrow underneath in muted accent yellow with extra letter-spacing — gives a sports-editorial masthead feel.
+- Bottom border becomes a hairline gradient (transparent → border → transparent) instead of a flat line.
+- Subtle court-pattern watermark (oversized NBA logo at low opacity, rotated, escaping the corner) behind the brand block — same recipe as TradeReport's player cards.
 
-### 2. /transactions — Trade workbench reflow (`src/components/transactions/TradeWorkbench.tsx`)
+**Active nav item — the headline upgrade**
+- Replace the flat `bg-sidebar-accent` + 3px left border with a layered treatment:
+  - Background: gradient from `hsl(var(--accent)/0.18)` on the left to transparent on the right.
+  - Left edge: 3px solid accent yellow bar with a soft 8px outer glow (`shadow-[0_0_12px_-2px_hsl(var(--accent)/0.6)]`).
+  - Subtle inner ring `ring-1 ring-accent/20`.
+  - Icon switches from yellow-always to: muted when inactive, accent-glow when active (`drop-shadow-[0_0_6px_hsl(var(--accent)/0.5)]`).
+  - Label text gains `text-foreground` weight + tighter `tracking-[0.18em]`.
+- Inactive items: lower opacity icon, hover lifts opacity + a tiny `translate-x-0.5` slide for a tactile feel.
+- Add `transition-all duration-200` + `relative overflow-hidden` so we can slot a hover shimmer (same `after:` shimmer as the TRADE button, but dimmer — `via-white/5`).
 
-**a) Move REPORT and RESET inline with the VALID pill** (Row 1)
+**Sidebar background**
+- Layer 2 gradients for depth: existing vertical navy gradient + a faint radial accent glow in the top-left corner (`radial-gradient(circle at top left, hsl(var(--accent)/0.08), transparent 40%)`).
+- Right edge: replace flat `border-right` with a vertical gradient line (transparent → border → transparent) using a `::after` pseudo on `.sidebar`.
 
-Currently: Row 1 = metrics + GW pill + status pill. Row 2 = chips + Reset + Report.  
-After: Row 1 = metrics + GW pill + status pill + **TRADE button** + **Reset icon-button** (all right-aligned via `ml-auto` on the action cluster). Row 2 = ONLY the OUT/IN player chips (no buttons).
+**Section dividers**
+- Replace solid `border-t` / `border-b` with hairline gradient dividers (same recipe — fades at both ends).
+- Add small uppercase section labels above the Team Switcher ("YOUR TEAM") and above the bottom controls ("ACCOUNT") in `text-[9px] tracking-[0.3em] text-foreground/30` — magazine-style section breaks.
 
-This means moving the Reset + Report (rebranded TRADE) controls out of Row 2 into Row 1's right edge. Wrap them in a `flex items-center gap-1.5 ml-auto` cluster appended after the status pill.
+**Bottom controls**
+- Email row: wrap in a subtle pill background (`bg-white/[0.03] rounded-lg px-2 py-1.5`) with the email and the LogOut icon side-by-side — feels like a status card, not floating buttons.
+- Theme toggle + Collapse: keep but restyle. Remove the bordered "theme-toggle" pill style; switch to ghost icon-buttons that grow a soft glow on hover. Group them on a single row when expanded (icon + tiny label), stack vertically when collapsed.
 
-**b) Rename REPORT → TRADE with surge effect**
+**Collapsed mode polish**
+- Active item shows the glowing left bar + icon-only, centered, with a subtle accent ring around the icon.
+- Tooltips on hover (already wired via `title=`) — no change needed.
 
-Replace the existing REPORT button content/styling:
-- Label: `TRADE` (or `Refresh` while open — same conditional logic).
-- Add a premium "surging" effect: pulsing accent glow + subtle scale on hover. Concretely:
-  ```tsx
-  className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5 
-             bg-accent text-accent-foreground 
-             shadow-[0_0_20px_-2px_hsl(var(--accent)/0.6)] 
-             hover:shadow-[0_0_30px_-2px_hsl(var(--accent))] 
-             hover:scale-[1.04] active:scale-[0.98] 
-             transition-all duration-200
-             relative overflow-hidden
-             after:absolute after:inset-0 after:rounded-lg 
-             after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent
-             after:translate-x-[-100%] hover:after:translate-x-[100%] 
-             after:transition-transform after:duration-700"
-  ```
-  Sweeping shimmer on hover + persistent accent glow communicates "this is the finishing action."
-- Keep `onClick={onGenerateReport}`, the same modal name ("TRADE REPORT"), and all internal logic intact. Only the button label and visuals change.
+### Implementation details
 
-**c) Replace RESET text button with context-sensitive icon**
+**File: `src/index.css`** (rewrite the sidebar/nav-item/theme-toggle blocks)
+- `.sidebar`: add `position: relative`, layer the radial accent glow as a `background-image` on top of the existing gradient, swap `border-right` for an `::after` gradient line.
+- `.sidebar-divider`: new utility for hairline gradient dividers.
+- `.nav-item`: change to `relative overflow-hidden`, drop the flat `border-l-[3px]`. Hover gets `translate-x-0.5` and a faint `bg-white/[0.04]`.
+- `.nav-item.active`: gradient background from accent/18 → transparent; pseudo-element `::before` for the glowing 3px left bar with `box-shadow`; `ring-1 ring-accent/15` inset.
+- `.nav-item-icon` (new): handles muted vs. active glow states.
+- Remove `.theme-toggle` rectangular border styling; rebuild as ghost icon-button (`rounded-lg`, transparent bg, `hover:bg-white/8`).
 
-Replace the "Reset" outline button with an icon-only ghost button using `RotateCcw` (lucide):
-```tsx
-<Button
-  size="icon"
-  variant="ghost"
-  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-  onClick={onReset}
-  title="Clear all staged players"
-  aria-label="Reset trade"
->
-  <RotateCcw className="h-4 w-4" />
-</Button>
-```
-Only renders when `hasChips` (same condition as today). Sits to the LEFT of the TRADE button so the destructive/clear action precedes the commit-style action.
+**File: `src/components/layout/AppLayout.tsx`**
+- Brand block: add `relative overflow-hidden`, drop in a watermark `<img src={nbaLogo}>` with the same recipe used in `TradeReport.PlayerCard` (`absolute -top-6 -right-6 h-32 w-32 opacity-[0.08] rotate-12 pointer-events-none`). Add the "MANAGER" eyebrow under "FANTASY".
+- Nav items: wrap icon in a `<span className="nav-item-icon">` so CSS can style icon glow per state. Drop the always-yellow icon color (let `.active` state drive it).
+- Insert section labels ("YOUR TEAM", "ACCOUNT") and replace flat dividers with the new `.sidebar-divider` class.
+- Bottom controls: regroup email + LogOut into a single rounded card; theme + collapse become ghost icon-buttons in a 2-up row (or stacked when collapsed).
+- No changes to nav structure, routes, props, or interactivity.
 
-**Visibility rules for Row 1 cluster:**
-- Reset icon: render when `hasChips`.
-- TRADE button: render when `canGenerate` (swap mode) OR `isDirectAdd` && `canConfirmAdd` (ADD mode — keep the existing "Confirm Add" branch intact, also moved into Row 1).
-- When neither condition is met, Row 1 ends at the status pill.
-
-**Row 2** then becomes purely chip display:
-```tsx
-{(hasChips || isDirectAdd) && (
-  <div className="flex items-center gap-2 flex-wrap">
-    {outs.map(...)}
-    {ins.map(...)}
-  </div>
-)}
-```
-No more button cluster on Row 2.
-
-**d) FC/BC badge consistency in the right-side players table** (`src/pages/PlayersPage.tsx` line 750)
-
-Roster pane uses:
-```tsx
-<Badge variant={fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{fc_bc}</Badge>
-```
-
-Right-side table currently uses `px-0.5 py-0 rounded-lg` (different padding + radius). Update line 750 to match the roster pane exactly:
-```tsx
-className="text-[7px] px-1 py-0 rounded-md shrink-0"
-```
-
-This is a 1-line attribute change for visual parity.
-
-### 3. Schedule dropdown — premium watermark badges (`src/components/SchedulePreviewPanel.tsx`)
-
-The matchup card today uses two crisp 56×56 logos at the far ends with hover scale + colored drop-shadow (lines 402-412 and 482-492). Replace those crisp inline badges with the **same oversized rotated low-opacity watermark recipe used in TradeReport IN/OUT cards**.
-
-For each side (away at far-left, home at far-right):
-- Drop the explicit 56×56 logo container.
-- Anchor an oversized watermark logo absolutely on the **outer edge** of the matchup card (top corner pulled out past the rounded edge — same effect as TradeReport).
-
-```tsx
-{/* Away watermark — top-LEFT corner, escaping the card */}
-{awayLogo && (
-  <img
-    src={awayLogo}
-    alt={awayName}
-    aria-hidden
-    className="pointer-events-none absolute -top-3 -left-3 h-20 w-20 object-contain 
-               opacity-[0.20] -rotate-12 select-none 
-               group-hover:opacity-[0.32] group-hover:scale-110 
-               transition-all duration-300"
-  />
-)}
-{/* Home watermark — top-RIGHT corner, escaping the card */}
-{homeLogo && (
-  <img
-    src={homeLogo}
-    alt={homeName}
-    aria-hidden
-    className="pointer-events-none absolute -top-3 -right-3 h-20 w-20 object-contain 
-               opacity-[0.20] rotate-12 select-none 
-               group-hover:opacity-[0.32] group-hover:scale-110 
-               transition-all duration-300"
-  />
-)}
-```
-
-Layout adjustments since the inline badge slots disappear:
-- Remove the two `<div className="... w-14">` badge containers (lines 402-412 and 482-492).
-- The outer card already has `relative overflow-hidden` — keep `relative` but **change `overflow-hidden` → `overflow-visible`** ONLY for the watermark images to bleed past the card edge. To keep the venue arena image clipped, wrap the venue `<img>` + gradient in their own `absolute inset-0 overflow-hidden rounded-lg` div. That way watermarks escape but the venue art still respects the card's rounded corners.
-- The away cluster (line 415) and home cluster (line 453) keep `flex-1 min-w-0` — they now span the full width minus the center @+time anchor. Add a touch of horizontal padding (`px-3` on the row) so name text doesn't collide with the watermarks in the corners.
-- Yellow highlight border on involved games (`border-l-[hsl(var(--nba-yellow))]`) stays.
-
-This matches the TradeReport "premium card invaded by big rotated team logo" look exactly, applied symmetrically to both teams (top-left for away, top-right for home).
-
-### Files touched
-
-1. `src/pages/TeamPickerPage.tsx` — add fixed height (`h-44`) to all cards; shorten New Team copy; ensure description block clamps without changing card height.
-2. `src/components/transactions/TradeWorkbench.tsx` — restructure to put Reset (icon) + TRADE (renamed, with surge effect) + Confirm Add inline at the right edge of Row 1; Row 2 becomes chip-only. Import `RotateCcw` from lucide-react.
-3. `src/pages/PlayersPage.tsx` — single-line Badge className change on line 750 to match roster pane (`px-1 py-0 rounded-md`).
-4. `src/components/SchedulePreviewPanel.tsx` — `MatchupCard`: remove the two inline 56×56 badge slots; add two oversized rotated watermark `<img>` tags anchored to top-left/top-right of the card; wrap venue art in inner clipped div so watermarks can bleed past the rounded edge.
+**File: `src/components/NavLink.tsx`** — no changes.
 
 ### Out of scope
 
-- Backfilling team `description` for older teams in the picker (just shortening the new-team copy is enough).
-- Changing the TRADE REPORT modal itself (name, content, layout all preserved).
-- Reordering/restyling the metric pills in Row 1 (Bank/Freed/Spent/Available/GW unchanged).
-- Touching the Schedule preview's GW selector or day chips — only the matchup card visual changes.
+- Changing route order or adding/removing menu items.
+- Touching the TeamSwitcher component itself (only its surrounding label).
+- Mobile / off-canvas drawer behavior (current layout is desktop sidebar only).
+- Color palette overhaul — we reuse existing `--accent`, `--sidebar-*`, and `--nba-yellow` tokens; nothing new added.
 
