@@ -1,5 +1,6 @@
 const SIGNOUT_PREFIX = "nba_last_signout:";
 const SESSION_SEEN_KEY = "nba_welcome_back_seen";
+const TEAM_PICKED_SESSION_KEY = "nba_team_picked_this_session";
 
 export function recordSignOut(userId: string | null | undefined) {
   if (!userId) return;
@@ -63,4 +64,25 @@ export function formatTimeAgo(date: Date): string {
   if (mo < 12) return `${mo} month${mo === 1 ? "" : "s"} ago`;
   const y = Math.floor(mo / 12);
   return `${y} year${y === 1 ? "" : "s"} ago`;
+}
+
+/** Multi-team picker is one-shot per session. */
+export function isTeamPickedThisSession(): boolean {
+  try {
+    return sessionStorage.getItem(TEAM_PICKED_SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markTeamPickedThisSession() {
+  try {
+    sessionStorage.setItem(TEAM_PICKED_SESSION_KEY, "1");
+  } catch { /* noop */ }
+}
+
+export function clearTeamPickedThisSession() {
+  try {
+    sessionStorage.removeItem(TEAM_PICKED_SESSION_KEY);
+  } catch { /* noop */ }
 }
