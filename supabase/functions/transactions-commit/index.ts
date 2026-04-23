@@ -53,11 +53,21 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(gw) || !Number.isFinite(day)) {
       return errorResponse("INVALID_BODY", "gw and day are required numbers");
     }
-    if (outs.length === 0 || outs.length > 2) {
-      return errorResponse("INVALID_BODY", "outs must contain 1 or 2 player ids");
+    // Allow 3 modes:
+    //   ADD  : outs=[], ins=[id]            (only when roster < 10)
+    //   SWAP : outs=[id], ins=[id]
+    //   SWAP2: outs=[id,id], ins=[id,id]
+    if (outs.length > 2) {
+      return errorResponse("INVALID_BODY", "outs must contain 0, 1 or 2 player ids");
     }
-    if (ins.length !== outs.length) {
-      return errorResponse("INVALID_BODY", "ins length must match outs length");
+    if (ins.length === 0) {
+      return errorResponse("INVALID_BODY", "ins must contain at least one player id");
+    }
+    if (ins.length > 2) {
+      return errorResponse("INVALID_BODY", "ins must contain at most 2 player ids");
+    }
+    if (outs.length > 0 && ins.length !== outs.length) {
+      return errorResponse("INVALID_BODY", "ins length must match outs length for swaps");
     }
     // No duplicates within either list
     if (new Set(outs).size !== outs.length || new Set(ins).size !== ins.length) {
@@ -82,6 +92,15 @@ Deno.serve(async (req) => {
     }
     const rosterRows = rosterRes.data ?? [];
     const salary_cap = Number(settingsRes.data?.salary_cap ?? 100);
+
+    // ADD mode is only allowed when current roster has fewer than 10 players.
+    const isAddMode = outs.length === 0;
+    if (isAddMode && rosterRows.length >= 10) {
+      return errorResponse(
+        "INVALID_TRADE",
+        "Roster is full (10/10) — pick a player to release first",
+      );
+    }
 
     // 2. Validate that every OUT id is on the roster, and no IN id is.
     const rosterIds = new Set<number>(rosterRows.map((r: any) => Number(r.player_id)));
@@ -119,10 +138,19 @@ Deno.serve(async (req) => {
     for (const id of outs) postIds.delete(id);
     for (const id of ins) postIds.add(id);
 
-    if (postIds.size !== rosterRows.length) {
+    // For SWAP, post-trade size must equal current. For ADD, post-trade size
+    // must equal current + ins.length and stay ≤ 10.
+    const expectedSize = isAddMode ? rosterRows.length + ins.length : rosterRows.length;
+    if (postIds.size !== expectedSize) {
       return errorResponse(
         "INVALID_TRADE",
-        `post-trade roster size would be ${postIds.size}, expected ${rosterRows.length}`
+        `post-trade roster size would be ${postIds.size}, expected ${expectedSize}`,
+      );
+    }
+    if (postIds.size > 10) {
+      return errorResponse(
+        "INVALID_TRADE",
+        `post-trade roster size would be ${postIds.size} (max 10)`,
       );
     }
 
