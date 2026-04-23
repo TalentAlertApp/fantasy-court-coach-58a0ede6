@@ -473,18 +473,29 @@ export default function PlayersPage() {
                     const fmtTot = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0"; };
                     const teamLogo = getTeamLogo(p.core.team);
                     const isOnRoster = rosterPlayerIds.has(p.core.id);
-                    const teamAtMax = (teamCounts[p.core.team] ?? 0) >= 2;
-                    const isReleasing = releasing.includes(p.core.id);
-                    const effectiveRosterSize = rosterPlayerIds.size - releasing.length;
-                    const overBudget = p.core.salary > availableBudget;
-                    const canAdd = !isOnRoster && !teamAtMax && effectiveRosterSize < 10 && !overBudget;
-                    const addTitle = teamAtMax
-                      ? "Max 2 per team"
-                      : effectiveRosterSize >= 10
-                        ? "Roster full"
-                        : overBudget
-                          ? `Over budget ($${availableBudget.toFixed(1)}M left)`
-                          : "Add to roster";
+                    const isInOutZone = outZone.includes(p.core.id);
+                    const isInInZone = inZone.includes(p.core.id);
+                    // Post-trade team count if this player were added to IN zone
+                    const tri = (p.core.team ?? "").toUpperCase();
+                    const postTeamCount = (validation.postTeamCounts[tri] ?? 0) + (isInInZone ? 0 : 1);
+                    const teamAtMaxAfter = postTeamCount > 2;
+                    const overBudgetAfter = p.core.salary > validation.availableForNextIn + (isInInZone ? p.core.salary : 0);
+                    const inZoneFull = !isInInZone && inZone.length >= Math.max(1, outZone.length);
+                    const noOutsYet = outZone.length === 0;
+                    const canAdd = !isOnRoster && !noOutsYet && !inZoneFull && !teamAtMaxAfter && !overBudgetAfter && gwUsed < gwCap;
+                    const addTitle = isInInZone
+                      ? "Click to remove from IN zone"
+                      : noOutsYet
+                        ? "Pick a player to release first (− on a roster row)"
+                        : inZoneFull
+                          ? `IN zone full — ${outZone.length} replacement${outZone.length === 1 ? "" : "s"} only`
+                          : teamAtMaxAfter
+                            ? `Max 2 per team (${tri} would have ${postTeamCount})`
+                            : overBudgetAfter
+                              ? `Over budget ($${validation.availableForNextIn.toFixed(1)}M left)`
+                              : gwUsed >= gwCap
+                                ? `GW${gw} transfer cap reached`
+                                : "Stage as IN replacement";
 
                     return (
                       <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
@@ -493,14 +504,21 @@ export default function PlayersPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={`h-6 w-6 ${isReleasing ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"}`}
-                              onClick={(e) => { e.stopPropagation(); toggleRelease(p.core.id); }}
-                              title={isReleasing ? "Cancel release" : "Mark for release"}
+                              className={`h-6 w-6 ${isInOutZone ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"}`}
+                              onClick={(e) => { e.stopPropagation(); toggleOut(p.core.id); }}
+                              title={isInOutZone ? "Cancel release" : "Stage for release"}
                             >
                               <Minus className="h-3.5 w-3.5" />
                             </Button>
                           ) : (
-                            <Button variant="ghost" size="icon" className="h-6 w-6 text-green-600 hover:bg-green-500/10" onClick={(e) => handleAddPlayer(p.core.id, e)} disabled={!canAdd} title={addTitle}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : "text-emerald-600 hover:bg-emerald-500/10"}`}
+                              onClick={(e) => stageIn(p.core.id, e)}
+                              disabled={!canAdd && !isInInZone}
+                              title={addTitle}
+                            >
                               <Plus className="h-3.5 w-3.5" />
                             </Button>
                           )}
