@@ -419,7 +419,7 @@ export default function PlayersPage() {
     const tip = columnTooltips[col];
     return (
       <TableHead
-        className={`text-xs text-right cursor-pointer select-none ${isActive ? "text-primary font-bold" : ""}`}
+        className={`text-xs text-right cursor-pointer select-none px-1 ${isActive ? "text-primary font-bold" : ""}`}
         onClick={() => handleSort(col)}
       >
         {tip ? (
