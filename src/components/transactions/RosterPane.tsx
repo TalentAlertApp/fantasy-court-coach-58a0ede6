@@ -49,10 +49,10 @@ function RosterRow({
           src={teamLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -top-3 -right-3 h-16 w-16 object-contain opacity-[0.18] rotate-12 select-none"
+          className="pointer-events-none absolute -right-3 top-1/2 -translate-y-1/2 h-14 w-14 object-contain opacity-[0.20] rotate-12 select-none"
         />
       )}
-      <div className="relative z-10 flex items-center gap-1.5 w-full">
+      <div className="relative z-10 flex items-center gap-1.5 w-full pr-1">
         {/* [-] is FAR LEFT for one-tap release. */}
         <Button
           variant="ghost"
@@ -79,7 +79,7 @@ function RosterRow({
           {player.fc_bc}
         </Badge>
         <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
-        <span className="text-[10px] font-mono text-muted-foreground shrink-0">${player.salary}</span>
+        <span className="text-sm font-bold tabular-nums text-foreground shrink-0">${player.salary}</span>
       </div>
     </div>
   );
