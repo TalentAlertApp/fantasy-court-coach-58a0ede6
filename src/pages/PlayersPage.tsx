@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays, Users, Sparkles, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays, Users, Sparkles, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -57,6 +57,7 @@ export default function PlayersPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [committing, setCommitting] = useState(false);
   const [rosterSheetOpen, setRosterSheetOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(true);
 
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
