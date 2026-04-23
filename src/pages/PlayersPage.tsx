@@ -419,7 +419,7 @@ export default function PlayersPage() {
     const tip = columnTooltips[col];
     return (
       <TableHead
-        className={`text-xs text-right cursor-pointer select-none ${isActive ? "text-primary font-bold" : ""}`}
+        className={`text-xs text-right cursor-pointer select-none px-1 ${isActive ? "text-primary font-bold" : ""}`}
         onClick={() => handleSort(col)}
       >
         {tip ? (
@@ -594,7 +594,7 @@ export default function PlayersPage() {
                 </div>
                 {/* Footer — centered, bold NBA-yellow */}
                 <div className="h-[52px] px-3 flex items-center justify-center border-t shrink-0 bg-background">
-                  <span className="text-[11px] font-mono font-bold text-[hsl(var(--nba-yellow))]">
+                  <span className="text-xs font-bold text-[hsl(var(--nba-yellow))]">
                     ${totalRosterSalary.toFixed(1)}M used · ${bankRemaining.toFixed(1)}M bank
                   </span>
                 </div>
@@ -635,12 +635,12 @@ export default function PlayersPage() {
               <div className="shrink-0 border-b bg-background">
                 <Table className="table-fixed">
                   <colgroup>
-                    <col style={{ width: "48px" }} />
-                    <col style={{ width: "1%" }} />
-                    <col style={{ width: "80px" }} />
-                    <col style={{ width: "56px" }} />
-                    {columns.map((c) => <col key={c.key} style={{ width: "56px" }} />)}
-                    <col style={{ width: "64px" }} />
+                    <col style={{ width: "44px" }} />
+                    <col />
+                    <col style={{ width: "60px" }} />
+                    <col style={{ width: "44px" }} />
+                    {columns.map((c) => <col key={c.key} style={{ width: "44px" }} />)}
+                    <col style={{ width: "52px" }} />
                   </colgroup>
                   <TableHeader>
                     <TableRow className="h-10 hover:bg-transparent">
@@ -658,12 +658,12 @@ export default function PlayersPage() {
               <div className="flex-1 overflow-y-auto min-h-0">
                 <Table className="table-fixed">
                   <colgroup>
-                    <col style={{ width: "48px" }} />
-                    <col style={{ width: "1%" }} />
-                    <col style={{ width: "80px" }} />
-                    <col style={{ width: "56px" }} />
-                    {columns.map((c) => <col key={c.key} style={{ width: "56px" }} />)}
-                    <col style={{ width: "64px" }} />
+                    <col style={{ width: "44px" }} />
+                    <col />
+                    <col style={{ width: "60px" }} />
+                    <col style={{ width: "44px" }} />
+                    {columns.map((c) => <col key={c.key} style={{ width: "44px" }} />)}
+                    <col style={{ width: "52px" }} />
                   </colgroup>
                 <TableBody>
                   {paginatedItems.map((p) => {
@@ -723,19 +723,19 @@ export default function PlayersPage() {
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
                           </div>
                         </td>
-                        <td className="px-2 py-1.5 pl-1 text-xs">
+                        <td className="px-1 py-1.5 pl-1 text-xs">
                           <div className="flex items-center gap-1">
                             {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
                             <span>{p.core.team}</span>
                           </div>
                         </td>
-                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "gp" ? "text-primary font-bold" : ""}`}>{gp}</td>
+                        <td className={`px-1 py-1.5 text-xs text-right font-mono ${sortCol === "gp" ? "text-primary font-bold" : ""}`}>{gp}</td>
                         {columns.map((c) => (
-                          <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === c.key ? "text-primary font-bold" : c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
+                          <td key={c.key} className={`px-1 py-1.5 text-xs text-right font-mono ${sortCol === c.key ? "text-primary font-bold" : c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
                             {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
                           </td>
                         ))}
-                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "salary" ? "text-primary font-bold" : ""}`}>${p.core.salary}</td>
+                        <td className={`px-1 py-1.5 text-xs text-right font-mono ${sortCol === "salary" ? "text-primary font-bold" : ""}`}>${p.core.salary}</td>
                       </TableRow>
                     );
                   })}
