@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, Bot, X, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -23,6 +23,7 @@ import AICoachModal from "@/components/AICoachModal";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
+import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
 import { commitTransaction } from "@/lib/api";
@@ -84,6 +85,38 @@ export default function PlayersPage() {
         photo: p.core.photo ?? null,
       }));
   }, [rosterIdList, allPlayers]);
+
+  // Split roster into starters/bench for the left pane
+  const starterIds = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    return Array.isArray(r?.starters) ? (r.starters as number[]) : [];
+  }, [rosterData]);
+  const benchIds = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    return Array.isArray(r?.bench) ? (r.bench as number[]) : [];
+  }, [rosterData]);
+  const hydrate = (id: number): RosterPanePlayer | null => {
+    const p = allPlayers.find((pp) => pp.core.id === id);
+    if (!p) return null;
+    return {
+      player_id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      salary: p.core.salary,
+      fc_bc: p.core.fc_bc,
+      photo: p.core.photo ?? null,
+    };
+  };
+  const rosterStarters = useMemo(
+    () => starterIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [starterIds, allPlayers],
+  );
+  const rosterBench = useMemo(
+    () => benchIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [benchIds, allPlayers],
+  );
 
   const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
 
@@ -249,6 +282,8 @@ export default function PlayersPage() {
 
   const filtered = useMemo(() => {
     let items = allPlayers.filter((p) => p.season.gp > 0);
+    // Exclude players already on the user's roster — they live in the left pane now.
+    items = items.filter((p) => !rosterPlayerIds.has(p.core.id));
     if (fcBc !== "ALL") items = items.filter((p) => p.core.fc_bc === fcBc);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -270,7 +305,7 @@ export default function PlayersPage() {
       return sortDir === "desc" ? getVal(b) - getVal(a) : getVal(a) - getVal(b);
     });
     return items;
-  }, [allPlayers, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode]);
+  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
@@ -358,7 +393,7 @@ export default function PlayersPage() {
             <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
             <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
           </ToggleGroup>
-          <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
+          <span className="text-xs text-muted-foreground ml-auto">{totalItems} available</span>
         </div>
 
         {/* Trade toolbar — relative so the schedule preview can overlay below it */}
@@ -450,6 +485,14 @@ export default function PlayersPage() {
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
         <div className="flex gap-4 flex-1 min-h-0">
+          <RosterPane
+            starters={rosterStarters}
+            bench={rosterBench}
+            outZone={outZone}
+            isLoading={rosterIdList.length > 0 && rosterStarters.length + rosterBench.length === 0}
+            onToggleOut={toggleOut}
+            onPlayerClick={(id) => setSelectedPlayerId(id)}
+          />
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="flex-1 overflow-y-auto min-h-0">
               <Table>
@@ -472,8 +515,6 @@ export default function PlayersPage() {
                     const fmtPg = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? (s[tk] / gp).toFixed(1) : "0.0"; };
                     const fmtTot = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0"; };
                     const teamLogo = getTeamLogo(p.core.team);
-                    const isOnRoster = rosterPlayerIds.has(p.core.id);
-                    const isInOutZone = outZone.includes(p.core.id);
                     const isInInZone = inZone.includes(p.core.id);
                     // Post-trade team count if this player were added to IN zone
                     const tri = (p.core.team ?? "").toUpperCase();
@@ -482,7 +523,7 @@ export default function PlayersPage() {
                     const overBudgetAfter = p.core.salary > validation.availableForNextIn + (isInInZone ? p.core.salary : 0);
                     const inZoneFull = !isInInZone && inZone.length >= Math.max(1, outZone.length);
                     const noOutsYet = outZone.length === 0;
-                    const canAdd = !isOnRoster && !noOutsYet && !inZoneFull && !teamAtMaxAfter && !overBudgetAfter && gwUsed < gwCap;
+                    const canAdd = !noOutsYet && !inZoneFull && !teamAtMaxAfter && !overBudgetAfter && gwUsed < gwCap;
                     const addTitle = isInInZone
                       ? "Click to remove from IN zone"
                       : noOutsYet
@@ -500,28 +541,16 @@ export default function PlayersPage() {
                     return (
                       <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
                         <td className="px-1 py-1">
-                          {isOnRoster ? (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-6 w-6 ${isInOutZone ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"}`}
-                              onClick={(e) => { e.stopPropagation(); toggleOut(p.core.id); }}
-                              title={isInOutZone ? "Cancel release" : "Stage for release"}
-                            >
-                              <Minus className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : "text-emerald-600 hover:bg-emerald-500/10"}`}
-                              onClick={(e) => stageIn(p.core.id, e)}
-                              disabled={!canAdd && !isInInZone}
-                              title={addTitle}
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : "text-emerald-600 hover:bg-emerald-500/10"}`}
+                            onClick={(e) => stageIn(p.core.id, e)}
+                            disabled={!canAdd && !isInInZone}
+                            title={addTitle}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
                         </td>
                         <td className="px-2 py-1.5 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -531,7 +560,6 @@ export default function PlayersPage() {
                             </Avatar>
                             <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
-                            {isOnRoster && <Badge variant="outline" className="text-[7px] px-1 py-0 rounded-lg border-green-500/50 text-green-600">ROSTER</Badge>}
                           </div>
                         </td>
                         <td className="px-2 py-1.5 text-xs">
