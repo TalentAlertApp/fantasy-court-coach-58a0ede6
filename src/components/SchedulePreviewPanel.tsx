@@ -486,18 +486,6 @@ function MatchupCard({
             <ResultDots details={homeDetail} align="start" ownTri={g.home_team} onOpenGame={onOpenGame} />
           </div>
         </div>
-
-        {/* Home badge — full card height, with surge on hover */}
-        <div className="flex items-center justify-center shrink-0 w-14">
-          {homeLogo && (
-            <img
-              src={homeLogo}
-              alt={homeName}
-              className="h-14 w-14 object-contain transition-all duration-300 ease-out group-hover:scale-125 group-hover:drop-shadow-[0_0_18px_hsl(var(--nba-yellow)/0.55)]"
-              style={{ filter: homePrimary ? `drop-shadow(0 0 6px ${homePrimary}55)` : undefined }}
-            />
-          )}
-        </div>
       </div>
     </div>
   );
