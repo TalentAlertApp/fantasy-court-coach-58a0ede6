@@ -9,13 +9,13 @@ import FiltersPanel from "@/components/FiltersPanel";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -27,6 +27,8 @@ import RosterPane, { type RosterPanePlayer } from "@/components/transactions/Ros
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
 import { commitTransaction } from "@/lib/api";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -54,6 +56,9 @@ export default function PlayersPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [committing, setCommitting] = useState(false);
+  const [rosterSheetOpen, setRosterSheetOpen] = useState(false);
+
+  const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
@@ -61,8 +66,6 @@ export default function PlayersPage() {
   const { data: rosterData } = useRosterQuery();
   const allPlayers = playersData?.items ?? [];
 
-  // roster-current returns { roster: { starters: number[], bench: number[], bank_remaining } }
-  // — IDs only. Hydrate names/teams/salaries from the already-loaded `allPlayers` list.
   const rosterIdList = useMemo(() => {
     const r: any = (rosterData as any)?.roster ?? rosterData;
     const starters: number[] = Array.isArray(r?.starters) ? r.starters : [];
@@ -86,7 +89,6 @@ export default function PlayersPage() {
       }));
   }, [rosterIdList, allPlayers]);
 
-  // Split roster into starters/bench for the left pane
   const starterIds = useMemo(() => {
     const r: any = (rosterData as any)?.roster ?? rosterData;
     return Array.isArray(r?.starters) ? (r.starters as number[]) : [];
@@ -120,24 +122,20 @@ export default function PlayersPage() {
 
   const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
 
-  // Current GW for cap counting + commit payload
   const current = getCurrentGameday();
   const gw = current.gw;
   const day = current.day;
 
-  // GW transfer cap: base 2, +2 with All-Star, ∞ with Wildcard
   const baseGwCap = 2;
   const gwCap = chipWildcard ? 999 : chipAllStar ? baseGwCap + 2 : baseGwCap;
   const { data: gwTx } = useGameweekTransfers(selectedTeamId, gw);
   const gwUsed = gwTx?.used ?? 0;
 
-  // Cap reset = first deadline of next GW (Lisbon-formatted)
   const capResetLabel = useMemo(() => {
     const next = DEADLINES.find((d) => d.gw === gw + 1);
     return next ? formatDeadline(next.deadline_utc) : "next GW";
   }, [gw]);
 
-  // Validation pool = roster + everyone in the players list (so by-id lookup works)
   const validationPool: ValidationPlayer[] = useMemo(() => {
     return allPlayers.map((p) => ({
       id: p.core.id,
@@ -172,7 +170,6 @@ export default function PlayersPage() {
     validationPool,
   );
 
-  // Workbench-shaped chips
   const outChips = useMemo(
     () =>
       outZone
@@ -204,7 +201,6 @@ export default function PlayersPage() {
     [inZone, allPlayers],
   );
 
-  // Players hydrated for the report (full PlayerListItem shape)
   const outPlayersFull = useMemo(
     () => outZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
     [outZone, allPlayers],
@@ -218,7 +214,47 @@ export default function PlayersPage() {
     [rosterIdList, allPlayers],
   );
 
-  // Live "available bank" given current OUT/IN selection
+  // ADD mode: roster has < 10 players → [+] can add directly without an OUT.
+  const addMode = rosterIdList.length < 10;
+
+  // Per-row eligibility context (computed once per render)
+  const eligibilityCtx: EligibilityCtx = useMemo(() => {
+    // post = roster after removing OUTs (before adding INs)
+    const postTeamCounts: Record<string, number> = {};
+    let postFc = 0;
+    let postBc = 0;
+    for (const p of rosterPlayers) {
+      if (outZone.includes(p.player_id)) continue;
+      const tri = (p.team ?? "").toUpperCase();
+      if (tri) postTeamCounts[tri] = (postTeamCounts[tri] ?? 0) + 1;
+      if (p.fc_bc === "FC") postFc += 1;
+      else if (p.fc_bc === "BC") postBc += 1;
+    }
+    // also account for already-staged INs in team counts and fc/bc balance
+    let inFc = 0;
+    let inBc = 0;
+    for (const p of inChips) {
+      const tri = (p.team ?? "").toUpperCase();
+      if (tri) postTeamCounts[tri] = (postTeamCounts[tri] ?? 0) + 1;
+      if (p.fc_bc === "FC") inFc += 1;
+      else if (p.fc_bc === "BC") inBc += 1;
+    }
+    return {
+      addMode,
+      inZone,
+      outZone,
+      availableBudget: validation.availableForNextIn,
+      postTeamCounts,
+      postFc,
+      postBc,
+      inFc,
+      inBc,
+      gwUsed,
+      gwCap,
+      gw,
+    };
+  }, [addMode, inZone, outZone, validation.availableForNextIn, rosterPlayers, inChips, gwUsed, gwCap, gw]);
+
   const availableBudget = validation.availableForNextIn;
 
   const toggleOut = (id: number) => {
@@ -253,7 +289,9 @@ export default function PlayersPage() {
         { gw, day, outs: outZone, ins: inZone },
         selectedTeamId,
       );
-      toast.success(`Trade committed — ${outZone.length} player${outZone.length === 1 ? "" : "s"} swapped`);
+      const verb = outZone.length === 0 ? "added" : "swapped";
+      const n = Math.max(inZone.length, outZone.length);
+      toast.success(`${n} player${n === 1 ? "" : "s"} ${verb}`);
       resetTrade();
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
@@ -263,14 +301,6 @@ export default function PlayersPage() {
       setCommitting(false);
     }
   };
-
-  const teamCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const p of rosterPlayers) {
-      if (p.team) counts[p.team] = (counts[p.team] || 0) + 1;
-    }
-    return counts;
-  }, [rosterPlayers]);
 
   const maxSalaryLimit = useMemo(() => {
     if (allPlayers.length === 0) return 50;
@@ -282,7 +312,6 @@ export default function PlayersPage() {
 
   const filtered = useMemo(() => {
     let items = allPlayers.filter((p) => p.season.gp > 0);
-    // Exclude players already on the user's roster — they live in the left pane now.
     items = items.filter((p) => !rosterPlayerIds.has(p.core.id));
     if (fcBc !== "ALL") items = items.filter((p) => p.core.fc_bc === fcBc);
     if (search.trim()) {
@@ -317,6 +346,19 @@ export default function PlayersPage() {
   const totalPages = effectivePageSize > 0 ? Math.ceil(totalItems / effectivePageSize) : 1;
   const paginatedItems = pageSize === "All" ? filtered : filtered.slice((currentPage - 1) * effectivePageSize, currentPage * effectivePageSize);
 
+  // Eligibility summary (count eligible across the FULL filtered list, not just current page)
+  const eligibleCount = useMemo(
+    () =>
+      filtered.reduce((acc, p) => {
+        const e = getEligibility(
+          { id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc, salary: p.core.salary },
+          eligibilityCtx,
+        );
+        return acc + (e.ok ? 1 : 0);
+      }, 0),
+    [filtered, eligibilityCtx],
+  );
+
   const columnTooltips: Record<string, { pg: string; total: string }> = {
     pts: { pg: "Points per game", total: "Total points scored" },
     mp: { pg: "Minutes per game", total: "Total minutes played" },
@@ -341,16 +383,22 @@ export default function PlayersPage() {
     { key: "fp", label: "FP" },
   ];
 
-  /** Stage a non-roster player into the IN zone (does not write to DB). */
+  /** Stage a non-roster player: in ADD mode, commit immediately; otherwise stage IN. */
   const stageIn = (playerId: number, e: React.MouseEvent) => {
     e.stopPropagation();
     setReportOpen(false);
-    if (outZone.length === 0) {
-      toast.error("Pick a player to release first (− on a roster row)");
-      return;
-    }
     if (inZone.includes(playerId)) {
       setInZone((prev) => prev.filter((x) => x !== playerId));
+      return;
+    }
+    if (addMode && outZone.length === 0) {
+      // Direct ADD path — stage and let user click Report/Confirm via workbench.
+      // We add to IN zone so the workbench previews the same metrics.
+      setInZone((prev) => [...prev, playerId]);
+      return;
+    }
+    if (outZone.length === 0) {
+      toast.error("Pick a player to release first (− on a roster row)");
       return;
     }
     if (inZone.length >= outZone.length) {
@@ -384,121 +432,148 @@ export default function PlayersPage() {
     );
   };
 
+  const onRosterToggleOut = (id: number) => {
+    toggleOut(id);
+    if (!isWideScreen) setRosterSheetOpen(false);
+  };
+
+  const rosterPaneNode = (
+    <RosterPane
+      starters={rosterStarters}
+      bench={rosterBench}
+      outZone={outZone}
+      isLoading={rosterIdList.length > 0 && rosterStarters.length + rosterBench.length === 0}
+      onToggleOut={onRosterToggleOut}
+      onPlayerClick={(id) => setSelectedPlayerId(id)}
+    />
+  );
+
   return (
     <div className="h-full flex flex-col">
-      <div className="flex flex-col gap-3 shrink-0 mb-4">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-xl font-heading font-bold">Transactions</h2>
-          <ToggleGroup type="single" value={perfMode} onValueChange={(v) => v && setPerfMode(v as "pg" | "total")}>
-            <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
-            <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
-          </ToggleGroup>
-          <span className="text-xs text-muted-foreground ml-auto">{totalItems} available</span>
-        </div>
-
-        {/* Trade toolbar — relative so the schedule preview can overlay below it */}
-        {/* Trade Workbench — sticky OUT/IN zones + live validation + report trigger */}
-        <div className="relative">
-          <TradeWorkbench
-            outs={outChips}
-            ins={inChips}
-            bankRemaining={bankRemaining}
-            validation={validation}
-            gwUsed={gwUsed}
-            gwCap={gwCap}
-            gw={gw}
-            capResetLabel={capResetLabel}
-            chipAllStar={chipAllStar}
-            chipWildcard={chipWildcard}
-            onRemoveOut={(id) => toggleOut(id)}
-            onRemoveIn={(id) => removeIn(id)}
-            onReset={resetTrade}
-            onGenerateReport={() => setReportOpen(true)}
-            onToggleAllStar={() => setChipAllStar((v) => !v)}
-            onToggleWildcard={() => setChipWildcard((v) => !v)}
-            reportOpen={reportOpen}
-          />
-
-          {/* Secondary action row — schedule + AI Coach */}
-          <div className="flex items-center gap-2 flex-wrap mt-2">
-            <Button
-              variant={scheduleOpen ? "default" : "outline"}
-              size="sm"
-              onClick={() => setScheduleOpen((v) => !v)}
-              className={`rounded-xl h-8 font-heading text-[10px] uppercase gap-1.5 ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-              title="Toggle schedule preview"
-            >
-              <CalendarDays className="h-3.5 w-3.5" />
-              Schedule
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
-              onClick={() => setAiCoachOpen(true)}
-              title="Open AI Coach"
-            >
-              <Bot className="h-3.5 w-3.5" />AI Coach
-            </Button>
-          </div>
-
-          {/* Schedule preview — absolute overlay */}
-          {scheduleOpen && (
-            <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
-              <button
-                type="button"
-                onClick={() => setScheduleOpen(false)}
-                className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
-                aria-label="Close schedule"
+      {/* Compact header row */}
+      <div className="flex items-center gap-2 flex-wrap shrink-0 mb-3">
+        <h2 className="text-xl font-heading font-bold">Transactions</h2>
+        {!isWideScreen && (
+          <Sheet open={rosterSheetOpen} onOpenChange={setRosterSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
               >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              <div className="overflow-y-auto max-h-[440px] pr-1">
-                <SchedulePreviewBody
-                  rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
-                  variant="panel"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Inline Trade Report — appears when user clicks Generate Report */}
-        {reportOpen && validation.isValid && outZone.length > 0 && inZone.length === outZone.length && (
-          <TradeReport
-            outPlayers={outPlayersFull}
-            inPlayers={inPlayersFull}
-            bankRemaining={bankRemaining}
-            salaryCap={100}
-            rosterPlayers={rosterPlayersFull}
-            gw={gw}
-            day={day}
-            teamId={selectedTeamId}
-            committing={committing}
-            onClose={() => setReportOpen(false)}
-            onCommit={handleCommit}
-          />
+                <Users className="h-3.5 w-3.5" />
+                Roster {rosterIdList.length}/10
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-4 overflow-y-auto">
+              <SheetHeader className="mb-3">
+                <SheetTitle className="text-sm font-heading uppercase tracking-wider">My Roster</SheetTitle>
+              </SheetHeader>
+              {rosterPaneNode}
+            </SheetContent>
+          </Sheet>
         )}
+        <Button
+          variant={scheduleOpen ? "default" : "outline"}
+          size="sm"
+          onClick={() => setScheduleOpen((v) => !v)}
+          className={`rounded-xl h-8 font-heading text-[10px] uppercase gap-1.5 ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+          title="Toggle schedule preview"
+        >
+          <CalendarDays className="h-3.5 w-3.5" />
+          Schedule
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
+          onClick={() => setAiCoachOpen(true)}
+          title="Open AI Coach"
+        >
+          <Bot className="h-3.5 w-3.5" />AI Coach
+        </Button>
+        <span className="text-xs text-muted-foreground ml-auto">
+          {totalItems} available · {eligibleCount} eligible
+        </span>
       </div>
 
       {isLoading ? (
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
         <div className="flex gap-4 flex-1 min-h-0">
-          <RosterPane
-            starters={rosterStarters}
-            bench={rosterBench}
-            outZone={outZone}
-            isLoading={rosterIdList.length > 0 && rosterStarters.length + rosterBench.length === 0}
-            onToggleOut={toggleOut}
-            onPlayerClick={(id) => setSelectedPlayerId(id)}
-          />
-          <div className="flex-1 min-w-0 flex flex-col">
+          {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
+          {isWideScreen && (
+            <div className="w-64 shrink-0 min-h-0">
+              {rosterPaneNode}
+            </div>
+          )}
+
+          {/* CENTER — Workbench + Table */}
+          <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
+            <div className="relative shrink-0">
+              <TradeWorkbench
+                outs={outChips}
+                ins={inChips}
+                bankRemaining={bankRemaining}
+                validation={validation}
+                gwUsed={gwUsed}
+                gwCap={gwCap}
+                gw={gw}
+                capResetLabel={capResetLabel}
+                chipAllStar={chipAllStar}
+                chipWildcard={chipWildcard}
+                onRemoveOut={(id) => toggleOut(id)}
+                onRemoveIn={(id) => removeIn(id)}
+                onReset={resetTrade}
+                onGenerateReport={() => setReportOpen(true)}
+                onToggleAllStar={() => setChipAllStar((v) => !v)}
+                onToggleWildcard={() => setChipWildcard((v) => !v)}
+                reportOpen={reportOpen}
+                addMode={addMode}
+                rosterSize={rosterIdList.length}
+              />
+
+              {scheduleOpen && (
+                <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleOpen(false)}
+                    className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
+                    aria-label="Close schedule"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                  <div className="overflow-y-auto max-h-[440px] pr-1">
+                    <SchedulePreviewBody
+                      rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
+                      variant="panel"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {reportOpen && validation.isValid && (outZone.length > 0 || inZone.length > 0) && (
+              <TradeReport
+                outPlayers={outPlayersFull}
+                inPlayers={inPlayersFull}
+                bankRemaining={bankRemaining}
+                salaryCap={100}
+                rosterPlayers={rosterPlayersFull}
+                gw={gw}
+                day={day}
+                teamId={selectedTeamId}
+                committing={committing}
+                onClose={() => setReportOpen(false)}
+                onCommit={handleCommit}
+              />
+            )}
+
             <div className="flex-1 overflow-y-auto min-h-0">
               <Table>
                 <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
-                    <TableHead className="text-xs w-8"></TableHead>
+                    <TableHead className="text-xs w-12"></TableHead>
                     <TableHead className="text-xs">Player</TableHead>
                     <TableHead className="text-xs">Team</TableHead>
                     {sortableHeader("gp", "GP")}
@@ -516,41 +591,45 @@ export default function PlayersPage() {
                     const fmtTot = (key: string) => { const tk = `total_${key}`; return s[tk] !== undefined ? Math.round(s[tk]).toString() : "0"; };
                     const teamLogo = getTeamLogo(p.core.team);
                     const isInInZone = inZone.includes(p.core.id);
-                    // Post-trade team count if this player were added to IN zone
-                    const tri = (p.core.team ?? "").toUpperCase();
-                    const postTeamCount = (validation.postTeamCounts[tri] ?? 0) + (isInInZone ? 0 : 1);
-                    const teamAtMaxAfter = postTeamCount > 2;
-                    const overBudgetAfter = p.core.salary > validation.availableForNextIn + (isInInZone ? p.core.salary : 0);
-                    const inZoneFull = !isInInZone && inZone.length >= Math.max(1, outZone.length);
-                    const noOutsYet = outZone.length === 0;
-                    const canAdd = !noOutsYet && !inZoneFull && !teamAtMaxAfter && !overBudgetAfter && gwUsed < gwCap;
-                    const addTitle = isInInZone
-                      ? "Click to remove from IN zone"
-                      : noOutsYet
-                        ? "Pick a player to release first (− on a roster row)"
-                        : inZoneFull
-                          ? `IN zone full — ${outZone.length} replacement${outZone.length === 1 ? "" : "s"} only`
-                          : teamAtMaxAfter
-                            ? `Max 2 per team (${tri} would have ${postTeamCount})`
-                            : overBudgetAfter
-                              ? `Over budget ($${validation.availableForNextIn.toFixed(1)}M left)`
-                              : gwUsed >= gwCap
-                                ? `GW${gw} transfer cap reached`
-                                : "Stage as IN replacement";
+                    const elig = getEligibility(
+                      { id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc, salary: p.core.salary },
+                      eligibilityCtx,
+                    );
+                    const canAdd = elig.ok || isInInZone;
 
                     return (
                       <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
                         <td className="px-1 py-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : "text-emerald-600 hover:bg-emerald-500/10"}`}
-                            onClick={(e) => stageIn(p.core.id, e)}
-                            disabled={!canAdd && !isInInZone}
-                            title={addTitle}
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={`h-6 w-6 ${isInInZone ? "text-emerald-600 bg-emerald-500/20" : elig.ok ? "text-emerald-600 hover:bg-emerald-500/10" : "text-muted-foreground"}`}
+                                  onClick={(e) => stageIn(p.core.id, e)}
+                                  disabled={!canAdd}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                                <span
+                                  className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                                    isInInZone
+                                      ? "bg-emerald-500"
+                                      : elig.ok
+                                        ? "bg-emerald-500/70"
+                                        : elig.reason === "gw_cap"
+                                          ? "bg-destructive"
+                                          : "bg-amber-500"
+                                  }`}
+                                  aria-hidden="true"
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="text-xs max-w-[220px]">
+                              {elig.message}
+                            </TooltipContent>
+                          </Tooltip>
                         </td>
                         <td className="px-2 py-1.5 text-xs">
                           <div className="flex items-center gap-1.5">
@@ -603,8 +682,21 @@ export default function PlayersPage() {
             </div>
           </div>
 
-          <div className="w-56 flex-shrink-0 sticky top-0 self-start">
-            <FiltersPanel fcBc={fcBc} onFcBcChange={setFcBc} search={search} onSearchChange={setSearch} maxSalary={maxSalary} onMaxSalaryChange={setMaxSalary} maxSalaryLimit={maxSalaryLimit} team={team} onTeamChange={setTeam} />
+          {/* RIGHT — Filters */}
+          <div className="w-56 flex-shrink-0 self-start">
+            <FiltersPanel
+              fcBc={fcBc}
+              onFcBcChange={setFcBc}
+              search={search}
+              onSearchChange={setSearch}
+              maxSalary={maxSalary}
+              onMaxSalaryChange={setMaxSalary}
+              maxSalaryLimit={maxSalaryLimit}
+              team={team}
+              onTeamChange={setTeam}
+              perfMode={perfMode}
+              onPerfModeChange={setPerfMode}
+            />
           </div>
         </div>
       )}

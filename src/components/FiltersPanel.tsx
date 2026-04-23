@@ -16,11 +16,14 @@ interface FiltersPanelProps {
   maxSalaryLimit?: number;
   team?: string;
   onTeamChange?: (v: string) => void;
+  perfMode?: "pg" | "total";
+  onPerfModeChange?: (v: "pg" | "total") => void;
 }
 
 export default function FiltersPanel({
   fcBc, onFcBcChange, search, onSearchChange, maxSalary, onMaxSalaryChange,
   maxSalaryLimit = 50, team, onTeamChange,
+  perfMode, onPerfModeChange,
 }: FiltersPanelProps) {
   const sortedTeams = useMemo(
     () => [...NBA_TEAMS].sort((a, b) => a.name.localeCompare(b.name)),
@@ -30,6 +33,27 @@ export default function FiltersPanel({
   return (
     <div className="flex flex-col h-full">
       <div className="space-y-4 p-3 bg-card border rounded-xl flex-1">
+        {onPerfModeChange && perfMode && (
+          <div>
+            <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">View</Label>
+            <ToggleGroup
+              type="single"
+              value={perfMode}
+              onValueChange={(v) => v && onPerfModeChange(v as "pg" | "total")}
+              className="justify-start w-full"
+            >
+              <ToggleGroupItem
+                value="pg"
+                className={`text-[10px] font-heading uppercase rounded-xl h-7 flex-1 ${perfMode === "pg" ? "!bg-accent !text-accent-foreground" : ""}`}
+              >Per Game</ToggleGroupItem>
+              <ToggleGroupItem
+                value="total"
+                className={`text-[10px] font-heading uppercase rounded-xl h-7 flex-1 ${perfMode === "total" ? "!bg-accent !text-accent-foreground" : ""}`}
+              >Totals</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        )}
+
         <div>
           <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Position</Label>
           <ToggleGroup type="single" value={fcBc} onValueChange={(v) => v && onFcBcChange(v)} className="justify-start">

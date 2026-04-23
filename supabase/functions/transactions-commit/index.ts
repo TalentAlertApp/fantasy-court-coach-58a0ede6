@@ -53,11 +53,21 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(gw) || !Number.isFinite(day)) {
       return errorResponse("INVALID_BODY", "gw and day are required numbers");
     }
-    if (outs.length === 0 || outs.length > 2) {
-      return errorResponse("INVALID_BODY", "outs must contain 1 or 2 player ids");
+    // Allow 3 modes:
+    //   ADD  : outs=[], ins=[id]            (only when roster < 10)
+    //   SWAP : outs=[id], ins=[id]
+    //   SWAP2: outs=[id,id], ins=[id,id]
+    if (outs.length > 2) {
+      return errorResponse("INVALID_BODY", "outs must contain 0, 1 or 2 player ids");
     }
-    if (ins.length !== outs.length) {
-      return errorResponse("INVALID_BODY", "ins length must match outs length");
+    if (ins.length === 0) {
+      return errorResponse("INVALID_BODY", "ins must contain at least one player id");
+    }
+    if (ins.length > 2) {
+      return errorResponse("INVALID_BODY", "ins must contain at most 2 player ids");
+    }
+    if (outs.length > 0 && ins.length !== outs.length) {
+      return errorResponse("INVALID_BODY", "ins length must match outs length for swaps");
     }
     // No duplicates within either list
     if (new Set(outs).size !== outs.length || new Set(ins).size !== ins.length) {
@@ -82,6 +92,15 @@ Deno.serve(async (req) => {
     }
     const rosterRows = rosterRes.data ?? [];
     const salary_cap = Number(settingsRes.data?.salary_cap ?? 100);
+
+    // ADD mode is only allowed when current roster has fewer than 10 players.
+    const isAddMode = outs.length === 0;
+    if (isAddMode && rosterRows.length >= 10) {
+      return errorResponse(
+        "INVALID_TRADE",
+        "Roster is full (10/10) — pick a player to release first",
+      );
+    }
 
     // 2. Validate that every OUT id is on the roster, and no IN id is.
     const rosterIds = new Set<number>(rosterRows.map((r: any) => Number(r.player_id)));
@@ -119,10 +138,19 @@ Deno.serve(async (req) => {
     for (const id of outs) postIds.delete(id);
     for (const id of ins) postIds.add(id);
 
-    if (postIds.size !== rosterRows.length) {
+    // For SWAP, post-trade size must equal current. For ADD, post-trade size
+    // must equal current + ins.length and stay ≤ 10.
+    const expectedSize = isAddMode ? rosterRows.length + ins.length : rosterRows.length;
+    if (postIds.size !== expectedSize) {
       return errorResponse(
         "INVALID_TRADE",
-        `post-trade roster size would be ${postIds.size}, expected ${rosterRows.length}`
+        `post-trade roster size would be ${postIds.size}, expected ${expectedSize}`,
+      );
+    }
+    if (postIds.size > 10) {
+      return errorResponse(
+        "INVALID_TRADE",
+        `post-trade roster size would be ${postIds.size} (max 10)`,
       );
     }
 
@@ -145,13 +173,23 @@ Deno.serve(async (req) => {
     if (postSalary > salary_cap + 1e-6) {
       return errorResponse(
         "INVALID_TRADE",
-        `salary cap exceeded: $${postSalary.toFixed(1)}M > $${salary_cap}M`
+        `salary cap exceeded: $${postSalary.toFixed(1)}M > $${salary_cap}M`,
       );
     }
-    if (postFc !== 5 || postBc !== 5) {
+    // FC/BC balance: only enforce 5/5 once the roster is full (post-trade size == 10).
+    // While the roster is still being built (ADD mode with < 10), we only enforce
+    // that neither side exceeds 5.
+    if (postIds.size === 10) {
+      if (postFc !== 5 || postBc !== 5) {
+        return errorResponse(
+          "INVALID_TRADE",
+          `FC/BC balance broken: would leave ${postFc} FC / ${postBc} BC (must be 5/5)`,
+        );
+      }
+    } else if (postFc > 5 || postBc > 5) {
       return errorResponse(
         "INVALID_TRADE",
-        `FC/BC balance broken: would leave ${postFc} FC / ${postBc} BC (must be 5/5)`
+        `FC/BC limit exceeded: would leave ${postFc} FC / ${postBc} BC (max 5/5)`,
       );
     }
     for (const [tri, count] of Object.entries(teamCounts)) {
@@ -178,57 +216,91 @@ Deno.serve(async (req) => {
       return errorResponse("TX_LOAD_FAILED", gwTxnErr.message, null, 500);
     }
     const usedThisGw = (gwTxns ?? []).length;
-    if (usedThisGw + outs.length > GW_TRANSFER_CAP) {
+    // Each IN counts as one transfer (covers ADD mode where outs.length === 0).
+    const transferCount = ins.length;
+    if (usedThisGw + transferCount > GW_TRANSFER_CAP) {
       return errorResponse(
         "GW_CAP_REACHED",
-        `GW${gw} transfer cap reached: ${usedThisGw}/${GW_TRANSFER_CAP} used, this trade would add ${outs.length}`
+        `GW${gw} transfer cap reached: ${usedThisGw}/${GW_TRANSFER_CAP} used, this trade would add ${transferCount}`,
       );
     }
 
-    // 6. Apply the trade: pair each OUT with an IN, preserving slot.
-    //    Slot inheritance: in[i] takes the slot of out[i].
+    // 6. Apply the trade.
+    //    SWAP mode: pair each OUT with an IN, preserving slot.
+    //    ADD  mode: insert each IN onto the BENCH, write a transaction with player_out_id=0.
     const insertedTxns: any[] = [];
-    for (let i = 0; i < outs.length; i++) {
-      const outId = outs[i];
-      const inId = ins[i];
-      const outRow = rosterRows.find((r: any) => Number(r.player_id) === outId);
-      const slot = outRow?.slot ?? "BENCH";
-
-      // delete OUT first, then insert IN — order matters because (team_id, player_id)
-      // may have a uniqueness expectation downstream and the delete frees the slot.
-      const delRes = await userClient.from("roster").delete().eq("team_id", team_id).eq("player_id", outId);
-      if (delRes.error) {
-        return errorResponse("ROSTER_DELETE_FAILED", delRes.error.message, null, 500);
-      }
-      const insRes = await userClient.from("roster").insert({
-        team_id,
-        player_id: inId,
-        slot,
-        gw,
-        day,
-      });
-      if (insRes.error) {
-        // Best-effort rollback: re-insert the OUT row so the user isn't left short.
-        await userClient.from("roster").insert({ team_id, player_id: outId, slot, gw, day });
-        return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
-      }
-
-      const txnRes = await userClient
-        .from("transactions")
-        .insert({
+    if (isAddMode) {
+      for (const inId of ins) {
+        const insRes = await userClient.from("roster").insert({
           team_id,
-          type: "SWAP",
-          player_in_id: inId,
-          player_out_id: outId,
-          cost_points: 0,
-          notes: `gw=${gw} day=${day}`,
-        })
-        .select()
-        .single();
-      if (txnRes.error) {
-        return errorResponse("TX_INSERT_FAILED", txnRes.error.message, null, 500);
+          player_id: inId,
+          slot: "BENCH",
+          gw,
+          day,
+        });
+        if (insRes.error) {
+          return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
+        }
+        const txnRes = await userClient
+          .from("transactions")
+          .insert({
+            team_id,
+            type: "ADD",
+            player_in_id: inId,
+            player_out_id: 0,
+            cost_points: 0,
+            notes: `gw=${gw} day=${day} mode=add`,
+          })
+          .select()
+          .single();
+        if (txnRes.error) {
+          return errorResponse("TX_INSERT_FAILED", txnRes.error.message, null, 500);
+        }
+        insertedTxns.push(txnRes.data);
       }
-      insertedTxns.push(txnRes.data);
+    } else {
+      for (let i = 0; i < outs.length; i++) {
+        const outId = outs[i];
+        const inId = ins[i];
+        const outRow = rosterRows.find((r: any) => Number(r.player_id) === outId);
+        const slot = outRow?.slot ?? "BENCH";
+
+        // delete OUT first, then insert IN — order matters because (team_id, player_id)
+        // may have a uniqueness expectation downstream and the delete frees the slot.
+        const delRes = await userClient.from("roster").delete().eq("team_id", team_id).eq("player_id", outId);
+        if (delRes.error) {
+          return errorResponse("ROSTER_DELETE_FAILED", delRes.error.message, null, 500);
+        }
+        const insRes = await userClient.from("roster").insert({
+          team_id,
+          player_id: inId,
+          slot,
+          gw,
+          day,
+        });
+        if (insRes.error) {
+          // Best-effort rollback: re-insert the OUT row so the user isn't left short.
+          await userClient.from("roster").insert({ team_id, player_id: outId, slot, gw, day });
+          return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
+        }
+
+        const txnRes = await userClient
+          .from("transactions")
+          .insert({
+            team_id,
+            type: "SWAP",
+            player_in_id: inId,
+            player_out_id: outId,
+            cost_points: 0,
+            notes: `gw=${gw} day=${day}`,
+          })
+          .select()
+          .single();
+        if (txnRes.error) {
+          return errorResponse("TX_INSERT_FAILED", txnRes.error.message, null, 500);
+        }
+        insertedTxns.push(txnRes.data);
+      }
     }
 
     // 7. Return updated roster snapshot (minimal — client invalidates and refetches roster-current).
@@ -252,7 +324,7 @@ Deno.serve(async (req) => {
         bench: bench.slice(0, 5),
         captain_id: Number(captain?.player_id ?? 0),
         bank_remaining: Math.max(0, salary_cap - postSalary),
-        free_transfers_remaining: Math.max(0, GW_TRANSFER_CAP - (usedThisGw + outs.length)),
+        free_transfers_remaining: Math.max(0, GW_TRANSFER_CAP - (usedThisGw + transferCount)),
         constraints: {
           salary_cap,
           starters_count: 5,
@@ -266,7 +338,7 @@ Deno.serve(async (req) => {
       transactions: insertedTxns.map((t: any) => ({
         id: String(t.id),
         created_at: t.created_at,
-        type: "SWAP" as const,
+        type: (t.type ?? "SWAP") as "SWAP" | "ADD",
         player_in_id: Number(t.player_in_id),
         player_out_id: Number(t.player_out_id),
         cost_points: Number(t.cost_points ?? 0),
