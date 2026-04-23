@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays, Users, Sparkles, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, Bot, X, CalendarDays, Users, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -578,8 +578,8 @@ export default function PlayersPage() {
           <div className="flex gap-4 flex-1 min-h-0">
             {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
             {isWideScreen && (
-              <div className="w-72 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
-                {/* Header — matches table header height (h-10) */}
+              <div className="w-80 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
+                {/* Header — exact h-10 to match table header */}
                 <div className="h-10 px-3 flex items-center border-b bg-background shrink-0">
                   <span className="text-[11px] font-heading uppercase tracking-wider text-muted-foreground">
                     My Roster
@@ -592,9 +592,9 @@ export default function PlayersPage() {
                 <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2">
                   {rosterPaneNode}
                 </div>
-                {/* Footer — matches table footer height */}
-                <div className="h-[52px] px-3 flex items-center border-t shrink-0 bg-background">
-                  <span className="text-[11px] text-muted-foreground font-mono">
+                {/* Footer — centered, bold NBA-yellow */}
+                <div className="h-[52px] px-3 flex items-center justify-center border-t shrink-0 bg-background">
+                  <span className="text-[11px] font-mono font-bold text-[hsl(var(--nba-yellow))]">
                     ${totalRosterSalary.toFixed(1)}M used · ${bankRemaining.toFixed(1)}M bank
                   </span>
                 </div>
@@ -619,19 +619,52 @@ export default function PlayersPage() {
                 />
               )}
 
-              <div className="flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
-              <div className="flex-1 overflow-y-auto min-h-0">
-                <Table>
-                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))] [&_th]:bg-background">
-                    <TableRow>
-                      <TableHead className="text-xs w-12"></TableHead>
-                      <TableHead className="text-xs">Player</TableHead>
-                      <TableHead className="text-xs">Team</TableHead>
+              <div className="relative flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
+              {!filtersOpen && (
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(true)}
+                  className="absolute top-1.5 right-1.5 z-30 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
+                  aria-label="Expand filters"
+                  title="Expand filters"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {/* Fixed header (separate table) */}
+              <div className="shrink-0 border-b bg-background">
+                <Table className="table-fixed">
+                  <colgroup>
+                    <col style={{ width: "48px" }} />
+                    <col style={{ width: "1%" }} />
+                    <col style={{ width: "80px" }} />
+                    <col style={{ width: "56px" }} />
+                    {columns.map((c) => <col key={c.key} style={{ width: "56px" }} />)}
+                    <col style={{ width: "64px" }} />
+                  </colgroup>
+                  <TableHeader>
+                    <TableRow className="h-10 hover:bg-transparent">
+                      <TableHead className="text-xs h-10"></TableHead>
+                      <TableHead className="text-xs h-10 pr-1">Player</TableHead>
+                      <TableHead className="text-xs h-10 pl-1">Team</TableHead>
                     {sortableHeader("gp", "GP")}
                     {columns.map((c) => sortableHeader(c.key, c.label))}
                     {sortableHeader("salary", "$")}
                   </TableRow>
                 </TableHeader>
+                </Table>
+              </div>
+              {/* Scrollable body (separate table, same colgroup) */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <Table className="table-fixed">
+                  <colgroup>
+                    <col style={{ width: "48px" }} />
+                    <col style={{ width: "1%" }} />
+                    <col style={{ width: "80px" }} />
+                    <col style={{ width: "56px" }} />
+                    {columns.map((c) => <col key={c.key} style={{ width: "56px" }} />)}
+                    <col style={{ width: "64px" }} />
+                  </colgroup>
                 <TableBody>
                   {paginatedItems.map((p) => {
                     const gp = p.season.gp || 1;
@@ -680,7 +713,7 @@ export default function PlayersPage() {
                             </TooltipContent>
                           </Tooltip>
                         </td>
-                        <td className="px-2 py-1.5 text-xs">
+                        <td className="px-2 py-1.5 pr-1 text-xs">
                           <div className="flex items-center gap-1.5">
                             <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
                               {p.core.photo && <AvatarImage src={p.core.photo} />}
@@ -690,7 +723,7 @@ export default function PlayersPage() {
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
                           </div>
                         </td>
-                        <td className="px-2 py-1.5 text-xs">
+                        <td className="px-2 py-1.5 pl-1 text-xs">
                           <div className="flex items-center gap-1">
                             {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
                             <span>{p.core.team}</span>
@@ -712,12 +745,12 @@ export default function PlayersPage() {
 
             <div className="h-[52px] px-3 flex items-center justify-between border-t shrink-0 bg-background">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Show</span>
+                <span className="text-xs font-bold text-[hsl(var(--nba-yellow))]">Show</span>
                 <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(v === "All" ? "All" : Number(v) as any); setCurrentPage(1); }}>
                   <SelectTrigger className="w-[70px] h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{PAGE_SIZE_OPTIONS.map((opt) => <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>)}</SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">of {totalItems} players</span>
+                <span className="text-xs font-bold text-[hsl(var(--nba-yellow))]">of {totalItems} players</span>
               </div>
               {pageSize !== "All" && totalPages > 1 && (
                 <div className="flex items-center gap-1">
@@ -730,17 +763,17 @@ export default function PlayersPage() {
             </div>
           </div>
 
-          {/* RIGHT — Filters (retractable) */}
-          {filtersOpen ? (
+          {/* RIGHT — Filters (retractable, − collapses inside the card) */}
+          {filtersOpen && (
             <div className="w-56 flex-shrink-0 self-start relative">
               <button
                 type="button"
                 onClick={() => setFiltersOpen(false)}
-                className="absolute -left-3 top-2 z-10 h-6 w-6 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
+                className="absolute top-1.5 right-1.5 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
                 aria-label="Collapse filters"
                 title="Collapse filters"
               >
-                <ChevronRight className="h-3.5 w-3.5" />
+                <Minus className="h-3.5 w-3.5" />
               </button>
               <FiltersPanel
                 fcBc={fcBc}
@@ -756,18 +789,6 @@ export default function PlayersPage() {
                 onPerfModeChange={setPerfMode}
               />
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="w-8 shrink-0 self-stretch flex flex-col items-center justify-center gap-2 rounded-xl border bg-card hover:bg-accent/30 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Expand filters"
-              title="Expand filters"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="text-[10px] font-heading uppercase tracking-wider [writing-mode:vertical-rl] rotate-180">Filters</span>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
           )}
           </div>
         </>
