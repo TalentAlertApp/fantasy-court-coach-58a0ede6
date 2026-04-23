@@ -74,6 +74,7 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "explain-player": `Return JSON: { "player_id": number, "summary": string, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id from the input. Do not substitute another player. The player_id you return MUST equal target_player_id exactly.`,
   "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[] }`,
   "injury-monitor": `Return JSON: { "items": [{ "player_id": number, "status": "OUT"|"Q"|"DTD"|"ACTIVE"|"UNKNOWN", "headline": string|null, "impact": "low"|"medium"|"high", "recommended_move": { "action": "hold"|"bench"|"drop"|"swap", "replacement_targets": [{ "player_id": number, "why": string[], "confidence": number(0-1) }] }, "risk_flags": string[] }], "notes": string[] }`,
+  "explain-trade": `Return JSON: { "verdict": "favorable"|"neutral"|"unfavorable", "summary": string, "pros": string[](1-5), "cons": string[](1-5), "risk_flags": string[], "confidence": number(0-1) }. summary: 1-2 sentences (max ~40 words). Each pro/con: <= 14 words, decision-focused. CRITICAL: Use ONLY the trade_outs and trade_ins arrays from the input — do not suggest alternative players. Compare OUT vs IN on FP5, value5, stocks5, minutes trend, schedule density, role certainty.`,
 };
 
 async function fetchContext(sb: any, teamId?: string) {
@@ -219,6 +220,15 @@ function validateShape(action: string, data: any): string[] {
       if (!Array.isArray(data.items)) errors.push("Missing items array");
       if (!Array.isArray(data.notes)) errors.push("Missing notes array");
       break;
+    case "explain-trade":
+      if (typeof data.summary !== "string") errors.push("Missing summary");
+      if (!Array.isArray(data.pros)) errors.push("Missing pros array");
+      if (!Array.isArray(data.cons)) errors.push("Missing cons array");
+      if (typeof data.confidence !== "number") errors.push("Missing confidence");
+      if (!["favorable", "neutral", "unfavorable"].includes(data.verdict)) {
+        errors.push("Invalid or missing verdict");
+      }
+      break;
   }
   return errors;
 }
@@ -302,6 +312,46 @@ Deno.serve(async (req) => {
       }
     }
 
+    // For explain-trade, force-include the OUT and IN players in the summary
+    // so the model sees full stat blocks for the exact players being traded.
+    let tradeOutsDetail: any[] = [];
+    let tradeInsDetail: any[] = [];
+    if (action === "explain-trade") {
+      const outIds: number[] = Array.isArray(params.outs)
+        ? params.outs.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+        : [];
+      const inIds: number[] = Array.isArray(params.ins)
+        ? params.ins.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+        : [];
+      const allTradeIds = Array.from(new Set([...outIds, ...inIds]));
+      if (allTradeIds.length > 0) {
+        const { data: tradeRows } = await sb
+          .from("players")
+          .select("*")
+          .in("id", allTradeIds);
+        const tradeById = new Map<number, any>();
+        for (const p of tradeRows ?? []) tradeById.set(Number(p.id), p);
+        tradeOutsDetail = outIds
+          .map((id) => tradeById.get(id))
+          .filter(Boolean)
+          .map((p) => buildPlayerSummary([p], rosterPlayerIds)[0]);
+        tradeInsDetail = inIds
+          .map((id) => tradeById.get(id))
+          .filter(Boolean)
+          .map((p) => buildPlayerSummary([p], rosterPlayerIds)[0]);
+        // Ensure every IN player is also in the broader summary so the model
+        // can compare against schedule/context.
+        const summaryIds = new Set(playerSummary.map((p: any) => p.id));
+        const missing = (tradeRows ?? []).filter((p: any) => !summaryIds.has(Number(p.id)));
+        if (missing.length > 0) {
+          finalPlayerSummary = [
+            ...buildPlayerSummary(missing, rosterPlayerIds),
+            ...playerSummary,
+          ];
+        }
+      }
+    }
+
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
       roster_players: rosterPlayerRows.map((p) => ({
@@ -317,6 +367,9 @@ Deno.serve(async (req) => {
       schedule: ctx.schedule.slice(0, 20),
       params,
       ...(targetPlayerId !== undefined ? { target_player_id: targetPlayerId } : {}),
+      ...(action === "explain-trade"
+        ? { trade_outs: tradeOutsDetail, trade_ins: tradeInsDetail }
+        : {}),
     });
 
     // First attempt

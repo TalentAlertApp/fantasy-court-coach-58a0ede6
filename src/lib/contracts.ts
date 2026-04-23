@@ -463,7 +463,10 @@ export const TransactionRecordSchema = z
 export const TransactionsCommitPayloadSchema = z
   .object({
     roster: RosterSnapshotSchema,
-    transaction: TransactionRecordSchema,
+    // Legacy single-row response (kept optional for back-compat)
+    transaction: TransactionRecordSchema.optional(),
+    // New: Trade Machine returns one row per OUT/IN pair (1 or 2 rows)
+    transactions: z.array(TransactionRecordSchema).optional(),
   })
   .strict();
 
@@ -699,6 +702,29 @@ export const AIInjuryMonitorPayloadSchema = z
   .strict();
 
 export const AIInjuryMonitorResponseSchema = EnvelopeSchema(AIInjuryMonitorPayloadSchema);
+
+/** POST /api/v1/ai/explain-trade */
+export const AIExplainTradeBodySchema = z
+  .object({
+    outs: z.array(IntSchema).min(1).max(2),
+    ins: z.array(IntSchema).min(1).max(2),
+    gw: IntSchema,
+    day: IntSchema,
+  })
+  .strict();
+
+export const AIExplainTradePayloadSchema = z
+  .object({
+    verdict: z.enum(["favorable", "neutral", "unfavorable"]),
+    summary: z.string(),
+    pros: z.array(z.string()).min(1).max(5),
+    cons: z.array(z.string()).min(0).max(5),
+    risk_flags: z.array(z.string()).optional().default([]),
+    confidence: z.number().min(0).max(1),
+  })
+  .strict();
+
+export const AIExplainTradeResponseSchema = EnvelopeSchema(AIExplainTradePayloadSchema);
 
 /** ---------- Teams ---------- */
 
