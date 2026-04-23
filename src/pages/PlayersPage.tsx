@@ -23,6 +23,7 @@ import AICoachModal from "@/components/AICoachModal";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
+import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
 import { commitTransaction } from "@/lib/api";
