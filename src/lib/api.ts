@@ -23,6 +23,7 @@ import {
   AIExplainPlayerResponseSchema,
   AIAnalyzeRosterResponseSchema,
   AIInjuryMonitorResponseSchema,
+  AIExplainTradeResponseSchema,
   TeamListResponseSchema,
   TeamCreateResponseSchema,
   SyncRunResponseSchema,
@@ -178,7 +179,7 @@ export async function simulateTransactions(body: {
 
 /** POST /transactions-commit */
 export async function commitTransaction(body: {
-  gw: number; day: number; adds: number[]; drops: number[];
+  gw: number; day: number; outs: number[]; ins: number[];
 }, teamId?: string) {
   return unwrap(await apiFetch(appendTeam("transactions-commit", teamId), TransactionsCommitResponseSchema, {
     method: "POST", body: JSON.stringify(body),
@@ -260,6 +261,15 @@ export async function aiInjuryMonitor(body: {
 }, teamId?: string) {
   return unwrap(await apiFetch(appendTeam("ai-coach", teamId), AIInjuryMonitorResponseSchema, {
     method: "POST", body: JSON.stringify({ action: "injury-monitor", ...body }),
+  }));
+}
+
+/** POST /ai-coach action=explain-trade */
+export async function aiExplainTrade(body: {
+  outs: number[]; ins: number[]; gw: number; day: number;
+}, teamId?: string) {
+  return unwrap(await apiFetch(appendTeam("ai-coach", teamId), AIExplainTradeResponseSchema, {
+    method: "POST", body: JSON.stringify({ action: "explain-trade", ...body }),
   }));
 }
 
