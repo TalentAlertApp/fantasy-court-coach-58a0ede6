@@ -460,6 +460,7 @@ export default function PlayersPage() {
                 size="sm"
                 variant="outline"
                 className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
+                aria-label="Open my roster"
               >
                 <Users className="h-3.5 w-3.5" />
                 Roster {rosterIdList.length}/10
