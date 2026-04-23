@@ -194,7 +194,7 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-[1fr_120px] gap-2 shrink-0 mt-2">
+          <div className="grid grid-cols-[1fr_88px] gap-2 shrink-0 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -206,21 +206,9 @@ export default function PlayerPickerDialog({
             </div>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
               <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-2 gap-1.5 [&>svg]:ml-0 [&>svg]:shrink-0 [&>span]:flex-1 [&>span]:min-w-0">
-                {teamFilter === "ALL" ? (
-                  <span className="block w-full text-center">ALL</span>
-                ) : (
-                  <span className="flex flex-row flex-nowrap items-center justify-center gap-1.5 min-w-0 w-full">
-                    {(() => {
-                      const logo = getTeamLogo(teamFilter);
-                      return logo ? (
-                        <img src={logo} alt="" aria-hidden="true" className="h-4 w-4 object-contain shrink-0" />
-                      ) : null;
-                    })()}
-                    <span className="truncate leading-none">{teamFilter}</span>
-                  </span>
-                )}
+                <span className="block w-full text-center truncate">{teamFilter === "ALL" ? "ALL" : teamFilter}</span>
               </SelectTrigger>
-              <SelectContent className="max-h-72 min-w-[140px]">
+              <SelectContent className="max-h-[min(60vh,520px)] min-w-[140px]">
                 <SelectItem value="ALL" className="text-xs font-heading uppercase justify-center [&>span:first-child]:hidden">
                   <span className="block text-center w-full">All</span>
                 </SelectItem>
