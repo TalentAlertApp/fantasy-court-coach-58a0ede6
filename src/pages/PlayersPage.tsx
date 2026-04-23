@@ -306,44 +306,23 @@ export default function PlayersPage() {
     { key: "fp", label: "FP" },
   ];
 
-  const handleAddPlayer = async (playerId: number, e: React.MouseEvent) => {
+  /** Stage a non-roster player into the IN zone (does not write to DB). */
+  const stageIn = (playerId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!selectedTeamId) { toast.error("Select a team first"); return; }
-    const current = getCurrentGameday();
-    const r: any = (rosterData as any)?.roster ?? rosterData;
-    const starters: number[] = Array.isArray(r?.starters) ? r.starters : [];
-    const bench: number[] = Array.isArray(r?.bench) ? r.bench : [];
-    let slot: string | null = null;
-    // edge fn pads with 0 — empty slot = id 0 or missing
-    for (let i = 0; i < 5; i++) {
-      if (!starters[i]) { slot = "STARTER"; break; }
+    setReportOpen(false);
+    if (outZone.length === 0) {
+      toast.error("Pick a player to release first (− on a roster row)");
+      return;
     }
-    if (!slot) {
-      for (let i = 0; i < 5; i++) {
-        if (!bench[i]) { slot = "BENCH"; break; }
-      }
+    if (inZone.includes(playerId)) {
+      setInZone((prev) => prev.filter((x) => x !== playerId));
+      return;
     }
-    if (!slot) { toast.error("Roster is full (10/10)"); return; }
-
-    const { error } = await supabase.from("roster").insert({
-      team_id: selectedTeamId,
-      player_id: playerId,
-      slot,
-      gw: current.gw,
-      day: current.day,
-    });
-    if (error) { toast.error("Failed to add player"); return; }
-    toast.success("Player added to roster");
-    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-  };
-
-  const handleRemovePlayer = async (playerId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!selectedTeamId) return;
-    const { error } = await supabase.from("roster").delete().eq("team_id", selectedTeamId).eq("player_id", playerId);
-    if (error) { toast.error("Failed to remove player"); return; }
-    toast.success("Player removed from roster");
-    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+    if (inZone.length >= outZone.length) {
+      toast.error(`IN zone full — pick exactly ${outZone.length} replacement${outZone.length === 1 ? "" : "s"}`);
+      return;
+    }
+    setInZone((prev) => [...prev, playerId]);
   };
 
   const sortableHeader = (col: string, label: string) => {
