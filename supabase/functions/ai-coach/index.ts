@@ -312,6 +312,46 @@ Deno.serve(async (req) => {
       }
     }
 
+    // For explain-trade, force-include the OUT and IN players in the summary
+    // so the model sees full stat blocks for the exact players being traded.
+    let tradeOutsDetail: any[] = [];
+    let tradeInsDetail: any[] = [];
+    if (action === "explain-trade") {
+      const outIds: number[] = Array.isArray(params.outs)
+        ? params.outs.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+        : [];
+      const inIds: number[] = Array.isArray(params.ins)
+        ? params.ins.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n))
+        : [];
+      const allTradeIds = Array.from(new Set([...outIds, ...inIds]));
+      if (allTradeIds.length > 0) {
+        const { data: tradeRows } = await sb
+          .from("players")
+          .select("*")
+          .in("id", allTradeIds);
+        const tradeById = new Map<number, any>();
+        for (const p of tradeRows ?? []) tradeById.set(Number(p.id), p);
+        tradeOutsDetail = outIds
+          .map((id) => tradeById.get(id))
+          .filter(Boolean)
+          .map((p) => buildPlayerSummary([p], rosterPlayerIds)[0]);
+        tradeInsDetail = inIds
+          .map((id) => tradeById.get(id))
+          .filter(Boolean)
+          .map((p) => buildPlayerSummary([p], rosterPlayerIds)[0]);
+        // Ensure every IN player is also in the broader summary so the model
+        // can compare against schedule/context.
+        const summaryIds = new Set(playerSummary.map((p: any) => p.id));
+        const missing = (tradeRows ?? []).filter((p: any) => !summaryIds.has(Number(p.id)));
+        if (missing.length > 0) {
+          finalPlayerSummary = [
+            ...buildPlayerSummary(missing, rosterPlayerIds),
+            ...playerSummary,
+          ];
+        }
+      }
+    }
+
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
       roster_players: rosterPlayerRows.map((p) => ({
@@ -327,6 +367,9 @@ Deno.serve(async (req) => {
       schedule: ctx.schedule.slice(0, 20),
       params,
       ...(targetPlayerId !== undefined ? { target_player_id: targetPlayerId } : {}),
+      ...(action === "explain-trade"
+        ? { trade_outs: tradeOutsDetail, trade_ins: tradeInsDetail }
+        : {}),
     });
 
     // First attempt
