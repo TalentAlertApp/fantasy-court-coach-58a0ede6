@@ -1,44 +1,56 @@
 
 
-## Three small, surgical fixes
+## Player Modal — fix all 4 tabs to fill modal height & top-align content
 
-### 1. My Roster — schedule overlay needs more height for the 5th card
-**File:** `src/pages/RosterPage.tsx` (line 535)
+**Root cause** (visible in image-270 Schedule and image-271 AI Explain): the `Tabs` container is `flex-1 min-h-0 flex flex-col`, but Radix `TabsContent` panels render with `mt-2` from the default `tabs.tsx` styles and don't reliably stretch as a flex child inside the panel area, leaving content collapsed near the bottom of the available space. STATS works visually because its content is short; SCHEDULE/AI sit at the bottom; HISTORY appears short because of the wrapper.
 
-The overlay container is capped at `max-h-[440px]` with `overflow-hidden`, but `SchedulePreviewBody` itself has its own internal scrollers (sticky header + matchup list). The 5th card peeks but is clipped because the overlay's outer `overflow-hidden` doesn't account for the panel's internal header.
+Single file edit: **`src/components/PlayerModal.tsx`**.
 
-Fix:
-- Bump the outer cap from `max-h-[440px]` → `max-h-[520px]`. That's exactly enough headroom for header (~80px) + 5 matchup cards (5 × 64px + 6px gaps = ~340px) + safe padding.
-- Keep `overflow-hidden` on the outer container (the inner list owns scrolling).
+### a) SCHEDULE tab (lines 332–375)
 
-### 2. Pick Player — team filter trigger + dropdown polish
-**File:** `src/components/PlayerPickerDialog.tsx` (lines 197–256)
+- Add `data-[state=active]:flex` and `mt-3` (replacing default `mt-2`) so the panel becomes a true flex column when active.
+- Keep header `shrink-0` at the top.
+- Wrap the table in a flex-1 ScrollArea so the rows render directly under the "UPCOMING GAMES" header and the panel stretches all the way to the modal bottom.
+- Remove the empty-state condition's effect on layout (still show "No upcoming games" but keep the column structure so spacing is consistent).
 
-Three changes to the trigger and content:
+### b) AI EXPLAIN tab (lines 377–418)
 
-a) **Remove the badge from the selected trigger** — currently shows logo + tricode when a team is selected. The user wants tricode only. Replace the inner `<span>...logo + truncate text...</span>` block with just `<span className="block w-full text-center truncate">{teamFilter}</span>` (mirroring the "ALL" branch).
+- Same `data-[state=active]:flex` + `flex flex-col gap-3` fix.
+- "ASK AI" button stays as the first child with `shrink-0` → pinned to the top of the panel.
+- Response container becomes `flex-1 min-h-0 overflow-y-auto` → fills from just below the button down to the modal bottom.
+- When idle (no `aiResult`, not loading), the response container still occupies the remaining height (empty), so the button stays anchored top.
 
-b) **Decrease the trigger width** — change `grid-cols-[1fr_120px]` (line 197) → `grid-cols-[1fr_88px]`. Without the logo, 88px comfortably fits any 3-letter tricode + chevron.
+### c) STATS tab (lines 204–223)
 
-c) **Increase the dropdown height** — currently `max-h-72` (288px). Replace with a viewport-relative cap calibrated to reach the bottom of the dialog: `max-h-[min(60vh,520px)]`. The Radix Select content auto-positions and, with this taller cap, will extend almost to the bottom of the modal, surfacing far more teams without scrolling.
+- Remove the implicit "container" feel: drop the `mt-2` default, let the 2-column grid render flush against the tabs strip.
+- Keep `flex-1 min-h-0 overflow-y-auto` so the panel itself fills the available height (the grid sits at the top, blank space below — matches image-268's layout but with the panel claiming the full height instead of collapsing).
+- No visible wrapper card — already none in code; the perceived "container" in the screenshot was the watermark + collapsed panel. Forcing the panel to full height removes the boxed look.
 
-(Logos in the dropdown items themselves stay — they only disappear from the trigger.)
+### d) HISTORY tab (lines 226–330)
 
-### 3. Step 3 of 3 — full-screen takeover (no sidebar)
-**File:** `src/pages/RosterPage.tsx` (line 432)
+- Apply the same `data-[state=active]:flex flex-col` treatment.
+- "THIS SEASON" label stays `shrink-0` at top.
+- ScrollArea around the table becomes `flex-1 min-h-0` so the table scrolls inside the panel and the panel reaches the modal bottom (no short table look).
 
-Confirmed root cause: the empty-state branch wraps `DraftPicker` in `fixed inset-0 z-40 bg-background`, but it's rendered *inside* `AppLayout`, and stacking-context inheritance makes the `z-40` fail to cover the sidebar in some preview situations (visible in the user's screenshot).
+### Concrete className change applied to all 4 panels
 
-Two-part fix to make it bulletproof and consistent with Steps 1 & 2 (which use the full screen via the `/welcome` route outside `AppLayout`):
+Replace each `<TabsContent value="…" className="flex-1 min-h-0 …">` with:
 
-- Render the empty-state takeover via a React **portal** (`createPortal(..., document.body)`) so it escapes the `AppLayout` stacking context entirely. Use `fixed inset-0 z-[100] bg-background overflow-auto`.
-- This guarantees the sidebar is visually hidden behind the takeover regardless of any future layout/z-index changes — same visual envelope as Steps 1 and 2.
+```
+<TabsContent
+  value="…"
+  className="flex-1 min-h-0 mt-3 data-[state=active]:flex data-[state=active]:flex-col …"
+>
+```
 
-No layout changes inside `DraftPicker` itself (Stage 3 vertical sizing was fixed last round and now matches Stages 1 & 2).
+(`data-[state=active]:flex` overrides the default `display: block` Radix gives the active panel, guaranteeing the inner `flex-1` children stretch.)
 
-**Answer to the user's question**: Step 3 *should* render full-screen, and it already does for first-run onboarding (`/welcome` route renders outside `AppLayout` — see `src/App.tsx` line 46). The screenshot shows Step 3 reached via the **empty-roster path inside an existing team** (e.g. after deleting all players from a team, or selecting an empty team via the team switcher), which renders inside `RosterPage` and therefore inside `AppLayout`. The portal fix above unifies both paths so it's *always* a glorious full-screen takeover.
+Also bump the parent `Tabs` element's `flex-1 min-h-0 flex flex-col` to also include `mt-1` removed and add a wrapping `<div className="flex-1 min-h-0 flex flex-col">` only if needed — single-pass verification will confirm `Tabs = TabsPrimitive.Root` accepts className correctly (it does).
 
 ### Files touched
-- `src/pages/RosterPage.tsx` — overlay max-h bump + portal-render the empty-state DraftPicker
-- `src/components/PlayerPickerDialog.tsx` — trigger badge removal + width shrink + dropdown max-h bump
+- `src/components/PlayerModal.tsx` — 4 small className tweaks + 1 ScrollArea wrapper around the History/Schedule tables to ensure they own scrolling.
+
+### Out of scope
+- No changes to `src/components/ui/tabs.tsx` (would affect every Tabs usage app-wide).
+- No changes to BreakdownCard or header.
 
