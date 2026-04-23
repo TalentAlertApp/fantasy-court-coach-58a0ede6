@@ -166,24 +166,22 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
           <span className="normal-case font-sans">trades</span>
         </span>
 
-        {/* Status pill — far right */}
-        <div className="ml-auto">
-          {validation.isValid && hasChips ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Valid
-            </span>
-          ) : validation.reasons.length > 0 ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 h-7 text-[10px]">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              <span className="normal-case font-sans">{validation.reasons[0]}</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background text-muted-foreground px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
-              {addMode ? "Pick a player to add" : "Pick a player to release"}
-            </span>
-          )}
-        </div>
+        {/* Status pill — inline, right after GW trades pill */}
+        {validation.isValid && hasChips ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Valid
+          </span>
+        ) : validation.reasons.length > 0 ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 h-7 text-[10px]">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span className="normal-case font-sans">{validation.reasons[0]}</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background text-muted-foreground px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
+            {addMode ? "Pick a player to add" : "Pick a player to release"}
+          </span>
+        )}
       </div>
 
       {/* Row 2 — Chips (only when staged) + Actions (right) */}
