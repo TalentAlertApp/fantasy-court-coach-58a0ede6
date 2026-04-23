@@ -492,6 +492,25 @@ export default function PlayersPage() {
         >
           <Bot className="h-3.5 w-3.5" />AI Coach
         </Button>
+        {/* Page-level chips: All-Star + Wildcard */}
+        <Button
+          size="sm"
+          variant={chipAllStar ? "default" : "outline"}
+          className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+          onClick={() => setChipAllStar((v) => !v)}
+          title="All-Star chip — boosts trade cap"
+        >
+          <Sparkles className="h-3.5 w-3.5" />All-Star
+        </Button>
+        <Button
+          size="sm"
+          variant={chipWildcard ? "default" : "outline"}
+          className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+          onClick={() => setChipWildcard((v) => !v)}
+          title="Wildcard chip — unlimited transfers"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />Wildcard
+        </Button>
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
         </span>
