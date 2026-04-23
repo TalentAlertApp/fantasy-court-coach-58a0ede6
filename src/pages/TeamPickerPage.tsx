@@ -81,7 +81,7 @@ export default function TeamPickerPage() {
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground text-center"
           style={{ fontSize: "clamp(2rem, 6vh, 4rem)", lineHeight: 1 }}
         >
-          Pick <span className="text-accent">Your Squad</span>
+          Pick <span className="text-accent">Your Team</span>
         </h1>
         <p className="mt-3 text-sm md:text-base text-foreground/60 text-center max-w-xl">
           Which team will you manage today?
