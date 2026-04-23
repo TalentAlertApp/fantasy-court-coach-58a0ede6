@@ -1,166 +1,109 @@
 
 
-## /transactions UI/UX overhaul — alignment, drawer, smart [+], filters consolidation
+## /transactions polish — drawer behavior, ADD-mode commit fix, header re-org, fixed table header
 
-Six surgical fixes to make the page coherent, responsive, and clearly explain why each [+] is enabled or disabled.
+Seven precise fixes, no scope creep.
 
-### 1. Top-row alignment (header + workbench together)
+### 1. Mobile drawer behavior (RosterPane Sheet)
 
-Restructure the page header so left and right columns align at the top:
+Already exists for `< 1280px`. Two refinements:
+- The header button "Roster N/10" stays inside the header row (already done).
+- `onRosterToggleOut` already calls `setRosterSheetOpen(false)` when narrow — KEEP. Confirmed working; document the behavior in a code comment so future edits don't regress it.
+- Add `aria-label="Open my roster"` to the trigger button for a11y.
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│  Transactions  ░░ 491 available  [Schedule] [AI Coach]              │  ← compact header row
-├──────────┬───────────────────────────────────────┬──────────────────┤
-│ MY ROSTER│  TRADE WORKBENCH (compact, redesigned)│  FILTERS         │
-│ (left)   │  ───────────────────────────────────  │  [PG | TOTALS]   │
-│ Starter5 │  AVAILABLE PLAYERS table              │  Position FC/BC  │
-│ Bench    │                                       │  Team            │
-│          │                                       │  Search          │
-│          │                                       │  Max salary      │
-└──────────┴───────────────────────────────────────┴──────────────────┘
-```
+### 2. Trade Workbench — full width + cleanup + ADD commit fix
 
-- The 3 columns share the SAME top edge — no card-above-everything offset.
-- The workbench moves INSIDE the center column (above the table), so it no longer spans full width and no longer pushes the left/right columns down.
-- "PER GAME / TOTALS" toggle moves out of the header into the FiltersPanel (compact `h-7` toggle at the very top of the filters card, label "VIEW").
+**a) Full width**: workbench moves OUT of the center column, BACK above the 3-column flex (header → workbench → 3 cols). Keeps it spanning the page. Roster pane / table / filters all start aligned at the same top edge below it.
 
-### 2. Trade Workbench redesign — single clean card, no clutter
-
-Replace the cramped 2-row dense layout with a vertical, breathable card:
+**b) Remove the OUT/IN top row entirely** (the `OUT [Optional] → IN [Click + on a player]` row). Chips for staged players move to live INLINE with the metric pills + status row. New compact two-row workbench:
 
 ```text
-╭─ TRADE WORKBENCH ─────────────────────────────────╮
-│  OUT  ●●     →     IN  ○○                         │  big chips, generous gap
-│  [Doncic ✕]  [empty]   →   [empty] [empty]        │
-│                                                   │
-│  Bank $55.6  Freed +$0  Spent −$0  Available $55.6│  one neat metric row
-│  ✅ Pick a player to release · GW3 0/2 trades     │  one status line
-│                                                   │
-│  [All-Star] [Wildcard]    [Reset] [Generate Report]│  actions row
-╰───────────────────────────────────────────────────╯
+╭─ TRADE WORKBENCH ──────────────────────────────────────────────╮
+│ OUT: [Doncic ✕]   IN: [Curry ✕]                                │  ← only when chips exist
+│ Bank $55.6  Freed +$0  Spent −$0  Available $55.6  GW25 0/2    │
+│ ✅ Pick a player to release    [Reset] [Confirm Add] [Report]  │
+╰────────────────────────────────────────────────────────────────╯
 ```
 
-Concrete edits to `TradeWorkbench.tsx`:
-- Outer card: `rounded-2xl border bg-card p-4 space-y-3` (was `px-3 py-2.5 space-y-2`).
-- Row 1 (zones): `gap-3` between OUT/IN, removed `flex-wrap` for chips themselves so empty slots stay inline; chips get `h-10 px-2.5` with proper letter-spacing.
-- Row 2 (metrics): single `flex gap-2` line — Bank, Freed, Spent, Available — pill-shaped (`rounded-full h-7 px-3`), neutral border by default, color only the value text.
-- Row 3 (status): validity pill + GW counter on the LEFT; All-Star/Wildcard/Reset/Generate Report cluster on the RIGHT. Removes the redundant "GW transfer cap reached" banner (info already lives in the GW pill via tooltip + destructive color).
-- Remove the duplicated `outZone.length`/`inZone.length` display in slot labels — chip count is visible.
+When NO chips are staged, the entire chip row collapses (no empty placeholders). Banner "Roster 9/10 — you can ADD a player directly" stays as-is (top of card).
 
-### 3. Smart [+] when roster has < 10 players (Add mode vs Trade mode)
+**c) ADD mode commit bug**: today, clicking [+] on a row stages the player to IN, but to make it permanent the user must click the "Report" button → then "Confirm" inside the report. That's confusing for ADD mode where there's no swap to compare. Fix:
 
-This is a product change, not a bug. Today `stageIn` blocks [+] until user picks an OUT. New rule:
+- When `addMode && outZone.length === 0 && inZone.length > 0`, the workbench shows a primary **`[Confirm Add]`** button (replaces the Report button). One click → calls `handleCommit()` directly. No report, no extra step.
+- For SWAP mode, keep the existing `[Report]` flow unchanged.
+- Toast on success: "Curry added to your bench" + roster query invalidation (already wired).
+- Backend `transactions-commit` already supports ADD mode (verified: lines 96-103, 232-260). No edge function changes needed.
 
-- **If roster.length < 10** → [+] becomes a "direct ADD" action. No OUT required. Validates against bank + FC/BC + team cap + GW count. On click, opens a small inline confirmation strip ("Add Curry for $14M? [Confirm] [Cancel]") then calls a new `commitAdd()` path.
-- **If roster.length === 10** → current trade-machine behavior (need OUT first). Tooltip text adjusted accordingly.
-
-Backend: `transactions-commit` already accepts `outs:[]` arrays — pass `outs: []` and `ins: [id]` for adds. Server-side validation must allow the empty-OUT case only when roster < 10. One small branch in the edge function.
-
-UI surface: a subtle banner above the workbench when roster < 10:
-> "Roster has 9/10 players — you can ADD a player without releasing one. Use [+] on any row."
-
-### 4. Per-row eligibility indicators (right table)
-
-Add a small status dot/icon column so users see at a glance why each [+] is allowed or blocked. The column is the leftmost cell, replacing the bare [+] button with a button + dot stack:
+**d) All-Star and Wildcard buttons**: REMOVE from the workbench. ADD them to the page header row, RIGHT after `[AI Coach]`:
 
 ```text
-[+] ✅                          ← eligible
-[+] 🚫 (disabled)               ← blocked
-   tooltip: "Over budget by $2.1M"
+[Schedule] [AI Coach] [✨ All-Star] [🔄 Wildcard]    491 available · 237 eligible
 ```
 
-Replace the current `addTitle` string with a structured eligibility object computed per row:
+Same toggle props (`chipAllStar`, `chipWildcard`); same active styling. Tooltip text preserved.
+
+### 3. Roster pane redesign
+
+**a) Drop section bars**: Remove "STARTING 5" and "BENCH" headers. Render ALL 10 players as one continuous list. Sort: all FC first (sub-sorted by salary DESC), then all BC (sub-sorted by salary DESC). Inside `RosterPane.tsx`, replace the two-section render with a single sorted list:
 
 ```ts
-type Eligibility = {
-  ok: boolean;
-  reason?: "no_out" | "in_full" | "team_cap" | "over_budget" | "fc_bc" | "gw_cap" | "in_zone";
-  message: string;     // tooltip text
-  shortLabel: string;  // tiny chip "TEAM 2/2", "OVER $2.1M", etc.
-};
+const allPlayers = [...starters, ...bench];
+const sorted = allPlayers.sort((a, b) => {
+  if (a.fc_bc !== b.fc_bc) return a.fc_bc === "FC" ? -1 : 1;
+  return b.salary - a.salary;
+});
 ```
 
-Each row renders:
-- The [+] button (current style).
-- A tiny pill next to it: green dot ✅ when ok, amber dot ⚠ + 2-word reason when blocked.
-- Hovering the pill shows the full sentence.
+**b) Move `[−]` to the FAR LEFT** of each row. New row order:
 
-Reasons covered:
-- `no_out` — "Roster full — pick a player to release"
-- `in_full` — "IN zone full — only N replacement(s)"
-- `team_cap` — "Max 2 from {TRI} (would be 3)"
-- `over_budget` — "Over budget by ${X}M (have ${Y}M)"
-- `fc_bc` — "Would leave {n}FC / {m}BC (need 5/5)" — NEW: now also runs the FC/BC simulation per row
-- `gw_cap` — "GW{N} cap reached — resets {date}"
-- `in_zone` — already staged (green pill, click to remove)
+`[−]   Avatar   FC/BC badge   Name   TeamLogo   $Salary`
 
-The same per-row eligibility logic also drives a tiny eligibility summary at the top of the table: "247 available · 198 eligible for current trade".
+The `[−]` button keeps its destructive hover style and the OUT-zone ring on the row stays.
 
-### 5. Roster pane refinements
+### 4. Right-side table — fixed header, scrollable body
 
-Two fixes inside `RosterPane.tsx`:
-- **Move team badge after name**: row order becomes `Avatar — FC/BC badge — Name — TeamLogo — $Salary — [−]`. Currently logo is between avatar and FC/BC, reading "Avatar Logo FC Name $". New order reads "Avatar FC Name Logo $" which is what was asked (logo right after name).
-- Avatar size up to `h-8` for parity with center-table avatars; row vertical padding `py-1.5` so left and center rows feel related.
+Currently `TableHeader` uses `sticky top-0 z-10 bg-background` inside an `overflow-y-auto` div. The header IS sticky but visually drifts because the wrapper relies on the table's own intrinsic scrolling. Two fixes:
 
-### 6. Responsive collapse — drawer for narrow widths
+- Wrap the table in a flex column container: header in a `shrink-0 border-b` div, body in `flex-1 overflow-y-auto`. Keep using `<Table>` semantics by splitting into TWO tables: header table (no body) above + body table (no thead) below, both sharing a fixed `table-layout: fixed` and identical column widths via `<colgroup>`.
+- Alternative (simpler, preferred): Keep one `<Table>` but wrap the ENTIRE table in a `<div class="flex-1 min-h-0 overflow-y-auto">` and set `<TableHeader class="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))]">`. Add the inset shadow so the header has a visible bottom border when content scrolls under it. Also add `bg-background` to each `<TableHead>` cell so cell backgrounds are opaque (currently the parent `<tr>` has `bg-background` but `<th>` cells inherit transparency in some browsers, causing scroll-through bleed).
 
-At viewports < `1280px` (Tailwind `xl`), the left roster pane collapses into a Sheet/Drawer behind a sticky button:
-
-```text
-< 1280px:
-┌─────────────────────────────────────────────────────────────────┐
-│  Transactions  [☰ Roster] [Schedule] [AI Coach]   491 available │
-├─────────────────────────────────────────────────────────────────┤
-│  TRADE WORKBENCH                                                │
-│  AVAILABLE PLAYERS table                                        │
-└─────────────────────────────────────────────────────────────────┘
-   (Filters becomes a drawer too at < 1024px — already partially handled)
-```
-
-Implementation:
-- Wrap `<RosterPane />` in a `useMediaQuery("(min-width: 1280px)")` check.
-- When false, render a `[☰ My Roster (n/10)]` button in the header that opens a left-side `Sheet` (already in shadcn) containing the same `<RosterPane />` content.
-- Sheet auto-closes after a [−] click so user can immediately pick a replacement.
-- Filters: similar `(min-width: 1024px)` collapse — at narrow widths, render a `[Filters]` button → right Sheet. (Optional second wave; primary scope is the roster pane.)
+Going with option 2 — minimal change, no double-table sync issues.
 
 ### Files touched
 
 **Modified**
 - `src/pages/PlayersPage.tsx`
-  - Restructure: 3-column flex with shared top alignment; workbench moves into center column above the table.
-  - Move PER GAME/TOTALS toggle out of header — pass `perfMode` + `onPerfModeChange` to FiltersPanel instead.
-  - Add `useMediaQuery` (or `useIsMobile`-style hook extended to xl breakpoint) → render either inline `RosterPane` or `Sheet`-wrapped one.
-  - Replace per-row `addTitle` string with structured `getEligibility(player)` returning the new shape.
-  - Add `mode` derivation: `addMode = rosterIdList.length < 10`. Adjust `stageIn` to call new `commitAdd()` path when `addMode && outZone.length === 0`.
-  - Render eligibility pill next to each [+].
+  - Move `<TradeWorkbench />` OUT of the center column → render directly under the header row, full width.
+  - Header row: add `[All-Star]` + `[Wildcard]` buttons after `[AI Coach]` (move from workbench).
+  - Center column: remove the `<TradeWorkbench />` wrapper; just `<TradeReport />` (when open) + scrollable table + pagination.
+  - Table header: add `bg-background` + inset bottom shadow on `<TableHead>` cells (or via `TableHeader` child selector).
+  - Update `<TradeWorkbench>` props: drop `chipAllStar/chipWildcard/onToggleAllStar/onToggleWildcard`; add `onCommitAdd` callback and a `canCommitAdd` boolean.
 
 - `src/components/transactions/TradeWorkbench.tsx`
-  - Vertical 3-row redesign (zones / metrics / status+actions).
-  - Drop the duplicate "cap reached" banner.
-  - Bigger chip avatars (`h-8`) and more breathing room.
+  - Remove the OUT/IN zones row (chips collapse into a single inline strip when present).
+  - Remove All-Star + Wildcard buttons.
+  - Add ADD-mode primary button: `[Confirm Add]` (replaces `[Report]` when `addMode && outZone.length === 0 && inZone.length > 0`).
+  - Keep `[Reset]` + `[Report]` for SWAP mode.
 
 - `src/components/transactions/RosterPane.tsx`
-  - Reorder row: avatar → FC/BC badge → name → team logo → salary → [−].
-  - Bump avatar to `h-8`, padding `py-1.5`.
+  - Drop the two `<div>` sections + `section-bar` headers.
+  - Merge `starters` + `bench` into single sorted list (FC desc by salary, then BC desc by salary).
+  - Re-order each row: `[−]` first, then Avatar, FC/BC badge, Name, TeamLogo, $Salary.
 
-- `src/components/FiltersPanel.tsx`
-  - New top section "VIEW" with the PER GAME / TOTALS toggle.
-  - Accept `perfMode` + `onPerfModeChange` props.
+**No changes**: `useMediaQuery`, `trade-eligibility`, `useTradeValidation`, `transactions-commit` edge function, FiltersPanel.
 
-- `src/lib/api.ts` — no signature change needed (already accepts `outs:[]`).
+### Why this works
 
-- `supabase/functions/transactions-commit/index.ts`
-  - Allow `outs.length === 0` only when caller's current roster length < 10; otherwise reject. Also handle `type = "ADD"` instead of `"SWAP"` for the transaction row.
-
-**New**
-- `src/hooks/useMediaQuery.ts` (~20 lines) — minimal `useMediaQuery(query)` hook (mirrors existing `useIsMobile` pattern but generic).
-- `src/lib/trade-eligibility.ts` (~80 lines) — pure function `getEligibility(player, ctx) → Eligibility` so the same logic is reusable in tests and per-row UI.
+- **Workbench full-width** → matches the visual weight of the action; chips no longer compete with empty placeholders.
+- **All-Star/Wildcard in header** → they're page-level chips, not per-trade; they belong with Schedule/AI Coach as session controls.
+- **Confirm Add** → one-click ADD path makes the "9/10" message actionable; backend already supports it.
+- **FC-grouped roster pane** → matches the FC/5 + BC/5 mental model; no more "starting vs bench" decision (those slots can be reshuffled on the Roster page).
+- **Fixed table header** → cells stay readable as the user scrolls through 491 players.
 
 ### Out of scope
 
-- Filters panel responsive drawer at < 1024px (mention only; not built this round).
-- Drag-and-drop between roster pane and table.
-- Visual polish of the AI Coach modal trigger (kept as-is).
-- Changing the "Add" vs "Swap" type in historical transaction views (we just write the right row; viewer comes later).
+- Drag & drop between roster pane and table.
+- ADD-mode mini-report (skip; ADD doesn't need a comparison report — it's a pure add).
+- Filters panel responsive drawer.
+- Roster pane sub-grouping by starter/bench (intentionally dropped per request).
 
