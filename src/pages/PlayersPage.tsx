@@ -166,6 +166,7 @@ export default function PlayersPage() {
       bankRemaining,
       gwUsed,
       gwCap,
+      addMode: rosterIdList.length < 10,
     },
     validationPool,
   );
