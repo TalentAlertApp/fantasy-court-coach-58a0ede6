@@ -64,8 +64,20 @@ export default function PlayersPage() {
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
   const { data: playersData, isLoading } = usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 });
+  // Full pool used ONLY for hydration of roster / IN / OUT / validation lookups.
+  // The table above is sorted+capped at 500 by FP5; deep-bench players (low FP5)
+  // would otherwise vanish from the roster pane. 2000 covers the entire NBA pool.
+  const { data: playersFullData } = usePlayersQuery({ sort: "salary", order: "asc", limit: 2000 });
   const { data: rosterData } = useRosterQuery();
   const allPlayers = playersData?.items ?? [];
+  const allPlayersFull = playersFullData?.items ?? [];
+  const playerById = useMemo(() => {
+    const m = new Map<number, PlayerListItem>();
+    for (const p of allPlayersFull) m.set(p.core.id, p);
+    // Fall back to the table list for any id not yet in the full pool (during loading)
+    for (const p of allPlayers) if (!m.has(p.core.id)) m.set(p.core.id, p);
+    return m;
+  }, [allPlayersFull, allPlayers]);
 
   const rosterIdList = useMemo(() => {
     const r: any = (rosterData as any)?.roster ?? rosterData;
@@ -78,17 +90,32 @@ export default function PlayersPage() {
 
   const rosterPlayers = useMemo(() => {
     return rosterIdList
-      .map((id) => allPlayers.find((p) => p.core.id === id))
-      .filter((p): p is PlayerListItem => !!p)
-      .map((p) => ({
+      .map((id) => {
+        const p = playerById.get(id);
+        if (!p) {
+          if (allPlayersFull.length > 0) {
+            // eslint-disable-next-line no-console
+            console.warn(`[roster] player_id ${id} not found in player pool — rendering stub`);
+          }
+          return {
+            player_id: id,
+            name: "—",
+            team: "",
+            salary: 0,
+            fc_bc: "FC",
+            photo: null as string | null,
+          };
+        }
+        return {
         player_id: p.core.id,
         name: p.core.name,
         team: p.core.team,
         salary: p.core.salary,
         fc_bc: p.core.fc_bc,
         photo: p.core.photo ?? null,
-      }));
-  }, [rosterIdList, allPlayers]);
+        };
+      });
+  }, [rosterIdList, playerById, allPlayersFull.length]);
 
   const starterIds = useMemo(() => {
     const r: any = (rosterData as any)?.roster ?? rosterData;
@@ -99,7 +126,7 @@ export default function PlayersPage() {
     return Array.isArray(r?.bench) ? (r.bench as number[]) : [];
   }, [rosterData]);
   const hydrate = (id: number): RosterPanePlayer | null => {
-    const p = allPlayers.find((pp) => pp.core.id === id);
+    const p = playerById.get(id);
     if (!p) return null;
     return {
       player_id: p.core.id,
@@ -113,12 +140,12 @@ export default function PlayersPage() {
   const rosterStarters = useMemo(
     () => starterIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [starterIds, allPlayers],
+    [starterIds, playerById],
   );
   const rosterBench = useMemo(
     () => benchIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [benchIds, allPlayers],
+    [benchIds, playerById],
   );
 
   const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
@@ -142,14 +169,15 @@ export default function PlayersPage() {
   }, [gw]);
 
   const validationPool: ValidationPlayer[] = useMemo(() => {
-    return allPlayers.map((p) => ({
+    const src = allPlayersFull.length > 0 ? allPlayersFull : allPlayers;
+    return src.map((p) => ({
       id: p.core.id,
       name: p.core.name,
       team: p.core.team,
       fc_bc: p.core.fc_bc as "FC" | "BC",
       salary: p.core.salary,
     }));
-  }, [allPlayers]);
+  }, [allPlayers, allPlayersFull]);
 
   const rosterValidationList: ValidationPlayer[] = useMemo(
     () =>
@@ -208,16 +236,16 @@ export default function PlayersPage() {
   );
 
   const outPlayersFull = useMemo(
-    () => outZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
-    [outZone, allPlayers],
+    () => outZone.map((id) => playerById.get(id)).filter(Boolean) as PlayerListItem[],
+    [outZone, playerById],
   );
   const inPlayersFull = useMemo(
-    () => inZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
-    [inZone, allPlayers],
+    () => inZone.map((id) => playerById.get(id)).filter(Boolean) as PlayerListItem[],
+    [inZone, playerById],
   );
   const rosterPlayersFull = useMemo(
-    () => rosterIdList.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
-    [rosterIdList, allPlayers],
+    () => rosterIdList.map((id) => playerById.get(id)).filter(Boolean) as PlayerListItem[],
+    [rosterIdList, playerById],
   );
 
   // ADD mode: roster has < 10 players → [+] can add directly without an OUT.

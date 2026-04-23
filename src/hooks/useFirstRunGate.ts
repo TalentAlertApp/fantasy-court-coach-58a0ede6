@@ -12,7 +12,7 @@ export function useFirstRunGate() {
 
   const ready = !authLoading && !isLoading && isReady && !!user;
   const ownedTeams = ready
-    ? teams.filter((t: any) => t.owner_id && t.owner_id === user!.id)
+    ? teams.filter((t: any) => t.owner_id === user!.id || !t.owner_id)
     : [];
 
   // Session-scoped skip: user clicked "Skip for now" on hero

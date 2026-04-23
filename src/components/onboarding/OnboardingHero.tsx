@@ -12,6 +12,7 @@ interface Props {
 }
 
 export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Props) {
+  const alias = email?.split("@")[0];
   return (
     <div className="relative flex flex-col h-screen overflow-hidden">
       <PlayerMarquee />
@@ -24,6 +25,14 @@ export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Pr
             Fantasy
           </span>
         </div>
+        {alias && (
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.25em] text-foreground/60">
+            Hi,{" "}
+            <span className="text-foreground/90 font-bold normal-case tracking-normal">
+              {alias}
+            </span>
+          </span>
+        )}
         <TooltipProvider delayDuration={150}>
           <Tooltip>
             <TooltipTrigger asChild>
