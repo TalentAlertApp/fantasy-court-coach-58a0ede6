@@ -84,7 +84,7 @@ export default function AIHubPage() {
 
   const handleCommit = async (idx: number, move: any) => {
     setCommittingIdx(idx);
-    try { await commitTransaction({ gw, day, adds: [move.add], drops: [move.drop] }, selectedTeamId ?? undefined); toast({ title: "Transfer committed!" }); }
+    try { await commitTransaction({ gw, day, ins: [move.add], outs: [move.drop] }, selectedTeamId ?? undefined); toast({ title: "Transfer committed!" }); }
     catch (e: any) { toast({ title: "Commit Error", description: e.message, variant: "destructive" }); }
     finally { setCommittingIdx(null); }
   };
