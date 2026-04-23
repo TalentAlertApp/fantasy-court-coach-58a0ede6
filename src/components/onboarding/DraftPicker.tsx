@@ -167,7 +167,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
     picks.length === 0 ? "Start Picking" : isManualValid ? "Save Roster · Go to Court" : `Pick ${10 - picks.length} More`;
 
   return (
-    <div className="relative flex flex-col h-screen px-6 py-8 items-center">
+    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
       {(drafting || success) && <DraftingOverlay success={success} />}
 
       <StepIndicator step={3} />
@@ -185,7 +185,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
         </button>
       )}
 
-      <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center flex-1 justify-center">
+      <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center">
         <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
         <h2
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
@@ -274,7 +274,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
         )}
       </div>
 
-      <div className="mt-auto pt-6 flex flex-wrap items-center justify-center gap-3 w-full">
+      <div className="mt-10 flex flex-wrap items-center justify-center gap-3 w-full">
           {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
             <span
               key={chip}

@@ -194,7 +194,7 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-[1fr_104px] gap-2 shrink-0 mt-2">
+          <div className="grid grid-cols-[1fr_120px] gap-2 shrink-0 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -205,18 +205,18 @@ export default function PlayerPickerDialog({
               />
             </div>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-1.5 gap-1 [&>svg]:ml-0 [&>svg]:shrink-0">
+              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-2 gap-1.5 [&>svg]:ml-0 [&>svg]:shrink-0 [&>span]:flex-1 [&>span]:min-w-0">
                 {teamFilter === "ALL" ? (
-                  <span className="flex-1 text-center">ALL</span>
+                  <span className="block w-full text-center">ALL</span>
                 ) : (
-                  <span className="flex-1 inline-flex flex-row flex-nowrap items-center justify-center gap-1 min-w-0">
+                  <span className="flex flex-row flex-nowrap items-center justify-center gap-1.5 min-w-0 w-full">
                     {(() => {
                       const logo = getTeamLogo(teamFilter);
                       return logo ? (
                         <img src={logo} alt="" aria-hidden="true" className="h-4 w-4 object-contain shrink-0" />
                       ) : null;
                     })()}
-                    <span className="truncate">{teamFilter}</span>
+                    <span className="truncate leading-none">{teamFilter}</span>
                   </span>
                 )}
               </SelectTrigger>
