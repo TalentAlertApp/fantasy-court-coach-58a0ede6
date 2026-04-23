@@ -431,7 +431,7 @@ export default function RosterPage() {
         </div>
       ) : isRosterEmpty ? (
         createPortal(
-          <div className="fixed inset-0 z-[100] bg-background overflow-auto">
+          <div className="fixed inset-0 z-40 bg-background overflow-auto">
             <DraftPicker
               teamName={teamName}
               onFinish={() => {
