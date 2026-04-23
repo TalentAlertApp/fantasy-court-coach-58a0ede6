@@ -579,23 +579,23 @@ export default function PlayersPage() {
                   inPlayers={inPlayersFull}
                   bankRemaining={bankRemaining}
                   salaryCap={100}
-                rosterPlayers={rosterPlayersFull}
-                gw={gw}
-                day={day}
-                teamId={selectedTeamId}
-                committing={committing}
-                onClose={() => setReportOpen(false)}
-                onCommit={handleCommit}
-              />
-            )}
+                  rosterPlayers={rosterPlayersFull}
+                  gw={gw}
+                  day={day}
+                  teamId={selectedTeamId}
+                  committing={committing}
+                  onClose={() => setReportOpen(false)}
+                  onCommit={handleCommit}
+                />
+              )}
 
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    <TableHead className="text-xs w-12"></TableHead>
-                    <TableHead className="text-xs">Player</TableHead>
-                    <TableHead className="text-xs">Team</TableHead>
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <Table>
+                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))] [&_th]:bg-background">
+                    <TableRow>
+                      <TableHead className="text-xs w-12"></TableHead>
+                      <TableHead className="text-xs">Player</TableHead>
+                      <TableHead className="text-xs">Team</TableHead>
                     {sortableHeader("gp", "GP")}
                     {sortableHeader("fp5", "FP5")}
                     {sortableHeader("value5", "V5")}
@@ -718,7 +718,8 @@ export default function PlayersPage() {
               onPerfModeChange={setPerfMode}
             />
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
