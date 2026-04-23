@@ -145,19 +145,12 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
         </div>
       )}
 
-      {/* Row 1 — Inline chips (only when staged) + metrics */}
+      {/* Row 1 — Metrics (left) + Status pill (far right) */}
       <div className="flex items-center gap-2 flex-wrap">
-        {outs.map((p) => (
-          <PlayerChip key={p.id} p={p} variant="out" onRemove={() => onRemoveOut(p.id)} />
-        ))}
-        {ins.map((p) => (
-          <PlayerChip key={p.id} p={p} variant="in" onRemove={() => onRemoveIn(p.id)} />
-        ))}
         <MetricPill label="Bank" value={`$${bankRemaining.toFixed(1)}M`} />
         <MetricPill label="Freed" value={`+$${freed.toFixed(1)}M`} tone="positive" />
         <MetricPill label="Spent" value={`−$${added.toFixed(1)}M`} tone="negative" />
         <MetricPill label="Available" value={`$${available.toFixed(1)}M`} tone={availableTone} />
-        {/* GW cap counter — sits with metrics */}
         <span
           className={`inline-flex items-center gap-1 rounded-full border px-3 h-7 text-[10px] font-heading uppercase tracking-wider ${
             gwCapHit
@@ -172,64 +165,75 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
           </span>
           <span className="normal-case font-sans">trades</span>
         </span>
-      </div>
 
-      {/* Row 2 — Status (left) + Actions (right) */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Validity pill */}
-        {validation.isValid && hasChips ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Valid
-          </span>
-        ) : validation.reasons.length > 0 ? (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 h-7 text-[10px]">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            <span className="normal-case font-sans">{validation.reasons[0]}</span>
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background text-muted-foreground px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
-            {addMode ? "Pick a player to add" : "Pick a player to release"}
-          </span>
-        )}
-
-        {/* Right cluster — actions */}
-        <div className="ml-auto flex items-center gap-1.5">
-          {hasChips && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-lg h-8 font-heading uppercase text-[10px]"
-              onClick={onReset}
-            >
-              Reset
-            </Button>
-          )}
-          {isDirectAdd ? (
-            <Button
-              size="sm"
-              className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
-              onClick={onConfirmAdd}
-              disabled={!canConfirmAdd || committing}
-              title={canConfirmAdd ? "Add this player to your roster" : "Make a valid selection first"}
-            >
-              <Check className="h-3.5 w-3.5" />
-              {committing ? "Adding…" : `Confirm Add${ins.length > 1 ? ` (${ins.length})` : ""}`}
-            </Button>
+        {/* Status pill — far right */}
+        <div className="ml-auto">
+          {validation.isValid && hasChips ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Valid
+            </span>
+          ) : validation.reasons.length > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 h-7 text-[10px]">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span className="normal-case font-sans">{validation.reasons[0]}</span>
+            </span>
           ) : (
-            <Button
-              size="sm"
-              className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
-              onClick={onGenerateReport}
-              disabled={!canGenerate}
-              title={canGenerate ? "Open the trade report" : "Make a valid selection first"}
-            >
-              <FileText className="h-3.5 w-3.5" />
-              {reportOpen ? "Refresh" : "Report"}
-            </Button>
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background text-muted-foreground px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
+              {addMode ? "Pick a player to add" : "Pick a player to release"}
+            </span>
           )}
         </div>
       </div>
+
+      {/* Row 2 — Chips (only when staged) + Actions (right) */}
+      {(hasChips || isDirectAdd) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {outs.map((p) => (
+            <PlayerChip key={p.id} p={p} variant="out" onRemove={() => onRemoveOut(p.id)} />
+          ))}
+          {ins.map((p) => (
+            <PlayerChip key={p.id} p={p} variant="in" onRemove={() => onRemoveIn(p.id)} />
+          ))}
+
+          <div className="ml-auto flex items-center gap-1.5">
+            {hasChips && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-lg h-8 font-heading uppercase text-[10px]"
+                onClick={onReset}
+              >
+                Reset
+              </Button>
+            )}
+            {isDirectAdd ? (
+              <Button
+                size="sm"
+                className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
+                onClick={onConfirmAdd}
+                disabled={!canConfirmAdd || committing}
+                title={canConfirmAdd ? "Add this player to your roster" : "Make a valid selection first"}
+              >
+                <Check className="h-3.5 w-3.5" />
+                {committing ? "Adding…" : `Confirm Add${ins.length > 1 ? ` (${ins.length})` : ""}`}
+              </Button>
+            ) : (
+              canGenerate && (
+                <Button
+                  size="sm"
+                  className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
+                  onClick={onGenerateReport}
+                  title="Open the trade report"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  {reportOpen ? "Refresh" : "Report"}
+                </Button>
+              )
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
