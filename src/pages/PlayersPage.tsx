@@ -433,6 +433,12 @@ export default function PlayersPage() {
     );
   };
 
+  /**
+   * Roster pane "−" handler. On narrow viewports (< 1280px), the roster lives
+   * inside a Sheet drawer — auto-close after the user stages a release so they
+   * can immediately pick a replacement from the table without an extra tap.
+   * Do NOT remove the close-on-narrow behavior; it is required UX.
+   */
   const onRosterToggleOut = (id: number) => {
     toggleOut(id);
     if (!isWideScreen) setRosterSheetOpen(false);
