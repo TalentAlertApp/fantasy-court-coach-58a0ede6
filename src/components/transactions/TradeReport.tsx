@@ -30,17 +30,26 @@ function PlayerCard({ p, variant }: { p: PlayerListItem; variant: "out" | "in" }
   const logo = getTeamLogo(p.core.team);
   return (
     <div
-      className={`rounded-xl border-2 p-3 flex items-center gap-3 ${
+      className={`relative overflow-hidden rounded-xl border-2 p-3 flex items-center gap-3 ${
         isOut
-          ? "bg-destructive/5 border-destructive/40"
-          : "bg-emerald-500/5 border-emerald-500/40"
+          ? "bg-gradient-to-br from-destructive/10 via-destructive/5 to-transparent border-destructive/40 shadow-[0_4px_20px_-8px_hsl(var(--destructive)/0.4)]"
+          : "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/40 shadow-[0_4px_20px_-8px_hsl(142_76%_36%/0.4)]"
       }`}
     >
-      <Avatar className="h-12 w-12 shrink-0">
+      {/* Premium watermark — oversized team logo invading the top-right corner */}
+      {logo && (
+        <img
+          src={logo}
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-6 -right-6 h-32 w-32 object-contain opacity-[0.18] rotate-12 select-none"
+        />
+      )}
+      <Avatar className="h-12 w-12 shrink-0 relative z-10">
         {p.core.photo && <AvatarImage src={p.core.photo} />}
         <AvatarFallback>{p.core.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 relative z-10">
         <div className="flex items-center gap-1.5 mb-0.5">
           <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 rounded">
             {p.core.fc_bc}
@@ -48,7 +57,6 @@ function PlayerCard({ p, variant }: { p: PlayerListItem; variant: "out" | "in" }
           <span className="font-heading font-bold text-sm truncate">{p.core.name}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono">
-          {logo && <img src={logo} alt="" className="h-3.5 w-3.5" />}
           <span>{p.core.team}</span>
           <span>·</span>
           <span>${p.core.salary}M</span>
@@ -134,9 +142,9 @@ export default function TradeReport(props: TradeReportProps) {
     : "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10";
 
   return (
-    <div className="rounded-xl border-2 border-accent/40 bg-background shadow-2xl">
+    <div className="rounded-xl border-2 border-accent/40 bg-gradient-to-br from-background via-background to-accent/[0.03] shadow-[0_20px_60px_-15px_hsl(var(--accent)/0.35)] ring-1 ring-accent/10">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-card/40 rounded-t-xl">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-gradient-to-r from-card/60 via-card/40 to-accent/[0.06] rounded-t-xl">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-accent" />
           <h3 className="font-heading uppercase text-sm tracking-[0.2em] font-bold">Trade Report</h3>
@@ -148,9 +156,9 @@ export default function TradeReport(props: TradeReportProps) {
       </div>
 
       {/* Body */}
-      <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-        {/* A. Side-by-side diff */}
-        <div>
+      <div className="p-4 space-y-4 max-h-[70vh] flex flex-col">
+        {/* A. Side-by-side diff — full width */}
+        <div className="shrink-0">
           <h4 className="font-heading uppercase text-[10px] tracking-[0.2em] text-muted-foreground mb-2">Players</h4>
           <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
             <div className="space-y-2">
@@ -163,69 +171,74 @@ export default function TradeReport(props: TradeReportProps) {
           </div>
         </div>
 
-        {/* B. Roster impact */}
-        <div>
-          <h4 className="font-heading uppercase text-[10px] tracking-[0.2em] text-muted-foreground mb-2">Roster Impact</h4>
-          <div className="rounded-lg border border-border bg-card/30">
-            <div className="grid grid-cols-4 gap-2 px-3 py-2 border-b border-border bg-muted/30 text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
-              <span>Metric</span>
-              <span className="text-right">Before</span>
-              <span className="text-right">After</span>
-              <span className="text-right">Δ</span>
+        {/* B + C. Two-column equal-height row */}
+        <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+          {/* Roster impact */}
+          <div className="flex flex-col min-h-0">
+            <h4 className="font-heading uppercase text-[10px] tracking-[0.2em] text-muted-foreground mb-2 shrink-0">Roster Impact</h4>
+            <div className="rounded-lg border border-border bg-card/30 flex-1 overflow-y-auto">
+              <div className="grid grid-cols-4 gap-2 px-3 py-2 border-b border-border bg-muted/30 text-[10px] font-heading uppercase tracking-wider text-muted-foreground sticky top-0 z-10">
+                <span>Metric</span>
+                <span className="text-right">Before</span>
+                <span className="text-right">After</span>
+                <span className="text-right">Δ</span>
+              </div>
+              <MetricRow label="Salary used" before={beforeSalary} after={afterSalary} format={(n) => `$${n.toFixed(1)}M`} invert />
+              <MetricRow label="Bank" before={beforeBank} after={afterBank} format={(n) => `$${n.toFixed(1)}M`} />
+              <MetricRow label="Sum FP5" before={beforeFp5} after={afterFp5} />
+              <MetricRow label="Sum Stocks5" before={beforeStocks5} after={afterStocks5} />
+              <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} />
             </div>
-            <MetricRow label="Salary used" before={beforeSalary} after={afterSalary} format={(n) => `$${n.toFixed(1)}M`} invert />
-            <MetricRow label="Bank" before={beforeBank} after={afterBank} format={(n) => `$${n.toFixed(1)}M`} />
-            <MetricRow label="Sum FP5" before={beforeFp5} after={afterFp5} />
-            <MetricRow label="Sum Stocks5" before={beforeStocks5} after={afterStocks5} />
-            <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} />
           </div>
-        </div>
 
-        {/* C. AI verdict */}
-        <div>
-          <h4 className="font-heading uppercase text-[10px] tracking-[0.2em] text-muted-foreground mb-2">AI Verdict</h4>
-          {verdictLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-2/3" />
-              <Skeleton className="h-4 w-1/2" />
-            </div>
-          ) : verdictError ? (
-            <p className="text-xs text-muted-foreground italic">AI verdict unavailable: {verdictError}</p>
-          ) : verdict ? (
-            <div className={`rounded-lg border-2 p-3 ${verdictColor}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className="uppercase font-heading text-[10px] tracking-wider border-current">
-                  {verdict.verdict}
-                </Badge>
-                <span className="text-[10px] font-mono opacity-70">
-                  confidence {(verdict.confidence * 100).toFixed(0)}%
-                </span>
+          {/* AI verdict */}
+          <div className="flex flex-col min-h-0">
+            <h4 className="font-heading uppercase text-[10px] tracking-[0.2em] text-muted-foreground mb-2 shrink-0">AI Verdict</h4>
+            {verdictLoading ? (
+              <div className="space-y-2 rounded-lg border border-border bg-card/30 p-3 flex-1">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
               </div>
-              <p className="text-sm leading-relaxed mb-3 text-foreground">{verdict.summary}</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-[10px] font-heading uppercase tracking-wider opacity-70 mb-1">Pros</p>
-                  <ul className="space-y-1 text-[11px] text-foreground">
-                    {verdict.pros.map((s, i) => <li key={i}>+ {s}</li>)}
-                  </ul>
+            ) : verdictError ? (
+              <div className="rounded-lg border border-border bg-card/30 p-3 flex-1">
+                <p className="text-xs text-muted-foreground italic">AI verdict unavailable: {verdictError}</p>
+              </div>
+            ) : verdict ? (
+              <div className={`rounded-lg border-2 p-3 flex-1 overflow-y-auto ${verdictColor}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="uppercase font-heading text-[10px] tracking-wider border-current">
+                    {verdict.verdict}
+                  </Badge>
+                  <span className="text-[10px] font-mono opacity-70">
+                    confidence {(verdict.confidence * 100).toFixed(0)}%
+                  </span>
                 </div>
-                <div>
-                  <p className="text-[10px] font-heading uppercase tracking-wider opacity-70 mb-1">Cons</p>
-                  <ul className="space-y-1 text-[11px] text-foreground">
-                    {verdict.cons.length === 0
-                      ? <li className="opacity-60">None flagged</li>
-                      : verdict.cons.map((s, i) => <li key={i}>− {s}</li>)}
-                  </ul>
+                <p className="text-sm leading-relaxed mb-3 text-foreground">{verdict.summary}</p>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-[10px] font-heading uppercase tracking-wider opacity-70 mb-1">Pros</p>
+                    <ul className="space-y-1 text-[11px] text-foreground">
+                      {verdict.pros.map((s, i) => <li key={i}>+ {s}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-heading uppercase tracking-wider opacity-70 mb-1">Cons</p>
+                    <ul className="space-y-1 text-[11px] text-foreground">
+                      {verdict.cons.length === 0
+                        ? <li className="opacity-60">None flagged</li>
+                        : verdict.cons.map((s, i) => <li key={i}>− {s}</li>)}
+                    </ul>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-card/40 rounded-b-xl">
+      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-gradient-to-r from-card/40 via-card/60 to-card/40 rounded-b-xl">
         <Button variant="outline" size="sm" onClick={onClose} disabled={committing}>
           ← Back to picking
         </Button>
