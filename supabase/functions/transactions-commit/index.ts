@@ -225,50 +225,82 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 6. Apply the trade: pair each OUT with an IN, preserving slot.
-    //    Slot inheritance: in[i] takes the slot of out[i].
+    // 6. Apply the trade.
+    //    SWAP mode: pair each OUT with an IN, preserving slot.
+    //    ADD  mode: insert each IN onto the BENCH, write a transaction with player_out_id=0.
     const insertedTxns: any[] = [];
-    for (let i = 0; i < outs.length; i++) {
-      const outId = outs[i];
-      const inId = ins[i];
-      const outRow = rosterRows.find((r: any) => Number(r.player_id) === outId);
-      const slot = outRow?.slot ?? "BENCH";
-
-      // delete OUT first, then insert IN — order matters because (team_id, player_id)
-      // may have a uniqueness expectation downstream and the delete frees the slot.
-      const delRes = await userClient.from("roster").delete().eq("team_id", team_id).eq("player_id", outId);
-      if (delRes.error) {
-        return errorResponse("ROSTER_DELETE_FAILED", delRes.error.message, null, 500);
-      }
-      const insRes = await userClient.from("roster").insert({
-        team_id,
-        player_id: inId,
-        slot,
-        gw,
-        day,
-      });
-      if (insRes.error) {
-        // Best-effort rollback: re-insert the OUT row so the user isn't left short.
-        await userClient.from("roster").insert({ team_id, player_id: outId, slot, gw, day });
-        return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
-      }
-
-      const txnRes = await userClient
-        .from("transactions")
-        .insert({
+    if (isAddMode) {
+      for (const inId of ins) {
+        const insRes = await userClient.from("roster").insert({
           team_id,
-          type: "SWAP",
-          player_in_id: inId,
-          player_out_id: outId,
-          cost_points: 0,
-          notes: `gw=${gw} day=${day}`,
-        })
-        .select()
-        .single();
-      if (txnRes.error) {
-        return errorResponse("TX_INSERT_FAILED", txnRes.error.message, null, 500);
+          player_id: inId,
+          slot: "BENCH",
+          gw,
+          day,
+        });
+        if (insRes.error) {
+          return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
+        }
+        const txnRes = await userClient
+          .from("transactions")
+          .insert({
+            team_id,
+            type: "ADD",
+            player_in_id: inId,
+            player_out_id: 0,
+            cost_points: 0,
+            notes: `gw=${gw} day=${day} mode=add`,
+          })
+          .select()
+          .single();
+        if (txnRes.error) {
+          return errorResponse("TX_INSERT_FAILED", txnRes.error.message, null, 500);
+        }
+        insertedTxns.push(txnRes.data);
       }
-      insertedTxns.push(txnRes.data);
+    } else {
+      for (let i = 0; i < outs.length; i++) {
+        const outId = outs[i];
+        const inId = ins[i];
+        const outRow = rosterRows.find((r: any) => Number(r.player_id) === outId);
+        const slot = outRow?.slot ?? "BENCH";
+
+        // delete OUT first, then insert IN — order matters because (team_id, player_id)
+        // may have a uniqueness expectation downstream and the delete frees the slot.
+        const delRes = await userClient.from("roster").delete().eq("team_id", team_id).eq("player_id", outId);
+        if (delRes.error) {
+          return errorResponse("ROSTER_DELETE_FAILED", delRes.error.message, null, 500);
+        }
+        const insRes = await userClient.from("roster").insert({
+          team_id,
+          player_id: inId,
+          slot,
+          gw,
+          day,
+        });
+        if (insRes.error) {
+          // Best-effort rollback: re-insert the OUT row so the user isn't left short.
+          await userClient.from("roster").insert({ team_id, player_id: outId, slot, gw, day });
+          return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
+        }
+
+        const txnRes = await userClient
+          .from("transactions")
+          .insert({
+            team_id,
+            type: "SWAP",
+            player_in_id: inId,
+            player_out_id: outId,
+            cost_points: 0,
+            notes: `gw=${gw} day=${day}`,
+          })
+          .select()
+          .single();
+        if (txnRes.error) {
+          return errorResponse("TX_INSERT_FAILED", txnRes.error.message, null, 500);
+        }
+        insertedTxns.push(txnRes.data);
+      }
     }
 
     // 7. Return updated roster snapshot (minimal — client invalidates and refetches roster-current).
@@ -292,7 +324,7 @@ Deno.serve(async (req) => {
         bench: bench.slice(0, 5),
         captain_id: Number(captain?.player_id ?? 0),
         bank_remaining: Math.max(0, salary_cap - postSalary),
-        free_transfers_remaining: Math.max(0, GW_TRANSFER_CAP - (usedThisGw + outs.length)),
+        free_transfers_remaining: Math.max(0, GW_TRANSFER_CAP - (usedThisGw + transferCount)),
         constraints: {
           salary_cap,
           starters_count: 5,
@@ -306,7 +338,7 @@ Deno.serve(async (req) => {
       transactions: insertedTxns.map((t: any) => ({
         id: String(t.id),
         created_at: t.created_at,
-        type: "SWAP" as const,
+        type: (t.type ?? "SWAP") as "SWAP" | "ADD",
         player_in_id: Number(t.player_in_id),
         player_out_id: Number(t.player_out_id),
         cost_points: Number(t.cost_points ?? 0),
