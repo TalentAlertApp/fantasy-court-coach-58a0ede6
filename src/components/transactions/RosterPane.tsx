@@ -44,19 +44,7 @@ function RosterRow({
           : "hover:bg-accent/30"
       }`}
     >
-      <Avatar className="h-8 w-8 shrink-0 rounded-full">
-        {player.photo && <AvatarImage src={player.photo} />}
-        <AvatarFallback className="text-[8px]">{player.name.slice(0, 2)}</AvatarFallback>
-      </Avatar>
-      <Badge
-        variant={player.fc_bc === "FC" ? "destructive" : "default"}
-        className="text-[7px] px-1 py-0 rounded-md shrink-0"
-      >
-        {player.fc_bc}
-      </Badge>
-      <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
-      {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0 opacity-80" />}
-      <span className="text-[10px] font-mono text-muted-foreground shrink-0">${player.salary}</span>
+      {/* [-] is FAR LEFT for one-tap release. */}
       <Button
         variant="ghost"
         size="icon"
@@ -71,6 +59,19 @@ function RosterRow({
       >
         <Minus className="h-3 w-3" />
       </Button>
+      <Avatar className="h-8 w-8 shrink-0 rounded-full">
+        {player.photo && <AvatarImage src={player.photo} />}
+        <AvatarFallback className="text-[8px]">{player.name.slice(0, 2)}</AvatarFallback>
+      </Avatar>
+      <Badge
+        variant={player.fc_bc === "FC" ? "destructive" : "default"}
+        className="text-[7px] px-1 py-0 rounded-md shrink-0"
+      >
+        {player.fc_bc}
+      </Badge>
+      <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
+      {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0 opacity-80" />}
+      <span className="text-[10px] font-mono text-muted-foreground shrink-0">${player.salary}</span>
     </div>
   );
 }
@@ -83,42 +84,27 @@ export default function RosterPane({
   onToggleOut,
   onPlayerClick,
 }: RosterPaneProps) {
-  const empty = !isLoading && starters.length === 0 && bench.length === 0;
+  // Single continuous list — all FC first (sub-sorted by salary DESC), then all BC (DESC).
+  const all = [...starters, ...bench];
+  const sorted = all.sort((a, b) => {
+    if (a.fc_bc !== b.fc_bc) return a.fc_bc === "FC" ? -1 : 1;
+    return b.salary - a.salary;
+  });
+  const empty = !isLoading && sorted.length === 0;
 
   return (
-    <div className="flex flex-col gap-3 overflow-y-auto pr-1 h-full">
-      <div>
-        <div className="section-bar mb-1 rounded-lg">STARTING 5</div>
-        <div className="flex flex-col gap-0.5">
-          {isLoading && starters.length === 0
-            ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9 rounded-md" />)
-            : starters.map((p) => (
-                <RosterRow
-                  key={p.player_id}
-                  player={p}
-                  isOut={outZone.includes(p.player_id)}
-                  onToggleOut={onToggleOut}
-                  onPlayerClick={onPlayerClick}
-                />
-              ))}
-        </div>
-      </div>
-      <div>
-        <div className="section-bar mb-1 rounded-lg">BENCH</div>
-        <div className="flex flex-col gap-0.5">
-          {isLoading && bench.length === 0
-            ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-9 rounded-md" />)
-            : bench.map((p) => (
-                <RosterRow
-                  key={p.player_id}
-                  player={p}
-                  isOut={outZone.includes(p.player_id)}
-                  onToggleOut={onToggleOut}
-                  onPlayerClick={onPlayerClick}
-                />
-              ))}
-        </div>
-      </div>
+    <div className="flex flex-col gap-0.5 overflow-y-auto pr-1 h-full">
+      {isLoading && sorted.length === 0
+        ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-9 rounded-md" />)
+        : sorted.map((p) => (
+            <RosterRow
+              key={p.player_id}
+              player={p}
+              isOut={outZone.includes(p.player_id)}
+              onToggleOut={onToggleOut}
+              onPlayerClick={onPlayerClick}
+            />
+          ))}
       {empty && (
         <div className="text-xs text-muted-foreground italic px-2">Roster loading…</div>
       )}
