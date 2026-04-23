@@ -226,9 +226,9 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 <TabsContent value="history" className="flex-1 min-h-0 flex flex-col">
                   <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 shrink-0">This Season</p>
                   {data.history.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center mt-auto">No history available</p>
+                    <p className="text-sm text-muted-foreground py-2 text-left">No history available</p>
                   ) : (
-                    <ScrollArea className="flex-1 mt-auto h-[40vh]">
+                    <ScrollArea className="flex-1 min-h-0">
                       <div className="pr-4">
                       <Table>
                         <TableHeader>
