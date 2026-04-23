@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowRight, Sparkles, RefreshCw, X, AlertTriangle, CheckCircle2, FileText } from "lucide-react";
+import { X, AlertTriangle, CheckCircle2, FileText, Check } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { TradeValidationResult } from "@/hooks/useTradeValidation";
 
@@ -22,14 +22,12 @@ interface TradeWorkbenchProps {
   gwCap: number;
   gw: number;
   capResetLabel: string;
-  chipAllStar: boolean;
-  chipWildcard: boolean;
   onRemoveOut: (id: number) => void;
   onRemoveIn: (id: number) => void;
   onReset: () => void;
   onGenerateReport: () => void;
-  onToggleAllStar: () => void;
-  onToggleWildcard: () => void;
+  onConfirmAdd?: () => void;
+  committing?: boolean;
   reportOpen: boolean;
   /** True when roster has < 10 players (ADD mode — direct adds allowed). */
   addMode?: boolean;
@@ -50,13 +48,14 @@ function PlayerChip({
   const logo = getTeamLogo(p.team);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-lg pl-1 pr-2 h-10 text-[11px] font-heading uppercase border-2 ${
+      className={`inline-flex items-center gap-1.5 rounded-lg pl-1 pr-2 h-9 text-[11px] font-heading uppercase border-2 ${
         isOut
           ? "bg-destructive/10 border-destructive/40 text-destructive"
           : "bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
       }`}
     >
-      <Avatar className="h-8 w-8 shrink-0">
+      <span className="text-[9px] opacity-70 mr-0.5">{isOut ? "OUT" : "IN"}</span>
+      <Avatar className="h-7 w-7 shrink-0">
         {p.photo && <AvatarImage src={p.photo} />}
         <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
@@ -73,14 +72,6 @@ function PlayerChip({
       >
         <X className="h-3 w-3" />
       </button>
-    </span>
-  );
-}
-
-function EmptySlot({ label }: { label: string }) {
-  return (
-    <span className="inline-flex items-center justify-center h-10 px-3 rounded-lg border-2 border-dashed border-border/60 bg-card/30 text-[10px] uppercase tracking-wider text-muted-foreground font-heading">
-      {label}
     </span>
   );
 }
