@@ -111,14 +111,12 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
     gwCap,
     gw,
     capResetLabel,
-    chipAllStar,
-    chipWildcard,
     onRemoveOut,
     onRemoveIn,
     onReset,
     onGenerateReport,
-    onToggleAllStar,
-    onToggleWildcard,
+    onConfirmAdd,
+    committing = false,
     reportOpen,
     addMode = false,
     rosterSize,
@@ -129,12 +127,12 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
   const available = bankRemaining + freed - added;
   const availableTone: "positive" | "negative" =
     available >= 0 ? "positive" : "negative";
-  const canGenerate = validation.isValid && (outs.length > 0 || ins.length > 0) && (addMode || ins.length === outs.length);
-
-  // Empty-slot count derived from outs (1 or 2 expected ins to match)
-  const expectedIns = Math.max(1, outs.length || 1);
-  const inEmptyCount = Math.max(0, expectedIns - ins.length);
-  const outEmptyCount = outs.length === 0 ? 1 : 0;
+  const hasChips = outs.length > 0 || ins.length > 0;
+  // ADD-mode direct commit: roster < 10, no OUT, at least one IN, validation passes.
+  const isDirectAdd = addMode && outs.length === 0 && ins.length > 0;
+  const canConfirmAdd = isDirectAdd && validation.isValid;
+  // Standard SWAP report eligibility (need matched OUT/IN counts).
+  const canGenerate = validation.isValid && hasChips && ins.length === outs.length && outs.length > 0;
   const gwCapHit = gwUsed >= gwCap;
 
   return (
@@ -147,47 +145,39 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
         </div>
       )}
 
-      {/* Row 1 — OUT zone → IN zone */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] uppercase tracking-[0.2em] font-heading text-muted-foreground">
-            Out
-          </span>
-          {outs.map((p) => (
-            <PlayerChip key={p.id} p={p} variant="out" onRemove={() => onRemoveOut(p.id)} />
-          ))}
-          {outEmptyCount > 0 && (
-            <EmptySlot label={addMode ? "Optional" : "Click − on roster"} />
-          )}
-        </div>
-
-        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] uppercase tracking-[0.2em] font-heading text-muted-foreground">
-            In
-          </span>
-          {ins.map((p) => (
-            <PlayerChip key={p.id} p={p} variant="in" onRemove={() => onRemoveIn(p.id)} />
-          ))}
-          {Array.from({ length: inEmptyCount }).map((_, i) => (
-            <EmptySlot key={i} label="Click + on a player" />
-          ))}
-        </div>
-      </div>
-
-      {/* Row 2 — Metrics */}
+      {/* Row 1 — Inline chips (only when staged) + metrics */}
       <div className="flex items-center gap-2 flex-wrap">
+        {outs.map((p) => (
+          <PlayerChip key={p.id} p={p} variant="out" onRemove={() => onRemoveOut(p.id)} />
+        ))}
+        {ins.map((p) => (
+          <PlayerChip key={p.id} p={p} variant="in" onRemove={() => onRemoveIn(p.id)} />
+        ))}
         <MetricPill label="Bank" value={`$${bankRemaining.toFixed(1)}M`} />
         <MetricPill label="Freed" value={`+$${freed.toFixed(1)}M`} tone="positive" />
         <MetricPill label="Spent" value={`−$${added.toFixed(1)}M`} tone="negative" />
         <MetricPill label="Available" value={`$${available.toFixed(1)}M`} tone={availableTone} />
+        {/* GW cap counter — sits with metrics */}
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-3 h-7 text-[10px] font-heading uppercase tracking-wider ${
+            gwCapHit
+              ? "border-destructive/40 bg-destructive/10 text-destructive"
+              : "border-border bg-background"
+          }`}
+          title={gwCapHit ? `GW${gw} cap reached — resets ${capResetLabel}` : `Cap resets ${capResetLabel}`}
+        >
+          <span className="text-muted-foreground">GW{gw}</span>
+          <span className="font-mono font-bold">
+            {gwUsed}/{gwCap}
+          </span>
+          <span className="normal-case font-sans">trades</span>
+        </span>
       </div>
 
-      {/* Row 3 — Status (left) + Actions (right) */}
+      {/* Row 2 — Status (left) + Actions (right) */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Validity pill */}
-        {validation.isValid && (outs.length > 0 || ins.length > 0) ? (
+        {validation.isValid && hasChips ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
             <CheckCircle2 className="h-3.5 w-3.5" />
             Valid
@@ -203,47 +193,9 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
           </span>
         )}
 
-        {/* GW cap counter */}
-        <span
-          className={`inline-flex items-center gap-1 rounded-full border px-3 h-7 text-[10px] font-heading uppercase tracking-wider ${
-            gwCapHit
-              ? "border-destructive/40 bg-destructive/10 text-destructive"
-              : "border-border bg-background"
-          }`}
-          title={gwCapHit ? `GW${gw} cap reached — resets ${capResetLabel}` : `Cap resets ${capResetLabel}`}
-        >
-          <span className="text-muted-foreground">GW{gw}</span>
-          <span className="font-mono font-bold">
-            {gwUsed}/{gwCap}
-          </span>
-          <span className="normal-case font-sans">trades</span>
-        </span>
-
-        {/* Right cluster — chips + actions */}
+        {/* Right cluster — actions */}
         <div className="ml-auto flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant={chipAllStar ? "default" : "outline"}
-            className={`rounded-lg h-8 font-heading uppercase text-[10px] ${
-              chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""
-            }`}
-            onClick={onToggleAllStar}
-            title="All-Star chip — boosts trade cap"
-          >
-            <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
-          </Button>
-          <Button
-            size="sm"
-            variant={chipWildcard ? "default" : "outline"}
-            className={`rounded-lg h-8 font-heading uppercase text-[10px] ${
-              chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""
-            }`}
-            onClick={onToggleWildcard}
-            title="Wildcard chip — unlimited transfers"
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
-          </Button>
-          {(outs.length > 0 || ins.length > 0) && (
+          {hasChips && (
             <Button
               size="sm"
               variant="outline"
@@ -253,16 +205,29 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
               Reset
             </Button>
           )}
-          <Button
-            size="sm"
-            className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
-            onClick={onGenerateReport}
-            disabled={!canGenerate}
-            title={canGenerate ? "Open the trade report" : "Make a valid selection first"}
-          >
-            <FileText className="h-3.5 w-3.5" />
-            {reportOpen ? "Refresh" : "Report"}
-          </Button>
+          {isDirectAdd ? (
+            <Button
+              size="sm"
+              className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
+              onClick={onConfirmAdd}
+              disabled={!canConfirmAdd || committing}
+              title={canConfirmAdd ? "Add this player to your roster" : "Make a valid selection first"}
+            >
+              <Check className="h-3.5 w-3.5" />
+              {committing ? "Adding…" : `Confirm Add${ins.length > 1 ? ` (${ins.length})` : ""}`}
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
+              onClick={onGenerateReport}
+              disabled={!canGenerate}
+              title={canGenerate ? "Open the trade report" : "Make a valid selection first"}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              {reportOpen ? "Refresh" : "Report"}
+            </Button>
+          )}
         </div>
       </div>
     </div>
