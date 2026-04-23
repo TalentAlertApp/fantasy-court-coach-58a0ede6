@@ -154,7 +154,7 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
         </p>
       ) : (
         <TooltipProvider delayDuration={120}>
-          <div className="grid grid-cols-1 gap-1.5 max-h-72 overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 gap-1.5 max-h-[360px] overflow-y-auto pr-1">
             {dayGames.map((g) => (
               <MatchupCard
                 key={g.game_id}

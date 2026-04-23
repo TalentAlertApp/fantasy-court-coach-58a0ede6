@@ -330,11 +330,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* Schedule Tab */}
-                <TabsContent value="schedule" className="flex-1 min-h-0 overflow-y-auto">
+                <TabsContent value="schedule" className="flex-1 min-h-0 flex flex-col">
+                  <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 shrink-0">Upcoming Games</p>
                   {data.upcoming.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">No upcoming games</p>
+                    <p className="text-sm text-muted-foreground py-2 text-left">No upcoming games</p>
                   ) : (
-                    <ScrollArea className="h-[40vh]">
+                    <ScrollArea className="flex-1 min-h-0">
                       <div className="pr-4">
                       <Table>
                         <TableHeader>
@@ -374,12 +375,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* AI Tab */}
-                <TabsContent value="ai" className="flex-1 min-h-0 overflow-y-auto">
-                  <div className="space-y-3">
-                    <Button size="sm" onClick={handleExplain} disabled={aiLoading} className="w-full">
-                      {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
-                      {aiLoading ? "Analyzing..." : "Ask AI"}
-                    </Button>
+                <TabsContent value="ai" className="flex-1 min-h-0 flex flex-col gap-3">
+                  <Button size="sm" onClick={handleExplain} disabled={aiLoading} className="w-full shrink-0">
+                    {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
+                    {aiLoading ? "Analyzing..." : "Ask AI"}
+                  </Button>
+                  <div className="flex-1 min-h-0 overflow-y-auto pr-1">
                     {aiLoading && <Skeleton className="h-20 w-full" />}
                     {aiResult && (
                       <div className="space-y-2 text-sm">

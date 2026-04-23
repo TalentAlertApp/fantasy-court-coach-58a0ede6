@@ -157,31 +157,36 @@ export default function PlayerCard({
       className="cursor-pointer group relative flex flex-col items-center"
       style={{ minWidth: 0 }}
     >
-      {isCaptain && <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-lg z-20" title="Captain">⭐</span>}
-      {onSetCaptain && !isCaptain && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
-          className="absolute -top-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-[hsl(var(--nba-yellow))]/80 text-black rounded-full p-1 hover:bg-[hsl(var(--nba-yellow))] z-20"
-          title="Set as captain"
-        >
-          <Star className="h-3.5 w-3.5" />
-        </button>
-      )}
+      {/* Top-center action cluster — Captain (left) + Swap (right) for consistent UX */}
+      <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
+        {isCaptain ? (
+          <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-[hsl(var(--nba-yellow))] text-black shadow-lg text-base leading-none" title="Captain">
+            ⭐
+          </span>
+        ) : onSetCaptain ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center h-7 w-7 rounded-full bg-[hsl(var(--nba-yellow))]/80 text-black hover:bg-[hsl(var(--nba-yellow))] shadow-lg"
+            title="Set as captain"
+          >
+            <Star className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
+        {onSwap && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSwap(); }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center h-7 w-7 rounded-full bg-black/70 text-white hover:bg-black/90 shadow-lg"
+            title="Swap player"
+          >
+            <ArrowLeftRight className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
 
       {draggable && (
         <div className="absolute top-0 left-0 opacity-0 group-hover:opacity-60 transition-opacity cursor-grab active:cursor-grabbing z-20">
           <GripVertical className="h-4 w-4 text-white/70" />
         </div>
-      )}
-
-      {onSwap && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onSwap(); }}
-          className="absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-1.5 hover:bg-black/80 z-20"
-          title="Swap player"
-        >
-          <ArrowLeftRight className="h-4 w-4" />
-        </button>
       )}
 
       {/* Team logo watermark behind player */}
