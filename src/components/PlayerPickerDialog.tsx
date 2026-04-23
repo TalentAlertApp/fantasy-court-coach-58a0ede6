@@ -194,7 +194,7 @@ export default function PlayerPickerDialog({
               )}
             </div>
           </DialogHeader>
-          <div className="grid grid-cols-[1fr_140px] gap-2 shrink-0 mt-2">
+          <div className="grid grid-cols-[1fr_104px] gap-2 shrink-0 mt-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -205,18 +205,18 @@ export default function PlayerPickerDialog({
               />
             </div>
             <Select value={teamFilter} onValueChange={setTeamFilter}>
-              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-2 [&>svg]:ml-auto">
+              <SelectTrigger className="rounded-lg h-10 text-[11px] font-heading uppercase px-1.5 gap-1 [&>svg]:ml-0 [&>svg]:shrink-0">
                 {teamFilter === "ALL" ? (
                   <span className="flex-1 text-center">ALL</span>
                 ) : (
-                  <span className="flex-1 flex items-center justify-center gap-1.5 min-w-0">
+                  <span className="flex-1 inline-flex flex-row flex-nowrap items-center justify-center gap-1 min-w-0">
                     {(() => {
                       const logo = getTeamLogo(teamFilter);
                       return logo ? (
-                        <img src={logo} alt="" aria-hidden="true" className="h-5 w-5 object-contain shrink-0" />
+                        <img src={logo} alt="" aria-hidden="true" className="h-4 w-4 object-contain shrink-0" />
                       ) : null;
                     })()}
-                    <span>{teamFilter}</span>
+                    <span className="truncate">{teamFilter}</span>
                   </span>
                 )}
               </SelectTrigger>
@@ -286,7 +286,10 @@ export default function PlayerPickerDialog({
               {available.map((p) => {
                 const teamLogo = getTeamLogo(p.core.team);
                 const teamFull = (teamCounts[p.core.team] || 0) >= 2;
-                const overBudget = budgetAvailable != null && p.core.salary > budgetAvailable;
+                // Epsilon-safe budget check — prevents 4.4 - 4.4 = 1e-15 from
+                // wrongly flagging players priced at exactly the bank ceiling.
+                const overBudget =
+                  budgetAvailable != null && (p.core.salary - budgetAvailable) > 0.001;
                 const groupFull =
                   showCourtPreview &&
                   ((p.core.fc_bc === "FC" && fcPicked >= 5) ||
