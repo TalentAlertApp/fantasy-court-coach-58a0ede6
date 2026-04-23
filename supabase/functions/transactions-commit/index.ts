@@ -173,13 +173,23 @@ Deno.serve(async (req) => {
     if (postSalary > salary_cap + 1e-6) {
       return errorResponse(
         "INVALID_TRADE",
-        `salary cap exceeded: $${postSalary.toFixed(1)}M > $${salary_cap}M`
+        `salary cap exceeded: $${postSalary.toFixed(1)}M > $${salary_cap}M`,
       );
     }
-    if (postFc !== 5 || postBc !== 5) {
+    // FC/BC balance: only enforce 5/5 once the roster is full (post-trade size == 10).
+    // While the roster is still being built (ADD mode with < 10), we only enforce
+    // that neither side exceeds 5.
+    if (postIds.size === 10) {
+      if (postFc !== 5 || postBc !== 5) {
+        return errorResponse(
+          "INVALID_TRADE",
+          `FC/BC balance broken: would leave ${postFc} FC / ${postBc} BC (must be 5/5)`,
+        );
+      }
+    } else if (postFc > 5 || postBc > 5) {
       return errorResponse(
         "INVALID_TRADE",
-        `FC/BC balance broken: would leave ${postFc} FC / ${postBc} BC (must be 5/5)`
+        `FC/BC limit exceeded: would leave ${postFc} FC / ${postBc} BC (max 5/5)`,
       );
     }
     for (const [tri, count] of Object.entries(teamCounts)) {
@@ -206,10 +216,12 @@ Deno.serve(async (req) => {
       return errorResponse("TX_LOAD_FAILED", gwTxnErr.message, null, 500);
     }
     const usedThisGw = (gwTxns ?? []).length;
-    if (usedThisGw + outs.length > GW_TRANSFER_CAP) {
+    // Each IN counts as one transfer (covers ADD mode where outs.length === 0).
+    const transferCount = ins.length;
+    if (usedThisGw + transferCount > GW_TRANSFER_CAP) {
       return errorResponse(
         "GW_CAP_REACHED",
-        `GW${gw} transfer cap reached: ${usedThisGw}/${GW_TRANSFER_CAP} used, this trade would add ${outs.length}`
+        `GW${gw} transfer cap reached: ${usedThisGw}/${GW_TRANSFER_CAP} used, this trade would add ${transferCount}`,
       );
     }
 
