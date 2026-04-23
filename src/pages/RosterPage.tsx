@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -429,15 +430,18 @@ export default function RosterPage() {
           </div>
         </div>
       ) : isRosterEmpty ? (
-        <div className="fixed inset-0 z-40 bg-background overflow-auto">
-          <DraftPicker
-            teamName={teamName}
-            onFinish={() => {
-              queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-              refetchRoster();
-            }}
-          />
-        </div>
+        createPortal(
+          <div className="fixed inset-0 z-[100] bg-background overflow-auto">
+            <DraftPicker
+              teamName={teamName}
+              onFinish={() => {
+                queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+                refetchRoster();
+              }}
+            />
+          </div>,
+          document.body,
+        )
       ) : (
         <>
           {/* ── Toolbar Row ── */}
@@ -532,7 +536,7 @@ export default function RosterPage() {
           <div className="min-w-0 flex-1 relative">
             {/* Schedule preview — absolute overlay, never pushes the court */}
             {scheduleOpen && (
-              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-[440px] overflow-hidden animate-accordion-down">
+              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-[520px] overflow-hidden animate-accordion-down">
                 <button
                   type="button"
                   onClick={() => setScheduleOpen(false)}
