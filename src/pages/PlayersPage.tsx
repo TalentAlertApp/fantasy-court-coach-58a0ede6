@@ -393,7 +393,7 @@ export default function PlayersPage() {
             <ToggleGroupItem value="pg" className="font-heading text-xs uppercase rounded-xl h-8">Per Game</ToggleGroupItem>
             <ToggleGroupItem value="total" className="font-heading text-xs uppercase rounded-xl h-8">Totals</ToggleGroupItem>
           </ToggleGroup>
-          <span className="text-xs text-muted-foreground ml-auto">{totalItems} players</span>
+          <span className="text-xs text-muted-foreground ml-auto">{totalItems} available</span>
         </div>
 
         {/* Trade toolbar — relative so the schedule preview can overlay below it */}
