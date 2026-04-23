@@ -747,7 +747,7 @@ export default function PlayersPage() {
                               {p.core.photo && <AvatarImage src={p.core.photo} />}
                               <AvatarFallback className="text-[8px]">{p.core.name.slice(0, 2)}</AvatarFallback>
                             </Avatar>
-                            <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.core.fc_bc}</Badge>
+                            <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
                           </div>
                         </td>

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, AlertTriangle, CheckCircle2, FileText, Check } from "lucide-react";
+import { X, AlertTriangle, CheckCircle2, FileText, Check, RotateCcw } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { TradeValidationResult } from "@/hooks/useTradeValidation";
 
