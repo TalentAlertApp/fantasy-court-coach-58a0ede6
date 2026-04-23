@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, AlertTriangle, CheckCircle2, FileText, Check } from "lucide-react";
+import { X, AlertTriangle, CheckCircle2, FileText, Check, RotateCcw } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { TradeValidationResult } from "@/hooks/useTradeValidation";
 
@@ -182,33 +182,26 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
             {addMode ? "Pick a player to add" : "Pick a player to release"}
           </span>
         )}
-      </div>
 
-      {/* Row 2 — Chips (only when staged) + Actions (right) */}
-      {(hasChips || isDirectAdd) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          {outs.map((p) => (
-            <PlayerChip key={p.id} p={p} variant="out" onRemove={() => onRemoveOut(p.id)} />
-          ))}
-          {ins.map((p) => (
-            <PlayerChip key={p.id} p={p} variant="in" onRemove={() => onRemoveIn(p.id)} />
-          ))}
-
+        {/* Action cluster — Reset (icon) + TRADE / Confirm Add */}
+        {(hasChips || isDirectAdd) && (
           <div className="ml-auto flex items-center gap-1.5">
             {hasChips && (
               <Button
-                size="sm"
-                variant="outline"
-                className="rounded-lg h-8 font-heading uppercase text-[10px]"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                 onClick={onReset}
+                title="Clear all staged players"
+                aria-label="Reset trade"
               >
-                Reset
+                <RotateCcw className="h-4 w-4" />
               </Button>
             )}
             {isDirectAdd ? (
               <Button
                 size="sm"
-                className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
+                className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5 bg-accent text-accent-foreground shadow-[0_0_20px_-2px_hsl(var(--accent)/0.6)] hover:shadow-[0_0_30px_-2px_hsl(var(--accent))] hover:scale-[1.04] active:scale-[0.98] transition-all duration-200 relative overflow-hidden after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent after:translate-x-[-100%] hover:after:translate-x-[100%] after:transition-transform after:duration-700"
                 onClick={onConfirmAdd}
                 disabled={!canConfirmAdd || committing}
                 title={canConfirmAdd ? "Add this player to your roster" : "Make a valid selection first"}
@@ -220,16 +213,28 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
               canGenerate && (
                 <Button
                   size="sm"
-                  className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5"
+                  className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5 bg-accent text-accent-foreground shadow-[0_0_20px_-2px_hsl(var(--accent)/0.6)] hover:shadow-[0_0_30px_-2px_hsl(var(--accent))] hover:scale-[1.04] active:scale-[0.98] transition-all duration-200 relative overflow-hidden after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent after:translate-x-[-100%] hover:after:translate-x-[100%] after:transition-transform after:duration-700"
                   onClick={onGenerateReport}
                   title="Open the trade report"
                 >
                   <FileText className="h-3.5 w-3.5" />
-                  {reportOpen ? "Refresh" : "Report"}
+                  {reportOpen ? "Refresh" : "Trade"}
                 </Button>
               )
             )}
           </div>
+        )}
+      </div>
+
+      {/* Row 2 — Chips (only when staged) + Actions (right) */}
+      {(hasChips || isDirectAdd) && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {outs.map((p) => (
+            <PlayerChip key={p.id} p={p} variant="out" onRemove={() => onRemoveOut(p.id)} />
+          ))}
+          {ins.map((p) => (
+            <PlayerChip key={p.id} p={p} variant="in" onRemove={() => onRemoveIn(p.id)} />
+          ))}
         </div>
       )}
     </div>

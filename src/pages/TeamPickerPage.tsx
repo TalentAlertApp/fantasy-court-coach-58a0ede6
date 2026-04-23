@@ -93,7 +93,7 @@ export default function TeamPickerPage() {
               key={t.id}
               type="button"
               onClick={() => handlePick(t.id)}
-              className="group relative text-left p-5 rounded-2xl border-2 border-foreground/10 bg-foreground/[0.02] hover:border-accent hover:bg-accent/5 hover:shadow-[0_0_40px_-15px_hsl(var(--accent))] transition-all"
+              className="group relative text-left p-5 rounded-2xl border-2 border-foreground/10 bg-foreground/[0.02] hover:border-accent hover:bg-accent/5 hover:shadow-[0_0_40px_-15px_hsl(var(--accent))] transition-all h-44 flex flex-col overflow-hidden"
             >
               <div className="h-11 w-11 rounded-xl flex items-center justify-center mb-3 bg-foreground/10 text-foreground/70 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
                 <Shield className="h-6 w-6" />
@@ -112,7 +112,7 @@ export default function TeamPickerPage() {
           <button
             type="button"
             onClick={handleCreateNew}
-            className="group relative text-left p-5 rounded-2xl border-2 border-dashed border-foreground/15 bg-transparent hover:border-accent hover:bg-accent/5 transition-all"
+            className="group relative text-left p-5 rounded-2xl border-2 border-dashed border-foreground/15 bg-transparent hover:border-accent hover:bg-accent/5 transition-all h-44 flex flex-col overflow-hidden"
           >
             <div className="h-11 w-11 rounded-xl flex items-center justify-center mb-3 bg-foreground/5 text-foreground/60 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
               <Plus className="h-6 w-6" />
@@ -121,7 +121,7 @@ export default function TeamPickerPage() {
               New Team
             </h3>
             <p className="mt-1.5 text-xs text-foreground/50 leading-relaxed">
-              Spin up another franchise from scratch.
+              Start fresh.
             </p>
           </button>
         </div>
