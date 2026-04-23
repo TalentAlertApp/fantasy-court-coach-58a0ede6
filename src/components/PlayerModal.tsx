@@ -202,7 +202,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsList>
 
                 {/* Stats Tab */}
-                <TabsContent value="stats" className="flex-1 min-h-0 overflow-y-auto">
+                <TabsContent value="stats" className="flex-1 min-h-0 mt-3 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {[
                       { l: "Season FP/G", v: data.player.season.fp.toFixed(1) },
@@ -223,7 +223,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* History Tab */}
-                <TabsContent value="history" className="flex-1 min-h-0 flex flex-col">
+                <TabsContent value="history" className="flex-1 min-h-0 mt-3 data-[state=active]:flex data-[state=active]:flex-col">
                   <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 shrink-0">This Season</p>
                   {data.history.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-2 text-left">No history available</p>
@@ -330,7 +330,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* Schedule Tab */}
-                <TabsContent value="schedule" className="flex-1 min-h-0 flex flex-col">
+                <TabsContent value="schedule" className="flex-1 min-h-0 mt-3 data-[state=active]:flex data-[state=active]:flex-col">
                   <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 shrink-0">Upcoming Games</p>
                   {data.upcoming.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-2 text-left">No upcoming games</p>
@@ -375,7 +375,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 </TabsContent>
 
                 {/* AI Tab */}
-                <TabsContent value="ai" className="flex-1 min-h-0 flex flex-col gap-3">
+                <TabsContent value="ai" className="flex-1 min-h-0 mt-3 gap-3 data-[state=active]:flex data-[state=active]:flex-col">
                   <Button size="sm" onClick={handleExplain} disabled={aiLoading} className="w-full shrink-0">
                     {aiLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bot className="h-4 w-4 mr-2" />}
                     {aiLoading ? "Analyzing..." : "Ask AI"}
