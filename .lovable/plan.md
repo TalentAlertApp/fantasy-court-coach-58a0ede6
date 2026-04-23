@@ -1,56 +1,51 @@
 
 
-## Player Modal — fix all 4 tabs to fill modal height & top-align content
+## Step 3 typography & rhythm — align with Steps 1 & 2
 
-**Root cause** (visible in image-270 Schedule and image-271 AI Explain): the `Tabs` container is `flex-1 min-h-0 flex flex-col`, but Radix `TabsContent` panels render with `mt-2` from the default `tabs.tsx` styles and don't reliably stretch as a flex child inside the panel area, leaving content collapsed near the bottom of the available space. STATS works visually because its content is short; SCHEDULE/AI sit at the bottom; HISTORY appears short because of the wrapper.
+Two surgical edits to **`src/components/onboarding/DraftPicker.tsx`**. The empty-roster takeover wrapper in `RosterPage.tsx` already matches Steps 1 & 2 exactly (same radial gradient stack, same `48px 48px` grid at `opacity-[0.04]`, same `bg-background text-foreground`) — no changes needed there.
 
-Single file edit: **`src/components/PlayerModal.tsx`**.
+### 1. Heading — two-line break to match Step 2's rhythm
 
-### a) SCHEDULE tab (lines 332–375)
+Step 2 heading is two lines (`Name Your` / `Franchise`). Step 3 currently renders on one line (`Draft Your Squad`), which makes the hero block feel shorter and shifts the CTA upward inconsistently.
 
-- Add `data-[state=active]:flex` and `mt-3` (replacing default `mt-2`) so the panel becomes a true flex column when active.
-- Keep header `shrink-0` at the top.
-- Wrap the table in a flex-1 ScrollArea so the rows render directly under the "UPCOMING GAMES" header and the panel stretches all the way to the modal bottom.
-- Remove the empty-state condition's effect on layout (still show "No upcoming games" but keep the column structure so spacing is consistent).
-
-### b) AI EXPLAIN tab (lines 377–418)
-
-- Same `data-[state=active]:flex` + `flex flex-col gap-3` fix.
-- "ASK AI" button stays as the first child with `shrink-0` → pinned to the top of the panel.
-- Response container becomes `flex-1 min-h-0 overflow-y-auto` → fills from just below the button down to the modal bottom.
-- When idle (no `aiResult`, not loading), the response container still occupies the remaining height (empty), so the button stays anchored top.
-
-### c) STATS tab (lines 204–223)
-
-- Remove the implicit "container" feel: drop the `mt-2` default, let the 2-column grid render flush against the tabs strip.
-- Keep `flex-1 min-h-0 overflow-y-auto` so the panel itself fills the available height (the grid sits at the top, blank space below — matches image-268's layout but with the panel claiming the full height instead of collapsing).
-- No visible wrapper card — already none in code; the perceived "container" in the screenshot was the watermark + collapsed panel. Forcing the panel to full height removes the boxed look.
-
-### d) HISTORY tab (lines 226–330)
-
-- Apply the same `data-[state=active]:flex flex-col` treatment.
-- "THIS SEASON" label stays `shrink-0` at top.
-- ScrollArea around the table becomes `flex-1 min-h-0` so the table scrolls inside the panel and the panel reaches the modal bottom (no short table look).
-
-### Concrete className change applied to all 4 panels
-
-Replace each `<TabsContent value="…" className="flex-1 min-h-0 …">` with:
-
-```
-<TabsContent
-  value="…"
-  className="flex-1 min-h-0 mt-3 data-[state=active]:flex data-[state=active]:flex-col …"
->
+Change:
+```tsx
+<h2 className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
+    style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}>
+  Draft
+  <br />
+  <span className="text-accent">{teamName || "Your Squad"}</span>
+</h2>
 ```
 
-(`data-[state=active]:flex` overrides the default `display: block` Radix gives the active panel, guaranteeing the inner `flex-1` children stretch.)
+Font size, tracking, line-height already match Step 2 — this only fixes the line-break.
 
-Also bump the parent `Tabs` element's `flex-1 min-h-0 flex flex-col` to also include `mt-1` removed and add a wrapping `<div className="flex-1 min-h-0 flex flex-col">` only if needed — single-pass verification will confirm `Tabs = TabsPrimitive.Root` accepts className correctly (it does).
+### 2. Vertical rhythm — tighten the inter-block spacing
+
+Step 2 cadence: `eyebrow mb-4` → `h2` → `mt-8` (input) → `mt-10` (button row). Step 3 currently uses `mt-3` (subtitle) → `mt-8` (options) → `mt-8` (CTA) → `mt-10` (chips), which compounds to a noticeably taller stack and pushes the CTA off-screen on shorter viewports.
+
+Adjust the four spacings on the existing wrapper elements:
+- Subtitle paragraph: `mt-3` → `mt-4` (matches eyebrow `mb-4` rhythm)
+- Options grid: `mt-8` → `mt-7`
+- "Add more players" inline alert: `mt-5` → `mt-4`
+- CTA button row: `mt-8` → `mt-7`
+- Chip strip outside the centered block: `mt-10` → `mt-8`
+
+Net effect: identical hero/CTA proximity to Step 2, with the extra option-cards row absorbed cleanly above the CTA.
+
+### 3. Confirmed already-matching (no changes)
+
+- Wrapper padding `px-6 py-8` ✓
+- StepIndicator pill at `top-8` ✓
+- Eyebrow `text-[11px] tracking-[0.4em] text-accent mb-4` ✓
+- Heading font-size, tracking, line-height ✓
+- CTA button `h-14 px-10 rounded-full text-base tracking-[0.25em]` with same accent shadow ✓
+- Empty-roster portal background gradient + grid overlay ✓ (already mirrored verbatim from `OnboardingPage`)
 
 ### Files touched
-- `src/components/PlayerModal.tsx` — 4 small className tweaks + 1 ScrollArea wrapper around the History/Schedule tables to ensure they own scrolling.
+- `src/components/onboarding/DraftPicker.tsx` — heading `<br/>` insertion + 5 className spacing tweaks
 
 ### Out of scope
-- No changes to `src/components/ui/tabs.tsx` (would affect every Tabs usage app-wide).
-- No changes to BreakdownCard or header.
+- No changes to `RosterPage.tsx` (takeover shell already matches)
+- No changes to `OnboardingPage.tsx`, `OnboardingHero.tsx`, `NameStep.tsx`
 
