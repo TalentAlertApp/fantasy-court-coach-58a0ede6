@@ -578,8 +578,26 @@ export default function PlayersPage() {
           <div className="flex gap-4 flex-1 min-h-0">
             {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
             {isWideScreen && (
-              <div className="w-64 shrink-0 min-h-0">
-                {rosterPaneNode}
+              <div className="w-72 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
+                {/* Header — matches table header height (h-10) */}
+                <div className="h-10 px-3 flex items-center border-b bg-background shrink-0">
+                  <span className="text-[11px] font-heading uppercase tracking-wider text-muted-foreground">
+                    My Roster
+                  </span>
+                  <span className="ml-auto text-[10px] font-mono text-muted-foreground">
+                    {rosterIdList.length}/10
+                  </span>
+                </div>
+                {/* Scrollable body */}
+                <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2">
+                  {rosterPaneNode}
+                </div>
+                {/* Footer — matches table footer height */}
+                <div className="h-[52px] px-3 flex items-center border-t shrink-0 bg-background">
+                  <span className="text-[11px] text-muted-foreground font-mono">
+                    ${totalRosterSalary.toFixed(1)}M used · ${bankRemaining.toFixed(1)}M bank
+                  </span>
+                </div>
               </div>
             )}
 
@@ -601,6 +619,7 @@ export default function PlayersPage() {
                 />
               )}
 
+              <div className="flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
               <div className="flex-1 overflow-y-auto min-h-0">
                 <Table>
                   <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))] [&_th]:bg-background">
@@ -609,8 +628,6 @@ export default function PlayersPage() {
                       <TableHead className="text-xs">Player</TableHead>
                       <TableHead className="text-xs">Team</TableHead>
                     {sortableHeader("gp", "GP")}
-                    {sortableHeader("fp5", "FP5")}
-                    {sortableHeader("value5", "V5")}
                     {columns.map((c) => sortableHeader(c.key, c.label))}
                     {sortableHeader("salary", "$")}
                   </TableRow>
@@ -680,8 +697,6 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "gp" ? "text-primary font-bold" : ""}`}>{gp}</td>
-                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "fp5" ? "text-primary font-bold" : "font-bold"}`}>{(p.last5 as any)?.fp5?.toFixed(1) ?? "0.0"}</td>
-                        <td className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === "value5" ? "text-primary font-bold" : "font-bold"}`}>{(p.computed as any)?.value5?.toFixed(1) ?? "0.0"}</td>
                         {columns.map((c) => (
                           <td key={c.key} className={`px-2 py-1.5 text-xs text-right font-mono ${sortCol === c.key ? "text-primary font-bold" : c.key === "pts" || c.key === "fp" ? "font-bold" : ""}`}>
                             {perfMode === "total" ? fmtTot(c.key) : fmtPg(c.key)}
@@ -695,7 +710,7 @@ export default function PlayersPage() {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between border-t pt-3 shrink-0">
+            <div className="h-[52px] px-3 flex items-center justify-between border-t shrink-0 bg-background">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Show</span>
                 <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(v === "All" ? "All" : Number(v) as any); setCurrentPage(1); }}>
@@ -712,24 +727,48 @@ export default function PlayersPage() {
                 </div>
               )}
             </div>
+            </div>
           </div>
 
-          {/* RIGHT — Filters */}
-          <div className="w-56 flex-shrink-0 self-start">
-            <FiltersPanel
-              fcBc={fcBc}
-              onFcBcChange={setFcBc}
-              search={search}
-              onSearchChange={setSearch}
-              maxSalary={maxSalary}
-              onMaxSalaryChange={setMaxSalary}
-              maxSalaryLimit={maxSalaryLimit}
-              team={team}
-              onTeamChange={setTeam}
-              perfMode={perfMode}
-              onPerfModeChange={setPerfMode}
-            />
-          </div>
+          {/* RIGHT — Filters (retractable) */}
+          {filtersOpen ? (
+            <div className="w-56 flex-shrink-0 self-start relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                className="absolute -left-3 top-2 z-10 h-6 w-6 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
+                aria-label="Collapse filters"
+                title="Collapse filters"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <FiltersPanel
+                fcBc={fcBc}
+                onFcBcChange={setFcBc}
+                search={search}
+                onSearchChange={setSearch}
+                maxSalary={maxSalary}
+                onMaxSalaryChange={setMaxSalary}
+                maxSalaryLimit={maxSalaryLimit}
+                team={team}
+                onTeamChange={setTeam}
+                perfMode={perfMode}
+                onPerfModeChange={setPerfMode}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="w-8 shrink-0 self-stretch flex flex-col items-center justify-center gap-2 rounded-xl border bg-card hover:bg-accent/30 text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Expand filters"
+              title="Expand filters"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="text-[10px] font-heading uppercase tracking-wider [writing-mode:vertical-rl] rotate-180">Filters</span>
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+          )}
           </div>
         </>
       )}
