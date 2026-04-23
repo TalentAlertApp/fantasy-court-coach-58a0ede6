@@ -191,13 +191,15 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
           style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}
         >
-          Draft <span className="text-accent">{teamName || "Your Squad"}</span>
+          Draft
+          <br />
+          <span className="text-accent">{teamName || "Your Squad"}</span>
         </h2>
-        <p className="mt-3 text-sm md:text-base text-foreground/60">
+        <p className="mt-4 text-sm md:text-base text-foreground/60">
           Pick your drafting style — you can swap players any time after.
         </p>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3 w-full">
+        <div className="mt-7 grid gap-4 md:grid-cols-3 w-full">
           {options.map((opt) => {
             const Icon = opt.icon;
             const active = strategy === opt.id;
@@ -234,7 +236,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
         </div>
 
         {strategy === "manual" && picks.length > 0 && picks.length < 10 && (
-          <div className="mt-5 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-3">
+          <div className="mt-4 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-3">
             <button
               onClick={() => setManualOpen(true)}
               className="text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
@@ -244,7 +246,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           </div>
         )}
 
-        <div className="mt-8 flex items-center gap-3">
+        <div className="mt-7 flex items-center gap-3">
           <Button
             onClick={handleGo}
             disabled={drafting || (strategy === "manual" && picks.length === 10 && !isManualValid) || playersQuery.isLoading}
@@ -274,7 +276,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
         )}
       </div>
 
-      <div className="mt-10 flex flex-wrap items-center justify-center gap-3 w-full">
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3 w-full">
           {["$100M Cap", "10 Players", "5 FC + 5 BC", "1 Captain · 2× FP"].map((chip) => (
             <span
               key={chip}
