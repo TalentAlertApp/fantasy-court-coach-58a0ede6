@@ -380,37 +380,45 @@ function MatchupCard({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-lg ${rowBg} border-l-2 ${
+      className={`group relative overflow-visible rounded-lg ${rowBg} border-l-2 ${
         involved ? "border-l-[hsl(var(--nba-yellow))]" : "border-l-transparent"
       } shadow-sm hover:shadow-lg transition-shadow duration-300`}
     >
-      {/* Venue arena image — full-card background, very subtle */}
-      {venue?.image && (
+      {/* Clipped layer — venue art + gradient stay inside the rounded card */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
+        {venue?.image && (
+          <img
+            src={venue.image}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.18] group-hover:opacity-[0.28] transition-opacity duration-500"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-card/85 via-card/55 to-card/85" />
+      </div>
+
+      {/* Away watermark — top-LEFT corner, escaping the card */}
+      {awayLogo && (
         <img
-          src={venue.image}
-          alt=""
+          src={awayLogo}
+          alt={awayName}
           aria-hidden
-          loading="lazy"
-          className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.18] group-hover:opacity-[0.28] transition-opacity duration-500"
+          className="pointer-events-none absolute -top-3 -left-3 h-20 w-20 object-contain opacity-[0.20] -rotate-12 select-none group-hover:opacity-[0.32] group-hover:scale-110 transition-all duration-300"
         />
       )}
-      {/* Readability gradient over venue */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/85 via-card/55 to-card/85" />
+      {/* Home watermark — top-RIGHT corner, escaping the card */}
+      {homeLogo && (
+        <img
+          src={homeLogo}
+          alt={homeName}
+          aria-hidden
+          className="pointer-events-none absolute -top-3 -right-3 h-20 w-20 object-contain opacity-[0.20] rotate-12 select-none group-hover:opacity-[0.32] group-hover:scale-110 transition-all duration-300"
+        />
+      )}
 
       {/* Content — flex row: away badge | away name+stats | center @+time | home name+stats | home badge */}
-      <div className="relative z-10 flex items-stretch gap-2 px-2 py-1.5 min-h-[64px]">
-        {/* Away badge — full card height, with surge on hover */}
-        <div className="flex items-center justify-center shrink-0 w-14">
-          {awayLogo && (
-            <img
-              src={awayLogo}
-              alt={awayName}
-              className="h-14 w-14 object-contain transition-all duration-300 ease-out group-hover:scale-125 group-hover:drop-shadow-[0_0_18px_hsl(var(--nba-yellow)/0.55)]"
-              style={{ filter: awayPrimary ? `drop-shadow(0 0 6px ${awayPrimary}55)` : undefined }}
-            />
-          )}
-        </div>
-
+      <div className="relative z-10 flex items-stretch gap-2 px-3 py-1.5 min-h-[64px]">
         {/* Away cluster — name + stats, centered vertically */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 items-end pr-1">
           <div className="flex items-center gap-1.5 justify-end min-w-0 w-full">
