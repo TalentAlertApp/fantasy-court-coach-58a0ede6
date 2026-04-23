@@ -102,6 +102,18 @@ export default function TradeReport(props: TradeReportProps) {
   const beforeBank = bankRemaining;
   const afterBank = salaryCap - afterSalary;
 
+  // Extra last-5 aggregates
+  const sumLast5 = (rows: PlayerListItem[], key: "pts5" | "reb5" | "ast5" | "mpg5") =>
+    rows.reduce((s, p) => s + ((p.last5 as any)?.[key] ?? 0), 0);
+  const beforePts5 = sumLast5(rosterPlayers, "pts5");
+  const afterPts5 = beforePts5 - sumLast5(outPlayers, "pts5") + sumLast5(inPlayers, "pts5");
+  const beforeReb5 = sumLast5(rosterPlayers, "reb5");
+  const afterReb5 = beforeReb5 - sumLast5(outPlayers, "reb5") + sumLast5(inPlayers, "reb5");
+  const beforeAst5 = sumLast5(rosterPlayers, "ast5");
+  const afterAst5 = beforeAst5 - sumLast5(outPlayers, "ast5") + sumLast5(inPlayers, "ast5");
+  const beforeMpg5 = sumLast5(rosterPlayers, "mpg5");
+  const afterMpg5 = beforeMpg5 - sumLast5(outPlayers, "mpg5") + sumLast5(inPlayers, "mpg5");
+
   // Team distribution count
   const beforeTeams = new Set(rosterPlayers.map((p) => p.core.team)).size;
   const postRoster = [
@@ -188,6 +200,10 @@ export default function TradeReport(props: TradeReportProps) {
               <MetricRow label="Sum FP5" before={beforeFp5} after={afterFp5} />
               <MetricRow label="Sum Stocks5" before={beforeStocks5} after={afterStocks5} />
               <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} />
+              <MetricRow label="Sum PTS5" before={beforePts5} after={afterPts5} />
+              <MetricRow label="Sum REB5" before={beforeReb5} after={afterReb5} />
+              <MetricRow label="Sum AST5" before={beforeAst5} after={afterAst5} />
+              <MetricRow label="Sum MPG5" before={beforeMpg5} after={afterMpg5} />
             </div>
           </div>
 
