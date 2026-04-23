@@ -45,12 +45,14 @@ export default function PlayersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortCol, setSortCol] = useState<string>("fp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [releasing, setReleasing] = useState<number[]>([]);
+  const [outZone, setOutZone] = useState<number[]>([]);
+  const [inZone, setInZone] = useState<number[]>([]);
   const [chipAllStar, setChipAllStar] = useState(false);
   const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
-  const [tradePopoverOpen, setTradePopoverOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [committing, setCommitting] = useState(false);
 
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
