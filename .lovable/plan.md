@@ -1,84 +1,147 @@
 
 
-## Three fixes — roster shows all 10, login routing for users with existing teams, email greeting on hero
+## Four polish fixes — Pick Your Team grid, Trade workbench buttons, table FC/BC, Schedule dropdown badges
 
-### 1. Roster pane shows only 8 of 10 players (`/transactions`)
+### 1. Pick Your Team — equalize all card sizes (`src/pages/TeamPickerPage.tsx`)
 
-**Root cause.** `PlayersPage` calls `usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 })`. The roster pane is built by hydrating each roster `player_id` against this `allPlayers` list:
+Cards currently grow to fit their content (description vs. no description), so the "New Team" tile is taller than empty ones (image-289 confirms the visual inconsistency). Fix:
 
-```ts
-const hydrate = (id) => allPlayers.find((p) => p.core.id === id);
+- Add `h-44` (or `min-h-[11rem]`) to every card and the New-Team card so all tiles share identical height regardless of content length.
+- Shorten the New-Team description from "Spin up another franchise from scratch." → **"Start fresh."** (keeps tone, fits the smaller card cleanly).
+- Wrap the description block in a fixed-height container with `overflow-hidden` so a long team description never pushes layout out (`line-clamp-2` already in place — keep).
+- Grid stays `auto-fit, minmax(220px, 1fr)`; widths already equalize via grid, only heights need locking.
+
+### 2. /transactions — Trade workbench reflow (`src/components/transactions/TradeWorkbench.tsx`)
+
+**a) Move REPORT and RESET inline with the VALID pill** (Row 1)
+
+Currently: Row 1 = metrics + GW pill + status pill. Row 2 = chips + Reset + Report.  
+After: Row 1 = metrics + GW pill + status pill + **TRADE button** + **Reset icon-button** (all right-aligned via `ml-auto` on the action cluster). Row 2 = ONLY the OUT/IN player chips (no buttons).
+
+This means moving the Reset + Report (rebranded TRADE) controls out of Row 2 into Row 1's right edge. Wrap them in a `flex items-center gap-1.5 ml-auto` cluster appended after the status pill.
+
+**b) Rename REPORT → TRADE with surge effect**
+
+Replace the existing REPORT button content/styling:
+- Label: `TRADE` (or `Refresh` while open — same conditional logic).
+- Add a premium "surging" effect: pulsing accent glow + subtle scale on hover. Concretely:
+  ```tsx
+  className="rounded-lg h-8 font-heading uppercase text-[10px] gap-1.5 
+             bg-accent text-accent-foreground 
+             shadow-[0_0_20px_-2px_hsl(var(--accent)/0.6)] 
+             hover:shadow-[0_0_30px_-2px_hsl(var(--accent))] 
+             hover:scale-[1.04] active:scale-[0.98] 
+             transition-all duration-200
+             relative overflow-hidden
+             after:absolute after:inset-0 after:rounded-lg 
+             after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent
+             after:translate-x-[-100%] hover:after:translate-x-[100%] 
+             after:transition-transform after:duration-700"
+  ```
+  Sweeping shimmer on hover + persistent accent glow communicates "this is the finishing action."
+- Keep `onClick={onGenerateReport}`, the same modal name ("TRADE REPORT"), and all internal logic intact. Only the button label and visuals change.
+
+**c) Replace RESET text button with context-sensitive icon**
+
+Replace the "Reset" outline button with an icon-only ghost button using `RotateCcw` (lucide):
+```tsx
+<Button
+  size="icon"
+  variant="ghost"
+  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+  onClick={onReset}
+  title="Clear all staged players"
+  aria-label="Reset trade"
+>
+  <RotateCcw className="h-4 w-4" />
+</Button>
+```
+Only renders when `hasChips` (same condition as today). Sits to the LEFT of the TRADE button so the destructive/clear action precedes the commit-style action.
+
+**Visibility rules for Row 1 cluster:**
+- Reset icon: render when `hasChips`.
+- TRADE button: render when `canGenerate` (swap mode) OR `isDirectAdd` && `canConfirmAdd` (ADD mode — keep the existing "Confirm Add" branch intact, also moved into Row 1).
+- When neither condition is met, Row 1 ends at the status pill.
+
+**Row 2** then becomes purely chip display:
+```tsx
+{(hasChips || isDirectAdd) && (
+  <div className="flex items-center gap-2 flex-wrap">
+    {outs.map(...)}
+    {ins.map(...)}
+  </div>
+)}
+```
+No more button cluster on Row 2.
+
+**d) FC/BC badge consistency in the right-side players table** (`src/pages/PlayersPage.tsx` line 750)
+
+Roster pane uses:
+```tsx
+<Badge variant={fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{fc_bc}</Badge>
 ```
 
-When a roster contains deep-bench players whose FP5 ranks them outside the top 500 (e.g. **H. González — 0.9 FP5**, **T. III — 0.7 FP5** in the user's roster), `find()` returns `undefined`, the row is filtered out, and the pane silently renders 8 instead of 10. The header still shows `10/10` because that uses the raw `rosterIdList`, not the hydrated list.
+Right-side table currently uses `px-0.5 py-0 rounded-lg` (different padding + radius). Update line 750 to match the roster pane exactly:
+```tsx
+className="text-[7px] px-1 py-0 rounded-md shrink-0"
+```
 
-This will keep happening for any low-FP5 / new / G-League player on a user's roster. The fix is to **guarantee every roster player is in the hydration source**, regardless of the league-wide query's sort or limit.
+This is a 1-line attribute change for visual parity.
 
-**Fix in `src/pages/PlayersPage.tsx`:**
-- Add a second query, `usePlayersQuery({ sort: "salary", order: "asc", limit: 2000 })`, named `allPlayersFull` — used **only** for hydration of roster, IN/OUT, and validation pools.
-  - 2000 is the max the edge fn allows; covers the entire NBA player pool comfortably.
-  - Sort/order doesn't matter for a hydration map; any stable fetch works.
-- Build a `Map<id, PlayerListItem>` from `allPlayersFull.items` and rewrite `hydrate()`, `rosterPlayers`, `outPlayersFull`, `inPlayersFull`, `rosterPlayersFull`, and `validationPool` to read from that map instead of the limited `allPlayers` list.
-- Keep `allPlayers` (the existing 500-row, FP5-sorted list) as the **table data source**, since the table only ever displays top-500 by FP5.
-- Defensive: if `hydrate` still misses (truly absent player record), fall back to a stub built from the roster row itself (`name = "—"`, `team = ""`, `salary = 0`) so the pane never silently drops a roster slot. Better: log a `console.warn` so we can spot truly orphaned ids.
+### 3. Schedule dropdown — premium watermark badges (`src/components/SchedulePreviewPanel.tsx`)
 
-After this fix, the pane will always render `rosterIdList.length` rows, matching the `10/10` header.
+The matchup card today uses two crisp 56×56 logos at the far ends with hover scale + colored drop-shadow (lines 402-412 and 482-492). Replace those crisp inline badges with the **same oversized rotated low-opacity watermark recipe used in TradeReport IN/OUT cards**.
 
-### 2. Login flow: users with existing teams should land on the team picker, not onboarding
+For each side (away at far-left, home at far-right):
+- Drop the explicit 56×56 logo container.
+- Anchor an oversized watermark logo absolutely on the **outer edge** of the matchup card (top corner pulled out past the rounded edge — same effect as TradeReport).
 
-**Root cause.** Two routing predicates disagree on what counts as "the user owns a team":
+```tsx
+{/* Away watermark — top-LEFT corner, escaping the card */}
+{awayLogo && (
+  <img
+    src={awayLogo}
+    alt={awayName}
+    aria-hidden
+    className="pointer-events-none absolute -top-3 -left-3 h-20 w-20 object-contain 
+               opacity-[0.20] -rotate-12 select-none 
+               group-hover:opacity-[0.32] group-hover:scale-110 
+               transition-all duration-300"
+  />
+)}
+{/* Home watermark — top-RIGHT corner, escaping the card */}
+{homeLogo && (
+  <img
+    src={homeLogo}
+    alt={homeName}
+    aria-hidden
+    className="pointer-events-none absolute -top-3 -right-3 h-20 w-20 object-contain 
+               opacity-[0.20] rotate-12 select-none 
+               group-hover:opacity-[0.32] group-hover:scale-110 
+               transition-all duration-300"
+  />
+)}
+```
 
-| File | "Owned" definition |
-|---|---|
-| `useFirstRunGate.ts` (line 15) | `t.owner_id && t.owner_id === user.id` — STRICT |
-| `TeamPickerPage.tsx` (line 15) | `t.owner_id === user.id \|\| !t.owner_id` — INCLUDES legacy |
-| `RequireAuth.tsx` (line 68) | `t.owner_id === user.id \|\| !t.owner_id` — INCLUDES legacy |
-| `teams` edge fn | Returns rows where `owner_id IS NULL OR owner_id = user.id` |
+Layout adjustments since the inline badge slots disappear:
+- Remove the two `<div className="... w-14">` badge containers (lines 402-412 and 482-492).
+- The outer card already has `relative overflow-hidden` — keep `relative` but **change `overflow-hidden` → `overflow-visible`** ONLY for the watermark images to bleed past the card edge. To keep the venue arena image clipped, wrap the venue `<img>` + gradient in their own `absolute inset-0 overflow-hidden rounded-lg` div. That way watermarks escape but the venue art still respects the card's rounded corners.
+- The away cluster (line 415) and home cluster (line 453) keep `flex-1 min-w-0` — they now span the full width minus the center @+time anchor. Add a touch of horizontal padding (`px-3` on the row) so name text doesn't collide with the watermarks in the corners.
+- Yellow highlight border on involved games (`border-l-[hsl(var(--nba-yellow))]`) stays.
 
-A user whose teams pre-date the multi-user migration has rows with `owner_id = NULL`. `useFirstRunGate` says "0 owned → onboard", so RequireAuth sends them to `/welcome`. But the moment they create their first owned team, all the legacy null-owner teams pop back into the TeamSwitcher (because the picker uses the inclusive definition). That's exactly what the user described.
-
-**Fix.** Make a single shared "owned teams" definition and use it everywhere. The inclusive definition (legacy + owned) is correct for this single-tenant league — legacy teams effectively belong to the user once they've signed in.
-
-- In `src/hooks/useFirstRunGate.ts`, change the filter to:
-  ```ts
-  const ownedTeams = ready
-    ? teams.filter((t: any) => t.owner_id === user!.id || !t.owner_id)
-    : [];
-  ```
-  (i.e. mirror the picker / RequireAuth definition).
-- Result: a returning user with 1+ legacy teams skips `/welcome` entirely. RequireAuth then evaluates the multi-team picker rule (line 60-72), and:
-  - 1 owned team → drops them straight into `/` (TeamPicker auto-bypasses with 1 team).
-  - 2+ owned teams → sends them to `/welcome/pick-team` to choose.
-- New users with 0 teams (legacy or owned) still hit `shouldOnboard === true` and land on `/welcome`. Onboarding behaviour unchanged.
-
-No edge-fn changes needed — `teams` already returns the correct shape.
-
-### 3. Show the email "username" on the onboarding hero
-
-The onboarding hero already has the email available (`OnboardingPage` passes `email={user?.email}` to `OnboardingHero`), but it's only used in a tooltip on the sign-out icon. Display it as a visible greeting.
-
-**Fix in `src/components/onboarding/OnboardingHero.tsx`:**
-- Derive `alias = email?.split("@")[0]` (the local part of the email, e.g. `alertadetalento` from `alertadetalento@gmail.com`).
-- Render it in the top bar, between the NBA logo and the sign-out icon, as a subtle pill:
-  ```tsx
-  {alias && (
-    <span className="text-[11px] uppercase tracking-[0.25em] text-foreground/60">
-      Hi, <span className="text-foreground/90 font-bold normal-case tracking-normal">{alias}</span>
-    </span>
-  )}
-  ```
-- Keep the existing sign-out tooltip (still includes the full email).
-- Hero already passes the email; no signature changes required.
+This matches the TradeReport "premium card invaded by big rotated team logo" look exactly, applied symmetrically to both teams (top-left for away, top-right for home).
 
 ### Files touched
 
-1. `src/pages/PlayersPage.tsx` — add second `usePlayersQuery` call (limit 2000) for hydration; build an id→player map; rewire `hydrate`, `rosterPlayers`, `outPlayersFull`, `inPlayersFull`, `rosterPlayersFull`, `validationPool` to use it. Leave the table's `allPlayers` (limit 500, FP5-sorted) untouched.
-2. `src/hooks/useFirstRunGate.ts` — broaden `ownedTeams` to include legacy null-owner teams (one-line filter change).
-3. `src/components/onboarding/OnboardingHero.tsx` — render the email alias as a visible greeting in the top bar.
+1. `src/pages/TeamPickerPage.tsx` — add fixed height (`h-44`) to all cards; shorten New Team copy; ensure description block clamps without changing card height.
+2. `src/components/transactions/TradeWorkbench.tsx` — restructure to put Reset (icon) + TRADE (renamed, with surge effect) + Confirm Add inline at the right edge of Row 1; Row 2 becomes chip-only. Import `RotateCcw` from lucide-react.
+3. `src/pages/PlayersPage.tsx` — single-line Badge className change on line 750 to match roster pane (`px-1 py-0 rounded-md`).
+4. `src/components/SchedulePreviewPanel.tsx` — `MatchupCard`: remove the two inline 56×56 badge slots; add two oversized rotated watermark `<img>` tags anchored to top-left/top-right of the card; wrap venue art in inner clipped div so watermarks can bleed past the rounded edge.
 
 ### Out of scope
 
-- Backfilling `owner_id` on legacy team rows in the DB (the inclusive predicate already handles it cleanly; an SQL backfill is a separate cleanup).
-- Removing the FP5-sorted top-500 cap on the table itself (the table is paginated and showing top-500 by FP5 is the intended behaviour).
-- Changing the welcome-back hero copy or routing.
+- Backfilling team `description` for older teams in the picker (just shortening the new-team copy is enough).
+- Changing the TRADE REPORT modal itself (name, content, layout all preserved).
+- Reordering/restyling the metric pills in Row 1 (Bank/Freed/Spent/Available/GW unchanged).
+- Touching the Schedule preview's GW selector or day chips — only the matchup card visual changes.
 
