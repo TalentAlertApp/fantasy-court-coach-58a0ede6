@@ -282,6 +282,8 @@ export default function PlayersPage() {
 
   const filtered = useMemo(() => {
     let items = allPlayers.filter((p) => p.season.gp > 0);
+    // Exclude players already on the user's roster — they live in the left pane now.
+    items = items.filter((p) => !rosterPlayerIds.has(p.core.id));
     if (fcBc !== "ALL") items = items.filter((p) => p.core.fc_bc === fcBc);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -303,7 +305,7 @@ export default function PlayersPage() {
       return sortDir === "desc" ? getVal(b) - getVal(a) : getVal(a) - getVal(b);
     });
     return items;
-  }, [allPlayers, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode]);
+  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
