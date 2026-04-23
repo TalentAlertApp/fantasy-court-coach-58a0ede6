@@ -745,12 +745,12 @@ export default function PlayersPage() {
 
             <div className="h-[52px] px-3 flex items-center justify-between border-t shrink-0 bg-background">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Show</span>
+                <span className="text-xs font-bold text-[hsl(var(--nba-yellow))]">Show</span>
                 <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(v === "All" ? "All" : Number(v) as any); setCurrentPage(1); }}>
                   <SelectTrigger className="w-[70px] h-8 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>{PAGE_SIZE_OPTIONS.map((opt) => <SelectItem key={String(opt)} value={String(opt)}>{String(opt)}</SelectItem>)}</SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">of {totalItems} players</span>
+                <span className="text-xs font-bold text-[hsl(var(--nba-yellow))]">of {totalItems} players</span>
               </div>
               {pageSize !== "All" && totalPages > 1 && (
                 <div className="flex items-center gap-1">
@@ -763,17 +763,17 @@ export default function PlayersPage() {
             </div>
           </div>
 
-          {/* RIGHT — Filters (retractable) */}
-          {filtersOpen ? (
+          {/* RIGHT — Filters (retractable, − collapses inside the card) */}
+          {filtersOpen && (
             <div className="w-56 flex-shrink-0 self-start relative">
               <button
                 type="button"
                 onClick={() => setFiltersOpen(false)}
-                className="absolute -left-3 top-2 z-10 h-6 w-6 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
+                className="absolute top-1.5 right-1.5 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
                 aria-label="Collapse filters"
                 title="Collapse filters"
               >
-                <ChevronRight className="h-3.5 w-3.5" />
+                <Minus className="h-3.5 w-3.5" />
               </button>
               <FiltersPanel
                 fcBc={fcBc}
@@ -789,18 +789,6 @@ export default function PlayersPage() {
                 onPerfModeChange={setPerfMode}
               />
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="w-8 shrink-0 self-stretch flex flex-col items-center justify-center gap-2 rounded-xl border bg-card hover:bg-accent/30 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Expand filters"
-              title="Expand filters"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="text-[10px] font-heading uppercase tracking-wider [writing-mode:vertical-rl] rotate-180">Filters</span>
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
           )}
           </div>
         </>
