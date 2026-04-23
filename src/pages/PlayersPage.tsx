@@ -14,16 +14,18 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, Sparkles, RefreshCw, Bot, X, Check, ArrowLeftRight, CalendarDays } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ChevronLeft, ChevronRight, Plus, Minus, Bot, X, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { getCurrentGameday } from "@/lib/deadlines";
+import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
 import AICoachModal from "@/components/AICoachModal";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
+import TradeWorkbench from "@/components/transactions/TradeWorkbench";
+import TradeReport from "@/components/transactions/TradeReport";
+import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
+import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
+import { commitTransaction } from "@/lib/api";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
