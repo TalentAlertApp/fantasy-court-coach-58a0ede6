@@ -578,8 +578,8 @@ export default function PlayersPage() {
           <div className="flex gap-4 flex-1 min-h-0">
             {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
             {isWideScreen && (
-              <div className="w-72 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
-                {/* Header — matches table header height (h-10) */}
+              <div className="w-80 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
+                {/* Header — exact h-10 to match table header */}
                 <div className="h-10 px-3 flex items-center border-b bg-background shrink-0">
                   <span className="text-[11px] font-heading uppercase tracking-wider text-muted-foreground">
                     My Roster
@@ -592,9 +592,9 @@ export default function PlayersPage() {
                 <div className="flex-1 overflow-y-auto min-h-0 px-2 py-2">
                   {rosterPaneNode}
                 </div>
-                {/* Footer — matches table footer height */}
-                <div className="h-[52px] px-3 flex items-center border-t shrink-0 bg-background">
-                  <span className="text-[11px] text-muted-foreground font-mono">
+                {/* Footer — centered, bold NBA-yellow */}
+                <div className="h-[52px] px-3 flex items-center justify-center border-t shrink-0 bg-background">
+                  <span className="text-[11px] font-mono font-bold text-[hsl(var(--nba-yellow))]">
                     ${totalRosterSalary.toFixed(1)}M used · ${bankRemaining.toFixed(1)}M bank
                   </span>
                 </div>
