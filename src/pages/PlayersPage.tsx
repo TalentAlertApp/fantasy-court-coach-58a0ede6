@@ -126,7 +126,7 @@ export default function PlayersPage() {
     return Array.isArray(r?.bench) ? (r.bench as number[]) : [];
   }, [rosterData]);
   const hydrate = (id: number): RosterPanePlayer | null => {
-    const p = allPlayers.find((pp) => pp.core.id === id);
+    const p = playerById.get(id);
     if (!p) return null;
     return {
       player_id: p.core.id,
@@ -140,12 +140,12 @@ export default function PlayersPage() {
   const rosterStarters = useMemo(
     () => starterIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [starterIds, allPlayers],
+    [starterIds, playerById],
   );
   const rosterBench = useMemo(
     () => benchIds.map(hydrate).filter((p): p is RosterPanePlayer => !!p),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [benchIds, allPlayers],
+    [benchIds, playerById],
   );
 
   const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
@@ -169,14 +169,15 @@ export default function PlayersPage() {
   }, [gw]);
 
   const validationPool: ValidationPlayer[] = useMemo(() => {
-    return allPlayers.map((p) => ({
+    const src = allPlayersFull.length > 0 ? allPlayersFull : allPlayers;
+    return src.map((p) => ({
       id: p.core.id,
       name: p.core.name,
       team: p.core.team,
       fc_bc: p.core.fc_bc as "FC" | "BC",
       salary: p.core.salary,
     }));
-  }, [allPlayers]);
+  }, [allPlayers, allPlayersFull]);
 
   const rosterValidationList: ValidationPlayer[] = useMemo(
     () =>
@@ -235,16 +236,16 @@ export default function PlayersPage() {
   );
 
   const outPlayersFull = useMemo(
-    () => outZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
-    [outZone, allPlayers],
+    () => outZone.map((id) => playerById.get(id)).filter(Boolean) as PlayerListItem[],
+    [outZone, playerById],
   );
   const inPlayersFull = useMemo(
-    () => inZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
-    [inZone, allPlayers],
+    () => inZone.map((id) => playerById.get(id)).filter(Boolean) as PlayerListItem[],
+    [inZone, playerById],
   );
   const rosterPlayersFull = useMemo(
-    () => rosterIdList.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
-    [rosterIdList, allPlayers],
+    () => rosterIdList.map((id) => playerById.get(id)).filter(Boolean) as PlayerListItem[],
+    [rosterIdList, playerById],
   );
 
   // ADD mode: roster has < 10 players → [+] can add directly without an OUT.
