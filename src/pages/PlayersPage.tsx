@@ -122,6 +122,10 @@ export default function PlayersPage() {
   );
 
   const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
+  const totalRosterSalary = useMemo(
+    () => rosterPlayers.reduce((s, p) => s + (p.salary ?? 0), 0),
+    [rosterPlayers],
+  );
 
   const current = getCurrentGameday();
   const gw = current.gw;
