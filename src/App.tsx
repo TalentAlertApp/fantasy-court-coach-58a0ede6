@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import RequireAuth from "@/components/auth/RequireAuth";
 import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
+import TeamPickerPage from "@/pages/TeamPickerPage";
 import AppLayout from "@/components/layout/AppLayout";
 import RosterPage from "@/pages/RosterPage";
 import PlayersPage from "@/pages/PlayersPage";
@@ -43,6 +44,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/welcome" element={<RequireAuth skipOnboardingGate><OnboardingPage /></RequireAuth>} />
+              <Route path="/welcome/pick-team" element={<RequireAuth skipOnboardingGate><TeamPickerPage /></RequireAuth>} />
               <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
                 <Route path="/" element={<RosterPage />} />
                 <Route path="/roster" element={<Navigate to="/" replace />} />

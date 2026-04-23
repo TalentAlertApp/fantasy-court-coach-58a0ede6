@@ -1,4 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 
 export interface LeagueStandingRow {
@@ -40,9 +42,31 @@ async function fetchLeagueStandings(leagueId?: string): Promise<LeagueStandingsD
 }
 
 export function useLeagueStandings(leagueId?: string) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: ["league-standings", leagueId ?? "main"],
     queryFn: () => fetchLeagueStandings(leagueId),
     staleTime: 60_000,
   });
+
+  // Realtime invalidation — any roster or transactions change anywhere in the
+  // league refreshes standings within seconds without a hard refetch on every
+  // mount.
+  useEffect(() => {
+    const channel = supabase
+      .channel("league-standings-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "roster" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["league-standings"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "transactions" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["league-standings"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  return query;
 }
+

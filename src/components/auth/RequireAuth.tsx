@@ -7,8 +7,10 @@ import {
   shouldShowWelcomeBack,
   markWelcomeBackSeenThisSession,
   clearLastSignOut,
+  isTeamPickedThisSession,
 } from "@/lib/welcome-back-store";
 import WelcomeBackHero from "@/components/welcome-back/WelcomeBackHero";
+import { useTeam } from "@/contexts/TeamContext";
 
 interface Props {
   children: React.ReactNode;
@@ -21,6 +23,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
   const { ready, shouldOnboard } = useFirstRunGate();
+  const { teams, isReady: teamsReady } = useTeam();
   // Recap is one-shot per session. Compute *after* auth resolves so the
   // user id is reliably available — initializing in useState would race
   // with the loading state and silently produce false.
@@ -48,6 +51,24 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   // First-run onboarding redirect (only once teams have loaded; never bounces /welcome onto itself)
   if (!skipOnboardingGate && ready && shouldOnboard) {
     return <Navigate to="/welcome" replace />;
+  }
+
+  // Multi-team picker: when a returning user owns ≥2 teams and hasn't yet
+  // chosen one in this session, route to the picker. Skip on the picker
+  // route itself to avoid an infinite redirect loop.
+  const onPickerRoute = location.pathname === "/welcome/pick-team";
+  if (
+    !skipOnboardingGate &&
+    !onPickerRoute &&
+    ready &&
+    !shouldOnboard &&
+    teamsReady &&
+    user
+  ) {
+    const owned = teams.filter((t: any) => t.owner_id === user.id || !t.owner_id);
+    if (owned.length >= 2 && !isTeamPickedThisSession()) {
+      return <Navigate to="/welcome/pick-team" replace />;
+    }
   }
 
   // One-shot welcome-back recap for returning users (post-onboarding only)
