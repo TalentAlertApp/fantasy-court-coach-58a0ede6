@@ -116,6 +116,19 @@ export default function OnboardingPage() {
     navigate("/", { replace: true });
   };
 
+  // Back from DraftStep: if user already owns ≥2 teams, they reached this
+  // step via the "New Team" CTA on the multi-team picker — return there.
+  // Otherwise, go back to the NameStep as usual.
+  const handleDraftBack = () => {
+    const ownedCount = teams.filter((t: any) => t.owner_id === user?.id).length;
+    if (ownedCount >= 2) {
+      clearOnboardingState(user?.id);
+      navigate("/welcome/pick-team", { replace: true });
+    } else {
+      setStep("name");
+    }
+  };
+
   // Render-gate to prevent light→dark flash when bouncing back to /
   if (!ready || !shouldOnboard) {
     return <div className="h-screen w-full bg-background" aria-hidden />;
@@ -162,7 +175,7 @@ export default function OnboardingPage() {
         <DraftStep
           teamName={createdTeamName}
           onFinish={handleFinish}
-          onBack={() => setStep("name")}
+          onBack={handleDraftBack}
         />
       )}
     </div>
