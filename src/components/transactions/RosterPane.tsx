@@ -93,7 +93,7 @@ export default function RosterPane({
   const empty = !isLoading && sorted.length === 0;
 
   return (
-    <div className="flex flex-col gap-0.5 overflow-y-auto pr-1 h-full">
+    <div className="flex flex-col gap-0.5 pr-1">
       {isLoading && sorted.length === 0
         ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-9 rounded-md" />)
         : sorted.map((p) => (
