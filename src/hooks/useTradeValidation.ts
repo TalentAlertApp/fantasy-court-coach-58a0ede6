@@ -18,6 +18,12 @@ export interface TradeValidationInput {
   gwUsed: number;
   /** GW transfer cap, default 2 (chips can override) */
   gwCap?: number;
+  /**
+   * ADD mode — when the roster is below the 10-slot cap, allow direct ADDs
+   * (outs may be empty, FC/BC need not equal 5/5 post-trade as long as
+   * neither side exceeds 5).
+   */
+  addMode?: boolean;
 }
 
 export interface TradeValidationResult {
@@ -86,32 +92,49 @@ export function useTradeValidation(
       if (tri) postTeamCounts[tri] = (postTeamCounts[tri] ?? 0) + 1;
     }
 
+    const addMode = !!input.addMode;
+
     // Rules
-    if (input.outs.length === 0) {
+    if (!addMode && input.outs.length === 0) {
       reasons.push("Pick at least 1 player to release");
     }
     if (input.outs.length > 2) {
       reasons.push("Max 2 players per trade");
     }
-    if (input.ins.length !== input.outs.length) {
-      reasons.push(
-        input.ins.length < input.outs.length
-          ? `Pick ${input.outs.length - input.ins.length} more replacement(s)`
-          : `Too many replacements — pick exactly ${input.outs.length}`
-      );
+    if (addMode && input.outs.length === 0) {
+      // Pure-ADD path — only enforce that we're filling the roster, not over.
+      if (input.ins.length === 0) {
+        reasons.push("Pick at least 1 player to add");
+      }
+      if (postIds.size > 10) {
+        reasons.push(`Roster full — only ${10 - input.rosterPlayers.length} ADD slot(s) left`);
+      }
+      if (postFc > 5) reasons.push(`Too many FC — would be ${postFc}/5`);
+      if (postBc > 5) reasons.push(`Too many BC — would be ${postBc}/5`);
+    } else {
+      // SWAP path — counts must match and FC/BC must be 5/5 after the trade.
+      if (input.ins.length !== input.outs.length) {
+        reasons.push(
+          input.ins.length < input.outs.length
+            ? `Pick ${input.outs.length - input.ins.length} more replacement(s)`
+            : `Too many replacements — pick exactly ${input.outs.length}`
+        );
+      }
+      if (postFc !== 5 || postBc !== 5) {
+        reasons.push(`Position balance broken: would leave ${postFc} FC / ${postBc} BC`);
+      }
     }
     if (postSalary > cap + 1e-6) {
       reasons.push(`Over salary cap by $${(postSalary - cap).toFixed(1)}M`);
-    }
-    if (postFc !== 5 || postBc !== 5) {
-      reasons.push(`Position balance broken: would leave ${postFc} FC / ${postBc} BC`);
     }
     for (const [tri, count] of Object.entries(postTeamCounts)) {
       if (count > 2) reasons.push(`Max 2 per team violated: ${count} from ${tri}`);
     }
     const gwRemaining = Math.max(0, gwCap - input.gwUsed);
-    if (input.outs.length > gwRemaining) {
-      reasons.push(`GW transfer cap: only ${gwRemaining}/${gwCap} trade(s) left this GW`);
+    // Each OUT counts as 1 trade; in ADD mode each IN beyond the OUTs counts as 1 ADD.
+    const tradesUsedByThis = Math.max(input.outs.length, addMode ? input.ins.length : 0);
+    if (tradesUsedByThis > gwRemaining) {
+      reasons.push(`GW transfer cap: only ${gwRemaining}/${gwCap} move(s) left this GW`);
     }
 
     return {

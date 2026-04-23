@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Bot, X, CalendarDays, Users, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -166,6 +166,7 @@ export default function PlayersPage() {
       bankRemaining,
       gwUsed,
       gwCap,
+      addMode: rosterIdList.length < 10,
     },
     validationPool,
   );
@@ -432,6 +433,12 @@ export default function PlayersPage() {
     );
   };
 
+  /**
+   * Roster pane "−" handler. On narrow viewports (< 1280px), the roster lives
+   * inside a Sheet drawer — auto-close after the user stages a release so they
+   * can immediately pick a replacement from the table without an extra tap.
+   * Do NOT remove the close-on-narrow behavior; it is required UX.
+   */
   const onRosterToggleOut = (id: number) => {
     toggleOut(id);
     if (!isWideScreen) setRosterSheetOpen(false);
@@ -460,6 +467,7 @@ export default function PlayersPage() {
                 size="sm"
                 variant="outline"
                 className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
+                aria-label="Open my roster"
               >
                 <Users className="h-3.5 w-3.5" />
                 Roster {rosterIdList.length}/10
@@ -492,6 +500,25 @@ export default function PlayersPage() {
         >
           <Bot className="h-3.5 w-3.5" />AI Coach
         </Button>
+        {/* Page-level chips: All-Star + Wildcard */}
+        <Button
+          size="sm"
+          variant={chipAllStar ? "default" : "outline"}
+          className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+          onClick={() => setChipAllStar((v) => !v)}
+          title="All-Star chip — boosts trade cap"
+        >
+          <Sparkles className="h-3.5 w-3.5" />All-Star
+        </Button>
+        <Button
+          size="sm"
+          variant={chipWildcard ? "default" : "outline"}
+          className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+          onClick={() => setChipWildcard((v) => !v)}
+          title="Wildcard chip — unlimited transfers"
+        >
+          <RefreshCw className="h-3.5 w-3.5" />Wildcard
+        </Button>
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
         </span>
@@ -500,82 +527,82 @@ export default function PlayersPage() {
       {isLoading ? (
         <div className="space-y-4">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}</div>
       ) : (
-        <div className="flex gap-4 flex-1 min-h-0">
-          {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
-          {isWideScreen && (
-            <div className="w-64 shrink-0 min-h-0">
-              {rosterPaneNode}
-            </div>
-          )}
+        <>
+          {/* FULL-WIDTH workbench above the 3-column grid */}
+          <div className="relative shrink-0 mb-3">
+            <TradeWorkbench
+              outs={outChips}
+              ins={inChips}
+              bankRemaining={bankRemaining}
+              validation={validation}
+              gwUsed={gwUsed}
+              gwCap={gwCap}
+              gw={gw}
+              capResetLabel={capResetLabel}
+              onRemoveOut={(id) => toggleOut(id)}
+              onRemoveIn={(id) => removeIn(id)}
+              onReset={resetTrade}
+              onGenerateReport={() => setReportOpen(true)}
+              onConfirmAdd={handleCommit}
+              committing={committing}
+              reportOpen={reportOpen}
+              addMode={addMode}
+              rosterSize={rosterIdList.length}
+            />
 
-          {/* CENTER — Workbench + Table */}
-          <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
-            <div className="relative shrink-0">
-              <TradeWorkbench
-                outs={outChips}
-                ins={inChips}
-                bankRemaining={bankRemaining}
-                validation={validation}
-                gwUsed={gwUsed}
-                gwCap={gwCap}
-                gw={gw}
-                capResetLabel={capResetLabel}
-                chipAllStar={chipAllStar}
-                chipWildcard={chipWildcard}
-                onRemoveOut={(id) => toggleOut(id)}
-                onRemoveIn={(id) => removeIn(id)}
-                onReset={resetTrade}
-                onGenerateReport={() => setReportOpen(true)}
-                onToggleAllStar={() => setChipAllStar((v) => !v)}
-                onToggleWildcard={() => setChipWildcard((v) => !v)}
-                reportOpen={reportOpen}
-                addMode={addMode}
-                rosterSize={rosterIdList.length}
-              />
-
-              {scheduleOpen && (
-                <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
-                  <button
-                    type="button"
-                    onClick={() => setScheduleOpen(false)}
-                    className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
-                    aria-label="Close schedule"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                  <div className="overflow-y-auto max-h-[440px] pr-1">
-                    <SchedulePreviewBody
-                      rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
-                      variant="panel"
-                    />
-                  </div>
+            {scheduleOpen && (
+              <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
+                <button
+                  type="button"
+                  onClick={() => setScheduleOpen(false)}
+                  className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
+                  aria-label="Close schedule"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <div className="overflow-y-auto max-h-[440px] pr-1">
+                  <SchedulePreviewBody
+                    rosterTeams={rosterPlayers.map((p) => p.team).filter(Boolean) as string[]}
+                    variant="panel"
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            {reportOpen && validation.isValid && (outZone.length > 0 || inZone.length > 0) && (
-              <TradeReport
-                outPlayers={outPlayersFull}
-                inPlayers={inPlayersFull}
-                bankRemaining={bankRemaining}
-                salaryCap={100}
-                rosterPlayers={rosterPlayersFull}
-                gw={gw}
-                day={day}
-                teamId={selectedTeamId}
-                committing={committing}
-                onClose={() => setReportOpen(false)}
-                onCommit={handleCommit}
-              />
+          <div className="flex gap-4 flex-1 min-h-0">
+            {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
+            {isWideScreen && (
+              <div className="w-64 shrink-0 min-h-0">
+                {rosterPaneNode}
+              </div>
             )}
 
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    <TableHead className="text-xs w-12"></TableHead>
-                    <TableHead className="text-xs">Player</TableHead>
-                    <TableHead className="text-xs">Team</TableHead>
+            {/* CENTER — Trade report (when open) + table */}
+            <div className="flex-1 min-w-0 flex flex-col gap-3 min-h-0">
+              {reportOpen && validation.isValid && (outZone.length > 0 || inZone.length > 0) && (
+                <TradeReport
+                  outPlayers={outPlayersFull}
+                  inPlayers={inPlayersFull}
+                  bankRemaining={bankRemaining}
+                  salaryCap={100}
+                  rosterPlayers={rosterPlayersFull}
+                  gw={gw}
+                  day={day}
+                  teamId={selectedTeamId}
+                  committing={committing}
+                  onClose={() => setReportOpen(false)}
+                  onCommit={handleCommit}
+                />
+              )}
+
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <Table>
+                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))] [&_th]:bg-background">
+                    <TableRow>
+                      <TableHead className="text-xs w-12"></TableHead>
+                      <TableHead className="text-xs">Player</TableHead>
+                      <TableHead className="text-xs">Team</TableHead>
                     {sortableHeader("gp", "GP")}
                     {sortableHeader("fp5", "FP5")}
                     {sortableHeader("value5", "V5")}
@@ -698,7 +725,8 @@ export default function PlayersPage() {
               onPerfModeChange={setPerfMode}
             />
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
