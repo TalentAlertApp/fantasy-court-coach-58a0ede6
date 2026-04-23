@@ -478,7 +478,7 @@ export default function PlayersPage() {
                 Roster {rosterIdList.length}/10
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-72 p-4 overflow-y-auto">
+            <SheetContent side="left" className="w-80 p-4 overflow-y-auto">
               <SheetHeader className="mb-3">
                 <SheetTitle className="text-sm font-heading uppercase tracking-wider">My Roster</SheetTitle>
               </SheetHeader>
@@ -578,7 +578,7 @@ export default function PlayersPage() {
           <div className="flex gap-4 flex-1 min-h-0">
             {/* LEFT — Roster pane (only on wide screens; otherwise lives in the Sheet) */}
             {isWideScreen && (
-              <div className="w-80 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
+              <div className="w-96 shrink-0 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
                 {/* Header — exact h-10 to match table header */}
                 <div className="h-10 px-3 flex items-center border-b bg-background shrink-0">
                   <span className="text-[11px] font-heading uppercase tracking-wider text-muted-foreground">

@@ -38,40 +38,49 @@ function RosterRow({
   return (
     <div
       onClick={() => onPlayerClick(player.player_id)}
-      className={`group flex items-center gap-1.5 px-1.5 py-1.5 rounded-md cursor-pointer transition-colors ${
+      className={`group relative overflow-hidden flex items-center px-1.5 py-1.5 rounded-md cursor-pointer transition-colors ${
         isOut
           ? "bg-destructive/15 ring-1 ring-destructive/40"
           : "hover:bg-accent/30"
       }`}
     >
-      {/* [-] is FAR LEFT for one-tap release. */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className={`h-5 w-5 shrink-0 ${
-          isOut ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"
-        }`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggleOut(player.player_id);
-        }}
-        title={isOut ? "Cancel release" : "Stage for release"}
-      >
-        <Minus className="h-3 w-3" />
-      </Button>
-      <Avatar className="h-8 w-8 shrink-0 rounded-full">
-        {player.photo && <AvatarImage src={player.photo} />}
-        <AvatarFallback className="text-[8px]">{player.name.slice(0, 2)}</AvatarFallback>
-      </Avatar>
-      <Badge
-        variant={player.fc_bc === "FC" ? "destructive" : "default"}
-        className="text-[7px] px-1 py-0 rounded-md shrink-0"
-      >
-        {player.fc_bc}
-      </Badge>
-      <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
-      {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0 opacity-80" />}
-      <span className="text-[10px] font-mono text-muted-foreground shrink-0">${player.salary}</span>
+      {teamLogo && (
+        <img
+          src={teamLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -top-3 -right-3 h-16 w-16 object-contain opacity-[0.18] rotate-12 select-none"
+        />
+      )}
+      <div className="relative z-10 flex items-center gap-1.5 w-full">
+        {/* [-] is FAR LEFT for one-tap release. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-5 w-5 shrink-0 ${
+            isOut ? "text-destructive bg-destructive/20" : "text-destructive hover:bg-destructive/10"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleOut(player.player_id);
+          }}
+          title={isOut ? "Cancel release" : "Stage for release"}
+        >
+          <Minus className="h-3 w-3" />
+        </Button>
+        <Avatar className="h-8 w-8 shrink-0 rounded-full">
+          {player.photo && <AvatarImage src={player.photo} />}
+          <AvatarFallback className="text-[8px]">{player.name.slice(0, 2)}</AvatarFallback>
+        </Avatar>
+        <Badge
+          variant={player.fc_bc === "FC" ? "destructive" : "default"}
+          className="text-[7px] px-1 py-0 rounded-md shrink-0"
+        >
+          {player.fc_bc}
+        </Badge>
+        <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
+        <span className="text-[10px] font-mono text-muted-foreground shrink-0">${player.salary}</span>
+      </div>
     </div>
   );
 }
