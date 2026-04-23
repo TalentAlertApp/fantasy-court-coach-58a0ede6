@@ -85,44 +85,150 @@ export default function PlayersPage() {
       }));
   }, [rosterIdList, allPlayers]);
 
-  const releasingMap = useMemo(() => {
-    const m = new Map<number, typeof rosterPlayers[number]>();
-    for (const p of rosterPlayers) if (releasing.includes(p.player_id)) m.set(p.player_id, p);
-    return m;
-  }, [rosterPlayers, releasing]);
+  const bankRemaining: number = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
 
-  const releaseCap = chipAllStar || chipWildcard ? 10 : 2;
-  const bankRemaining = (rosterData as any)?.roster?.bank_remaining ?? (rosterData as any)?.bank_remaining ?? 0;
-  const releasedSalary = useMemo(
-    () => Array.from(releasingMap.values()).reduce((s, p) => s + (p.salary ?? 0), 0),
-    [releasingMap],
+  // Current GW for cap counting + commit payload
+  const current = getCurrentGameday();
+  const gw = current.gw;
+  const day = current.day;
+
+  // GW transfer cap: base 2, +2 with All-Star, ∞ with Wildcard
+  const baseGwCap = 2;
+  const gwCap = chipWildcard ? 999 : chipAllStar ? baseGwCap + 2 : baseGwCap;
+  const { data: gwTx } = useGameweekTransfers(selectedTeamId, gw);
+  const gwUsed = gwTx?.used ?? 0;
+
+  // Cap reset = first deadline of next GW (Lisbon-formatted)
+  const capResetLabel = useMemo(() => {
+    const next = DEADLINES.find((d) => d.gw === gw + 1);
+    return next ? formatDeadline(next.deadline_utc) : "next GW";
+  }, [gw]);
+
+  // Validation pool = roster + everyone in the players list (so by-id lookup works)
+  const validationPool: ValidationPlayer[] = useMemo(() => {
+    return allPlayers.map((p) => ({
+      id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      fc_bc: p.core.fc_bc as "FC" | "BC",
+      salary: p.core.salary,
+    }));
+  }, [allPlayers]);
+
+  const rosterValidationList: ValidationPlayer[] = useMemo(
+    () =>
+      rosterPlayers.map((p) => ({
+        id: p.player_id,
+        name: p.name,
+        team: p.team,
+        fc_bc: p.fc_bc as "FC" | "BC",
+        salary: p.salary,
+      })),
+    [rosterPlayers],
   );
-  const availableBudget = bankRemaining + releasedSalary;
-  const budgetClass = availableBudget > 0 ? "text-emerald-500" : availableBudget < 0 ? "text-destructive" : "text-foreground";
 
-  const toggleRelease = (id: number) => {
-    setReleasing((prev) => {
+  const validation = useTradeValidation(
+    {
+      rosterPlayers: rosterValidationList,
+      outs: outZone,
+      ins: inZone,
+      bankRemaining,
+      gwUsed,
+      gwCap,
+    },
+    validationPool,
+  );
+
+  // Workbench-shaped chips
+  const outChips = useMemo(
+    () =>
+      outZone
+        .map((id) => rosterPlayers.find((p) => p.player_id === id))
+        .filter(Boolean)
+        .map((p) => ({
+          id: p!.player_id,
+          name: p!.name,
+          team: p!.team,
+          fc_bc: p!.fc_bc as "FC" | "BC",
+          salary: p!.salary,
+          photo: p!.photo,
+        })),
+    [outZone, rosterPlayers],
+  );
+  const inChips = useMemo(
+    () =>
+      inZone
+        .map((id) => allPlayers.find((p) => p.core.id === id))
+        .filter(Boolean)
+        .map((p) => ({
+          id: p!.core.id,
+          name: p!.core.name,
+          team: p!.core.team,
+          fc_bc: p!.core.fc_bc as "FC" | "BC",
+          salary: p!.core.salary,
+          photo: p!.core.photo ?? null,
+        })),
+    [inZone, allPlayers],
+  );
+
+  // Players hydrated for the report (full PlayerListItem shape)
+  const outPlayersFull = useMemo(
+    () => outZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
+    [outZone, allPlayers],
+  );
+  const inPlayersFull = useMemo(
+    () => inZone.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
+    [inZone, allPlayers],
+  );
+  const rosterPlayersFull = useMemo(
+    () => rosterIdList.map((id) => allPlayers.find((p) => p.core.id === id)).filter(Boolean) as PlayerListItem[],
+    [rosterIdList, allPlayers],
+  );
+
+  // Live "available bank" given current OUT/IN selection
+  const availableBudget = validation.availableForNextIn;
+
+  const toggleOut = (id: number) => {
+    setReportOpen(false);
+    setOutZone((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= releaseCap) {
-        toast.error(`Max ${releaseCap} releases. Activate All-Star or Wildcard to release more.`);
+      if (prev.length >= 2) {
+        toast.error("Max 2 OUT players per trade");
         return prev;
       }
       return [...prev, id];
     });
   };
 
-  const applyTrades = async () => {
-    if (releasing.length === 0) { toast.error("No players selected to release"); return; }
+  const removeIn = (id: number) => {
+    setReportOpen(false);
+    setInZone((prev) => prev.filter((x) => x !== id));
+  };
+
+  const resetTrade = () => {
+    setOutZone([]);
+    setInZone([]);
+    setReportOpen(false);
+  };
+
+  const handleCommit = async () => {
     if (!selectedTeamId) { toast.error("Select a team first"); return; }
-    const { error } = await supabase
-      .from("roster")
-      .delete()
-      .eq("team_id", selectedTeamId)
-      .in("player_id", releasing);
-    if (error) { toast.error("Failed to release players"); return; }
-    toast.success(`Released ${releasing.length} player${releasing.length === 1 ? "" : "s"}`);
-    setReleasing([]);
-    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+    if (!validation.isValid) { toast.error(validation.reasons[0] ?? "Trade invalid"); return; }
+    setCommitting(true);
+    try {
+      await commitTransaction(
+        { gw, day, outs: outZone, ins: inZone },
+        selectedTeamId,
+      );
+      toast.success(`Trade committed — ${outZone.length} player${outZone.length === 1 ? "" : "s"} swapped`);
+      resetTrade();
+      queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+      queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Commit failed");
+    } finally {
+      setCommitting(false);
+    }
   };
 
   const teamCounts = useMemo(() => {
