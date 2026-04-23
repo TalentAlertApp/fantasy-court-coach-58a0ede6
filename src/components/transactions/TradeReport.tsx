@@ -200,6 +200,10 @@ export default function TradeReport(props: TradeReportProps) {
               <MetricRow label="Sum FP5" before={beforeFp5} after={afterFp5} />
               <MetricRow label="Sum Stocks5" before={beforeStocks5} after={afterStocks5} />
               <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} />
+              <MetricRow label="Sum PTS5" before={beforePts5} after={afterPts5} />
+              <MetricRow label="Sum REB5" before={beforeReb5} after={afterReb5} />
+              <MetricRow label="Sum AST5" before={beforeAst5} after={afterAst5} />
+              <MetricRow label="Sum MPG5" before={beforeMpg5} after={afterMpg5} />
             </div>
           </div>
 
