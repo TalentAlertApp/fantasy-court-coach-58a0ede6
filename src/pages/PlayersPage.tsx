@@ -619,19 +619,52 @@ export default function PlayersPage() {
                 />
               )}
 
-              <div className="flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
-              <div className="flex-1 overflow-y-auto min-h-0">
-                <Table>
-                  <TableHeader className="sticky top-0 z-20 bg-background shadow-[inset_0_-1px_0_hsl(var(--border))] [&_th]:bg-background">
-                    <TableRow>
-                      <TableHead className="text-xs w-12"></TableHead>
-                      <TableHead className="text-xs">Player</TableHead>
-                      <TableHead className="text-xs">Team</TableHead>
+              <div className="relative flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
+              {!filtersOpen && (
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(true)}
+                  className="absolute top-1.5 right-1.5 z-30 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
+                  aria-label="Expand filters"
+                  title="Expand filters"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {/* Fixed header (separate table) */}
+              <div className="shrink-0 border-b bg-background">
+                <Table className="table-fixed">
+                  <colgroup>
+                    <col style={{ width: "48px" }} />
+                    <col style={{ width: "1%" }} />
+                    <col style={{ width: "80px" }} />
+                    <col style={{ width: "56px" }} />
+                    {columns.map((c) => <col key={c.key} style={{ width: "56px" }} />)}
+                    <col style={{ width: "64px" }} />
+                  </colgroup>
+                  <TableHeader>
+                    <TableRow className="h-10 hover:bg-transparent">
+                      <TableHead className="text-xs h-10"></TableHead>
+                      <TableHead className="text-xs h-10 pr-1">Player</TableHead>
+                      <TableHead className="text-xs h-10 pl-1">Team</TableHead>
                     {sortableHeader("gp", "GP")}
                     {columns.map((c) => sortableHeader(c.key, c.label))}
                     {sortableHeader("salary", "$")}
                   </TableRow>
                 </TableHeader>
+                </Table>
+              </div>
+              {/* Scrollable body (separate table, same colgroup) */}
+              <div className="flex-1 overflow-y-auto min-h-0">
+                <Table className="table-fixed">
+                  <colgroup>
+                    <col style={{ width: "48px" }} />
+                    <col style={{ width: "1%" }} />
+                    <col style={{ width: "80px" }} />
+                    <col style={{ width: "56px" }} />
+                    {columns.map((c) => <col key={c.key} style={{ width: "56px" }} />)}
+                    <col style={{ width: "64px" }} />
+                  </colgroup>
                 <TableBody>
                   {paginatedItems.map((p) => {
                     const gp = p.season.gp || 1;
@@ -680,7 +713,7 @@ export default function PlayersPage() {
                             </TooltipContent>
                           </Tooltip>
                         </td>
-                        <td className="px-2 py-1.5 text-xs">
+                        <td className="px-2 py-1.5 pr-1 text-xs">
                           <div className="flex items-center gap-1.5">
                             <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
                               {p.core.photo && <AvatarImage src={p.core.photo} />}
@@ -690,7 +723,7 @@ export default function PlayersPage() {
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
                           </div>
                         </td>
-                        <td className="px-2 py-1.5 text-xs">
+                        <td className="px-2 py-1.5 pl-1 text-xs">
                           <div className="flex items-center gap-1">
                             {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
                             <span>{p.core.team}</span>
