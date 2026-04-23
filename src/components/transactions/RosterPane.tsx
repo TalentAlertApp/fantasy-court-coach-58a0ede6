@@ -38,24 +38,24 @@ function RosterRow({
   return (
     <div
       onClick={() => onPlayerClick(player.player_id)}
-      className={`group flex items-center gap-1.5 px-1.5 py-1 rounded-md cursor-pointer transition-colors ${
+      className={`group flex items-center gap-1.5 px-1.5 py-1.5 rounded-md cursor-pointer transition-colors ${
         isOut
           ? "bg-destructive/15 ring-1 ring-destructive/40"
           : "hover:bg-accent/30"
       }`}
     >
-      <Avatar className="h-7 w-7 shrink-0 rounded-full">
+      <Avatar className="h-8 w-8 shrink-0 rounded-full">
         {player.photo && <AvatarImage src={player.photo} />}
         <AvatarFallback className="text-[8px]">{player.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
-      {teamLogo && <img src={teamLogo} alt="" className="w-3.5 h-3.5 shrink-0" />}
       <Badge
         variant={player.fc_bc === "FC" ? "destructive" : "default"}
-        className="text-[7px] px-0.5 py-0 rounded-md shrink-0"
+        className="text-[7px] px-1 py-0 rounded-md shrink-0"
       >
         {player.fc_bc}
       </Badge>
       <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
+      {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0 opacity-80" />}
       <span className="text-[10px] font-mono text-muted-foreground shrink-0">${player.salary}</span>
       <Button
         variant="ghost"
@@ -86,7 +86,7 @@ export default function RosterPane({
   const empty = !isLoading && starters.length === 0 && bench.length === 0;
 
   return (
-    <div className="w-64 shrink-0 flex flex-col gap-3 overflow-y-auto pr-1">
+    <div className="flex flex-col gap-3 overflow-y-auto pr-1 h-full">
       <div>
         <div className="section-bar mb-1 rounded-lg">STARTING 5</div>
         <div className="flex flex-col gap-0.5">
