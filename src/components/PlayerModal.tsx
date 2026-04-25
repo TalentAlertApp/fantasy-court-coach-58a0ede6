@@ -136,9 +136,6 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 m-auto w-1/3 max-w-[160px] opacity-[0.04] select-none"
           />
-          {teamLogo && (
-            <img src={teamLogo} alt="" aria-hidden="true" className="absolute top-4 right-4 w-20 h-20 opacity-[0.06] pointer-events-none select-none" />
-          )}
           <DialogHeader className="sr-only">
             <DialogTitle>{isLoading ? "Loading…" : data?.player?.core?.name ?? "Player"}</DialogTitle>
           </DialogHeader>
@@ -149,44 +146,61 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
             </div>
           ) : data ? (
             <div className="flex flex-col min-h-0 flex-1 gap-4">
-              {/* Core Info */}
-              <div className="flex items-center gap-3 shrink-0">
-                {data.player.core.photo ? (
-                  <img src={data.player.core.photo} alt="" className="w-14 h-14 rounded-lg object-cover bg-muted" />
-                ) : (
-                  <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center text-lg font-heading font-bold text-muted-foreground">
-                    {data.player.core.name.substring(0, 2).toUpperCase()}
-                  </div>
+              {/* Premium Header — watermark team logo, oversized, rotated */}
+              <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-3 shadow-[0_4px_20px_-8px_hsl(var(--primary)/0.4)] shrink-0">
+                {teamLogo && (
+                  <img
+                    src={teamLogo}
+                    alt=""
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -top-8 -right-8 h-44 w-44 object-contain opacity-[0.18] rotate-12 select-none"
+                  />
                 )}
-                <div className="flex-1">
-                  <p className="font-heading font-bold uppercase">{data.player.core.name}</p>
-                  <div className="flex items-center gap-1.5">
-                    {teamLogo && <img src={teamLogo} alt={data.player.core.team} className="w-4 h-4" />}
-                    <p className="text-sm text-muted-foreground">{data.player.core.team} · #{data.player.core.jersey} · {data.player.core.pos}</p>
+                <div className="relative z-10 flex items-center gap-3">
+                  {data.player.core.photo ? (
+                    <img src={data.player.core.photo} alt="" className="w-16 h-16 rounded-lg object-cover bg-muted ring-2 ring-background" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center text-lg font-heading font-bold text-muted-foreground ring-2 ring-background">
+                      {data.player.core.name.substring(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-heading font-bold uppercase truncate">{data.player.core.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      {teamLogo && <img src={teamLogo} alt={data.player.core.team} className="w-4 h-4" />}
+                      <p className="text-xs text-muted-foreground">
+                        {data.player.core.team} · #{data.player.core.jersey} · {data.player.core.pos}
+                      </p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/80 truncate">
+                      {data.player.core.height ?? "—"}
+                      {data.player.core.college ? ` · ${data.player.core.college}` : ""}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg">
+                        {data.player.core.fc_bc}
+                      </Badge>
+                      <span className="font-mono text-sm font-bold px-2 py-0.5 rounded-md bg-foreground/10 border border-foreground/20">
+                        ${data.player.core.salary}M
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-2 mt-1">
-                    <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg">
-                      {data.player.core.fc_bc}
-                    </Badge>
-                    <span className="text-sm font-mono">${data.player.core.salary}</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => setCompareOpen(true)}
+                      className="p-1.5 hover:text-primary transition-colors"
+                      title="Compare"
+                    >
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                    </button>
+                    <button
+                      onClick={() => playerId && toggleWishlist(playerId)}
+                      className="p-1.5 hover:text-destructive transition-colors"
+                      title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+                    >
+                      <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+                    </button>
                   </div>
-                </div>
-                {/* Action buttons */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    onClick={() => setCompareOpen(true)}
-                    className="p-1.5 hover:text-primary transition-colors"
-                    title="Compare"
-                  >
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                  </button>
-                  <button
-                    onClick={() => playerId && toggleWishlist(playerId)}
-                    className="p-1.5 hover:text-destructive transition-colors"
-                    title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
-                  >
-                    <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
-                  </button>
                 </div>
               </div>
 
