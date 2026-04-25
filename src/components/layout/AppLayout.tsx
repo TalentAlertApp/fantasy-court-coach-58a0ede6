@@ -6,6 +6,31 @@ import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+function NavTooltip({
+  collapsed,
+  label,
+  children,
+}: {
+  collapsed: boolean;
+  label: string;
+  children: React.ReactNode;
+}) {
+  if (!collapsed) return <>{children}</>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent
+        side="right"
+        sideOffset={12}
+        className="font-heading uppercase text-[10px] tracking-[0.2em] px-2.5 py-1.5"
+      >
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 const navItems = [
   { to: "/", label: "My Roster", icon: ClipboardList, end: true },
@@ -38,6 +63,7 @@ export default function AppLayout() {
   }, [dark]);
 
   return (
+    <TooltipProvider delayDuration={0} skipDelayDuration={200}>
     <div className="app-shell">
       {/* ── LEFT SIDEBAR ─────────────────────────────── */}
       <aside className={`sidebar${collapsed ? " collapsed" : ""} animate-slide-in-left`}>
@@ -74,18 +100,18 @@ export default function AppLayout() {
         {/* Nav */}
         <nav className="flex-1 py-3 flex flex-col gap-1 overflow-y-auto">
           {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                `nav-item${isActive ? " active" : ""}`
-              }
-              title={collapsed ? label : undefined}
-            >
-              <Icon className="nav-item-icon" />
-              {!collapsed && <span className="truncate relative z-10">{label}</span>}
-            </NavLink>
+            <NavTooltip key={to} collapsed={collapsed} label={label}>
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `nav-item${isActive ? " active" : ""}`
+                }
+              >
+                <Icon className="nav-item-icon" />
+                {!collapsed && <span className="truncate relative z-10">{label}</span>}
+              </NavLink>
+            </NavTooltip>
           ))}
         </nav>
 
@@ -129,40 +155,45 @@ export default function AppLayout() {
             </div>
           )}
           {user && collapsed && (
-            <button
-              onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
-              className="theme-toggle w-full"
-              title="Sign out"
-              aria-label="Sign out"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
+            <NavTooltip collapsed={collapsed} label="Sign out">
+              <button
+                onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
+                className="theme-toggle w-full"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </NavTooltip>
           )}
           <div className={collapsed ? "flex flex-col gap-2" : "grid grid-cols-2 gap-2"}>
-            <button
-              onClick={() => setDark(d => !d)}
-              className="theme-toggle w-full"
-              title={dark ? "Switch to Light" : "Switch to Dark"}
-            >
-              {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-              {!collapsed && (
-                <span className="ml-1.5 text-[10px] uppercase tracking-wider">
-                  {dark ? "Light" : "Dark"}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setCollapsed(c => !c)}
-              className="theme-toggle w-full"
-              title={collapsed ? "Expand" : "Collapse"}
-            >
-              {collapsed
-                ? <ChevronRight className="h-3.5 w-3.5" />
-                : <ChevronLeft className="h-3.5 w-3.5" />}
-              {!collapsed && (
-                <span className="ml-1.5 text-[10px] uppercase tracking-wider">Hide</span>
-              )}
-            </button>
+            <NavTooltip collapsed={collapsed} label={dark ? "Switch to Light" : "Switch to Dark"}>
+              <button
+                onClick={() => setDark(d => !d)}
+                className="theme-toggle w-full"
+                aria-label={dark ? "Switch to Light theme" : "Switch to Dark theme"}
+              >
+                {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                {!collapsed && (
+                  <span className="ml-1.5 text-[10px] uppercase tracking-wider">
+                    {dark ? "Light" : "Dark"}
+                  </span>
+                )}
+              </button>
+            </NavTooltip>
+            <NavTooltip collapsed={collapsed} label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+              <button
+                onClick={() => setCollapsed(c => !c)}
+                className="theme-toggle w-full"
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {collapsed
+                  ? <ChevronRight className="h-3.5 w-3.5" />
+                  : <ChevronLeft className="h-3.5 w-3.5" />}
+                {!collapsed && (
+                  <span className="ml-1.5 text-[10px] uppercase tracking-wider">Hide</span>
+                )}
+              </button>
+            </NavTooltip>
           </div>
         </div>
       </aside>
@@ -176,5 +207,6 @@ export default function AppLayout() {
         </main>
       </div>
     </div>
+    </TooltipProvider>
   );
 }

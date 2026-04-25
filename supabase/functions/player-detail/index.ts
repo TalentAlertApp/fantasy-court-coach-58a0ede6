@@ -180,6 +180,22 @@ Deno.serve(async (req: Request) => {
         injury: playerRow.injury,
         note: playerRow.note,
       },
+      advanced: {
+        fgm: playerRow.fgm ?? null,
+        fga: playerRow.fga ?? null,
+        fg_pct: playerRow.fg_pct ?? null,
+        tpm: playerRow.tpm ?? null,
+        tpa: playerRow.tpa ?? null,
+        tp_pct: playerRow.tp_pct ?? null,
+        ftm: playerRow.ftm ?? null,
+        fta: playerRow.fta ?? null,
+        ft_pct: playerRow.ft_pct ?? null,
+        oreb: playerRow.oreb ?? null,
+        dreb: playerRow.dreb ?? null,
+        tov: playerRow.tov ?? null,
+        pf: playerRow.pf ?? null,
+        plus_minus: playerRow.plus_minus ?? null,
+      },
     };
 
     // Map history rows with schedule enrichment

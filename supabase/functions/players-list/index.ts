@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-admin-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 function ok(data: unknown, status = 200) {
@@ -159,6 +159,22 @@ serve(async (req: Request) => {
         lastGame: { date: lg.game_date || null, opp: lg.opp || null, home_away: lg.home_away || null, result: lg.result || null, a_pts: lg.a_pts || 0, h_pts: lg.h_pts || 0, mp: lg.mp || 0, pts: lg.pts || 0, reb: lg.reb || 0, ast: lg.ast || 0, stl: lg.stl || 0, blk: lg.blk || 0, fp: Number(lg.fp || 0), nba_game_url: lg.nba_game_url || null },
         computed: { value, value5, stocks: stl + blk, stocks5: stl5 + blk5, delta_mpg: mpg5 - mpg, delta_fp: fp5 - fp },
         flags: { injury: p.injury || null, note: p.note || null },
+        advanced: {
+          fgm: p.fgm ?? null,
+          fga: p.fga ?? null,
+          fg_pct: p.fg_pct ?? null,
+          tpm: p.tpm ?? null,
+          tpa: p.tpa ?? null,
+          tp_pct: p.tp_pct ?? null,
+          ftm: p.ftm ?? null,
+          fta: p.fta ?? null,
+          ft_pct: p.ft_pct ?? null,
+          oreb: p.oreb ?? null,
+          dreb: p.dreb ?? null,
+          tov: p.tov ?? null,
+          pf: p.pf ?? null,
+          plus_minus: p.plus_minus ?? null,
+        },
       };
     });
 

@@ -1,0 +1,15 @@
+alter table public.players
+  add column if not exists fgm int,
+  add column if not exists fga int,
+  add column if not exists fg_pct numeric,
+  add column if not exists tpm int,
+  add column if not exists tpa int,
+  add column if not exists tp_pct numeric,
+  add column if not exists ftm int,
+  add column if not exists fta int,
+  add column if not exists ft_pct numeric,
+  add column if not exists oreb int,
+  add column if not exists dreb int,
+  add column if not exists tov int,
+  add column if not exists pf int,
+  add column if not exists plus_minus int;

@@ -20,6 +20,9 @@ Produce actionable fantasy decisions: lineup optimization, captain choice, waive
 {{SCORING_FORMULA}}
 Assists are 2x. Steals + blocks are 3x each ("stocks" are huge).
 
+## ADVANCED STATS (END-OF-REGULAR-SEASON TOTALS)
+Player records may include shooting splits (fg_pct, tp_pct, ft_pct), offensive rebounding (oreb), ball security (tov), and on-court impact (plus_minus). Use these for waiver/trade reasoning when deciding between similarly-valued players. Higher fg_pct, higher oreb, lower tov, and positive plus_minus all indicate higher-quality role players.
+
 ## POSITIONS
 Players only have FC (Front Court) or BC (Back Court). Do not invent other positions.
 
@@ -118,6 +121,15 @@ function buildPlayerSummary(players: any[], rosterPlayerIds: Set<number>) {
     ast5: p.ast5,
     injury: p.injury,
     on_roster: rosterPlayerIds.has(p.id),
+    // End-of-Regular-Season advanced totals (compact — only signal-rich fields).
+    fg_pct: p.fg_pct ?? null,
+    tp_pct: p.tp_pct ?? null,
+    ft_pct: p.ft_pct ?? null,
+    oreb: p.oreb ?? null,
+    tov: p.tov ?? null,
+    plus_minus: p.plus_minus ?? null,
+    height: p.height ?? null,
+    college: p.college ?? null,
   }));
 }
 
