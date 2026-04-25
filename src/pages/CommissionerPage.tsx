@@ -512,6 +512,90 @@ export default function CommissionerPage() {
     }
   };
 
+  // ---------- Advanced Stats CSV import (end-of-Regular-Season totals) ----------
+  const ADV_HEADER_MAP: Record<string, string> = {
+    "ID": "id",
+    "FGM": "fgm", "FGA": "fga", "FG_PCT": "fg_pct",
+    "3PM": "tpm", "3PA": "tpa", "3P_PCT": "tp_pct",
+    "FTM": "ftm", "FTA": "fta", "FT_PCT": "ft_pct",
+    "OREB": "oreb", "DREB": "dreb",
+    "TOV": "tov", "PF": "pf", "PLUS_MINUS": "plus_minus",
+  };
+
+  const handleAdvFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const text = decodeBuffer(buffer, encoding);
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) { toast.error("No rows found"); return; }
+
+      const headerLine = lines[0].replace(/^\uFEFF/, "");
+      const isTsv = headerLine.includes("\t");
+      const headers = (isTsv ? headerLine.split("\t") : parseCSVLine(headerLine))
+        .map(h => stripQuotes(h.trim()).toUpperCase());
+      const colIdx: Record<string, number> = {};
+      headers.forEach((h, i) => { const m = ADV_HEADER_MAP[h]; if (m) colIdx[m] = i; });
+      if (colIdx.id === undefined) { toast.error("Missing 'ID' column in header"); return; }
+
+      const rows: Array<Record<string, any>> = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = isTsv ? lines[i].split("\t").map(c => c.trim()) : parseCSVLine(lines[i]);
+        const get = (key: string) => { const idx = colIdx[key]; return idx !== undefined && idx < cols.length ? stripQuotes(cols[idx]) : ""; };
+        const id = parseInt(get("id"));
+        if (!id || isNaN(id)) continue;
+        rows.push({
+          id,
+          fgm: get("fgm"), fga: get("fga"), fg_pct: get("fg_pct"),
+          tpm: get("tpm"), tpa: get("tpa"), tp_pct: get("tp_pct"),
+          ftm: get("ftm"), fta: get("fta"), ft_pct: get("ft_pct"),
+          oreb: get("oreb"), dreb: get("dreb"),
+          tov: get("tov"), pf: get("pf"), plus_minus: get("plus_minus"),
+        });
+      }
+      if (rows.length === 0) { toast.error("No valid rows parsed"); return; }
+      setAdvPreview(rows.slice(0, 8));
+      setAdvPendingPayload(rows);
+    } catch (err: unknown) {
+      toast.error(`Parse failed: ${err instanceof Error ? err.message : "Unknown"}`);
+    }
+    if (advFileRef.current) advFileRef.current.value = "";
+  };
+
+  const handleConfirmAdvImport = async () => {
+    if (!advPendingPayload) return;
+    setIsImportingAdv(true);
+    setLastAdvResult(null);
+    try {
+      const result = await apiFetch(
+        "import-player-advanced-stats",
+        z.object({
+          ok: z.literal(true),
+          data: z.object({
+            updated: z.number(),
+            skipped: z.number(),
+            nulled_out: z.number().optional(),
+            total: z.number(),
+            errors: z.array(z.string()).optional(),
+          }),
+        }),
+        { method: "POST", body: JSON.stringify({ rows: advPendingPayload, replace: replaceAdv }) },
+      );
+      if (result.ok) {
+        setLastAdvResult({ updated: result.data.updated, total: result.data.total, nulled_out: result.data.nulled_out });
+        toast.success(`Updated ${result.data.updated} players' advanced stats${result.data.nulled_out ? ` · cleared ${result.data.nulled_out}` : ""}`);
+        if (result.data.errors?.length) toast.warning(`${result.data.errors.length} errors`);
+        setAdvPreview(null);
+        setAdvPendingPayload(null);
+      }
+    } catch (err: unknown) {
+      toast.error(`Import failed: ${err instanceof Error ? err.message : "Unknown"}`);
+    } finally {
+      setIsImportingAdv(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
