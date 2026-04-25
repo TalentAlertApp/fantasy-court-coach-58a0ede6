@@ -53,13 +53,29 @@ export async function apiFetch<T extends z.ZodTypeAny>(
   }
   // Admin-only endpoints carry a shared secret, persisted in localStorage
   // and entered on the Commissioner page. This is matched on the server.
+  // CRITICAL: only attach to admin paths — non-admin edge functions don't
+  // include `x-admin-secret` in their CORS Access-Control-Allow-Headers,
+  // so attaching it indiscriminately causes browser preflight failures
+  // (e.g. /schedule "Failed to fetch") on every read endpoint.
   let adminHeader: Record<string, string> = {};
-  try {
-    const adminSecret =
-      typeof window !== "undefined" ? localStorage.getItem("nba_admin_secret") : null;
-    if (adminSecret) adminHeader = { "x-admin-secret": adminSecret };
-  } catch {
-    // ignore
+  const ADMIN_PATH_PREFIXES = [
+    "import-players",
+    "import-schedule",
+    "import-game-data",
+    "import-player-advanced-stats",
+    "sync-sheet",
+    "salary-update",
+    "youtube-recap-lookup",
+  ];
+  const isAdminPath = ADMIN_PATH_PREFIXES.some((p) => path.startsWith(p));
+  if (isAdminPath) {
+    try {
+      const adminSecret =
+        typeof window !== "undefined" ? localStorage.getItem("nba_admin_secret") : null;
+      if (adminSecret) adminHeader = { "x-admin-secret": adminSecret };
+    } catch {
+      // ignore
+    }
   }
   const res = await fetch(url, {
     ...init,

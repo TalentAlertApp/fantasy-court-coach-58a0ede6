@@ -281,10 +281,17 @@ export type Database = {
           delta_fp: number
           delta_mpg: number
           dob: string | null
+          dreb: number | null
           exp: number
           fc_bc: string
+          fg_pct: number | null
+          fga: number | null
+          fgm: number | null
           fp_pg_t: number
           fp_pg5: number
+          ft_pct: number | null
+          fta: number | null
+          ftm: number | null
           gp: number
           height: string | null
           id: number
@@ -295,7 +302,10 @@ export type Database = {
           name: string
           nba_url: string | null
           note: string | null
+          oreb: number | null
+          pf: number | null
           photo: string | null
+          plus_minus: number | null
           pos: string | null
           pts: number
           pts5: number
@@ -307,6 +317,10 @@ export type Database = {
           stocks: number
           stocks5: number
           team: string
+          tov: number | null
+          tp_pct: number | null
+          tpa: number | null
+          tpm: number | null
           updated_at: string
           value_t: number
           value5: number
@@ -322,10 +336,17 @@ export type Database = {
           delta_fp?: number
           delta_mpg?: number
           dob?: string | null
+          dreb?: number | null
           exp?: number
           fc_bc: string
+          fg_pct?: number | null
+          fga?: number | null
+          fgm?: number | null
           fp_pg_t?: number
           fp_pg5?: number
+          ft_pct?: number | null
+          fta?: number | null
+          ftm?: number | null
           gp?: number
           height?: string | null
           id: number
@@ -336,7 +357,10 @@ export type Database = {
           name: string
           nba_url?: string | null
           note?: string | null
+          oreb?: number | null
+          pf?: number | null
           photo?: string | null
+          plus_minus?: number | null
           pos?: string | null
           pts?: number
           pts5?: number
@@ -348,6 +372,10 @@ export type Database = {
           stocks?: number
           stocks5?: number
           team: string
+          tov?: number | null
+          tp_pct?: number | null
+          tpa?: number | null
+          tpm?: number | null
           updated_at?: string
           value_t?: number
           value5?: number
@@ -363,10 +391,17 @@ export type Database = {
           delta_fp?: number
           delta_mpg?: number
           dob?: string | null
+          dreb?: number | null
           exp?: number
           fc_bc?: string
+          fg_pct?: number | null
+          fga?: number | null
+          fgm?: number | null
           fp_pg_t?: number
           fp_pg5?: number
+          ft_pct?: number | null
+          fta?: number | null
+          ftm?: number | null
           gp?: number
           height?: string | null
           id?: number
@@ -377,7 +412,10 @@ export type Database = {
           name?: string
           nba_url?: string | null
           note?: string | null
+          oreb?: number | null
+          pf?: number | null
           photo?: string | null
+          plus_minus?: number | null
           pos?: string | null
           pts?: number
           pts5?: number
@@ -389,6 +427,10 @@ export type Database = {
           stocks?: number
           stocks5?: number
           team?: string
+          tov?: number | null
+          tp_pct?: number | null
+          tpa?: number | null
+          tpm?: number | null
           updated_at?: string
           value_t?: number
           value5?: number
