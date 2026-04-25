@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar, Youtube, Lock, Eye as EyeIcon, EyeOff } from "lucide-react";
+import { Upload, Download, Users, AlertCircle, CheckCircle2, Database, Eye, Calendar, Youtube, Lock, Eye as EyeIcon, EyeOff, BarChart3 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -223,6 +223,12 @@ export default function CommissionerPage() {
   const [isImportingSchedule, setIsImportingSchedule] = useState(false);
   const [replaceGames, setReplaceGames] = useState(true);
   const [replaceSchedule, setReplaceSchedule] = useState(true);
+  const [isImportingAdv, setIsImportingAdv] = useState(false);
+  const [replaceAdv, setReplaceAdv] = useState(true);
+  const [lastAdvResult, setLastAdvResult] = useState<{ updated: number; total: number; nulled_out?: number } | null>(null);
+  const [advPreview, setAdvPreview] = useState<Array<Record<string, any>> | null>(null);
+  const [advPendingPayload, setAdvPendingPayload] = useState<Array<Record<string, any>> | null>(null);
+  const advFileRef = useRef<HTMLInputElement>(null);
   const [encoding, setEncoding] = useState<Encoding>("auto");
   const [lastResult, setLastResult] = useState<{ upserted: number; total: number; deleted?: number } | null>(null);
   const [lastGameResult, setLastGameResult] = useState<{ games: number; logs: number } | null>(null);
