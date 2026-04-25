@@ -234,6 +234,37 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                       </div>
                     ))}
                   </div>
+                  {/* Advanced Stats — End-of-Regular-Season totals */}
+                  {data.player.advanced && (
+                    <div className="mt-4 rounded-lg border bg-muted/50 p-3">
+                      <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">
+                        Advanced (End of Regular Season)
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                        {[
+                          { l: "FG%", v: data.player.advanced.fg_pct != null ? `${(data.player.advanced.fg_pct * 100).toFixed(1)}%` : "—" },
+                          { l: "3P%", v: data.player.advanced.tp_pct != null ? `${(data.player.advanced.tp_pct * 100).toFixed(1)}%` : "—" },
+                          { l: "FT%", v: data.player.advanced.ft_pct != null ? `${(data.player.advanced.ft_pct * 100).toFixed(1)}%` : "—" },
+                          { l: "OREB", v: data.player.advanced.oreb ?? "—" },
+                          { l: "DREB", v: data.player.advanced.dreb ?? "—" },
+                          { l: "TOV", v: data.player.advanced.tov ?? "—" },
+                          { l: "PF", v: data.player.advanced.pf ?? "—" },
+                          { l: "+/-", v: data.player.advanced.plus_minus != null
+                              ? `${data.player.advanced.plus_minus > 0 ? "+" : ""}${data.player.advanced.plus_minus}`
+                              : "—",
+                            color: data.player.advanced.plus_minus != null ? data.player.advanced.plus_minus >= 0 : undefined,
+                          },
+                          { l: "3PM/3PA", v: data.player.advanced.tpm != null && data.player.advanced.tpa != null
+                              ? `${data.player.advanced.tpm}/${data.player.advanced.tpa}` : "—" },
+                        ].map(({ l, v, color }: any) => (
+                          <div key={l}>
+                            <p className="text-muted-foreground font-heading text-[9px]">{l}</p>
+                            <p className={`font-mono font-bold text-xs ${color === true ? "text-green-600" : color === false ? "text-destructive" : ""}`}>{v}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
 
                 {/* History Tab */}
