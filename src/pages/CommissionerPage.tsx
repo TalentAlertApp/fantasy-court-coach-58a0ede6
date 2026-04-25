@@ -867,6 +867,93 @@ export default function CommissionerPage() {
         </div>
       </div>
 
+      {/* Advanced Player Stats Import Card */}
+      <div className="bg-card border rounded-lg overflow-hidden">
+        <div className="section-bar flex items-center gap-2">
+          <BarChart3 className="h-4 w-4" />
+          Import Player Advanced Stats
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            CSV/TSV: ID, NAME, TEAM, FGM, FGA, FG_PCT, 3PM, 3PA, 3P_PCT, FTM, FTA, FT_PCT, OREB, DREB, TOV, PF, PLUS_MINUS — end-of-Regular-Season totals.
+          </p>
+          <div className="flex items-center gap-2">
+            <Switch id="replace-adv" checked={replaceAdv} onCheckedChange={setReplaceAdv} />
+            <Label htmlFor="replace-adv" className="text-sm">
+              Full replace <span className="text-muted-foreground">(NULL stats for players not in file)</span>
+            </Label>
+          </div>
+          <input
+            ref={advFileRef}
+            type="file"
+            accept=".csv,.tsv,.txt"
+            onChange={handleAdvFileSelect}
+            className="hidden"
+          />
+          <Button
+            onClick={() => advFileRef.current?.click()}
+            disabled={isImportingAdv}
+            className="w-full"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            {advPreview ? "Reload File" : "Upload Advanced Stats CSV"}
+          </Button>
+          {advPreview && advPendingPayload && (
+            <div className="space-y-2 border-t pt-3">
+              <p className="text-xs font-heading uppercase text-muted-foreground">
+                Preview ({advPendingPayload.length} rows total · showing first {advPreview.length})
+              </p>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-[10px]">ID</TableHead>
+                      <TableHead className="text-[10px]">FG%</TableHead>
+                      <TableHead className="text-[10px]">3P%</TableHead>
+                      <TableHead className="text-[10px]">FT%</TableHead>
+                      <TableHead className="text-[10px]">OREB</TableHead>
+                      <TableHead className="text-[10px]">DREB</TableHead>
+                      <TableHead className="text-[10px]">TOV</TableHead>
+                      <TableHead className="text-[10px]">+/-</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {advPreview.map((r, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-mono text-xs">{r.id}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.fg_pct}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.tp_pct}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.ft_pct}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.oreb}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.dreb}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.tov}</TableCell>
+                        <TableCell className="font-mono text-xs">{r.plus_minus}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleConfirmAdvImport} disabled={isImportingAdv} className="flex-1">
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isImportingAdv ? "Importing…" : `Confirm Import (${advPendingPayload.length} rows)`}
+                </Button>
+                <Button onClick={() => { setAdvPreview(null); setAdvPendingPayload(null); }} variant="outline">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+          {lastAdvResult && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <CheckCircle2 className="h-4 w-4" />
+              {lastAdvResult.updated}/{lastAdvResult.total} updated
+              {lastAdvResult.nulled_out ? ` · ${lastAdvResult.nulled_out} cleared` : ""}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* YouTube Recaps */}
       <div className="bg-card border rounded-lg p-4 space-y-3">
         <div className="flex items-center gap-2">
