@@ -57,6 +57,10 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           </div>
         </div>
       </TableCell>
+      <TableCell className="text-center w-16 font-mono text-xs text-muted-foreground">{core.height ?? "—"}</TableCell>
+      <TableCell className="w-32 text-xs text-muted-foreground truncate max-w-[8rem]" title={core.college ?? undefined}>
+        {core.college ?? "—"}
+      </TableCell>
       <TableCell className="text-center w-20">
         <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-lg">
           {core.fc_bc}
