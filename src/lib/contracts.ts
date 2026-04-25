@@ -157,6 +157,28 @@ export const PlayerFlagsSchema = z
   })
   .strict();
 
+/** End-of-Regular-Season advanced totals (FGM/A, 3P, FT, OREB, DREB, TOV, PF, +/-).
+ *  All fields are nullable since not every player will have a row uploaded
+ *  (e.g. mid-season call-ups). */
+export const PlayerAdvancedSchema = z
+  .object({
+    fgm: NumSchema.nullable(),
+    fga: NumSchema.nullable(),
+    fg_pct: NumSchema.nullable(),
+    tpm: NumSchema.nullable(),
+    tpa: NumSchema.nullable(),
+    tp_pct: NumSchema.nullable(),
+    ftm: NumSchema.nullable(),
+    fta: NumSchema.nullable(),
+    ft_pct: NumSchema.nullable(),
+    oreb: NumSchema.nullable(),
+    dreb: NumSchema.nullable(),
+    tov: NumSchema.nullable(),
+    pf: NumSchema.nullable(),
+    plus_minus: NumSchema.nullable(),
+  })
+  .strict();
+
 export const PlayerListItemSchema = z
   .object({
     core: PlayerCoreSchema,
@@ -165,6 +187,7 @@ export const PlayerListItemSchema = z
     lastGame: PlayerLastGameSchema,
     computed: PlayerComputedSchema,
     flags: PlayerFlagsSchema,
+    advanced: PlayerAdvancedSchema.optional(),
   })
   .strict();
 
