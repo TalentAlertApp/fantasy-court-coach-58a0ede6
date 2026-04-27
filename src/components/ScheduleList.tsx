@@ -313,6 +313,32 @@ function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
   );
 }
 
+/** Centered, italic, single-line player blurb. */
+function GameCardBlurb({
+  kind,
+  text,
+}: {
+  kind: "outstanding" | "watch";
+  text: string | null;
+}) {
+  if (!text) return null;
+  const isOut = kind === "outstanding";
+  const Icon = isOut ? Star : Eye;
+  const labelColor = isOut ? "text-[hsl(var(--nba-yellow))]" : "text-primary";
+  const label = isOut ? "Outstanding Players" : "Players to Watch";
+  return (
+    <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 pb-1 pt-0.5">
+      <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} />
+      <span className={`text-[9px] font-heading font-bold uppercase tracking-wider shrink-0 ${labelColor}`}>
+        {label} ·
+      </span>
+      <span className="text-[11px] italic text-muted-foreground text-center leading-snug truncate">
+        {text}
+      </span>
+    </div>
+  );
+}
+
 interface Last5Game {
   won: boolean;
   date: string;
