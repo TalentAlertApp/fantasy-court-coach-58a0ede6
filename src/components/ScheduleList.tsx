@@ -1059,7 +1059,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
 
                 <div className="relative z-10 flex items-center w-full">
                 {/* Teams */}
-                <div className="relative z-10 flex items-center gap-3 flex-1">
+                <div className="relative z-10 flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
@@ -1106,6 +1106,22 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                   </div>
                 </div>
 
+                {/* Inline player blurb — centered between teams and actions */}
+                <div className="relative z-10 flex-1 min-w-0 px-3 self-stretch flex items-center justify-center">
+                  {isFinal && (
+                    <GameCardBlurb
+                      kind="outstanding"
+                      text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
+                    />
+                  )}
+                  {isScheduled && (
+                    <GameCardBlurb
+                      kind="watch"
+                      text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                    />
+                  )}
+                </div>
+
                 {/* Right: action icons */}
                 <div className="relative z-10 flex items-center gap-1.5">
                   {venue?.name && (
@@ -1144,18 +1160,6 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                   )}
                 </div>
                 </div>
-                {isFinal && (
-                  <GameCardBlurb
-                    kind="outstanding"
-                    text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
-                  />
-                )}
-                {isScheduled && (
-                  <GameCardBlurb
-                    kind="watch"
-                    text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
-                  />
-                )}
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
