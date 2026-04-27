@@ -1143,6 +1143,19 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   )}
                 </div>
+                </div>
+                {isFinal && (
+                  <GameCardBlurb
+                    kind="outstanding"
+                    text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
+                  />
+                )}
+                {isScheduled && (
+                  <GameCardBlurb
+                    kind="watch"
+                    text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                  />
+                )}
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
