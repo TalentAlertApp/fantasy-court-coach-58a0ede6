@@ -19,6 +19,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
+import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
+import TrendingTab from "@/components/advanced/TrendingTab";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -590,34 +592,52 @@ export default function AdvancedPage() {
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
       <NBAPlaySearchSection />
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-lg font-heading font-bold uppercase tracking-wider">Playing Time Trends</h1>
-          {data?.latestDate && (
-            <span className="text-[10px] text-muted-foreground font-body ml-2">
-              Through {data.latestDate}
-            </span>
-          )}
-        </div>
-        {data?.updatedAt && (
-          <span className="text-[10px] text-muted-foreground font-body">
-            Updated {new Date(data.updatedAt).toLocaleString()}
-          </span>
-        )}
-      </div>
+      <Tabs defaultValue="playing-time" className="space-y-4">
+        <TabsList className="rounded-lg grid grid-cols-3 w-full max-w-2xl mx-auto">
+          <TabsTrigger value="playing-time" className="font-heading text-xs uppercase rounded-lg">Playing Time</TabsTrigger>
+          <TabsTrigger value="advanced-stats" className="font-heading text-xs uppercase rounded-lg">Advanced Stats</TabsTrigger>
+          <TabsTrigger value="trending" className="font-heading text-xs uppercase rounded-lg">Trending</TabsTrigger>
+        </TabsList>
 
-      {isLoading ? (
-        <div className="grid md:grid-cols-2 gap-4">
-          <Skeleton className="h-96 rounded-lg" />
-          <Skeleton className="h-96 rounded-lg" />
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          <TrendTable rows={data?.increased ?? []} type="increase" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
-          <TrendTable rows={data?.decreased ?? []} type="decrease" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
-        </div>
-      )}
+        <TabsContent value="playing-time" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <h1 className="text-lg font-heading font-bold uppercase tracking-wider">Playing Time Trends</h1>
+              {data?.latestDate && (
+                <span className="text-[10px] text-muted-foreground font-body ml-2">
+                  Through {data.latestDate}
+                </span>
+              )}
+            </div>
+            {data?.updatedAt && (
+              <span className="text-[10px] text-muted-foreground font-body">
+                Updated {new Date(data.updatedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {isLoading ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              <Skeleton className="h-96 rounded-lg" />
+              <Skeleton className="h-96 rounded-lg" />
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              <TrendTable rows={data?.increased ?? []} type="increase" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
+              <TrendTable rows={data?.decreased ?? []} type="decrease" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="advanced-stats">
+          <AdvancedStatsTab onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
+        </TabsContent>
+
+        <TabsContent value="trending">
+          <TrendingTab onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
+        </TabsContent>
+      </Tabs>
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
       <TeamModal tricode={selectedTeam ?? ""} open={selectedTeam !== null} onOpenChange={(open) => !open && setSelectedTeam(null)} />

@@ -8,14 +8,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
+import { fetchGameBoxscore, fetchPlayers } from "@/lib/api";
+import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
@@ -308,6 +310,32 @@ function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
     >
       <Icon className="h-4 w-4" />
     </a>
+  );
+}
+
+/** Centered, italic, single-line player blurb. */
+function GameCardBlurb({
+  kind,
+  text,
+}: {
+  kind: "outstanding" | "watch";
+  text: string | null;
+}) {
+  if (!text) return null;
+  const isOut = kind === "outstanding";
+  const Icon = isOut ? Star : Eye;
+  const labelColor = isOut ? "text-[hsl(var(--nba-yellow))]" : "text-primary";
+  const label = isOut ? "Outstanding Players" : "Players to Watch";
+  return (
+    <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 pb-1 pt-0.5">
+      <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} />
+      <span className={`text-[9px] font-heading font-bold uppercase tracking-wider shrink-0 ${labelColor}`}>
+        {label} ·
+      </span>
+      <span className="text-[11px] italic text-muted-foreground text-center leading-snug truncate">
+        {text}
+      </span>
+    </div>
   );
 }
 
@@ -690,6 +718,35 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
   const colsPerRow = useColsPerRow();
 
+  // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
+  const finalGameIds = games.filter((g) => isGameFinal(g.status)).map((g) => g.game_id);
+  const boxscoreQueries = useQueries({
+    queries: finalGameIds.map((id) => ({
+      queryKey: ["game-boxscore", id],
+      queryFn: () => fetchGameBoxscore(id),
+      staleTime: 5 * 60_000,
+      enabled: viewMode === "list",
+    })),
+  });
+  const boxscoreById = useMemo(() => {
+    const map: Record<string, any> = {};
+    finalGameIds.forEach((id, i) => {
+      const q = boxscoreQueries[i];
+      if (q?.data?.players) map[id] = q.data.players;
+    });
+    return map;
+  }, [boxscoreQueries, finalGameIds]);
+
+  // Prefetch players list for "Players to Watch" on scheduled games.
+  const hasScheduled = viewMode === "list" && games.some((g) => !isGameFinal(g.status) && !isGameLive(g.status));
+  const { data: playersData } = useQuery({
+    queryKey: ["players", { limit: 1000 }],
+    queryFn: () => fetchPlayers({ limit: 1000 }),
+    staleTime: 60_000,
+    enabled: hasScheduled,
+  });
+  const playerItems: any[] = (playersData as any)?.items ?? [];
+
   if (games.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -985,7 +1042,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-3 ${
+                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex flex-col px-5 py-3 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
@@ -1000,6 +1057,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
 
+                <div className="relative z-10 flex items-center w-full">
                 {/* Teams */}
                 <div className="relative z-10 flex items-center gap-3 flex-1">
                   <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
@@ -1085,6 +1143,19 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                   )}
                 </div>
+                </div>
+                {isFinal && (
+                  <GameCardBlurb
+                    kind="outstanding"
+                    text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
+                  />
+                )}
+                {isScheduled && (
+                  <GameCardBlurb
+                    kind="watch"
+                    text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                  />
+                )}
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
