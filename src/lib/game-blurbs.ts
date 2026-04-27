@@ -69,8 +69,7 @@ export function describeWatch(p: ListPlayer): string {
   if (delta >= 3) return `trending up at ${fp5} FP5 (V5 ${v5})`;
   if (delta <= -7) return `due for a bounce-back, season ${fp} FP`;
   if (delta <= -3) return `cooling off lately, ${fp5} FP5 vs ${fp} season`;
-  if (p.flags.injury && p.flags.injury !== "HEALTHY")
-    return `questionable but locked in at ${fp} FP/g`;
+  if (p.flags.injury) return `questionable but locked in at ${fp} FP/g`;
   return `humming at ${fp} FP/g (V5 ${v5})`;
 }
 
