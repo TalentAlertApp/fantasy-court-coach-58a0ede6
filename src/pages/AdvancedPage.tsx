@@ -19,6 +19,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
+import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
+import TrendingTab from "@/components/advanced/TrendingTab";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
