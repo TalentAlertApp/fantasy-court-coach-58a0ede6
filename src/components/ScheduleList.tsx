@@ -692,6 +692,35 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
   const colsPerRow = useColsPerRow();
 
+  // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
+  const finalGameIds = games.filter((g) => isGameFinal(g.status)).map((g) => g.game_id);
+  const boxscoreQueries = useQueries({
+    queries: finalGameIds.map((id) => ({
+      queryKey: ["game-boxscore", id],
+      queryFn: () => fetchGameBoxscore(id),
+      staleTime: 5 * 60_000,
+      enabled: viewMode === "list",
+    })),
+  });
+  const boxscoreById = useMemo(() => {
+    const map: Record<string, any> = {};
+    finalGameIds.forEach((id, i) => {
+      const q = boxscoreQueries[i];
+      if (q?.data?.players) map[id] = q.data.players;
+    });
+    return map;
+  }, [boxscoreQueries, finalGameIds]);
+
+  // Prefetch players list for "Players to Watch" on scheduled games.
+  const hasScheduled = viewMode === "list" && games.some((g) => !isGameFinal(g.status) && !isGameLive(g.status));
+  const { data: playersData } = useQuery({
+    queryKey: ["players", { limit: 1000 }],
+    queryFn: () => fetchPlayers({ limit: 1000 }),
+    staleTime: 60_000,
+    enabled: hasScheduled,
+  });
+  const playerItems: any[] = (playersData as any)?.items ?? [];
+
   if (games.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
