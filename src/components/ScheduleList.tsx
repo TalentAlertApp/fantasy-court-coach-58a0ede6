@@ -327,12 +327,12 @@ function GameCardBlurb({
   const labelColor = isOut ? "text-[hsl(var(--nba-yellow))]" : "text-primary";
   const label = isOut ? "Outstanding Players" : "Players to Watch";
   return (
-    <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 pb-1 pt-0.5">
-      <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} />
-      <span className={`text-[9px] font-heading font-bold uppercase tracking-wider shrink-0 ${labelColor}`}>
+    <div className="relative z-10 flex items-center justify-center gap-2 px-3 py-1.5">
+      <Icon className={`h-4 w-4 shrink-0 ${labelColor}`} />
+      <span className={`text-[10px] font-heading font-black uppercase tracking-wider shrink-0 ${labelColor}`}>
         {label} ·
       </span>
-      <span className="text-[11px] italic text-muted-foreground text-center leading-snug truncate">
+      <span className="text-[14px] md:text-[15px] font-semibold italic text-foreground text-center leading-snug">
         {text}
       </span>
     </div>
