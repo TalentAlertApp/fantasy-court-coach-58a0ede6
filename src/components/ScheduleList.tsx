@@ -8,14 +8,16 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
+import { fetchGameBoxscore, fetchPlayers } from "@/lib/api";
+import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
