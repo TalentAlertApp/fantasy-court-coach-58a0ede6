@@ -327,12 +327,12 @@ function GameCardBlurb({
   const labelColor = isOut ? "text-[hsl(var(--nba-yellow))]" : "text-primary";
   const label = isOut ? "Outstanding Players" : "Players to Watch";
   return (
-    <div className="relative z-10 flex items-center justify-center gap-1.5 px-3 pb-1 pt-0.5">
-      <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} />
-      <span className={`text-[9px] font-heading font-bold uppercase tracking-wider shrink-0 ${labelColor}`}>
+    <div className="relative z-10 flex items-center justify-center gap-2 px-3 py-1 max-w-full">
+      <Icon className={`h-4 w-4 shrink-0 ${labelColor}`} />
+      <span className={`text-[10px] font-heading font-black uppercase tracking-wider shrink-0 ${labelColor}`}>
         {label} ·
       </span>
-      <span className="text-[11px] italic text-muted-foreground text-center leading-snug truncate">
+      <span className="text-[14px] md:text-[15px] font-semibold italic text-foreground text-center leading-snug">
         {text}
       </span>
     </div>
@@ -1059,7 +1059,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
 
                 <div className="relative z-10 flex items-center w-full">
                 {/* Teams */}
-                <div className="relative z-10 flex items-center gap-3 flex-1">
+                <div className="relative z-10 flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
@@ -1106,6 +1106,22 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                   </div>
                 </div>
 
+                {/* Inline player blurb — centered between teams and actions */}
+                <div className="relative z-10 flex-1 min-w-0 px-3 self-stretch flex items-center justify-center">
+                  {isFinal && (
+                    <GameCardBlurb
+                      kind="outstanding"
+                      text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
+                    />
+                  )}
+                  {isScheduled && (
+                    <GameCardBlurb
+                      kind="watch"
+                      text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                    />
+                  )}
+                </div>
+
                 {/* Right: action icons */}
                 <div className="relative z-10 flex items-center gap-1.5">
                   {venue?.name && (
@@ -1144,18 +1160,6 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                   )}
                 </div>
                 </div>
-                {isFinal && (
-                  <GameCardBlurb
-                    kind="outstanding"
-                    text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
-                  />
-                )}
-                {isScheduled && (
-                  <GameCardBlurb
-                    kind="watch"
-                    text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
-                  />
-                )}
               </div>
             </CollapsibleTrigger>
             <CollapsibleContent>
