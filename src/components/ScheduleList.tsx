@@ -1042,7 +1042,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex items-center px-5 py-3 ${
+                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex flex-col px-5 py-3 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >
@@ -1057,6 +1057,7 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
 
+                <div className="relative z-10 flex items-center w-full">
                 {/* Teams */}
                 <div className="relative z-10 flex items-center gap-3 flex-1">
                   <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
