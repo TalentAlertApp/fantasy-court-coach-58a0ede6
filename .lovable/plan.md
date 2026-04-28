@@ -1,81 +1,130 @@
-## 1) /schedule — inline player blurbs on each game card (List view)
+# Plan
 
-Add a single, centered, italic sentence per game card, sandwiched between the two team blocks (sits inline with the score, centered under the `@ / FINAL / tipoff` column). Renders in **List view only** — leaves grid view untouched, per the request.
+## 1) `/schedule` — Tighten blurbs
+**File:** `src/components/ScheduleList.tsx` (`GameCardBlurb`, ~L317)
 
-### a) Played games → "Outstanding Players"
-- Source: `useGameBoxscoreQuery(game_id)` (already used for the expanded box score).
-- Logic: for each team, pick the player with the highest `fp`. Build one assertive, slang-flavored sentence using their leading stat lines.
-- Template engine (deterministic, no AI, no latency, refreshes for free with the data):
-  - Identify the dominant category from the leader's line: PTS ≥ 25 → "dropped 28 PTS", AST ≥ 8 → "dished 9 dimes", REB ≥ 12 → "crashed the glass for 13", STL+BLK ≥ 5 → "wreaked havoc with 4 stocks", FP ≥ 50 → "went nuclear (52 FP)".
-  - Sentence shape: `"<TeamA leader> <verb phrase>; <TeamB leader> <verb phrase>."`
-  - Lazy-loaded: hook only fires when the boxscore is in cache OR when the game is final and the card is in viewport (we already call the hook inside the box-score panel; we'll add a **prefetch on first render** for finals using react-query's `useQueries` batched at the list level — keeps it cheap, one fetch per final game).
-- Visual: small italic line in `text-[11px] text-muted-foreground` with a tiny yellow `Star` icon prefix and the label `Outstanding Players ·` in `font-heading uppercase tracking-wider text-[9px] text-[hsl(var(--nba-yellow))]`.
-
-### b) Scheduled games → "Players to Watch"
-- Source: `usePlayersQuery({ limit: 1000 })` (already cached by Advanced page; we'll reuse the same query key so it's free).
-- Logic per team: filter `items` by `core.team`, sort by `season.fp` desc, pick top 1 per side. Use `last5.fp5` and `computed.value5` for the slang blurb when meaningful.
-  - Template: `"<A leader> riding <fp5> FP5 (V5 <value5>); <B leader> averaging <fp> FP all year — must-watch matchup."`
-  - Slang variants chosen by deltas: `delta_fp > 5` → "heating up"; `delta_fp < -5` → "due for a bounce-back"; `injury` → "questionable but locked in" (skipped if OUT).
-- Visual: identical placement, with a small blue `Eye` icon and label `Players to Watch ·`.
-
-### Files
-- `src/components/ScheduleList.tsx`
-  - New helper `buildOutstandingBlurb(boxscorePlayers, awayTeam, homeTeam): string`.
-  - New helper `buildWatchBlurb(allPlayers, awayTeam, homeTeam): string`.
-  - New component `<GameCardBlurb game viewMode="list" />` that renders the line; only mounted in the **list-view** branch (lines ~969–1130 inside `ScheduleList`), placed directly under the center `@ / status / tipoff` column.
-  - Add a list-level prefetch: `useQueries` over `games.filter(isFinal).map(g => ({ queryKey: ["game-boxscore", g.game_id], queryFn: () => fetchGameBoxscore(g.game_id), staleTime: 5*60_000 }))` so the blurb resolves without expanding the row.
-- No changes to grid view, no API changes.
+- Remove the `Outstanding Players ·` / `Players to Watch ·` text label entirely. Keep only the colored icon (`Star` for played, `Eye` for scheduled).
+- Drop the blurb text from `text-[14px] md:text-[15px]` → `text-[11px] md:text-[12px]`, keep italic + semibold + foreground color.
+- Result: small icon + one-liner, no header label.
 
 ---
 
-## 2) /advanced — new tables + Trending tab
+## 2) `/scoring` — New tab "Transactions Pulse"
+**File:** `src/pages/ScoringPage.tsx`
 
-Restructure the page around a top-level `<Tabs>` so the existing content keeps its home and new content gets dedicated space.
+Current tabs: **League** / **Your Team**. The user requested "FP Pipeline + Weekly Breakdown + new tab" — those two existing names live inside the **Your Team** view. We will:
 
-```text
-+------------------------------------------------------+
-| NBA Play Search (unchanged, sits above the tabs)     |
-+------------------------------------------------------+
-| [ Playing Time ] [ Advanced Stats ] [ Trending ]     |
-+------------------------------------------------------+
-| <active tab content>                                 |
-+------------------------------------------------------+
-```
-
-Default tab: **Playing Time** (current behavior — zero regression).
-
-### a) "Advanced Stats" tab — new tables off `players.advanced`
-Three side-by-side leaderboard tables (responsive grid: 1 col mobile, 3 col xl), each with a sortable header, top-10 rows, sticky team logo + player avatar:
-
-1. **Shooting Splits** — columns: Player · Team · FG% · 3P% · FT% · TS% (computed). Sorted by configurable column (default FG%). Min filter: at least N games (e.g. `season.gp >= 20`) to avoid small-sample noise.
-2. **Glass & Hustle** — columns: Player · Team · OREB · DREB · TOTAL REB · STL+BLK (stocks/g) · TOV. Sorted by total REB default.
-3. **Impact** — columns: Player · Team · +/- · FP · V (value) · MP. Sorted by `plus_minus` default; color-code positive (emerald) / negative (destructive).
-
-Each row is clickable → opens existing `<PlayerModal>`. Team logo cell opens `<TeamModal>`. Reuses `usePlayersQuery({ limit: 1000 })` (already cached). Small filter chips above the row of tables: `All / FC / BC` (toggles `core.fc_bc`), and a numeric "min GP" stepper (default 20).
-
-### b) "Trending" tab — last-5 game momentum
-Same three-up layout, all driven by `last5` + `computed`:
-
-1. **Hot Hands (FP5 leaders)** — Player · Team · FP5 · FP (season) · Δ (delta_fp) · MP5. Sorted by FP5 desc; Δ shown as colored chip (green = hot, red = cold).
-2. **Value Kings (V5 leaders)** — Player · Team · V5 · V (season) · Salary · FP5. Sorted by V5 desc. Highlights the cheapest high-output bench-grade options.
-3. **Stocks Surge** — Player · Team · Stocks5 (computed) · Stocks (season) · STL5 · BLK5. Sorted by Stocks5 desc. Useful for DEF-tilt rosters.
-
-Same min-GP filter (defaults to `gp_last5 >= 3` — players who actually played 3 of the last 5). Clicks open Player/Team modals. Header right-side shows "Last 5 Games · updated <time>" pulled from the existing `data?.updatedAt` if available, otherwise current time.
-
-### Files
-- `src/pages/AdvancedPage.tsx`
-  - Wrap content below `<NBAPlaySearchSection />` in `<Tabs>` with three triggers.
-  - Move existing "Playing Time Trends" UI into the `playing-time` `<TabsContent>`.
-  - New `<AdvancedStatsTab />` component (in same file or `src/components/advanced/AdvancedStatsTab.tsx`) — three sub-tables, shared `LeaderTable` primitive.
-  - New `<TrendingTab />` component (same pattern).
-  - One shared `LeaderTable` component (column config in, rows in, click handlers in) to avoid duplication.
-- No new edge function needed — all data already shipped via `usePlayersQuery`.
-- No DB changes.
+- Add a third top-level tab next to League/Your Team: **Transactions Pulse** (`Repeat` icon).
+- New component `TransactionsPulseView` rendering two side-by-side leaderboard tables:
+  - **Most Picked Players** — `SELECT player_in_id, COUNT(*) FROM transactions WHERE player_in_id IS NOT NULL GROUP BY player_in_id ORDER BY count DESC LIMIT 20`, joined with `players` for name/team/photo/fc_bc.
+  - **Most Waived Players** — same on `player_out_id`.
+- Each row shows: rank · photo · FC/BC badge · name · team watermark · pick/drop count badge. Click name → `PlayerModal`, click watermark → `TeamModal` (reuses the existing modal state in `ScoringPage`).
+- Data fetched via a new hook `useTransactionsPulse()` in `src/hooks/useTransactionsPulse.ts` (one Supabase RPC-less query each, `staleTime: 5 min`). Two `supabase.from('transactions').select(...)` calls aggregated client-side, then `players.select('id,name,team,photo,fc_bc').in('id', ids)`.
+- Persist tab choice in the existing `nba_scoring_tab` localStorage key (extended union `"league" | "team" | "pulse"`).
 
 ---
+
+## 3) `/advanced` — Redesign + new filters
+
+### 3a) Leaderboards: 2-up rotating carousel
+**Files:** `src/components/advanced/LeaderTable.tsx`, `AdvancedStatsTab.tsx`, `TrendingTab.tsx`.
+
+Today each tab shows 3 cramped columns. Switch to a **2-card row** with a left/right rotating arrow on each card header that cycles through that card's pool of subjects. The two slots stay anchored in place so layout never reflows.
+
+- **New primitive:** `<RotatingLeaderCard subjects=[{title, subtitle, icon, columns, rows}]>` — internal `useState` tracks the active subject; arrows on the header advance / wrap.
+- Wider cards (each takes 50%) → name column gets ~2× the width → no more "Jericho…" truncation. Lift name to `text-sm`, allow up to ~22 chars before ellipsis. Stat pills shrink to `min-w-[40px]`.
+- Card header layout: `[← prev] [icon · TITLE · subtitle] [next →] · [dot indicators]`.
+
+**Advanced Stats tab — 4 subjects (2 visible, 2 reachable via arrows):**
+1. Shooting Splits (existing) — FG% · 3P% · FT% · TS%
+2. Glass & Hustle (existing) — OREB · DREB · TOT · STK/G · TOV
+3. Impact (existing) — +/- · FP · V · MP
+4. **NEW: Playmakers** — AST · TOV · AST/TO ratio · USG-proxy (FGA+FTA·0.44) · MP. Sorted by AST/TO desc with min 3 AST/g.
+
+**Trending tab — 4 subjects:**
+1. Hot Hands (existing) — FP5
+2. Value Kings (existing) — V5
+3. Stocks Surge (existing) — STK5
+4. **NEW: Cold Snap** — Δ FP (most negative first) · FP5 · FP · MP5. Highlights bounce-back candidates; uses `computed.delta_fp` ascending.
+
+Initial visible pair: slots `[1, 2]`; user rotates each independently.
+
+### 3b) NBA Play Search — add `Ejection` action type
+**File:** `src/pages/AdvancedPage.tsx` (`ACTION_TYPES`, ~L155)
+
+Add `{ value: "ejection", label: "Ejection" }` to the array. No sub-filters apply to it (per the spec mapping).
+
+### 3c) Conditional sub-filter UI (the big one)
+
+All new controls live **below** the existing `[Player] [Action Type] [Open] [Clear]` row, inside the same NBA Play Search card. Render only when applicable.
+
+**New file:** `src/components/advanced/PlaySubFilters.tsx` — owns all sub-filter state and emits a flat record up to `NBAPlaySearchSection`.
+
+**New file:** `src/components/advanced/PlayCourtZones.tsx` — SVG overlay with 6 clickable polygon zones on top of `src/assets/court-bg.png`.
+
+**New file:** `src/lib/play-filter-config.ts` — central data mapping (Qualifiers, Subtype, Areas, etc.) keyed by action type, exported as typed constants. Single source of truth so adding a new action later is a one-line change.
+
+**Sub-filter sections (rendered conditionally per the mapping):**
+
+| Control | Applies to | UI |
+|---|---|---|
+| Qualifiers (multi) | foul, 3pt, 2pt, freethrow | Checkbox chips. >5 → "Show more / Show less". |
+| Subtype (multi) | foul, rebound, 3pt, 2pt, turnover, freethrow, jumpball | Checkbox chips. >5 → collapsible. |
+| Shot Result (multi: Made/Missed) | 3pt, 2pt | 2 chips. |
+| After Timeout (toggle "Yes") | foul, 3pt, 2pt, turnover | Single Switch. |
+| Buzzer Beater (toggle "Yes") | 3pt, 2pt | Single Switch. |
+| Area (court zones) | foul, rebound, 3pt, 2pt, turnover, block, steal | Visual court selector — see below. |
+| Shot Distance | 3pt (21–71 ft), 2pt (0–24 ft) | Range slider + arc overlay. |
+
+**Visual court selector (`PlayCourtZones`):**
+- Half-court image: `src/assets/court-bg.png` (already in repo).
+- Wrapper `<div className="relative aspect-[4/3] max-w-md">` with the image and an absolutely-positioned `<svg viewBox="0 0 400 300">` on top.
+- 6 polygon paths sized to a half-court layout:
+  - **Restricted Area** — small arc/circle directly under the rim.
+  - **In The Paint (Non-RA)** — the painted key minus the RA.
+  - **Mid-Range** — region inside the 3pt arc but outside the paint (single polygon covering both wings + top).
+  - **Above the Break 3** — outside-arc cap above the paint.
+  - **Left Corner 3** — outside-arc rectangle bottom-left.
+  - **Right Corner 3** — outside-arc rectangle bottom-right.
+- Each polygon: `fill="hsl(var(--nba-yellow))" fill-opacity={selected ? 0.45 : 0}`, `hover:fill-opacity-25`, `stroke="hsl(var(--nba-yellow))" stroke-opacity={selected ? 0.9 : 0.25}`, `cursor-pointer`. Click toggles. Multi-select.
+- Selected zones echoed as removable chips below the court (for accessibility / clarity).
+
+**Shot Distance overlay:**
+- Min/max numeric inputs + `<Slider>` (Radix dual-thumb) labelled `"15 ft – 30 ft"`.
+- Concentric arc bands rendered in the **same SVG**, layered *under* the area polygons:
+  - Compute basket origin (top-center of viewBox) and draw arc bands every ~5 ft, full opacity inside [min, max], dimmed outside.
+- Range bounds switch by action type: 2pt → 0–24 ft (default 0–24); 3pt → 21–71 ft (default 21–35).
+
+**URL construction (`handleActionOpen`):**
+Append all selected sub-filters as query params on `https://www.nbaplaydb.com/search`:
+- `qualifiers`, `subtype`, `area`, `shotresult` → repeated params, one per value.
+- `isaftertimeout=true`, `isbuzzerbeater=true` → only when on.
+- `shotdistancemin`, `shotdistancemax` → numbers, only when range is narrower than the action's full bounds.
+
+State stored as a single `subFilters` object inside `NBAPlaySearchSection`; reset whenever `actionTypes` changes (drop values that no longer apply per the mapping). Clear button also clears `subFilters`.
+
+---
+
+## Files touched
+
+**Edited**
+- `src/components/ScheduleList.tsx` — tighten `GameCardBlurb`.
+- `src/pages/ScoringPage.tsx` — add Transactions Pulse tab + view component.
+- `src/pages/AdvancedPage.tsx` — add `Ejection`, mount `<PlaySubFilters>`, rebuild URL.
+- `src/components/advanced/AdvancedStatsTab.tsx` — switch to 2-up `RotatingLeaderCard`, add Playmakers subject.
+- `src/components/advanced/TrendingTab.tsx` — switch to 2-up rotating, add Cold Snap subject.
+- `src/components/advanced/LeaderTable.tsx` — widen name column, shrink stat pills slightly.
+
+**Created**
+- `src/components/advanced/RotatingLeaderCard.tsx`
+- `src/components/advanced/PlaySubFilters.tsx`
+- `src/components/advanced/PlayCourtZones.tsx`
+- `src/lib/play-filter-config.ts`
+- `src/hooks/useTransactionsPulse.ts`
+
+No DB changes, no edge-function changes.
 
 ## Out of scope
-- AI-generated blurbs (we use deterministic templates so the line is instant and free).
-- Changes to `/schedule` Grid view (cards stay compact).
-- Mobile-specific layout changes beyond the existing responsive grid.
-- Schema/edge-function changes.
+- Persisting sub-filter selections across sessions.
+- Mobile-specific layout for the SVG court (it scales responsively but is best on ≥sm screens).
+- Changes to the `/scoring` League and Your Team views.

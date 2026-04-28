@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useScoringHistory, type ScoringGameDay } from "@/hooks/useScoringHistory";
 import { useLeagueStandings } from "@/hooks/useLeagueStandings";
+import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPulse";
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTeamLogo } from "@/lib/nba-teams";
@@ -17,7 +18,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
-type TabValue = "league" | "team";
+type TabValue = "league" | "team" | "pulse";
 
 const TAB_LS_KEY = "nba_scoring_tab";
 
@@ -74,7 +75,7 @@ export default function ScoringPage() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
         <div className="flex items-center gap-3 flex-wrap">
-          <TabsList className="grid grid-cols-2 w-full max-w-sm bg-card border border-border h-10 p-1 rounded-xl">
+          <TabsList className="grid grid-cols-3 w-full max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
             <TabsTrigger
               value="league"
               className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--nba-yellow))]/15 data-[state=active]:text-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none"
@@ -86,6 +87,12 @@ export default function ScoringPage() {
               className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none"
             >
               <Shield className="h-3.5 w-3.5" /> Your Team
+            </TabsTrigger>
+            <TabsTrigger
+              value="pulse"
+              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
+            >
+              <Repeat className="h-3.5 w-3.5" /> Tx Pulse
             </TabsTrigger>
           </TabsList>
           {tab === "team" && myTeams.length > 0 && (
@@ -146,6 +153,14 @@ export default function ScoringPage() {
               onPlayerModal={setPlayerModalId}
             />
           )}
+        </TabsContent>
+
+        {/* ════════════════════════ TRANSACTIONS PULSE TAB ════════════════════════ */}
+        <TabsContent value="pulse" className="space-y-5 mt-5">
+          <TransactionsPulseView
+            onPlayerModal={setPlayerModalId}
+            onTeamModal={setTeamModalTeam}
+          />
         </TabsContent>
       </Tabs>
 
@@ -678,5 +693,136 @@ function YourTeamView({
         </div>
       </div>
     </>
+  );
+}
+
+// ══════════════════════════════ TRANSACTIONS PULSE VIEW ══════════════════════════════
+function TransactionsPulseView({
+  onPlayerModal,
+  onTeamModal,
+}: {
+  onPlayerModal: (id: number) => void;
+  onTeamModal: (tricode: string) => void;
+}) {
+  const { data, isLoading, isError, refetch } = useTransactionsPulse();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse font-heading">Loading transactions…</div>;
+  }
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Repeat className="h-12 w-12 text-destructive/40" />
+        <p className="text-destructive font-heading">Couldn't load transaction pulse</p>
+        <Button onClick={() => refetch()} size="sm" className="rounded-xl"><RefreshCw className="h-3.5 w-3.5 mr-1" />Retry</Button>
+      </div>
+    );
+  }
+
+  const picked = data?.picked ?? [];
+  const waived = data?.waived ?? [];
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <PulseTable
+        title="Most Picked"
+        subtitle="Across all fantasy users"
+        icon={<TrendingUp className="h-4 w-4 text-emerald-400" />}
+        accent="text-emerald-400"
+        rows={picked}
+        countLabel="PICKS"
+        emptyLabel="No pickups recorded yet"
+        onPlayerModal={onPlayerModal}
+        onTeamModal={onTeamModal}
+      />
+      <PulseTable
+        title="Most Waived"
+        subtitle="Across all fantasy users"
+        icon={<TrendingDown className="h-4 w-4 text-destructive" />}
+        accent="text-destructive"
+        rows={waived}
+        countLabel="DROPS"
+        emptyLabel="No drops recorded yet"
+        onPlayerModal={onPlayerModal}
+        onTeamModal={onTeamModal}
+      />
+    </div>
+  );
+}
+
+function PulseTable({
+  title, subtitle, icon, accent, rows, countLabel, emptyLabel, onPlayerModal, onTeamModal,
+}: {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  accent: string;
+  rows: PulseRow[];
+  countLabel: string;
+  emptyLabel: string;
+  onPlayerModal: (id: number) => void;
+  onTeamModal: (tricode: string) => void;
+}) {
+  return (
+    <div className="border border-border rounded-xl overflow-hidden bg-card flex flex-col shadow-sm">
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-muted/60 via-muted/40 to-transparent border-b border-border">
+        {icon}
+        <span className="text-xs font-heading font-bold uppercase tracking-wider truncate">{title}</span>
+        <span className="text-[10px] text-muted-foreground ml-auto truncate font-heading uppercase tracking-wider">{subtitle}</span>
+      </div>
+      <div className="max-h-[560px] overflow-y-auto divide-y divide-border/40">
+        {rows.length === 0 && (
+          <div className="px-4 py-10 text-center text-sm text-muted-foreground">{emptyLabel}</div>
+        )}
+        {rows.map((r, i) => {
+          const logo = getTeamLogo(r.team);
+          const isFc = r.fc_bc === "FC";
+          return (
+            <div
+              key={r.player_id}
+              className="relative overflow-hidden flex items-center gap-2.5 px-3 py-2 hover:bg-accent/30 transition-colors group"
+            >
+              {logo && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onTeamModal(r.team); }}
+                  aria-label={r.team}
+                  className="pointer-events-auto absolute -top-4 -right-4 w-20 h-20 z-0 opacity-[0.14] group-hover:opacity-[0.22] transition-opacity rotate-12"
+                  tabIndex={-1}
+                >
+                  <img src={logo} alt="" className="w-full h-full object-contain select-none" draggable={false} />
+                </button>
+              )}
+              <span className="relative z-10 text-[10px] font-mono font-bold text-muted-foreground w-5 shrink-0 tabular-nums text-right">{i + 1}</span>
+              <div className="relative z-10 shrink-0">
+                {r.photo ? (
+                  <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover bg-muted ring-1 ring-border" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-muted ring-1 ring-border" />
+                )}
+              </div>
+              <div className="relative z-10 flex items-center gap-1.5 min-w-0 flex-1">
+                <Badge
+                  variant={isFc ? "destructive" : "default"}
+                  className="text-[8px] px-1 py-0 rounded font-heading shrink-0 min-w-[20px] justify-center"
+                >
+                  {r.fc_bc}
+                </Badge>
+                <button
+                  className="truncate text-sm font-semibold hover:text-primary hover:underline text-left"
+                  onClick={() => onPlayerModal(r.player_id)}
+                >
+                  {r.name}
+                </button>
+              </div>
+              <div className="relative z-10 flex flex-col items-center justify-center min-w-[56px] px-2 py-1 rounded-md bg-muted/40 border border-border/50 shrink-0">
+                <span className="text-[8px] font-heading uppercase tracking-wider text-muted-foreground leading-none">{countLabel}</span>
+                <span className={`font-mono tabular-nums text-[14px] leading-tight mt-0.5 font-bold ${accent}`}>{r.count}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

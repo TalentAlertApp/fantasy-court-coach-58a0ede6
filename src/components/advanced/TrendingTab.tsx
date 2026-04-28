@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Flame, Coins, Zap } from "lucide-react";
+import { Flame, Coins, Zap, Snowflake } from "lucide-react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { Skeleton } from "@/components/ui/skeleton";
-import LeaderTable, { LeaderColumn, LeaderRow } from "./LeaderTable";
+import { LeaderColumn, LeaderRow } from "./LeaderTable";
+import RotatingLeaderCard, { LeaderSubject } from "./RotatingLeaderCard";
 
 type FcBcFilter = "ALL" | "FC" | "BC";
 
@@ -68,6 +69,20 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
       .sort((a: any, b: any) => b._sort - a._sort);
   }, [filtered]);
 
+  const coldRows: LeaderRow[] = useMemo(() => {
+    return filtered
+      .map((p) => ({
+        id: p.core.id,
+        name: p.core.name,
+        team: p.core.team,
+        photo: p.core.photo,
+        fc_bc: p.core.fc_bc,
+        values: [p.computed.delta_fp, p.last5.fp5, p.season.fp, p.last5.mpg5],
+        _sort: p.computed.delta_fp,
+      }))
+      .sort((a: any, b: any) => a._sort - b._sort); // ascending = most negative first
+  }, [filtered]);
+
   const hotCols: LeaderColumn[] = [
     { key: "fp5", label: "FP5", align: "right", tone: "accent" },
     { key: "fp", label: "FP", align: "right" },
@@ -86,14 +101,27 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
     { key: "stl", label: "STL5", align: "right" },
     { key: "blk", label: "BLK5", align: "right" },
   ];
+  const coldCols: LeaderColumn[] = [
+    { key: "d", label: "Δ FP", align: "right", tone: "delta" },
+    { key: "fp5", label: "FP5", align: "right" },
+    { key: "fp", label: "FP", align: "right", tone: "accent" },
+    { key: "mp5", label: "MP5", align: "right" },
+  ];
 
   if (isLoading) {
     return (
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-96 rounded-lg" />)}
+      <div className="grid gap-3 md:grid-cols-2">
+        {[1, 2].map((i) => <Skeleton key={i} className="h-96 rounded-lg" />)}
       </div>
     );
   }
+
+  const subjects: LeaderSubject[] = [
+    { id: "hot", title: "Hot Hands", subtitle: "FP5 leaders", icon: <Flame className="h-4 w-4 text-destructive" />, columns: hotCols, rows: hotRows },
+    { id: "value", title: "Value Kings", subtitle: "V5 leaders", icon: <Coins className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: valueCols, rows: valueRows },
+    { id: "stocks", title: "Stocks Surge", subtitle: "STL5+BLK5", icon: <Zap className="h-4 w-4 text-emerald-500" />, columns: stocksCols, rows: stocksRows },
+    { id: "cold", title: "Cold Snap", subtitle: "Bounce-back watch", icon: <Snowflake className="h-4 w-4 text-blue-400" />, columns: coldCols, rows: coldRows },
+  ];
 
   return (
     <div className="space-y-3">
@@ -126,34 +154,9 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
         <span className="text-[10px] text-muted-foreground ml-auto">{filtered.length} players · last 5 games</span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <LeaderTable
-          title="Hot Hands"
-          subtitle="FP5 leaders"
-          icon={<Flame className="h-4 w-4 text-destructive" />}
-          rows={hotRows}
-          columns={hotCols}
-          onPlayerClick={onPlayerClick}
-          onTeamClick={onTeamClick}
-        />
-        <LeaderTable
-          title="Value Kings"
-          subtitle="V5 leaders"
-          icon={<Coins className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />}
-          rows={valueRows}
-          columns={valueCols}
-          onPlayerClick={onPlayerClick}
-          onTeamClick={onTeamClick}
-        />
-        <LeaderTable
-          title="Stocks Surge"
-          subtitle="STL5 + BLK5"
-          icon={<Zap className="h-4 w-4 text-emerald-500" />}
-          rows={stocksRows}
-          columns={stocksCols}
-          onPlayerClick={onPlayerClick}
-          onTeamClick={onTeamClick}
-        />
+      <div className="grid gap-3 md:grid-cols-2">
+        <RotatingLeaderCard subjects={subjects} initialIndex={0} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+        <RotatingLeaderCard subjects={subjects} initialIndex={1} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
       </div>
     </div>
   );

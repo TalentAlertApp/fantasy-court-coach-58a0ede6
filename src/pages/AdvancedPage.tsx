@@ -21,6 +21,8 @@ import { toast } from "sonner";
 import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
 import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
 import TrendingTab from "@/components/advanced/TrendingTab";
+import PlaySubFilters from "@/components/advanced/PlaySubFilters";
+import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@/lib/play-filter-config";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -151,6 +153,7 @@ function NBAPlaySearchSection() {
   const [actionPlayer, setActionPlayer] = useState("");
   const [actionTypes, setActionTypes] = useState<string[]>([]);
   const [actionPopoverOpen, setActionPopoverOpen] = useState(false);
+  const [subFilters, setSubFilters] = useState<SubFilterState>(EMPTY_SUBFILTERS);
 
   const ACTION_TYPES = [
     { value: "rebound", label: "Rebound" },
@@ -163,6 +166,7 @@ function NBAPlaySearchSection() {
     { value: "turnover", label: "Turnover" },
     { value: "violation", label: "Violation" },
     { value: "jumpball", label: "Jumpball" },
+    { value: "ejection", label: "Ejection" },
   ];
 
   const initial = useMemo(() => getCurrentGameday(), []);
@@ -258,6 +262,14 @@ function NBAPlaySearchSection() {
     const params = new URLSearchParams();
     params.set("actionplayer", actionPlayer);
     for (const t of actionTypes) params.append("actiontype", t);
+    for (const v of subFilters.qualifiers) params.append("qualifiers", v);
+    for (const v of subFilters.subtype) params.append("subtype", v);
+    for (const v of subFilters.area) params.append("area", v);
+    for (const v of subFilters.shotresult) params.append("shotresult", v);
+    if (subFilters.isaftertimeout) params.set("isaftertimeout", "true");
+    if (subFilters.isbuzzerbeater) params.set("isbuzzerbeater", "true");
+    if (subFilters.shotdistancemin != null) params.set("shotdistancemin", String(subFilters.shotdistancemin));
+    if (subFilters.shotdistancemax != null) params.set("shotdistancemax", String(subFilters.shotdistancemax));
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
     const a = document.createElement("a");
     a.href = url;
@@ -278,9 +290,12 @@ function NBAPlaySearchSection() {
 
   const actionDisabled = !actionPlayer;
   const toggleActionType = (v: string) => {
-    setActionTypes((prev) =>
-      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v],
-    );
+    setActionTypes((prev) => {
+      const next = prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v];
+      // prune sub-filters that no longer apply
+      setSubFilters((sf) => pruneSubFilters(sf, next as ActionType[]));
+      return next;
+    });
   };
   const actionTriggerLabel = (() => {
     if (actionTypes.length === 0) return "All actions";
@@ -382,6 +397,7 @@ function NBAPlaySearchSection() {
                   onClick={() => {
                     setActionPlayer("");
                     setActionTypes([]);
+                    setSubFilters(EMPTY_SUBFILTERS);
                   }}
                   className="rounded-lg h-10"
                 >
@@ -392,6 +408,11 @@ function NBAPlaySearchSection() {
             <p className="text-[10px] text-muted-foreground">
               Player + selected action types open as Play Filters on NBAPlayDB.
             </p>
+            <PlaySubFilters
+              actions={actionTypes as ActionType[]}
+              value={subFilters}
+              onChange={setSubFilters}
+            />
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">

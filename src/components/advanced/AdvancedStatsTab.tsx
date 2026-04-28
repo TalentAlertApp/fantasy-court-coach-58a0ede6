@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Crosshair, Hand, Activity } from "lucide-react";
+import { Crosshair, Hand, Activity, Wand2 } from "lucide-react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { Skeleton } from "@/components/ui/skeleton";
-import LeaderTable, { LeaderColumn, LeaderRow } from "./LeaderTable";
+import { LeaderColumn, LeaderRow } from "./LeaderTable";
+import RotatingLeaderCard, { LeaderSubject } from "./RotatingLeaderCard";
 
 type FcBcFilter = "ALL" | "FC" | "BC";
 
@@ -104,6 +105,27 @@ export default function AdvancedStatsTab({ onPlayerClick, onTeamClick }: Props) 
       .sort((a: any, b: any) => b._sort - a._sort);
   }, [filtered]);
 
+  const playmakerRows: LeaderRow[] = useMemo(() => {
+    return filtered
+      .filter((p) => p.season.ast >= 3)
+      .map((p) => {
+        const ast = p.season.ast ?? 0;
+        const tov = (p.advanced?.tov ?? 0) / Math.max(p.season.gp, 1);
+        const ratio = tov > 0 ? ast / tov : ast;
+        const usgProxy = ((p.advanced?.fga ?? 0) + 0.44 * (p.advanced?.fta ?? 0)) / Math.max(p.season.gp, 1);
+        return {
+          id: p.core.id,
+          name: p.core.name,
+          team: p.core.team,
+          photo: p.core.photo,
+          fc_bc: p.core.fc_bc,
+          values: [ast, tov, ratio, usgProxy, p.season.mpg],
+          _sort: ratio,
+        };
+      })
+      .sort((a: any, b: any) => b._sort - a._sort);
+  }, [filtered]);
+
   const shootingCols: LeaderColumn[] = [
     { key: "fg", label: "FG%", align: "right" },
     { key: "3p", label: "3P%", align: "right" },
@@ -123,14 +145,28 @@ export default function AdvancedStatsTab({ onPlayerClick, onTeamClick }: Props) 
     { key: "v", label: "V", align: "right", tone: "accent" },
     { key: "mp", label: "MP", align: "right" },
   ];
+  const playmakerCols: LeaderColumn[] = [
+    { key: "ast", label: "AST", align: "right" },
+    { key: "tov", label: "TOV", align: "right" },
+    { key: "ratio", label: "AST/TO", align: "right", tone: "accent" },
+    { key: "usg", label: "USG*", align: "right" },
+    { key: "mp", label: "MP", align: "right" },
+  ];
 
   if (isLoading) {
     return (
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-96 rounded-lg" />)}
+      <div className="grid gap-3 md:grid-cols-2">
+        {[1, 2].map((i) => <Skeleton key={i} className="h-96 rounded-lg" />)}
       </div>
     );
   }
+
+  const subjects: LeaderSubject[] = [
+    { id: "shooting", title: "Shooting Splits", subtitle: "FG% leaders", icon: <Crosshair className="h-4 w-4 text-primary" />, columns: shootingCols, rows: shootingRows },
+    { id: "glass", title: "Glass & Hustle", subtitle: "Total REB", icon: <Hand className="h-4 w-4 text-emerald-500" />, columns: glassCols, rows: glassRows },
+    { id: "impact", title: "Impact", subtitle: "+/- leaders", icon: <Activity className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: impactCols, rows: impactRows },
+    { id: "playmakers", title: "Playmakers", subtitle: "AST/TO ratio", icon: <Wand2 className="h-4 w-4 text-blue-400" />, columns: playmakerCols, rows: playmakerRows },
+  ];
 
   return (
     <div className="space-y-3">
@@ -163,34 +199,9 @@ export default function AdvancedStatsTab({ onPlayerClick, onTeamClick }: Props) 
         <span className="text-[10px] text-muted-foreground ml-auto">{filtered.length} players match</span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <LeaderTable
-          title="Shooting Splits"
-          subtitle="Sorted by FG%"
-          icon={<Crosshair className="h-4 w-4 text-primary" />}
-          rows={shootingRows}
-          columns={shootingCols}
-          onPlayerClick={onPlayerClick}
-          onTeamClick={onTeamClick}
-        />
-        <LeaderTable
-          title="Glass & Hustle"
-          subtitle="Sorted by Total REB"
-          icon={<Hand className="h-4 w-4 text-emerald-500" />}
-          rows={glassRows}
-          columns={glassCols}
-          onPlayerClick={onPlayerClick}
-          onTeamClick={onTeamClick}
-        />
-        <LeaderTable
-          title="Impact"
-          subtitle="Sorted by +/-"
-          icon={<Activity className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />}
-          rows={impactRows}
-          columns={impactCols}
-          onPlayerClick={onPlayerClick}
-          onTeamClick={onTeamClick}
-        />
+      <div className="grid gap-3 md:grid-cols-2">
+        <RotatingLeaderCard subjects={subjects} initialIndex={0} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+        <RotatingLeaderCard subjects={subjects} initialIndex={1} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
       </div>
     </div>
   );
