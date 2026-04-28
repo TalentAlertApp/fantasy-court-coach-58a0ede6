@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useScoringHistory, type ScoringGameDay } from "@/hooks/useScoringHistory";
 import { useLeagueStandings } from "@/hooks/useLeagueStandings";
+import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPulse";
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { getTeamLogo } from "@/lib/nba-teams";
@@ -17,7 +18,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
-type TabValue = "league" | "team";
+type TabValue = "league" | "team" | "pulse";
 
 const TAB_LS_KEY = "nba_scoring_tab";
 
@@ -74,7 +75,7 @@ export default function ScoringPage() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
         <div className="flex items-center gap-3 flex-wrap">
-          <TabsList className="grid grid-cols-2 w-full max-w-sm bg-card border border-border h-10 p-1 rounded-xl">
+          <TabsList className="grid grid-cols-3 w-full max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
             <TabsTrigger
               value="league"
               className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--nba-yellow))]/15 data-[state=active]:text-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none"
@@ -86,6 +87,12 @@ export default function ScoringPage() {
               className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none"
             >
               <Shield className="h-3.5 w-3.5" /> Your Team
+            </TabsTrigger>
+            <TabsTrigger
+              value="pulse"
+              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
+            >
+              <Repeat className="h-3.5 w-3.5" /> Tx Pulse
             </TabsTrigger>
           </TabsList>
           {tab === "team" && myTeams.length > 0 && (
@@ -146,6 +153,14 @@ export default function ScoringPage() {
               onPlayerModal={setPlayerModalId}
             />
           )}
+        </TabsContent>
+
+        {/* ════════════════════════ TRANSACTIONS PULSE TAB ════════════════════════ */}
+        <TabsContent value="pulse" className="space-y-5 mt-5">
+          <TransactionsPulseView
+            onPlayerModal={setPlayerModalId}
+            onTeamModal={setTeamModalTeam}
+          />
         </TabsContent>
       </Tabs>
 
