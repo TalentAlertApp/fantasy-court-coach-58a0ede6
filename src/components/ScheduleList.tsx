@@ -325,14 +325,14 @@ function GameCardBlurb({
   const isOut = kind === "outstanding";
   const Icon = isOut ? Star : Eye;
   const labelColor = isOut ? "text-[hsl(var(--nba-yellow))]" : "text-primary";
-  const label = isOut ? "Outstanding Players" : "Players to Watch";
+  const ariaLabel = isOut ? "Outstanding Players" : "Players to Watch";
   return (
-    <div className="relative z-10 flex items-center justify-center gap-2 px-3 py-1 max-w-full">
-      <Icon className={`h-4 w-4 shrink-0 ${labelColor}`} />
-      <span className={`text-[10px] font-heading font-black uppercase tracking-wider shrink-0 ${labelColor}`}>
-        {label} ·
-      </span>
-      <span className="text-[14px] md:text-[15px] font-semibold italic text-foreground text-center leading-snug">
+    <div
+      className="relative z-10 flex items-center justify-center gap-1.5 px-2 py-0.5 max-w-full"
+      aria-label={ariaLabel}
+    >
+      <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} aria-hidden />
+      <span className="text-[11px] md:text-[12px] font-semibold italic text-foreground text-center leading-snug">
         {text}
       </span>
     </div>
