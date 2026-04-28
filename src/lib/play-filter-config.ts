@@ -90,14 +90,15 @@ export const EMPTY_SUBFILTERS: SubFilterState = {
 /** Returns a pruned state where any value not applicable to the active action set is dropped. */
 export function pruneSubFilters(state: SubFilterState, actions: ActionType[]): SubFilterState {
   const active = new Set(actions);
-  const allowed = (key: keyof typeof QUALIFIERS, list: string[]) => {
+  const allowed = (kind: "qualifiers" | "subtype", list: string[]) => {
+    const map = kind === "qualifiers" ? QUALIFIERS : SUBTYPES;
     const pool = new Set<string>();
-    for (const a of actions) for (const v of (key === "qualifiers" ? QUALIFIERS[a] : SUBTYPES[a]) ?? []) pool.add(v);
+    for (const a of actions) for (const v of map[a] ?? []) pool.add(v);
     return list.filter((v) => pool.has(v));
   };
   const next: SubFilterState = {
     qualifiers: allowed("qualifiers", state.qualifiers),
-    subtype: allowed("subtype" as any, state.subtype),
+    subtype: allowed("subtype", state.subtype),
     area: AREA_ACTIONS.some((a) => active.has(a)) ? state.area : [],
     shotresult: SHOT_RESULT_ACTIONS.some((a) => active.has(a)) ? state.shotresult : [],
     isaftertimeout: AFTER_TIMEOUT_ACTIONS.some((a) => active.has(a)) ? state.isaftertimeout : false,
