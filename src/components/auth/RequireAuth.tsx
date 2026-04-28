@@ -8,6 +8,7 @@ import {
   markWelcomeBackSeenThisSession,
   clearLastSignOut,
   isTeamPickedThisSession,
+  isWelcomeBackSeenThisSession,
 } from "@/lib/welcome-back-store";
 import WelcomeBackHero from "@/components/welcome-back/WelcomeBackHero";
 import { useTeam } from "@/contexts/TeamContext";
@@ -33,7 +34,9 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     if (!user?.id) return;
     // Force-open via ?welcomeback=1 for testing
     const forced = new URLSearchParams(location.search).get("welcomeback") === "1";
-    setWelcomeOpen(forced || shouldShowWelcomeBack(user.id));
+    // Show Welcome Back to any returning user (≥1 team) once per session.
+    // Previously gated on a >1h sign-out gap; now always on for returning users.
+    setWelcomeOpen(forced || !isWelcomeBackSeenThisSession());
   }, [loading, user?.id, location.search]);
 
   if (loading) {
