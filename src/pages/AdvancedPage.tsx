@@ -397,6 +397,7 @@ function NBAPlaySearchSection() {
                   onClick={() => {
                     setActionPlayer("");
                     setActionTypes([]);
+                    setSubFilters(EMPTY_SUBFILTERS);
                   }}
                   className="rounded-lg h-10"
                 >
@@ -407,6 +408,11 @@ function NBAPlaySearchSection() {
             <p className="text-[10px] text-muted-foreground">
               Player + selected action types open as Play Filters on NBAPlayDB.
             </p>
+            <PlaySubFilters
+              actions={actionTypes as ActionType[]}
+              value={subFilters}
+              onChange={setSubFilters}
+            />
           </TabsContent>
 
           <TabsContent value="game" className="mt-4 space-y-4">
