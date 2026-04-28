@@ -611,14 +611,17 @@ export default function AdvancedPage() {
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
-      <NBAPlaySearchSection />
-
-      <Tabs defaultValue="playing-time" className="space-y-4">
-        <TabsList className="rounded-lg grid grid-cols-3 w-full max-w-2xl mx-auto">
+      <Tabs defaultValue="play-search" className="space-y-4">
+        <TabsList className="rounded-lg grid grid-cols-4 w-full max-w-3xl mx-auto">
+          <TabsTrigger value="play-search" className="font-heading text-xs uppercase rounded-lg">NBA Play Search</TabsTrigger>
           <TabsTrigger value="playing-time" className="font-heading text-xs uppercase rounded-lg">Playing Time</TabsTrigger>
           <TabsTrigger value="advanced-stats" className="font-heading text-xs uppercase rounded-lg">Advanced Stats</TabsTrigger>
           <TabsTrigger value="trending" className="font-heading text-xs uppercase rounded-lg">Trending</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="play-search">
+          <NBAPlaySearchSection />
+        </TabsContent>
 
         <TabsContent value="playing-time" className="space-y-4">
           <div className="flex items-center justify-between">
