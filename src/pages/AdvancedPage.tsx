@@ -35,6 +35,27 @@ function normalize(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+/** Decode an `nbaps=...` hash payload into search state. Returns null if missing/invalid. */
+function readSearchFromUrl(): { actionPlayer: string; actionTypes: string[]; subFilters: SubFilterState } | null {
+  if (typeof window === "undefined") return null;
+  const hash = window.location.hash.replace(/^#/, "");
+  const params = new URLSearchParams(hash);
+  const enc = params.get("nbaps");
+  if (!enc) return null;
+  try {
+    const json = decodeURIComponent(escape(atob(enc)));
+    const payload = JSON.parse(json) as { p?: string; a?: string[]; sf?: Partial<SubFilterState> };
+    const sf: SubFilterState = { ...EMPTY_SUBFILTERS, ...(payload.sf ?? {}) };
+    return {
+      actionPlayer: payload.p ?? "",
+      actionTypes: Array.isArray(payload.a) ? payload.a : [],
+      subFilters: sf,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function PlayerCombobox({
   label,
   value,
