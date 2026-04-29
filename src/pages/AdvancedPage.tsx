@@ -626,16 +626,35 @@ export default function AdvancedPage() {
   const { data, isLoading } = usePlayingTimeTrends();
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [tab, setTab] = useState<AdvancedTab>(() => getLastAdvancedTab() ?? "play-search");
+  useEffect(() => { setLastAdvancedTab(tab); }, [tab]);
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
-      <Tabs defaultValue="play-search" className="space-y-4">
-        <TabsList className="rounded-lg grid grid-cols-4 w-full max-w-3xl mx-auto">
-          <TabsTrigger value="play-search" className="font-heading text-xs uppercase rounded-lg">NBA Play Search</TabsTrigger>
-          <TabsTrigger value="playing-time" className="font-heading text-xs uppercase rounded-lg">Playing Time</TabsTrigger>
-          <TabsTrigger value="advanced-stats" className="font-heading text-xs uppercase rounded-lg">Advanced Stats</TabsTrigger>
-          <TabsTrigger value="trending" className="font-heading text-xs uppercase rounded-lg">Trending</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
+          Advanced · NBA Insights
+        </span>
+      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as AdvancedTab)} className="space-y-4">
+        <div className="border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg">
+          <TabsList className="bg-transparent p-0 h-auto grid grid-cols-4 w-full max-w-3xl mx-auto">
+            {([
+              ["play-search", "NBA Play Search"],
+              ["playing-time", "Playing Time"],
+              ["advanced-stats", "Advanced Stats"],
+              ["trending", "Trending"],
+            ] as const).map(([v, label]) => (
+              <TabsTrigger
+                key={v}
+                value={v}
+                className="rounded-none bg-transparent shadow-none px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider text-muted-foreground border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:border-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none transition-colors"
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="play-search">
           <NBAPlaySearchSection />
