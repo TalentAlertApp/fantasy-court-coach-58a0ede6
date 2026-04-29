@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy } from "lucide-react";
+import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy, ArrowRightCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -11,9 +11,11 @@ import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
+import { getLastAdvancedTab, ADVANCED_TAB_LABEL } from "@/lib/advanced-tab-store";
 
 interface Props {
   onEnter: () => void;
+  onContinue?: (tab: string) => void;
 }
 
 function useCountdown(deadlineUtc: string | null) {
@@ -38,9 +40,10 @@ const WHATS_NEW = [
   "Wishlist & Player Comparison improvements",
 ];
 
-export default function WelcomeBackHero({ onEnter }: Props) {
+export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
   const { user, signOut } = useAuth();
   const { teams, selectedTeamId } = useTeam();
+  const lastTab = useMemo(() => getLastAdvancedTab(), []);
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 250 });
 
@@ -276,16 +279,29 @@ export default function WelcomeBackHero({ onEnter }: Props) {
             animate="show"
             variants={fade}
             transition={{ duration: 0.5, delay: 0.8 }}
-            className="mt-8 flex flex-col items-center"
+            className="mt-8 flex flex-col items-center gap-3"
           >
-            <Button
-              onClick={onEnter}
-              size="lg"
-              className="h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
-            >
-              Enter Court
-              <ChevronRight className="ml-1 h-5 w-5" />
-            </Button>
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <Button
+                onClick={onEnter}
+                size="lg"
+                className="h-14 px-10 rounded-full text-base tracking-[0.25em] shadow-[0_0_50px_-10px_hsl(var(--accent))] hover:translate-y-[-2px] hover:shadow-[0_0_70px_-10px_hsl(var(--accent))] transition-all"
+              >
+                Enter Court
+                <ChevronRight className="ml-1 h-5 w-5" />
+              </Button>
+              {lastTab && onContinue && (
+                <Button
+                  onClick={() => onContinue(lastTab)}
+                  size="lg"
+                  variant="outline"
+                  className="h-14 px-8 rounded-full text-base tracking-[0.2em] border-[hsl(var(--nba-yellow))]/60 text-[hsl(var(--nba-yellow))] hover:bg-[hsl(var(--nba-yellow))]/10 hover:text-[hsl(var(--nba-yellow))] transition-all"
+                >
+                  <ArrowRightCircle className="mr-2 h-5 w-5" />
+                  Continue · {ADVANCED_TAB_LABEL[lastTab]}
+                </Button>
+              )}
+            </div>
             <p className="mt-3 text-[10px] uppercase tracking-[0.3em] text-foreground/40">
               Tap the Guide icon any time for the full tour
             </p>
