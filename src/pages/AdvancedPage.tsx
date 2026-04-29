@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +23,8 @@ import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
 import TrendingTab from "@/components/advanced/TrendingTab";
 import PlaySubFilters from "@/components/advanced/PlaySubFilters";
 import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@/lib/play-filter-config";
+import SectionHeader from "@/components/advanced/SectionHeader";
+import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -266,8 +268,8 @@ function NBAPlaySearchSection() {
     for (const v of subFilters.subtype) params.append("subtype", v);
     for (const v of subFilters.area) params.append("area", v);
     for (const v of subFilters.shotresult) params.append("shotresult", v);
-    if (subFilters.isaftertimeout) params.set("isaftertimeout", "true");
-    if (subFilters.isbuzzerbeater) params.set("isbuzzerbeater", "true");
+    if (subFilters.isaftertimeout) params.set("isATO", "true");
+    if (subFilters.isbuzzerbeater) params.set("isBuzzerBeater", "true");
     if (subFilters.shotdistancemin != null) params.set("shotdistancemin", String(subFilters.shotdistancemin));
     if (subFilters.shotdistancemax != null) params.set("shotdistancemax", String(subFilters.shotdistancemax));
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
@@ -305,16 +307,19 @@ function NBAPlaySearchSection() {
   })();
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-heading font-bold uppercase tracking-wider">NBA Play Search</span>
-        <span className="text-[10px] text-muted-foreground ml-2 inline-flex items-center gap-1">
-          Search play-by-play clips on NBAPlayDB — results open in a new tab
-          <ExternalLink className="h-3 w-3" />
-        </span>
-      </div>
-      <div className="p-4 space-y-4">
+    <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
+      <SectionHeader
+        tone="blue"
+        icon={<Search className="h-4 w-4" />}
+        title="NBA Play Search"
+        meta={
+          <span className="inline-flex items-center gap-1 normal-case tracking-normal">
+            Play-by-play clips on NBAPlayDB · opens in a new tab
+            <ExternalLink className="h-3 w-3" />
+          </span>
+        }
+      />
+      <div className="p-5 space-y-4">
         <Tabs defaultValue="action">
           <TabsList className="rounded-lg grid grid-cols-2 w-full max-w-md mx-auto">
             <TabsTrigger value="action" className="font-heading text-xs uppercase rounded-lg">🏀 Player Action</TabsTrigger>
@@ -391,17 +396,30 @@ function NBAPlaySearchSection() {
                 >
                   Open Plays on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
                 </Button>
+                <div className="h-8 w-px bg-border mx-1" aria-hidden />
                 <Button
-                  variant="ghost"
-                  disabled={!actionPlayer && actionTypes.length === 0}
+                  variant="outline"
+                  disabled={
+                    !actionPlayer &&
+                    actionTypes.length === 0 &&
+                    subFilters.qualifiers.length === 0 &&
+                    subFilters.subtype.length === 0 &&
+                    subFilters.area.length === 0 &&
+                    subFilters.shotresult.length === 0 &&
+                    !subFilters.isaftertimeout &&
+                    !subFilters.isbuzzerbeater &&
+                    subFilters.shotdistancemin == null &&
+                    subFilters.shotdistancemax == null
+                  }
                   onClick={() => {
                     setActionPlayer("");
                     setActionTypes([]);
                     setSubFilters(EMPTY_SUBFILTERS);
+                    toast.success("Filters reset");
                   }}
                   className="rounded-lg h-10"
                 >
-                  <X className="h-3.5 w-3.5 mr-1" /> Clear
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset filters
                 </Button>
               </div>
             </div>
@@ -546,14 +564,13 @@ function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
 }) {
   const isIncrease = type === "increase";
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className={`flex items-center gap-2 px-4 py-2.5 ${isIncrease ? "bg-emerald-500/10 border-b border-emerald-500/20" : "bg-destructive/10 border-b border-destructive/20"}`}>
-        {isIncrease ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
-        <span className="text-xs font-heading font-bold uppercase tracking-wider">
-          {isIncrease ? "Increased Playing Time" : "Decreased Playing Time"}
-        </span>
-        <span className="text-[10px] text-muted-foreground ml-auto">Last 7 Game Days</span>
-      </div>
+    <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
+      <SectionHeader
+        tone={isIncrease ? "green" : "red"}
+        icon={isIncrease ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+        title={isIncrease ? "Increased Playing Time" : "Decreased Playing Time"}
+        meta="Last 7 Game Days"
+      />
       <div className="grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
         <span>Player</span>
         <span className="text-center">GP</span>
@@ -608,16 +625,35 @@ export default function AdvancedPage() {
   const { data, isLoading } = usePlayingTimeTrends();
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [tab, setTab] = useState<AdvancedTab>(() => getLastAdvancedTab() ?? "play-search");
+  useEffect(() => { setLastAdvancedTab(tab); }, [tab]);
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
-      <Tabs defaultValue="play-search" className="space-y-4">
-        <TabsList className="rounded-lg grid grid-cols-4 w-full max-w-3xl mx-auto">
-          <TabsTrigger value="play-search" className="font-heading text-xs uppercase rounded-lg">NBA Play Search</TabsTrigger>
-          <TabsTrigger value="playing-time" className="font-heading text-xs uppercase rounded-lg">Playing Time</TabsTrigger>
-          <TabsTrigger value="advanced-stats" className="font-heading text-xs uppercase rounded-lg">Advanced Stats</TabsTrigger>
-          <TabsTrigger value="trending" className="font-heading text-xs uppercase rounded-lg">Trending</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col items-center gap-1">
+        <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
+          Advanced · NBA Insights
+        </span>
+      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as AdvancedTab)} className="space-y-4">
+        <div className="border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg">
+          <TabsList className="bg-transparent p-0 h-auto grid grid-cols-4 w-full max-w-3xl mx-auto">
+            {([
+              ["play-search", "NBA Play Search"],
+              ["playing-time", "Playing Time"],
+              ["advanced-stats", "Advanced Stats"],
+              ["trending", "Trending"],
+            ] as const).map(([v, label]) => (
+              <TabsTrigger
+                key={v}
+                value={v}
+                className="rounded-none bg-transparent shadow-none px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider text-muted-foreground border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:border-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none transition-colors"
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
 
         <TabsContent value="play-search">
           <NBAPlaySearchSection />

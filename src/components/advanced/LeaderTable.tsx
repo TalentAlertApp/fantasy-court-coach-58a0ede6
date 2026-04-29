@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import SectionHeader, { HeaderTone } from "./SectionHeader";
 
 export interface LeaderRow {
   id: number;
@@ -32,10 +33,11 @@ interface LeaderTableProps {
   onTeamClick: (tricode: string) => void;
   emptyLabel?: string;
   maxRows?: number;
+  tone?: HeaderTone;
 }
 
 function toneClass(tone: LeaderColumn["tone"], raw: string | number | ReactNode) {
-  if (tone === "accent") return "text-red-500 font-bold";
+  if (tone === "accent") return "text-[hsl(var(--nba-yellow))] font-bold";
   if (tone === "delta" && typeof raw === "number") {
     if (raw > 0) return "text-emerald-500 font-bold";
     if (raw < 0) return "text-destructive font-bold";
@@ -53,19 +55,13 @@ export default function LeaderTable({
   onTeamClick,
   emptyLabel = "No data available",
   maxRows = 10,
+  tone = "blue",
 }: LeaderTableProps) {
   const sliced = rows.slice(0, maxRows);
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden bg-card flex flex-col shadow-sm">
-      {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-muted/60 via-muted/40 to-transparent border-b border-border">
-        {icon}
-        <span className="text-xs font-heading font-bold uppercase tracking-wider truncate">{title}</span>
-        {subtitle && (
-          <span className="text-[10px] text-muted-foreground ml-auto truncate font-heading uppercase tracking-wider">{subtitle}</span>
-        )}
-      </div>
+    <div className="border border-border rounded-xl overflow-hidden bg-card/40 backdrop-blur-sm flex flex-col shadow-sm">
+      <SectionHeader tone={tone} icon={icon} title={title} meta={subtitle} />
 
       {/* Rows */}
       <div className="max-h-[520px] overflow-y-auto divide-y divide-border/40">

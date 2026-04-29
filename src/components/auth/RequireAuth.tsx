@@ -93,6 +93,12 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
             navigate(location.pathname, { replace: true });
           }
         }}
+        onContinue={() => {
+          markWelcomeBackSeenThisSession();
+          clearLastSignOut(user.id);
+          setWelcomeOpen(false);
+          navigate("/advanced", { replace: true });
+        }}
       />
     );
   }

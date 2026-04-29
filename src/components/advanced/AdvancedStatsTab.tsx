@@ -162,10 +162,10 @@ export default function AdvancedStatsTab({ onPlayerClick, onTeamClick }: Props) 
   }
 
   const subjects: LeaderSubject[] = [
-    { id: "shooting", title: "Shooting Splits", subtitle: "FG% leaders", icon: <Crosshair className="h-4 w-4 text-primary" />, columns: shootingCols, rows: shootingRows },
-    { id: "glass", title: "Glass & Hustle", subtitle: "Total REB", icon: <Hand className="h-4 w-4 text-emerald-500" />, columns: glassCols, rows: glassRows },
-    { id: "impact", title: "Impact", subtitle: "+/- leaders", icon: <Activity className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: impactCols, rows: impactRows },
-    { id: "playmakers", title: "Playmakers", subtitle: "AST/TO ratio", icon: <Wand2 className="h-4 w-4 text-blue-400" />, columns: playmakerCols, rows: playmakerRows },
+    { id: "shooting", title: "Shooting Splits", subtitle: "FG% leaders", icon: <Crosshair className="h-4 w-4 text-primary" />, columns: shootingCols, rows: shootingRows, tone: "blue" },
+    { id: "glass", title: "Glass & Hustle", subtitle: "Total REB", icon: <Hand className="h-4 w-4 text-emerald-500" />, columns: glassCols, rows: glassRows, tone: "green" },
+    { id: "impact", title: "Impact", subtitle: "+/- leaders", icon: <Activity className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: impactCols, rows: impactRows, tone: "yellow" },
+    { id: "playmakers", title: "Playmakers", subtitle: "AST/TO ratio", icon: <Wand2 className="h-4 w-4 text-blue-400" />, columns: playmakerCols, rows: playmakerRows, tone: "blue" },
   ];
 
   return (

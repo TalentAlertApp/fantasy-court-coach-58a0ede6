@@ -117,10 +117,10 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
   }
 
   const subjects: LeaderSubject[] = [
-    { id: "hot", title: "Hot Hands", subtitle: "FP5 leaders", icon: <Flame className="h-4 w-4 text-destructive" />, columns: hotCols, rows: hotRows },
-    { id: "value", title: "Value Kings", subtitle: "V5 leaders", icon: <Coins className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: valueCols, rows: valueRows },
-    { id: "stocks", title: "Stocks Surge", subtitle: "STL5+BLK5", icon: <Zap className="h-4 w-4 text-emerald-500" />, columns: stocksCols, rows: stocksRows },
-    { id: "cold", title: "Cold Snap", subtitle: "Bounce-back watch", icon: <Snowflake className="h-4 w-4 text-blue-400" />, columns: coldCols, rows: coldRows },
+    { id: "hot", title: "Hot Hands", subtitle: "FP5 leaders", icon: <Flame className="h-4 w-4 text-destructive" />, columns: hotCols, rows: hotRows, tone: "red" },
+    { id: "value", title: "Value Kings", subtitle: "V5 leaders", icon: <Coins className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: valueCols, rows: valueRows, tone: "yellow" },
+    { id: "stocks", title: "Stocks Surge", subtitle: "STL5+BLK5", icon: <Zap className="h-4 w-4 text-emerald-500" />, columns: stocksCols, rows: stocksRows, tone: "green" },
+    { id: "cold", title: "Cold Snap", subtitle: "Bounce-back watch", icon: <Snowflake className="h-4 w-4 text-blue-400" />, columns: coldCols, rows: coldRows, tone: "blue" },
   ];
 
   return (

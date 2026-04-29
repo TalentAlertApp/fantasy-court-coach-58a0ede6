@@ -4,6 +4,7 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { LeaderColumn, LeaderRow } from "./LeaderTable";
+import type { HeaderTone } from "./SectionHeader";
 
 export interface LeaderSubject {
   id: string;
@@ -12,10 +13,11 @@ export interface LeaderSubject {
   icon: ReactNode;
   columns: LeaderColumn[];
   rows: LeaderRow[];
+  tone?: HeaderTone;
 }
 
 function toneClass(tone: LeaderColumn["tone"], raw: string | number | ReactNode) {
-  if (tone === "accent") return "text-red-500 font-bold";
+  if (tone === "accent") return "text-[hsl(var(--nba-yellow))] font-bold";
   if (tone === "delta" && typeof raw === "number") {
     if (raw > 0) return "text-emerald-500 font-bold";
     if (raw < 0) return "text-destructive font-bold";
@@ -38,14 +40,22 @@ export default function RotatingLeaderCard({
   const safeIdx = ((idx % subjects.length) + subjects.length) % subjects.length;
   const subject = subjects[safeIdx];
   const sliced = subject.rows.slice(0, maxRows);
+  const tone: HeaderTone = subject.tone ?? "blue";
+  const TONE_WRAP: Record<HeaderTone, string> = {
+    blue: "bg-primary/10 border-b border-primary/20",
+    red: "bg-destructive/10 border-b border-destructive/20",
+    green: "bg-emerald-500/10 border-b border-emerald-500/20",
+    yellow: "bg-[hsl(var(--nba-yellow))]/10 border-b border-[hsl(var(--nba-yellow))]/30",
+    neutral: "bg-muted/40 border-b border-border",
+  };
 
   const prev = () => setIdx((i) => i - 1);
   const next = () => setIdx((i) => i + 1);
 
   return (
-    <div className="border border-border rounded-xl overflow-hidden bg-card flex flex-col shadow-sm">
+    <div className="border border-border rounded-xl overflow-hidden bg-card/40 backdrop-blur-sm flex flex-col shadow-sm">
       {/* Header with rotating arrows */}
-      <div className="flex items-center gap-2 px-2 py-2 bg-gradient-to-r from-muted/60 via-muted/40 to-transparent border-b border-border">
+      <div className={cn("flex items-center gap-2 px-2 py-2", TONE_WRAP[tone])}>
         <button
           type="button"
           onClick={prev}
