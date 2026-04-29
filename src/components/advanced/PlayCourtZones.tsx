@@ -4,25 +4,28 @@ import { AREA_VALUES, AreaValue, distanceBoundsFor, ActionType } from "@/lib/pla
 
 /**
  * Half-court overlay: 6 clickable area zones + concentric distance arcs.
- * Coordinate system: viewBox 0 0 400 320. Basket near top-center at (200, 30).
+ * Coordinate system: viewBox 0 0 600 320. Basket near top-center at (300, 30).
+ * Widened from 400 to 600 (×1.5 horizontal scale) so the court matches the
+ * full-width distance slider beneath it. Vertical metrics (height, arc radii)
+ * are unchanged so the visual height of the court stays the same.
  */
 
 const ZONE_PATHS: Record<AreaValue, string> = {
   // Restricted Area: small arc-bounded box directly under rim
-  "Restricted Area": "M170,30 L170,75 A30,30 0 0 0 230,75 L230,30 Z",
+  "Restricted Area": "M255,30 L255,75 A45,45 0 0 0 345,75 L345,30 Z",
   // Paint (key) minus restricted area
   "In The Paint (Non-RA)":
-    "M150,30 L150,140 L250,140 L250,30 L230,30 L230,75 A30,30 0 0 1 170,75 L170,30 Z",
-  // Mid-range: inside 3pt arc, outside paint (single big polygon)
+    "M225,30 L225,140 L375,140 L375,30 L345,30 L345,75 A45,45 0 0 1 255,75 L255,30 Z",
+  // Mid-range: inside 3pt arc, outside paint
   "Mid-Range":
-    "M40,30 L40,90 A160,160 0 0 0 360,90 L360,30 L250,30 L250,140 L150,140 L150,30 Z",
+    "M60,30 L60,90 A240,160 0 0 0 540,90 L540,30 L375,30 L375,140 L225,140 L225,30 Z",
   // Above the break 3 (top wedge outside arc)
   "Above the Break 3":
-    "M40,30 L40,90 A160,160 0 0 1 360,90 L360,30 Z M40,30",
+    "M60,30 L60,90 A240,160 0 0 1 540,90 L540,30 Z M60,30",
   // Left corner 3
-  "Left Corner 3": "M0,30 L40,30 L40,160 L0,160 Z",
+  "Left Corner 3": "M0,30 L60,30 L60,160 L0,160 Z",
   // Right corner 3
-  "Right Corner 3": "M360,30 L400,30 L400,160 L360,160 Z",
+  "Right Corner 3": "M540,30 L600,30 L600,160 L540,160 Z",
 };
 
 interface Props {
@@ -38,7 +41,7 @@ export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMi
   const bounds = distanceBoundsFor(actions);
   const showDistance = bounds !== null;
 
-  // Concentric arcs from basket. Map feet → pixels: roughly 5px / ft (max 71ft fits within 360px radius).
+  // Concentric arcs from basket. Map feet → pixels: ~5px/ft vertical, ~7.5px/ft horizontal.
   const arcs = useMemo(() => {
     if (!bounds) return [];
     const stepFt = 5;
@@ -48,24 +51,26 @@ export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMi
     return feet;
   }, [bounds]);
 
-  const ftToR = (ft: number) => ft * 5; // ~5px per foot
-  const cx = 200;
+  const ftToRy = (ft: number) => ft * 5; // ~5px per foot vertical
+  const ftToRx = (ft: number) => ft * 7.5; // ~7.5px per foot horizontal (1.5× to match new width)
+  const cx = 300;
   const cy = 30;
 
   return (
-    <div className="relative w-full max-w-md aspect-[5/4] rounded-lg overflow-hidden border border-border bg-muted/30">
+    <div className="relative w-full aspect-[15/8] rounded-lg overflow-hidden border border-border bg-muted/30">
       <img src={courtBg} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover opacity-50 select-none" draggable={false} />
-      <svg viewBox="0 0 400 320" className="absolute inset-0 w-full h-full">
+      <svg viewBox="0 0 600 320" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
         {/* Distance arc bands underlay */}
         {showDistance && arcs.map((ft, i) => {
           if (i === 0) return null;
           const inside = distanceMin != null && distanceMax != null && ft > distanceMin && ft <= distanceMax + 0.001;
           return (
-            <circle
+            <ellipse
               key={ft}
               cx={cx}
               cy={cy}
-              r={ftToR(ft)}
+              rx={ftToRx(ft)}
+              ry={ftToRy(ft)}
               fill="none"
               stroke="hsl(var(--nba-yellow))"
               strokeOpacity={inside ? 0.55 : 0.12}
@@ -76,10 +81,10 @@ export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMi
         {/* Highlighted distance band overlay */}
         {showDistance && distanceMin != null && distanceMax != null && distanceMax > distanceMin && (
           <path
-            d={`M ${cx - ftToR(distanceMax)} ${cy}
-                A ${ftToR(distanceMax)} ${ftToR(distanceMax)} 0 0 0 ${cx + ftToR(distanceMax)} ${cy}
-                L ${cx + ftToR(distanceMin)} ${cy}
-                A ${ftToR(distanceMin)} ${ftToR(distanceMin)} 0 0 1 ${cx - ftToR(distanceMin)} ${cy}
+            d={`M ${cx - ftToRx(distanceMax)} ${cy}
+                A ${ftToRx(distanceMax)} ${ftToRy(distanceMax)} 0 0 0 ${cx + ftToRx(distanceMax)} ${cy}
+                L ${cx + ftToRx(distanceMin)} ${cy}
+                A ${ftToRx(distanceMin)} ${ftToRy(distanceMin)} 0 0 1 ${cx - ftToRx(distanceMin)} ${cy}
                 Z`}
             fill="hsl(var(--nba-yellow))"
             fillOpacity={0.10}
