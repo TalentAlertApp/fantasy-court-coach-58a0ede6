@@ -564,14 +564,13 @@ function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
 }) {
   const isIncrease = type === "increase";
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className={`flex items-center gap-2 px-4 py-2.5 ${isIncrease ? "bg-emerald-500/10 border-b border-emerald-500/20" : "bg-destructive/10 border-b border-destructive/20"}`}>
-        {isIncrease ? <TrendingUp className="h-4 w-4 text-emerald-500" /> : <TrendingDown className="h-4 w-4 text-destructive" />}
-        <span className="text-xs font-heading font-bold uppercase tracking-wider">
-          {isIncrease ? "Increased Playing Time" : "Decreased Playing Time"}
-        </span>
-        <span className="text-[10px] text-muted-foreground ml-auto">Last 7 Game Days</span>
-      </div>
+    <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
+      <SectionHeader
+        tone={isIncrease ? "green" : "red"}
+        icon={isIncrease ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+        title={isIncrease ? "Increased Playing Time" : "Decreased Playing Time"}
+        meta="Last 7 Game Days"
+      />
       <div className="grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
         <span>Player</span>
         <span className="text-center">GP</span>
