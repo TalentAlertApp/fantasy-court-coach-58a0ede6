@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +23,8 @@ import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
 import TrendingTab from "@/components/advanced/TrendingTab";
 import PlaySubFilters from "@/components/advanced/PlaySubFilters";
 import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@/lib/play-filter-config";
+import SectionHeader from "@/components/advanced/SectionHeader";
+import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
