@@ -268,8 +268,8 @@ function NBAPlaySearchSection() {
     for (const v of subFilters.subtype) params.append("subtype", v);
     for (const v of subFilters.area) params.append("area", v);
     for (const v of subFilters.shotresult) params.append("shotresult", v);
-    if (subFilters.isaftertimeout) params.set("isaftertimeout", "true");
-    if (subFilters.isbuzzerbeater) params.set("isbuzzerbeater", "true");
+    if (subFilters.isaftertimeout) params.set("isATO", "true");
+    if (subFilters.isbuzzerbeater) params.set("isBuzzerBeater", "true");
     if (subFilters.shotdistancemin != null) params.set("shotdistancemin", String(subFilters.shotdistancemin));
     if (subFilters.shotdistancemax != null) params.set("shotdistancemax", String(subFilters.shotdistancemax));
     const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
