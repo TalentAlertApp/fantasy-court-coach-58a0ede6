@@ -307,16 +307,19 @@ function NBAPlaySearchSection() {
   })();
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/40 border-b border-border">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <span className="text-xs font-heading font-bold uppercase tracking-wider">NBA Play Search</span>
-        <span className="text-[10px] text-muted-foreground ml-2 inline-flex items-center gap-1">
-          Search play-by-play clips on NBAPlayDB — results open in a new tab
-          <ExternalLink className="h-3 w-3" />
-        </span>
-      </div>
-      <div className="p-4 space-y-4">
+    <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
+      <SectionHeader
+        tone="blue"
+        icon={<Search className="h-4 w-4" />}
+        title="NBA Play Search"
+        meta={
+          <span className="inline-flex items-center gap-1 normal-case tracking-normal">
+            Play-by-play clips on NBAPlayDB · opens in a new tab
+            <ExternalLink className="h-3 w-3" />
+          </span>
+        }
+      />
+      <div className="p-5 space-y-4">
         <Tabs defaultValue="action">
           <TabsList className="rounded-lg grid grid-cols-2 w-full max-w-md mx-auto">
             <TabsTrigger value="action" className="font-heading text-xs uppercase rounded-lg">🏀 Player Action</TabsTrigger>
