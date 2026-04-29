@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw, Link2, Lightbulb } from "lucide-react";
 import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,6 +25,7 @@ import PlaySubFilters from "@/components/advanced/PlaySubFilters";
 import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@/lib/play-filter-config";
 import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -32,6 +33,27 @@ const TEAM_NAME: Record<string, string> = Object.fromEntries(
 
 function normalize(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+/** Decode an `nbaps=...` hash payload into search state. Returns null if missing/invalid. */
+function readSearchFromUrl(): { actionPlayer: string; actionTypes: string[]; subFilters: SubFilterState } | null {
+  if (typeof window === "undefined") return null;
+  const hash = window.location.hash.replace(/^#/, "");
+  const params = new URLSearchParams(hash);
+  const enc = params.get("nbaps");
+  if (!enc) return null;
+  try {
+    const json = decodeURIComponent(escape(atob(enc)));
+    const payload = JSON.parse(json) as { p?: string; a?: string[]; sf?: Partial<SubFilterState> };
+    const sf: SubFilterState = { ...EMPTY_SUBFILTERS, ...(payload.sf ?? {}) };
+    return {
+      actionPlayer: payload.p ?? "",
+      actionTypes: Array.isArray(payload.a) ? payload.a : [],
+      subFilters: sf,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function PlayerCombobox({
@@ -152,10 +174,12 @@ function PlayerCombobox({
 }
 
 function NBAPlaySearchSection() {
-  const [actionPlayer, setActionPlayer] = useState("");
-  const [actionTypes, setActionTypes] = useState<string[]>([]);
+  // Hydrate from URL hash (?nbaps=...) so shared "Copy link" URLs reopen the same search.
+  const initialFromUrl = useMemo(() => readSearchFromUrl(), []);
+  const [actionPlayer, setActionPlayer] = useState(initialFromUrl?.actionPlayer ?? "");
+  const [actionTypes, setActionTypes] = useState<string[]>(initialFromUrl?.actionTypes ?? []);
   const [actionPopoverOpen, setActionPopoverOpen] = useState(false);
-  const [subFilters, setSubFilters] = useState<SubFilterState>(EMPTY_SUBFILTERS);
+  const [subFilters, setSubFilters] = useState<SubFilterState>(initialFromUrl?.subFilters ?? EMPTY_SUBFILTERS);
 
   const ACTION_TYPES = [
     { value: "rebound", label: "Rebound" },
@@ -306,6 +330,43 @@ function NBAPlaySearchSection() {
     return `${first} +${actionTypes.length - 1}`;
   })();
 
+  // Heuristic: warn when the active filter combo is likely too narrow on NBAPlayDB.
+  const restrictiveScore = useMemo(() => {
+    let s = 0;
+    if (actionTypes.length > 0) s += 1;
+    s += subFilters.qualifiers.length;
+    s += subFilters.subtype.length;
+    s += subFilters.area.length;
+    if (subFilters.shotresult.length) s += 1;
+    if (subFilters.isaftertimeout) s += 1;
+    if (subFilters.isbuzzerbeater) s += 1;
+    return s;
+  }, [actionTypes, subFilters]);
+  const tooNarrow = !!actionPlayer && restrictiveScore >= 5;
+
+  const buildShareUrl = () => {
+    const payload = {
+      p: actionPlayer || undefined,
+      a: actionTypes.length ? actionTypes : undefined,
+      sf: subFilters,
+    };
+    const json = JSON.stringify(payload);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+    const u = new URL(window.location.href);
+    u.hash = `nbaps=${encoded}`;
+    return u.toString();
+  };
+
+  const handleCopyLink = async () => {
+    const url = buildShareUrl();
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied", { description: "Share to reopen this exact search." });
+    } catch {
+      toast.error("Couldn't copy link");
+    }
+  };
+
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
       <SectionHeader
@@ -397,35 +458,86 @@ function NBAPlaySearchSection() {
                   Open Plays on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
                 </Button>
                 <div className="h-8 w-px bg-border mx-1" aria-hidden />
-                <Button
-                  variant="outline"
-                  disabled={
-                    !actionPlayer &&
-                    actionTypes.length === 0 &&
-                    subFilters.qualifiers.length === 0 &&
-                    subFilters.subtype.length === 0 &&
-                    subFilters.area.length === 0 &&
-                    subFilters.shotresult.length === 0 &&
-                    !subFilters.isaftertimeout &&
-                    !subFilters.isbuzzerbeater &&
-                    subFilters.shotdistancemin == null &&
-                    subFilters.shotdistancemax == null
-                  }
-                  onClick={() => {
-                    setActionPlayer("");
-                    setActionTypes([]);
-                    setSubFilters(EMPTY_SUBFILTERS);
-                    toast.success("Filters reset");
-                  }}
-                  className="rounded-lg h-10"
-                >
-                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset filters
-                </Button>
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleCopyLink}
+                        className="rounded-lg h-10 w-10 shrink-0"
+                        aria-label="Copy shareable link"
+                      >
+                        <Link2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Copy link to this exact search</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        disabled={
+                          !actionPlayer &&
+                          actionTypes.length === 0 &&
+                          subFilters.qualifiers.length === 0 &&
+                          subFilters.subtype.length === 0 &&
+                          subFilters.area.length === 0 &&
+                          subFilters.shotresult.length === 0 &&
+                          !subFilters.isaftertimeout &&
+                          !subFilters.isbuzzerbeater &&
+                          subFilters.shotdistancemin == null &&
+                          subFilters.shotdistancemax == null
+                        }
+                        onClick={() => {
+                          setActionPlayer("");
+                          setActionTypes([]);
+                          setSubFilters(EMPTY_SUBFILTERS);
+                          toast.success("Filters reset");
+                        }}
+                        className="rounded-lg h-10 w-10 shrink-0"
+                        aria-label="Reset filters"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reset all filters (player + actions + refinements)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
             <p className="text-[10px] text-muted-foreground">
               Player + selected action types open as Play Filters on NBAPlayDB.
             </p>
+            {tooNarrow && (
+              <div className="flex items-start gap-2 rounded-lg border border-[hsl(var(--nba-yellow))]/40 bg-[hsl(var(--nba-yellow))]/10 p-3">
+                <Lightbulb className="h-4 w-4 text-[hsl(var(--nba-yellow))] shrink-0 mt-0.5" />
+                <div className="space-y-1 text-[11px] leading-relaxed">
+                  <div className="font-heading font-bold uppercase tracking-wider text-[10px] text-[hsl(var(--nba-yellow))]">
+                    No plays? Try widening your search
+                  </div>
+                  <ul className="text-muted-foreground list-disc pl-4 space-y-0.5">
+                    {(subFilters.isaftertimeout || subFilters.isbuzzerbeater) && (
+                      <li>Turn off <span className="text-foreground font-medium">After Timeout</span> / <span className="text-foreground font-medium">Buzzer Beater</span> — these are rare events.</li>
+                    )}
+                    {(subFilters.shotdistancemin != null || subFilters.shotdistancemax != null) && (
+                      <li>Widen the <span className="text-foreground font-medium">shot distance</span> range or reset it.</li>
+                    )}
+                    {subFilters.area.length > 0 && (
+                      <li>Select fewer <span className="text-foreground font-medium">court areas</span> — or clear them to include all.</li>
+                    )}
+                    {subFilters.subtype.length > 2 && (
+                      <li>Reduce the <span className="text-foreground font-medium">subtype</span> chips you've activated.</li>
+                    )}
+                    {subFilters.qualifiers.length > 2 && (
+                      <li>Reduce the <span className="text-foreground font-medium">qualifiers</span> chips you've activated.</li>
+                    )}
+                    <li>Or use <span className="text-foreground font-medium">Reset filters</span> and start fresh.</li>
+                  </ul>
+                </div>
+              </div>
+            )}
             <PlaySubFilters
               actions={actionTypes as ActionType[]}
               value={subFilters}
