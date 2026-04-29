@@ -396,17 +396,30 @@ function NBAPlaySearchSection() {
                 >
                   Open Plays on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
                 </Button>
+                <div className="h-8 w-px bg-border mx-1" aria-hidden />
                 <Button
-                  variant="ghost"
-                  disabled={!actionPlayer && actionTypes.length === 0}
+                  variant="outline"
+                  disabled={
+                    !actionPlayer &&
+                    actionTypes.length === 0 &&
+                    subFilters.qualifiers.length === 0 &&
+                    subFilters.subtype.length === 0 &&
+                    subFilters.area.length === 0 &&
+                    subFilters.shotresult.length === 0 &&
+                    !subFilters.isaftertimeout &&
+                    !subFilters.isbuzzerbeater &&
+                    subFilters.shotdistancemin == null &&
+                    subFilters.shotdistancemax == null
+                  }
                   onClick={() => {
                     setActionPlayer("");
                     setActionTypes([]);
                     setSubFilters(EMPTY_SUBFILTERS);
+                    toast.success("Filters reset");
                   }}
                   className="rounded-lg h-10"
                 >
-                  <X className="h-3.5 w-3.5 mr-1" /> Clear
+                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" /> Reset filters
                 </Button>
               </div>
             </div>
