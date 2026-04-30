@@ -41,16 +41,17 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
 
   const header = (
     <TableHeader>
-      <TableRow>
-        <TableHead>Player</TableHead>
-        <TableHead className="text-center w-16">HT</TableHead>
-        <TableHead className="w-32">College</TableHead>
-        <TableHead className="text-center w-20">FC/BC</TableHead>
-        <TableHead className="text-right w-24">Salary</TableHead>
-        <TableHead className="text-right w-24">FP5</TableHead>
-        <TableHead className="text-right w-24">Value5</TableHead>
-        <TableHead className="text-right w-24">Last FP</TableHead>
-        <TableHead className="text-right w-24">Total FP</TableHead>
+      <TableRow className="hover:bg-transparent border-b-2 border-border/60">
+        <TableHead className="font-heading uppercase tracking-wider text-[10px]">Player</TableHead>
+        <TableHead className="text-center w-20 font-heading uppercase tracking-wider text-[10px]" title="Date of Birth (Age)">DOB (Age)</TableHead>
+        <TableHead className="text-center w-16 font-heading uppercase tracking-wider text-[10px]">HT</TableHead>
+        <TableHead className="w-32 font-heading uppercase tracking-wider text-[10px]">College</TableHead>
+        <TableHead className="text-center w-20 font-heading uppercase tracking-wider text-[10px]">FC/BC</TableHead>
+        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Salary</TableHead>
+        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">FP5</TableHead>
+        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Value5</TableHead>
+        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Last FP</TableHead>
+        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Total FP</TableHead>
         <TableHead className="text-right w-10"></TableHead>
       </TableRow>
     </TableHeader>
@@ -72,14 +73,14 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
 
   return (
     <div className="space-y-4">
-      <div>
-        <div className="section-bar mb-1 rounded-lg">STARTING 5</div>
+      <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
+        <div className="section-bar rounded-none">STARTING 5</div>
         <Table>{header}
           <TableBody>{starters.map(renderRow)}</TableBody>
         </Table>
       </div>
-      <div>
-        <div className="section-bar mb-1 rounded-lg">BENCH</div>
+      <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
+        <div className="section-bar rounded-none">BENCH</div>
         <Table>{header}
           <TableBody>{bench.map(renderRow)}</TableBody>
         </Table>
