@@ -110,15 +110,55 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              {team && <img src={team.logo} alt={team.name} className="w-10 h-10" />}
-              <DialogTitle className="font-heading uppercase">{team?.name ?? tricode}</DialogTitle>
+        <DialogContent className="max-w-lg rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+          {/* Premium Header — full-bleed gradient, oversized rotated logo watermark, KPI pills */}
+          <DialogHeader className="relative overflow-hidden border-b border-border/50 px-5 pt-5 pb-4 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shrink-0">
+            {team && (
+              <>
+                {/* Blurred parallax backdrop */}
+                <img
+                  src={team.logo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -top-12 -right-12 h-56 w-56 object-contain opacity-[0.18] rotate-12 select-none blur-[1px]"
+                />
+                {/* Subtle radial accent */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 opacity-60"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 100% 0%, hsl(var(--primary) / 0.18) 0%, transparent 60%)",
+                  }}
+                />
+              </>
+            )}
+            <div className="relative z-10 flex items-center gap-3">
+              {team && (
+                <div className="shrink-0 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 p-1.5 shadow-[0_4px_16px_-6px_hsl(var(--primary)/0.4)]">
+                  <img src={team.logo} alt={team.name} className="w-12 h-12 object-contain" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="font-heading uppercase tracking-wide text-base leading-tight truncate">
+                  {team?.name ?? tricode}
+                </DialogTitle>
+                <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
+                    <span className="text-foreground font-bold">{played.length}</span> GP
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
+                    <span className="text-foreground font-bold">{sortedRoster.length}</span> roster
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
+                    <span className="text-foreground font-bold">{upcoming.length}</span> upcoming
+                  </span>
+                </div>
+              </div>
             </div>
           </DialogHeader>
 
-          <Tabs defaultValue="played" className="flex-1 min-h-0 flex flex-col">
+          <Tabs defaultValue="played" className="flex-1 min-h-0 flex flex-col px-4 pb-4 pt-3">
             <TabsList className="rounded-lg shrink-0">
               <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-lg">Played ({played.length})</TabsTrigger>
               <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-lg">Upcoming ({upcoming.length})</TabsTrigger>

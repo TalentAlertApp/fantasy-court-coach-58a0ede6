@@ -1,0 +1,1 @@
+alter table public.players add column if not exists guaranteed_yearly_salary bigint; alter table public.players add column if not exists total_contract_value bigint; alter table public.players add column if not exists contract_end_year smallint;

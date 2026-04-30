@@ -40,6 +40,7 @@ interface Props {
 export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMin, distanceMax, actions }: Props) {
   const bounds = distanceBoundsFor(actions);
   const showDistance = bounds !== null;
+  const hasSelection = selectedAreas.length > 0;
 
   // Concentric arcs from basket. Map feet → pixels: ~5px/ft vertical, ~7.5px/ft horizontal.
   const arcs = useMemo(() => {
@@ -57,8 +58,15 @@ export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMi
   const cy = 30;
 
   return (
-    <div className="relative w-full aspect-[15/8] rounded-lg overflow-hidden border border-border bg-muted/30">
+    <div className="space-y-1.5">
+    <div className="relative w-full aspect-[15/8] rounded-lg overflow-hidden border border-border bg-muted/30 group">
       <img src={courtBg} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover opacity-50 select-none" draggable={false} />
+      {/* Hint chip — fades out once user has made a selection */}
+      <div
+        className={`pointer-events-none absolute top-2 left-2 z-10 inline-flex items-center gap-1 rounded-md border border-[hsl(var(--nba-yellow))]/40 bg-background/80 backdrop-blur-sm px-2 py-0.5 text-[9px] font-heading uppercase tracking-wider text-[hsl(var(--nba-yellow))] shadow-sm transition-opacity ${hasSelection ? "opacity-0" : "opacity-100"}`}
+      >
+        Tap zones to filter
+      </div>
       <svg viewBox="0 0 600 320" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
         {/* Distance arc bands underlay */}
         {showDistance && arcs.map((ft, i) => {
@@ -103,7 +111,7 @@ export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMi
               stroke="hsl(var(--nba-yellow))"
               strokeOpacity={selected ? 0.9 : 0.25}
               strokeWidth={selected ? 1.5 : 0.75}
-              className="cursor-pointer transition-all hover:fill-opacity-25"
+              className={`cursor-pointer transition-all hover:fill-opacity-25 ${!hasSelection ? "court-zone-pulse" : ""}`}
               onClick={() => onToggleArea(zone)}
             >
               <title>{zone}</title>
@@ -111,6 +119,10 @@ export default function PlayCourtZones({ selectedAreas, onToggleArea, distanceMi
           );
         })}
       </svg>
+    </div>
+    <p className="text-[10px] text-muted-foreground text-center">
+      Click a zone on the court to filter by area. {showDistance && "Yellow rings show shot distance."}
+    </p>
     </div>
   );
 }

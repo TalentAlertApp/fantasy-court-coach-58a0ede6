@@ -26,6 +26,17 @@ import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@
 import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import ShareSearchDialog from "@/components/advanced/ShareSearchDialog";
+
+const PUBLIC_ORIGIN = "https://hoopsfantasy.app";
+/** Build a clean canonical share URL on hoopsfantasy.app — never the lovable preview host. */
+function getShareOrigin(): string {
+  if (typeof window === "undefined") return PUBLIC_ORIGIN;
+  const host = window.location.hostname;
+  // Use current origin only if user is on a hoopsfantasy.app domain; otherwise canonical.
+  if (host.endsWith("hoopsfantasy.app")) return window.location.origin;
+  return PUBLIC_ORIGIN;
+}
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
   NBA_TEAMS.map((t) => [t.tricode, t.name]),
@@ -352,23 +363,40 @@ function NBAPlaySearchSection() {
     };
     const json = JSON.stringify(payload);
     const encoded = btoa(unescape(encodeURIComponent(json)));
-    const u = new URL(window.location.href);
+    const u = new URL(`${getShareOrigin()}/advanced`);
     u.hash = `nbaps=${encoded}`;
     return u.toString();
   };
 
-  const handleCopyLink = async () => {
-    const url = buildShareUrl();
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link copied", { description: "Share to reopen this exact search." });
-    } catch {
-      toast.error("Couldn't copy link");
-    }
+  const [shareOpen, setShareOpen] = useState(false);
+  const handleCopyLink = () => setShareOpen(true);
+  const buildNbaPlayDbUrl = (): string | null => {
+    if (!actionPlayer && actionTypes.length === 0) return null;
+    const params = new URLSearchParams();
+    if (actionPlayer) params.set("actionplayer", actionPlayer);
+    for (const t of actionTypes) params.append("actiontype", t);
+    for (const v of subFilters.qualifiers) params.append("qualifiers", v);
+    for (const v of subFilters.subtype) params.append("subtype", v);
+    for (const v of subFilters.area) params.append("area", v);
+    for (const v of subFilters.shotresult) params.append("shotresult", v);
+    if (subFilters.isaftertimeout) params.set("isATO", "true");
+    if (subFilters.isbuzzerbeater) params.set("isBuzzerBeater", "true");
+    if (subFilters.shotdistancemin != null) params.set("shotdistancemin", String(subFilters.shotdistancemin));
+    if (subFilters.shotdistancemax != null) params.set("shotdistancemax", String(subFilters.shotdistancemax));
+    return `https://www.nbaplaydb.com/search?${params.toString()}`;
   };
 
   return (
     <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
+      <ShareSearchDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        shareUrl={buildShareUrl()}
+        nbaPlayDbUrl={buildNbaPlayDbUrl()}
+        actionPlayer={actionPlayer}
+        actionTypes={actionTypes}
+        subFilters={subFilters}
+      />
       <SectionHeader
         tone="blue"
         icon={<Search className="h-4 w-4" />}

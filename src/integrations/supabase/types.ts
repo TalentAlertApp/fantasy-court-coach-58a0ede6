@@ -278,6 +278,7 @@ export type Database = {
           blk: number
           blk5: number
           college: string | null
+          contract_end_year: number | null
           delta_fp: number
           delta_mpg: number
           dob: string | null
@@ -293,6 +294,7 @@ export type Database = {
           fta: number | null
           ftm: number | null
           gp: number
+          guaranteed_yearly_salary: number | null
           height: string | null
           id: number
           injury: string | null
@@ -317,6 +319,7 @@ export type Database = {
           stocks: number
           stocks5: number
           team: string
+          total_contract_value: number | null
           tov: number | null
           tp_pct: number | null
           tpa: number | null
@@ -333,6 +336,7 @@ export type Database = {
           blk?: number
           blk5?: number
           college?: string | null
+          contract_end_year?: number | null
           delta_fp?: number
           delta_mpg?: number
           dob?: string | null
@@ -348,6 +352,7 @@ export type Database = {
           fta?: number | null
           ftm?: number | null
           gp?: number
+          guaranteed_yearly_salary?: number | null
           height?: string | null
           id: number
           injury?: string | null
@@ -372,6 +377,7 @@ export type Database = {
           stocks?: number
           stocks5?: number
           team: string
+          total_contract_value?: number | null
           tov?: number | null
           tp_pct?: number | null
           tpa?: number | null
@@ -388,6 +394,7 @@ export type Database = {
           blk?: number
           blk5?: number
           college?: string | null
+          contract_end_year?: number | null
           delta_fp?: number
           delta_mpg?: number
           dob?: string | null
@@ -403,6 +410,7 @@ export type Database = {
           fta?: number | null
           ftm?: number | null
           gp?: number
+          guaranteed_yearly_salary?: number | null
           height?: string | null
           id?: number
           injury?: string | null
@@ -427,6 +435,7 @@ export type Database = {
           stocks?: number
           stocks5?: number
           team?: string
+          total_contract_value?: number | null
           tov?: number | null
           tp_pct?: number | null
           tpa?: number | null
