@@ -26,10 +26,22 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
   const teamLogo = getTeamLogo(core.team);
   const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
 
+  const dobLabel = (() => {
+    if (!core.dob) return "—";
+    try {
+      const d = new Date(core.dob);
+      if (isNaN(d.getTime())) return "—";
+      const dd = String(d.getDate()).padStart(2, "0");
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const yy = String(d.getFullYear()).slice(2);
+      return `${dd}/${mm}/${yy}`;
+    } catch { return "—"; }
+  })();
+
   return (
     <TableRow
       onClick={onClick}
-      className="cursor-pointer hover:bg-muted/50 group"
+      className="cursor-pointer transition-colors hover:bg-primary/5 group border-b border-border/40"
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -42,20 +54,24 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing flex-shrink-0" />
           )}
           {core.photo ? (
-            <img src={core.photo} alt={core.name} className="w-10 h-10 rounded-lg object-cover bg-muted" />
+            <img src={core.photo} alt={core.name} className="w-10 h-10 rounded-lg object-cover bg-muted ring-1 ring-border/60 group-hover:ring-primary/40 transition" />
           ) : (
             <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
               {core.name.substring(0, 2).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-sm font-heading font-semibold uppercase leading-tight">{core.name}</p>
+            <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors">{core.name}</p>
             <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
               <span>{core.team}</span>
               {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
             </p>
           </div>
         </div>
+      </TableCell>
+      <TableCell className="text-center w-20 font-mono text-[11px] text-muted-foreground tabular-nums">
+        <span className="block leading-none">{dobLabel}</span>
+        <span className="block text-[9px] text-muted-foreground/70 mt-0.5">({core.age || "—"})</span>
       </TableCell>
       <TableCell className="text-center w-16 font-mono text-xs text-muted-foreground">{core.height ?? "—"}</TableCell>
       <TableCell className="w-32 text-xs text-muted-foreground truncate max-w-[8rem]" title={core.college ?? undefined}>
@@ -66,11 +82,11 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           {core.fc_bc}
         </Badge>
       </TableCell>
-      <TableCell className="text-right font-mono text-sm w-24">${core.salary}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24">{last5.fp5.toFixed(1)}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24">{computed.value5.toFixed(2)}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24">{lastGame.fp.toFixed(1)}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24 font-bold">{Number(totalFp).toFixed(0)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">${core.salary}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">{last5.fp5.toFixed(1)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">{computed.value5.toFixed(2)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">{lastGame.fp.toFixed(1)}</TableCell>
+      <TableCell className="text-right font-mono text-sm w-24 font-bold tabular-nums text-foreground">{Number(totalFp).toFixed(0)}</TableCell>
       <TableCell className="text-right">
         {onSwap && (
           <Button
