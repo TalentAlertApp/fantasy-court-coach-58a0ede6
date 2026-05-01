@@ -15,6 +15,8 @@ import PlayerCompareModal from "@/components/PlayerCompareModal";
 import { useWishlist } from "@/hooks/useWishlist";
 import nbaLogo from "@/assets/nba-logo.svg";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import BallersIQPlayerVerdict from "@/components/ballers-iq/BallersIQPlayerVerdict";
+import { getBallersIQInsights } from "@/lib/ballers-iq";
 
 function BreakdownCard({ data }: { data: any }) {
   const [view, setView] = useState<"season" | "lastGame">("season");
@@ -206,6 +208,23 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
 
               {/* FP Breakdown */}
               <BreakdownCard data={data} />
+
+              {/* Ballers.IQ Verdict — grounded in app data */}
+              {(() => {
+                const c = data.player.core as any;
+                const s = (data.player as any).stats ?? {};
+                const verdict = getBallersIQInsights("player", {
+                  player: {
+                    id: c.id, name: c.name, team: c.team, fc_bc: c.fc_bc, salary: c.salary,
+                    fp_pg5: s.fp_pg5, fp_pg_t: s.fp_pg_t, value5: s.value5,
+                    mpg: s.mpg, mpg5: s.mpg5, stl5: s.stl5, blk5: s.blk5, ast5: s.ast5,
+                    delta_fp: s.delta_fp, delta_mpg: s.delta_mpg, injury: c.injury,
+                  },
+                });
+                return verdict.insights[0] ? (
+                  <BallersIQPlayerVerdict insight={verdict.insights[0]} />
+                ) : null;
+              })()}
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
                 <TabsList className="rounded-lg shrink-0">
