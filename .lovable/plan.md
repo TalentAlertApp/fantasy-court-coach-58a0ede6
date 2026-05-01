@@ -1,80 +1,115 @@
-# Plan — /advanced premium polish + Welcome Back Continue + URL param fixes
 
-## 1. Fix NBAPlayDB URL params (bug)
+# Plan — Photo fixes, Recap cleanup & Ballers.IQ AI insight layer
 
-`src/pages/AdvancedPage.tsx` (`handleActionOpen`):
-- Replace `params.set("isaftertimeout", "true")` with `params.set("isATO", "true")`.
-- Replace `params.set("isbuzzerbeater", "true")` with `params.set("isBuzzerBeater", "true")`.
-- These are the exact param keys NBAPlayDB expects (case-sensitive).
+## 0) Player photos — natural proportion everywhere
 
-The `+` vs `%20` encoding difference in the example URLs is normal `URLSearchParams` behavior and is accepted server-side — no change needed there.
+**Root cause:** `AvatarImage` (radix) uses `aspect-square h-full w-full` with no `object-fit`. NBA headshots are wider than tall, so they get squished. In `PlayerRow.tsx` the `<img>` uses `object-cover` on a 10×10 square, which crops the head.
 
-## 2. NBA Play Search "Reset filters" action
+**Fix:** Treat headshots as portrait crops anchored to the top of the head.
 
-In the Player Action tab toolbar (`src/pages/AdvancedPage.tsx`):
-- Replace the existing tiny ghost "Clear" with a clearer **Reset filters** button: outline variant, `RotateCcw` icon, label "Reset filters", always enabled when any of `actionPlayer`, `actionTypes`, or any non-empty `subFilters` field is set.
-- Resets `actionPlayer`, `actionTypes`, and `subFilters` to `EMPTY_SUBFILTERS` in one click.
-- Place it inline at the right of the action row, separated by a subtle vertical divider so it's visually distinct from the primary "Open Plays on NBAPlayDB" CTA.
+- Update `src/components/ui/avatar.tsx` → `AvatarImage` default classes to `aspect-square h-full w-full object-cover object-top`.
+- Update `src/components/PlayerRow.tsx` photo `<img>` → add `object-top` (keep `object-cover`) and a tiny scale so face shows: `object-cover object-top scale-110`.
+- Apply the same `object-cover object-top` to:
+  - `src/components/RosterListView.tsx` (list rows)
+  - `src/components/transactions/RosterPane.tsx` (Avatar usage already inherits the fix)
+  - `src/components/GameDetailModal.tsx` (Avatar usage inherits)
+  - `src/components/TeamModal.tsx` roster table photos
+  - `src/components/TransactionsTable.tsx` if it renders photos
+- For larger circular avatars (≥ 40px) keep `object-top`; for small chips (≤ 28px) use `object-top scale-[1.15]` so the face isn't tiny.
 
-## 3. Premium /advanced page styling
+Result: across `/`, `/transactions`, `/schedule`, team modal — players show natural head/shoulders, no squish.
 
-Goal: align all 4 tabs with the row-based premium layout already used by the Trends/Trade Report cards, with consistent **blue/red section headers** and **yellow active-tab accents**.
+## 1) `/schedule` Watch Recap — remove green monitor placeholder
 
-### Tabs bar (`AdvancedPage.tsx`)
-- Wrap `TabsList` in a sticky-feel container with subtle border + backdrop blur.
-- Active tab: yellow underline accent + bold heading text (no bg fill). Inactive: muted.
-  - Use `data-[state=active]:border-b-2 data-[state=active]:border-[hsl(var(--nba-yellow))] data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:bg-transparent` and remove the rounded grid pill look.
-- Add a small section-eyebrow below the tabs ("Advanced · NBA insights") for editorial feel.
+In `src/components/ScheduleList.tsx` (lines ~88–116):
+- Remove the green circle + `Tv2` icon block (lines 105–107) and the secondary subtitle (lines 110–112).
+- Keep:
+  - Two team badges (move them from background watermark to foreground at sensible size, e.g. `w-16 h-16`, full opacity, with `@` between them or just spaced).
+  - The `WATCH RECAP` label as the main centered text below the badges.
+- Keep hover state (border highlight) and click-to-expand behavior intact.
 
-### Section headers (consistent across tabs)
-Every panel inside Advanced gets the same header pattern as `TrendTable`:
-- Left band: colored icon + heading.
-- **Blue band** (`bg-primary/10 border-b border-primary/20`, blue icon) for neutral/primary panels: NBA Play Search, Advanced Stats leaders, Trending leaders.
-- **Red band** (`bg-destructive/10 border-b border-destructive/20`, red icon) for negative-direction panels: Decreased Playing Time, Cold Snap, Most Waived (in Trending).
-- **Green band** stays for Increased Playing Time / hot streaks.
-- Right side of each header: small meta chip (e.g. "Through {date}", "Last 5 GP") in muted mono.
+## 2) Ballers.IQ — branded AI insight layer
 
-Apply the new header style by:
-- Updating the inline header in `NBAPlaySearchSection` to use the blue band style.
-- Updating headers inside `AdvancedStatsTab.tsx`, `TrendingTab.tsx`, `LeaderTable.tsx`/`RotatingLeaderCard.tsx` to share a small `<SectionHeader />` helper. New file: `src/components/advanced/SectionHeader.tsx` — props: `tone: "blue"|"red"|"green"|"yellow"`, `icon`, `title`, `meta?`.
+### 2a) Brand assets
+Copy uploaded images into `public/brand/`:
+- `ballers-iq-wordmark-light.png`, `ballers-iq-wordmark-dark.png`
+- `ballers-iq-emblem-light.png`, `ballers-iq-emblem-dark.png`
+- `ballers-iq-app-icon.png`
+- `ballers-iq-badge.png`
 
-### Card body
-- All panels: `border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm`.
-- Row hover: `hover:bg-accent/30` (already used in Trends — propagate to all leaderboard rows).
-- Yellow accent for active-state UI inside panels (selected chips in PlaySubFilters, primary metric values in leaders) using `text-[hsl(var(--nba-yellow))]`.
+### 2b) Insight service (deterministic v1, AI-ready)
 
-### Specific panel touch-ups
-- `NBAPlaySearchSection` body padding bumped to `p-5`, sub-tabs (Player Action / By Game) styled with the same yellow underline accent (transparent bg).
-- `RotatingLeaderCard.tsx` / `LeaderTable.tsx`: header band gets blue tone; tone switches to red for negative-delta categories.
-- `TrendingTab.tsx`: each leader block uses `SectionHeader` with the appropriate tone (blue for V5/FP5, red for Cold Snap, green for hot streaks).
+**New file:** `src/lib/ballers-iq.ts`
 
-## 4. Welcome Back "Continue" button → return to last /advanced tab
+```ts
+export type BallersIQContext = "lineup" | "player" | "game_night" | "recap";
+export type BallersIQAction = "START"|"BENCH"|"CAPTAIN"|"ADD"|"DROP"|"WATCH"|"HOLD"|null;
+export type BallersIQRisk = "LOW"|"MEDIUM"|"HIGH"|null;
+export type BallersIQInsightType =
+  "CAPTAIN"|"LINEUP"|"PLAYER"|"GAME"|"RECAP"|"RISK"|"VALUE"|"FORM"|"MARKET";
 
-### Persist last advanced tab
-- New helper `src/lib/advanced-tab-store.ts` with `getLastAdvancedTab()` / `setLastAdvancedTab(tab)` backed by `localStorage` (key `nbaf:lastAdvancedTab`).
-- In `AdvancedPage.tsx`: use the store as initial value for the Tabs `value` (controlled), and call setter on `onValueChange`.
+export interface BallersIQInsight {
+  type: BallersIQInsightType;
+  title: string;
+  headline: string;
+  bullets: string[];
+  playerIds: number[];
+  confidence: number;   // 0..1
+  action: BallersIQAction;
+  riskLevel: BallersIQRisk;
+}
 
-### Welcome Back hero CTA
-- `src/components/welcome-back/WelcomeBackHero.tsx`: keep the existing "Enter Court" CTA but add a **Continue** button next to it that navigates back to the user's last viewed advanced tab.
-  - Continue is shown only when `getLastAdvancedTab()` returns a value.
-  - Button label: "Continue · {Tab Label}" (e.g. "Continue · NBA Play Search").
-  - Click handler:
-    1. Calls the same session-cleanup as `onEnter` (mark seen, clear last sign-out).
-    2. Navigates to `/advanced` (the page reads the stored tab on mount).
-- Update `WelcomeBackHero` props: add optional `onContinue?: (tab: string) => void`. Wire it from `RequireAuth.tsx` to `navigate("/advanced")` after the same cleanup as `onEnter`.
+export interface BallersIQResponse { summary: string; insights: BallersIQInsight[]; }
 
-### RequireAuth wiring
-- `src/components/auth/RequireAuth.tsx`: pass `onContinue` that performs the same `markWelcomeBackSeenThisSession()` + `clearLastSignOut(user.id)` + `setWelcomeOpen(false)` and then `navigate("/advanced")`.
+export function getBallersIQInsights(
+  context: BallersIQContext,
+  payload: { players?: any[]; roster?: any[]; schedule?: any[]; player?: any; recap?: any }
+): BallersIQResponse;
+```
 
-## Files touched
+Deterministic rules (no API call needed for v1):
+- **lineup:** Captain Edge = roster starter with highest `fp_pg5`. Risk Radar = starters with `injury` flag or `delta_mpg < -3` or no upcoming game. Value Pick = bench player with best `value5`.
+- **player:** action by `delta_fp` (>+3 START, <-3 BENCH/DROP, else HOLD/WATCH); risk from `injury`/minutes volatility.
+- **game_night:** count active roster players in tonight's games; flag late tipoffs; flag starters with no game.
+- **recap:** scan last gameweek's totals — best contributor, captain ROI, missed bench upside.
 
-- edit `src/pages/AdvancedPage.tsx` — URL param fix, Reset filters button, controlled tabs + persistence, premium tab styling, header tones.
-- edit `src/components/advanced/AdvancedStatsTab.tsx` — use `SectionHeader`, blue/red tones.
-- edit `src/components/advanced/TrendingTab.tsx` — same.
-- edit `src/components/advanced/LeaderTable.tsx` and `RotatingLeaderCard.tsx` — adopt `SectionHeader`, yellow accents on key metrics.
-- new  `src/components/advanced/SectionHeader.tsx` — shared band header.
-- new  `src/lib/advanced-tab-store.ts` — last-tab persistence.
-- edit `src/components/welcome-back/WelcomeBackHero.tsx` — add Continue CTA.
-- edit `src/components/auth/RequireAuth.tsx` — pass `onContinue` handler.
+Always grounded in app data only. No fabricated injuries/news.
 
-No backend or schema changes. No new dependencies.
+### 2c) Reusable UI components
+
+All under `src/components/ballers-iq/`:
+
+1. **`BallersIQBrand.tsx`** — props: `variant: "wordmark"|"emblem"|"appIcon"|"badge"`, `size: "sm"|"md"|"lg"`, `themeAware?: boolean`. Picks `-light` vs `-dark` from the active theme via `useTheme()` hook (already in repo) or `prefers-color-scheme` fallback. Heights: sm 16px, md 24px, lg 36px (wordmark); emblem square.
+2. **`BallersIQCard.tsx`** — compact card: emblem (sm) + title + headline + bullets + optional confidence pill + optional action badge (color by action: START=emerald, BENCH=zinc, CAPTAIN=gold, RISK=red).
+3. **`BallersIQPanel.tsx`** — section container: wordmark header + summary + slot for cards. Dark/light theme aware borders & background (`bg-card border-border` for light, `bg-card/60 backdrop-blur` for dark).
+4. **`BallersIQTicker.tsx`** — horizontal scrolling/fading strip of one-liners (CSS marquee, pauses on hover).
+5. **`BallersIQPlayerVerdict.tsx`** — large action label, headline, 2–3 bullets, risk + confidence chips.
+6. **`BallersIQRecapBlock.tsx`** — narrative block: summary, "Best Call", "Missed Edge", "Next Move".
+
+Style tokens: gold = `#c9a84c`/`text-amber-400`, navy = existing `bg-card`. No hard-coded backgrounds that fail in light mode.
+
+### 2d) Integrations (no removals)
+
+- **Lineup page (`src/pages/RosterPage.tsx` / `RosterCourtView`/`RosterSidebar`)**: add a `BallersIQPanel` titled "Ballers.IQ Lineup Advisor" with cards for Captain Edge, Risk Radar, Value Pick. Place in existing right rail (do not overlap court).
+- **Player Modal (`src/components/PlayerModal.tsx`)**: add `BallersIQPlayerVerdict` near the top stats area (after header, before deep stats). Replaces nothing.
+- **Schedule (`src/components/ScheduleList.tsx` / `SchedulePage`)**: add a slim `BallersIQTicker` strip above the day's games + a `BallersIQCard` ("Tonight's Edge") in the side panel.
+- **Scoring/Recap (`src/pages/ScoringPage.tsx`)**: add a `BallersIQRecapBlock` above the detail table.
+- **AI Coach button (`src/components/AICoachModal.tsx` trigger in nav/sidebar)**: keep functionality, but rename label to "Ballers.IQ" and swap the icon to `ballers-iq-app-icon.png`. Inside the modal, add a small `BallersIQBrand variant="wordmark"` header. Existing `ai-coach` edge function untouched.
+
+### 2e) AI wiring (optional v1)
+
+`getBallersIQInsights` first returns deterministic insights. A flag `BALLERS_IQ_USE_AI` (default `false`) can later switch to call the existing `ai-coach` edge function and reshape the JSON to the schema above — no edge-function changes required for v1.
+
+## Acceptance
+
+- Player headshots display with natural head/shoulders framing on `/`, `/transactions`, `/schedule` and team modal.
+- Watch Recap card on `/schedule` shows only team badges + "WATCH RECAP" text; click still expands inline.
+- New `Ballers.IQ` panel/cards/verdict/recap/ticker render in both light & dark themes using the right brand asset.
+- AI Coach functionality preserved; relabeled to Ballers.IQ with new icon.
+- No fabricated data — insights grounded in existing roster/players/schedule/scoring data.
+
+## Files
+
+**New:** `public/brand/*.png` (6 assets), `src/lib/ballers-iq.ts`, `src/components/ballers-iq/{BallersIQBrand,BallersIQCard,BallersIQPanel,BallersIQTicker,BallersIQPlayerVerdict,BallersIQRecapBlock}.tsx`
+
+**Edited:** `src/components/ui/avatar.tsx`, `src/components/PlayerRow.tsx`, `src/components/RosterListView.tsx`, `src/components/TeamModal.tsx`, `src/components/TransactionsTable.tsx` (if applicable), `src/components/ScheduleList.tsx`, `src/pages/RosterPage.tsx`, `src/components/PlayerModal.tsx`, `src/pages/ScoringPage.tsx`, `src/components/AICoachModal.tsx` (+ its trigger in `src/components/layout/AppLayout.tsx`).
