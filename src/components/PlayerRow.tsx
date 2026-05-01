@@ -54,7 +54,11 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing flex-shrink-0" />
           )}
           {core.photo ? (
-            <img src={core.photo} alt={core.name} className="w-10 h-10 rounded-lg object-cover bg-muted ring-1 ring-border/60 group-hover:ring-primary/40 transition" />
+            <img
+              src={core.photo}
+              alt={core.name}
+              className="w-10 h-10 rounded-lg object-cover object-top bg-muted ring-1 ring-border/60 group-hover:ring-primary/40 transition"
+            />
           ) : (
             <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-[10px] font-heading font-bold text-muted-foreground">
               {core.name.substring(0, 2).toUpperCase()}
