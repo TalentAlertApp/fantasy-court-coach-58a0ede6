@@ -29,6 +29,10 @@ import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
 import DraftPicker from "@/components/onboarding/DraftPicker";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
+import BallersIQPanel from "@/components/ballers-iq/BallersIQPanel";
+import BallersIQCard from "@/components/ballers-iq/BallersIQCard";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import { getBallersIQInsights } from "@/lib/ballers-iq";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -396,7 +400,8 @@ export default function RosterPage() {
               onClick={() => setAiCoachOpen(true)}
               className="rounded-xl font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
             >
-              <Bot className="h-3.5 w-3.5 mr-1" />AI Coach
+              <BallersIQBrand variant="appIcon" size="sm" className="mr-1.5 h-4 w-4 rounded" />
+              Ballers.IQ
             </Button>
             <Button
               size="sm"
