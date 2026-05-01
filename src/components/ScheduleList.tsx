@@ -97,20 +97,15 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
       }}
       className="group relative flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-card via-muted/40 to-card border overflow-hidden hover:border-green-500/50 transition-colors"
     >
-      <div className="absolute inset-0 flex items-center justify-center gap-6 opacity-[0.08] group-hover:opacity-[0.15] transition-opacity">
-        {awayLogo && <img src={awayLogo} alt="" className="w-32 h-32" />}
-        {homeLogo && <img src={homeLogo} alt="" className="w-32 h-32" />}
-      </div>
-      <div className="relative z-10 flex flex-col items-center gap-2">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-500/15 border border-green-500/40 group-hover:bg-green-500/25 transition-colors">
-          <Tv2 className="h-7 w-7 text-green-500" />
+      <div className="relative z-10 flex flex-col items-center gap-3">
+        <div className="flex items-center gap-4">
+          {awayLogo && <img src={awayLogo} alt="" className="w-14 h-14 object-contain drop-shadow" />}
+          <span className="font-heading text-xs uppercase text-muted-foreground tracking-wider">@</span>
+          {homeLogo && <img src={homeLogo} alt="" className="w-14 h-14 object-contain drop-shadow" />}
         </div>
-        <div className="text-center">
-          <p className="text-sm font-heading font-bold uppercase tracking-wider">Watch Recap</p>
-          <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 mt-0.5">
-            {nbaBlocked ? "Opened in new tab" : "Click to play inline"}
-          </p>
-        </div>
+        <p className="text-sm font-heading font-bold uppercase tracking-wider text-foreground/90 group-hover:text-green-500 transition-colors">
+          Watch Recap
+        </p>
       </div>
     </button>
   );
