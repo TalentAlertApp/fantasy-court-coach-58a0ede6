@@ -395,14 +395,18 @@ export default function RosterPage() {
             </Badge>
           )}
           <div className="flex items-center gap-2 ml-auto">
-            <Button
-              size="sm"
+            <button
+              type="button"
               onClick={() => setAiCoachOpen(true)}
-              className="rounded-xl font-heading uppercase text-xs bg-accent text-accent-foreground hover:bg-accent/90"
+              aria-label="Open Ballers.IQ"
+              title="Open Ballers.IQ"
+              className="group relative h-10 px-2 rounded-xl overflow-hidden bg-card/40 ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] hover:shadow-[0_6px_28px_-8px_hsl(45_90%_55%/0.85)] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center"
             >
-              <BallersIQBrand variant="appIcon" size="sm" className="mr-1.5 h-4 w-4 rounded" />
-              Ballers.IQ
-            </Button>
+              <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              {/* Dark theme: badge image. Light theme: wordmark-light. */}
+              <BallersIQBrand variant="badge" size="lg" className="hidden dark:block !h-9 w-auto" />
+              <BallersIQBrand variant="wordmark" size="lg" forceTheme="light" className="dark:hidden !h-7 w-auto" />
+            </button>
             <Button
               size="sm"
               variant="outline"
@@ -610,30 +614,35 @@ export default function RosterPage() {
                     totalSalary={totalSalary}
                   />
                 </div>
-                {(() => {
-                  const biqPlayers = [...starters, ...bench].map((p) => ({
-                    id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
-                    salary: p.core.salary, fp_pg5: (p as any).stats?.fp_pg5, fp_pg_t: (p as any).stats?.fp_pg_t,
-                    value5: (p as any).stats?.value5, mpg: (p as any).stats?.mpg, mpg5: (p as any).stats?.mpg5,
-                    stl5: (p as any).stats?.stl5, blk5: (p as any).stats?.blk5, ast5: (p as any).stats?.ast5,
-                    delta_fp: (p as any).stats?.delta_fp, delta_mpg: (p as any).stats?.delta_mpg,
-                    injury: (p as any).core?.injury,
-                  }));
-                  const biqRoster = [
-                    ...starters.map((p, i) => ({ player_id: p.core.id, slot: `S${i + 1}`, is_captain: p.core.id === captainId })),
-                    ...bench.map((p, i) => ({ player_id: p.core.id, slot: `B${i + 1}`, is_captain: false })),
-                  ];
-                  const biq = getBallersIQInsights("lineup", { players: biqPlayers, roster: biqRoster });
-                  return biq.insights.length ? (
-                    <BallersIQPanel title="Lineup Advisor" summary={biq.summary} className="mt-4">
-                      <div className="grid sm:grid-cols-2 gap-2">
-                        {biq.insights.map((ins, i) => <BallersIQCard key={i} insight={ins} />)}
-                      </div>
-                    </BallersIQPanel>
-                  ) : null;
-                })()}
               </>
             )}
+
+            {/* Ballers.IQ Lineup Advisor — visible in BOTH court & list views */}
+            {(() => {
+              if (!starters.length && !bench.length) return null;
+              const biqPlayers = [...starters, ...bench].map((p) => ({
+                id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
+                salary: p.core.salary,
+                fp_pg5: (p as any).last5?.fp5, fp_pg_t: (p as any).season?.fp,
+                value5: (p as any).last5?.value5, mpg: (p as any).season?.mpg,
+                mpg5: (p as any).last5?.mpg5,
+                stl5: (p as any).last5?.stl5, blk5: (p as any).last5?.blk5, ast5: (p as any).last5?.ast5,
+                delta_fp: (p as any).last5?.delta_fp, delta_mpg: (p as any).last5?.delta_mpg,
+                injury: (p.core as any)?.injury,
+              }));
+              const biqRoster = [
+                ...starters.map((p, i) => ({ player_id: p.core.id, slot: `S${i + 1}`, is_captain: p.core.id === captainId })),
+                ...bench.map((p, i) => ({ player_id: p.core.id, slot: `B${i + 1}`, is_captain: false })),
+              ];
+              const biq = getBallersIQInsights("lineup", { players: biqPlayers, roster: biqRoster });
+              return biq.insights.length ? (
+                <BallersIQPanel title="Lineup Advisor" summary={biq.summary} className="mt-4">
+                  <div className="grid sm:grid-cols-2 gap-2">
+                    {biq.insights.map((ins, i) => <BallersIQCard key={i} insight={ins} />)}
+                  </div>
+                </BallersIQPanel>
+              ) : null;
+            })()}
           </div>
 
           <OptimizeDialog open={optimizeOpen} onOpenChange={setOptimizeOpen} result={optimizerResult} onApply={handleApplyOptimization} applying={saveMutation.isPending} />

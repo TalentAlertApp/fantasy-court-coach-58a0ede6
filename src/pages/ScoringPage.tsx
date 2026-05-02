@@ -15,6 +15,9 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer } from "recharts";
+import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
+import { getBallersIQInsights } from "@/lib/ballers-iq";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
@@ -176,6 +179,42 @@ export default function ScoringPage() {
       />
     </div>
   );
+}
+
+// ══════════════════════════════ BALLERS.IQ RECAP BLOCK ══════════════════════════════
+function ScoringRecapBlock({ selectedDay }: { selectedDay: any }) {
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const all = playersData?.items ?? [];
+
+  const dayPlayerIds: number[] = (selectedDay?.players ?? []).map((p: any) => p.player_id);
+  if (!dayPlayerIds.length) return null;
+
+  const captainId: number | null = (selectedDay?.players ?? []).find((p: any) => p.is_captain)?.player_id ?? null;
+
+  const players = all
+    .filter((p: any) => dayPlayerIds.includes(p.core.id))
+    .map((p: any) => ({
+      id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
+      salary: p.core.salary,
+      fp_pg5: p.last5?.fp5, fp_pg_t: p.season?.fp,
+      value5: p.last5?.value5,
+      mpg: p.season?.mpg, mpg5: p.last5?.mpg5,
+      stl5: p.last5?.stl5, blk5: p.last5?.blk5, ast5: p.last5?.ast5,
+      delta_fp: p.last5?.delta_fp, delta_mpg: p.last5?.delta_mpg,
+      injury: p.core?.injury,
+    }));
+  if (!players.length) return null;
+
+  const roster = (selectedDay?.players ?? []).map((p: any, i: number) => ({
+    player_id: p.player_id,
+    slot: p.is_starter ? `S${i + 1}` : `B${i + 1}`,
+    is_captain: p.player_id === captainId,
+  }));
+
+  const recap = { total_fp: selectedDay?.total_fp ?? 0 };
+  const data = getBallersIQInsights("recap", { players, roster, recap });
+  if (!data.insights.length && !data.summary) return null;
+  return <BallersIQRecapBlock data={data} />;
 }
 
 type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
@@ -517,7 +556,9 @@ function YourTeamView({
 
       {/* Game day roster table */}
       {selectedDay && (
-        <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
+        <>
+          <ScoringRecapBlock selectedDay={selectedDay} />
+          <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
             <button onClick={() => navigateDay(-1)} disabled={selectedIdx <= 0} className="p-1 rounded-lg hover:bg-muted disabled:opacity-30">
               <ChevronLeft className="h-5 w-5" />
@@ -633,7 +674,8 @@ function YourTeamView({
               </tbody>
             </table>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Weekly breakdown */}

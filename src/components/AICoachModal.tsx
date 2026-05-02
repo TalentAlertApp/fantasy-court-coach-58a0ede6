@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote } from "lucide-react";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -257,8 +258,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
       <DialogContent className="max-w-3xl rounded-lg max-h-[92vh] h-[92vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 font-heading">
-            <Bot className="h-5 w-5 text-accent" />
-            AI COACH
+            <BallersIQBrand variant="wordmark" size="sm" />
+            <span className="sr-only">Ballers.IQ</span>
           </DialogTitle>
         </DialogHeader>
 
