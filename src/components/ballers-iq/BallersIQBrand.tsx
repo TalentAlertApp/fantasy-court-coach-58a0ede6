@@ -8,6 +8,8 @@ interface Props {
   variant?: BallersIQBrandVariant;
   size?: BallersIQBrandSize;
   themeAware?: boolean;
+  /** Force a specific theme suffix, overriding both themeAware detection and the default. */
+  forceTheme?: "light" | "dark";
   className?: string;
   alt?: string;
 }
@@ -41,11 +43,12 @@ export default function BallersIQBrand({
   variant = "emblem",
   size = "md",
   themeAware = true,
+  forceTheme,
   className,
   alt = "Ballers.IQ",
 }: Props) {
   const dark = useIsDark();
-  const themeSuffix = themeAware ? (dark ? "dark" : "light") : "dark";
+  const themeSuffix = forceTheme ?? (themeAware ? (dark ? "dark" : "light") : "dark");
 
   let src = "";
   let cls = "";
