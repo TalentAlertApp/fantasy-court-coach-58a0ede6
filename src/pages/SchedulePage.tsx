@@ -14,6 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
+import BallersIQTicker from "@/components/ballers-iq/BallersIQTicker";
+import BallersIQCard from "@/components/ballers-iq/BallersIQCard";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { getBallersIQInsights } from "@/lib/ballers-iq";
 
 const MIN_WEEK = 1;
 const MAX_WEEK = 25;
@@ -66,6 +71,47 @@ export default function SchedulePage() {
   const { data: weekCounts } = useScheduleWeekCounts(gw);
   const { data: lastPlayed } = useLastPlayedDay();
   const { hasData: hasPotdData } = useTopPlayersData(gw, day);
+  const { data: rosterData } = useRosterQuery();
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
+
+  // Build Ballers.IQ insights for the selected day's slate
+  const biq = useMemo(() => {
+    const games = data?.games ?? [];
+    const roster = rosterData?.roster;
+    const all = playersData?.items ?? [];
+    if (!games.length || !all.length || !roster) return null;
+    const players = all.map((p: any) => ({
+      id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
+      salary: p.core.salary,
+      fp_pg5: p.last5?.fp5, fp_pg_t: p.season?.fp,
+      value5: p.last5?.value5,
+      mpg: p.season?.mpg, mpg5: p.last5?.mpg5,
+      stl5: p.last5?.stl5, blk5: p.last5?.blk5, ast5: p.last5?.ast5,
+      delta_fp: p.last5?.delta_fp, delta_mpg: p.last5?.delta_mpg,
+      injury: p.core?.injury,
+    }));
+    const rosterSlots = [
+      ...(roster.starters ?? []).filter((id: number) => id > 0).map((id: number, i: number) => ({ player_id: id, slot: `S${i + 1}`, is_captain: id === roster.captain_id })),
+      ...(roster.bench ?? []).filter((id: number) => id > 0).map((id: number, i: number) => ({ player_id: id, slot: `B${i + 1}`, is_captain: false })),
+    ];
+    return getBallersIQInsights("game_night", {
+      players,
+      roster: rosterSlots,
+      schedule: games.map((g: any) => ({
+        game_id: g.game_id, gw: g.gw, day: g.day,
+        away_team: g.away_team, home_team: g.home_team,
+        status: g.status, tipoff_utc: g.tipoff_utc,
+      })),
+    });
+  }, [data?.games, rosterData?.roster, playersData?.items]);
+
+  const tickerItems = useMemo(() => {
+    if (!biq) return [];
+    return biq.insights.slice(0, 5).map((ins) => ({
+      label: ins.title,
+      text: ins.headline,
+    }));
+  }, [biq]);
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
@@ -336,6 +382,17 @@ export default function SchedulePage() {
 
       {/* Games — scrollable */}
       <div className="flex-1 overflow-y-auto">
+        {/* Ballers.IQ ticker + Tonight's Edge */}
+        {tickerItems.length > 0 && (
+          <div className="px-1 mb-2 space-y-2">
+            <BallersIQTicker items={tickerItems} />
+            {biq?.insights[0] && (
+              <div className="hidden md:block">
+                <BallersIQCard insight={biq.insights[0]} compact />
+              </div>
+            )}
+          </div>
+        )}
         {isLoading ? (
           <div className="space-y-2 px-1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
         ) : isError ? (
