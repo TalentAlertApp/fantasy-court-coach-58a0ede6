@@ -405,7 +405,7 @@ export default function RosterPage() {
               <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
               {/* Dark theme: badge image. Light theme: wordmark-light. */}
               <BallersIQBrand variant="badge" size="lg" className="hidden dark:block !h-9 w-auto" />
-              <BallersIQBrand variant="wordmark" size="lg" themeAware={false} className="dark:hidden !h-7 w-auto" />
+              <BallersIQBrand variant="wordmark" size="lg" forceTheme="light" className="dark:hidden !h-7 w-auto" />
             </button>
             <Button
               size="sm"
