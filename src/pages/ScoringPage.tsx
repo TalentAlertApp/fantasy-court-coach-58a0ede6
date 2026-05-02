@@ -181,6 +181,42 @@ export default function ScoringPage() {
   );
 }
 
+// ══════════════════════════════ BALLERS.IQ RECAP BLOCK ══════════════════════════════
+function ScoringRecapBlock({ selectedDay }: { selectedDay: any }) {
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const all = playersData?.items ?? [];
+
+  const dayPlayerIds: number[] = (selectedDay?.players ?? []).map((p: any) => p.player_id);
+  if (!dayPlayerIds.length) return null;
+
+  const captainId: number | null = (selectedDay?.players ?? []).find((p: any) => p.is_captain)?.player_id ?? null;
+
+  const players = all
+    .filter((p: any) => dayPlayerIds.includes(p.core.id))
+    .map((p: any) => ({
+      id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
+      salary: p.core.salary,
+      fp_pg5: p.last5?.fp5, fp_pg_t: p.season?.fp,
+      value5: p.last5?.value5,
+      mpg: p.season?.mpg, mpg5: p.last5?.mpg5,
+      stl5: p.last5?.stl5, blk5: p.last5?.blk5, ast5: p.last5?.ast5,
+      delta_fp: p.last5?.delta_fp, delta_mpg: p.last5?.delta_mpg,
+      injury: p.core?.injury,
+    }));
+  if (!players.length) return null;
+
+  const roster = (selectedDay?.players ?? []).map((p: any, i: number) => ({
+    player_id: p.player_id,
+    slot: p.is_starter ? `S${i + 1}` : `B${i + 1}`,
+    is_captain: p.player_id === captainId,
+  }));
+
+  const recap = { total_fp: selectedDay?.total_fp ?? 0 };
+  const data = getBallersIQInsights("recap", { players, roster, recap });
+  if (!data.insights.length && !data.summary) return null;
+  return <BallersIQRecapBlock data={data} />;
+}
+
 type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
 
 // ══════════════════════════════ LEAGUE VIEW ══════════════════════════════
