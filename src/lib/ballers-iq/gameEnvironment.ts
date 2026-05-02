@@ -31,7 +31,7 @@ export function calculateFantasyEnvironmentScore(
 
   const score = scale100(paceScore * 0.6 + exposureScore * 0.4);
 
-  let label = labelByThreshold(
+  let label: BIQEnvironment["label"] = labelByThreshold(
     score,
     [
       { min: 85, label: "Fantasy Shootout" as const },
