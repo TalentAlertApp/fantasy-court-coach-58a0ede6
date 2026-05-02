@@ -15,6 +15,9 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer } from "recharts";
+import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
+import { getBallersIQInsights } from "@/lib/ballers-iq";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
@@ -517,7 +520,9 @@ function YourTeamView({
 
       {/* Game day roster table */}
       {selectedDay && (
-        <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
+        <>
+          <ScoringRecapBlock selectedDay={selectedDay} />
+          <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
             <button onClick={() => navigateDay(-1)} disabled={selectedIdx <= 0} className="p-1 rounded-lg hover:bg-muted disabled:opacity-30">
               <ChevronLeft className="h-5 w-5" />
@@ -633,7 +638,8 @@ function YourTeamView({
               </tbody>
             </table>
           </div>
-        </div>
+          </div>
+        </>
       )}
 
       {/* Weekly breakdown */}
