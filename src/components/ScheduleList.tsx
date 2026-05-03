@@ -1127,18 +1127,33 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
 
                 {/* Inline player blurb — centered between teams and actions */}
                 <div className="relative z-10 flex-1 min-w-0 px-3 self-stretch flex items-center justify-center">
-                  {isFinal && (
-                    <GameCardBlurb
-                      kind="outstanding"
-                      text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
-                    />
-                  )}
-                  {isScheduled && (
-                    <GameCardBlurb
-                      kind="watch"
-                      text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
-                    />
-                  )}
+                  {isFinal && (() => {
+                    const box = boxscoreById[g.game_id] ?? [];
+                    const a = pickGameLeader(box, g.away_team);
+                    const h = pickGameLeader(box, g.home_team);
+                    return (
+                      <GameCardBlurb
+                        kind="outstanding"
+                        text={buildOutstandingBlurb(box, g.away_team, g.home_team)}
+                        awayPhoto={(a as any)?.photo} awayPlayerId={a?.player_id ?? null}
+                        homePhoto={(h as any)?.photo} homePlayerId={h?.player_id ?? null}
+                        onPlayerClick={setSelectedPlayerId}
+                      />
+                    );
+                  })()}
+                  {isScheduled && (() => {
+                    const a = pickWatchLeader(playerItems, g.away_team);
+                    const h = pickWatchLeader(playerItems, g.home_team);
+                    return (
+                      <GameCardBlurb
+                        kind="watch"
+                        text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                        awayPhoto={a?.core.photo ?? null} awayPlayerId={a?.core.id ?? null}
+                        homePhoto={h?.core.photo ?? null} homePlayerId={h?.core.id ?? null}
+                        onPlayerClick={setSelectedPlayerId}
+                      />
+                    );
+                  })()}
                 </div>
 
                 {/* Right: action icons */}
