@@ -155,6 +155,26 @@ export default function RosterPage() {
   const bcStarters = starters.filter((p) => p.core.fc_bc === "BC").length;
   const totalSalary = [...starters, ...bench].reduce((s, p) => s + p.core.salary, 0);
 
+  // Ballers.IQ Lineup Advisor — computed up here so the toggle button (court) and inline panel (list) share it.
+  const biqAdvisor = useMemo(() => {
+    if (!starters.length && !bench.length) return null;
+    const biqPlayers = [...starters, ...bench].map((p) => ({
+      id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
+      salary: p.core.salary,
+      fp_pg5: (p as any).last5?.fp5, fp_pg_t: (p as any).season?.fp,
+      value5: (p as any).last5?.value5, mpg: (p as any).season?.mpg,
+      mpg5: (p as any).last5?.mpg5,
+      stl5: (p as any).last5?.stl5, blk5: (p as any).last5?.blk5, ast5: (p as any).last5?.ast5,
+      delta_fp: (p as any).last5?.delta_fp, delta_mpg: (p as any).last5?.delta_mpg,
+      injury: (p.core as any)?.injury,
+    }));
+    const biqRoster = [
+      ...starters.map((p, i) => ({ player_id: p.core.id, slot: `S${i + 1}`, is_captain: p.core.id === captainId })),
+      ...bench.map((p, i) => ({ player_id: p.core.id, slot: `B${i + 1}`, is_captain: false })),
+    ];
+    return getBallersIQInsights("lineup", { players: biqPlayers, roster: biqRoster });
+  }, [starters, bench, captainId]);
+
   useMemo(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
   }, [roster?.captain_id, captainId]);
