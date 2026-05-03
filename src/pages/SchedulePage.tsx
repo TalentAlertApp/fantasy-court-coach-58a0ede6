@@ -15,7 +15,6 @@ import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import BallersIQTicker from "@/components/ballers-iq/BallersIQTicker";
-import BallersIQCard from "@/components/ballers-iq/BallersIQCard";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
