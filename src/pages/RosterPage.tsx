@@ -611,6 +611,12 @@ export default function RosterPage() {
                 <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
               </div>
             )}
+            {/* Lineup Advisor — court mode: absolute overlay matching schedule preview behaviour */}
+            {advisorOpen && viewMode === "court" && biqAdvisor && (
+              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm rounded-xl shadow-2xl max-h-[520px] overflow-auto animate-accordion-down">
+                <LineupAdvisorPanel data={biqAdvisor} onClose={() => setAdvisorOpen(false)} />
+              </div>
+            )}
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}
@@ -635,47 +641,29 @@ export default function RosterPage() {
             ) : (
               <>
                 <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-                <div className="mt-4">
-                  <RosterSidebar
-                    gw={currentGameday.gw}
-                    day={currentGameday.day}
-                    teamId={selectedTeamId ?? undefined}
-                    bankRemaining={roster?.bank_remaining ?? 0}
-                    freeTransfers={roster?.free_transfers_remaining ?? 0}
-                    fcStarters={fcStarters}
-                    bcStarters={bcStarters}
-                    totalSalary={totalSalary}
-                  />
+                {/* List view: Roster Info + Lineup Advisor side-by-side, equal width & height */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                  <div className="h-full">
+                    <RosterSidebar
+                      gw={currentGameday.gw}
+                      day={currentGameday.day}
+                      teamId={selectedTeamId ?? undefined}
+                      bankRemaining={roster?.bank_remaining ?? 0}
+                      freeTransfers={roster?.free_transfers_remaining ?? 0}
+                      fcStarters={fcStarters}
+                      bcStarters={bcStarters}
+                      totalSalary={totalSalary}
+                    />
+                  </div>
+                  <div className="h-full">
+                    {biqAdvisor && biqAdvisor.insights.length > 0 ? (
+                      <LineupAdvisorPanel data={biqAdvisor} className="h-full" />
+                    ) : null}
+                  </div>
                 </div>
               </>
             )}
 
-            {/* Ballers.IQ Lineup Advisor — visible in BOTH court & list views */}
-            {(() => {
-              if (!starters.length && !bench.length) return null;
-              const biqPlayers = [...starters, ...bench].map((p) => ({
-                id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
-                salary: p.core.salary,
-                fp_pg5: (p as any).last5?.fp5, fp_pg_t: (p as any).season?.fp,
-                value5: (p as any).last5?.value5, mpg: (p as any).season?.mpg,
-                mpg5: (p as any).last5?.mpg5,
-                stl5: (p as any).last5?.stl5, blk5: (p as any).last5?.blk5, ast5: (p as any).last5?.ast5,
-                delta_fp: (p as any).last5?.delta_fp, delta_mpg: (p as any).last5?.delta_mpg,
-                injury: (p.core as any)?.injury,
-              }));
-              const biqRoster = [
-                ...starters.map((p, i) => ({ player_id: p.core.id, slot: `S${i + 1}`, is_captain: p.core.id === captainId })),
-                ...bench.map((p, i) => ({ player_id: p.core.id, slot: `B${i + 1}`, is_captain: false })),
-              ];
-              const biq = getBallersIQInsights("lineup", { players: biqPlayers, roster: biqRoster });
-              return biq.insights.length ? (
-                <BallersIQPanel title="Lineup Advisor" summary={biq.summary} className="mt-4">
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    {biq.insights.map((ins, i) => <BallersIQCard key={i} insight={ins} />)}
-                  </div>
-                </BallersIQPanel>
-              ) : null;
-            })()}
           </div>
 
           <OptimizeDialog open={optimizeOpen} onOpenChange={setOptimizeOpen} result={optimizerResult} onApply={handleApplyOptimization} applying={saveMutation.isPending} />
