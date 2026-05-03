@@ -327,7 +327,7 @@ function GameCardBlurb({
       aria-label={ariaLabel}
     >
       <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} aria-hidden />
-      <span className="text-[11px] md:text-[12px] font-semibold italic text-foreground text-center leading-snug">
+      <span className="text-[10px] md:text-[10.5px] font-medium italic text-foreground/90 text-center leading-snug">
         {text}
       </span>
     </div>
