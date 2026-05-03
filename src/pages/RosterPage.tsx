@@ -400,12 +400,12 @@ export default function RosterPage() {
               onClick={() => setAiCoachOpen(true)}
               aria-label="Open Ballers.IQ"
               title="Open Ballers.IQ"
-              className="group relative h-10 px-2 rounded-xl overflow-hidden bg-card/40 ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] hover:shadow-[0_6px_28px_-8px_hsl(45_90%_55%/0.85)] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center"
+              className="group relative h-10 px-3 rounded-xl overflow-hidden ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] hover:shadow-[0_6px_28px_-8px_hsl(45_90%_55%/0.85)] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center bg-black dark:bg-black"
+              style={{ backgroundColor: "rgb(0,0,0)" }}
             >
               <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-              {/* Dark theme: badge image. Light theme: wordmark-light. */}
-              <BallersIQBrand variant="badge" size="lg" className="hidden dark:block !h-9 w-auto" />
-              <BallersIQBrand variant="wordmark" size="lg" forceTheme="light" className="dark:hidden !h-7 w-auto" />
+              {/* Wordmark image — black native background; button bg is solid black so there's zero color contrast outside the artwork. */}
+              <BallersIQBrand variant="wordmark" forceTheme="dark" className="!h-8 w-auto" />
             </button>
             <Button
               size="sm"
