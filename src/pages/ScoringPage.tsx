@@ -446,6 +446,7 @@ function YourTeamView({
   sortCol, setSortCol, sortDir, setSortDir,
   onTeamModal, onPlayerModal,
 }: any) {
+  const [recapOpen, setRecapOpen] = useState(false);
   if (isLoading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse font-heading">Loading scoring…</div>;
   }
