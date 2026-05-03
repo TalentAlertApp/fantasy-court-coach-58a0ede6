@@ -584,7 +584,6 @@ function YourTeamView({
       {/* Game day roster table */}
       {selectedDay && (
         <>
-          <ScoringRecapBlock selectedDay={selectedDay} />
           <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
             <button onClick={() => navigateDay(-1)} disabled={selectedIdx <= 0} className="p-1 rounded-lg hover:bg-muted disabled:opacity-30">
