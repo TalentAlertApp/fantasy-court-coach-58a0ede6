@@ -43,7 +43,6 @@ export default function ScoringPage() {
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
   const [playerModalId, setPlayerModalId] = useState<number | null>(null);
-  const [recapOpen, setRecapOpen] = useState(false);
   const rosterRef = useRef<HTMLDivElement>(null);
   const [sortCol, setSortCol] = useState<SortCol>("gw");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
