@@ -29,8 +29,6 @@ import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
 import DraftPicker from "@/components/onboarding/DraftPicker";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
-import BallersIQPanel from "@/components/ballers-iq/BallersIQPanel";
-import BallersIQCard from "@/components/ballers-iq/BallersIQCard";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
