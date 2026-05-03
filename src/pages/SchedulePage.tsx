@@ -15,7 +15,6 @@ import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import BallersIQTicker from "@/components/ballers-iq/BallersIQTicker";
-import BallersIQCard from "@/components/ballers-iq/BallersIQCard";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
@@ -384,13 +383,8 @@ export default function SchedulePage() {
       <div className="flex-1 overflow-y-auto">
         {/* Ballers.IQ ticker + Tonight's Edge */}
         {tickerItems.length > 0 && (
-          <div className="px-1 mb-2 space-y-2">
+          <div className="px-1 mb-2">
             <BallersIQTicker items={tickerItems} />
-            {biq?.insights[0] && (
-              <div className="hidden md:block">
-                <BallersIQCard insight={biq.insights[0]} compact />
-              </div>
-            )}
           </div>
         )}
         {isLoading ? (

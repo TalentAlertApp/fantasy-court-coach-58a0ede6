@@ -18,6 +18,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer
 import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import { X } from "lucide-react";
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
@@ -443,6 +445,7 @@ function YourTeamView({
   sortCol, setSortCol, sortDir, setSortDir,
   onTeamModal, onPlayerModal,
 }: any) {
+  const [recapOpen, setRecapOpen] = useState(false);
   if (isLoading) {
     return <div className="flex items-center justify-center h-64 text-muted-foreground animate-pulse font-heading">Loading scoring…</div>;
   }
@@ -517,10 +520,34 @@ function YourTeamView({
       </div>
 
       {/* Timeline */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-muted/50">
+      <div className="relative bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">FP Timeline</h2>
+          {selectedDay && (
+            <button
+              type="button"
+              onClick={() => setRecapOpen((v: boolean) => !v)}
+              className="group inline-flex items-center justify-center h-8 px-3 rounded-xl border border-amber-400/40 hover:border-amber-400/80 transition-colors bg-transparent"
+              aria-label="Toggle Ballers.IQ Recap"
+              title="Ballers.IQ Recap"
+            >
+              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="!h-5 w-auto" />
+            </button>
+          )}
         </div>
+        {recapOpen && selectedDay && (
+          <div className="absolute left-0 right-0 top-[44px] bottom-0 z-30 bg-background/95 backdrop-blur-sm overflow-auto p-3 animate-accordion-down">
+            <button
+              type="button"
+              onClick={() => setRecapOpen(false)}
+              className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md text-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+              aria-label="Close recap"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+            <ScoringRecapBlock selectedDay={selectedDay} />
+          </div>
+        )}
         <div className="px-4 py-4 h-52">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={timelineData}>
@@ -557,7 +584,6 @@ function YourTeamView({
       {/* Game day roster table */}
       {selectedDay && (
         <>
-          <ScoringRecapBlock selectedDay={selectedDay} />
           <div ref={rosterRef} className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
             <button onClick={() => navigateDay(-1)} disabled={selectedIdx <= 0} className="p-1 rounded-lg hover:bg-muted disabled:opacity-30">

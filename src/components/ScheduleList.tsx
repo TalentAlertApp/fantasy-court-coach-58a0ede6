@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 import { fetchGameBoxscore, fetchPlayers } from "@/lib/api";
 import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
+import { pickGameLeader, pickWatchLeader } from "@/lib/game-blurbs";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
@@ -312,24 +313,47 @@ function GameActionIcon({ icon: Icon, url, label, className: extraClass }: {
 function GameCardBlurb({
   kind,
   text,
+  awayPhoto,
+  awayPlayerId,
+  homePhoto,
+  homePlayerId,
+  onPlayerClick,
 }: {
   kind: "outstanding" | "watch";
   text: string | null;
+  awayPhoto?: string | null;
+  awayPlayerId?: number | null;
+  homePhoto?: string | null;
+  homePlayerId?: number | null;
+  onPlayerClick?: (id: number) => void;
 }) {
   if (!text) return null;
   const isOut = kind === "outstanding";
   const Icon = isOut ? Star : Eye;
   const labelColor = isOut ? "text-[hsl(var(--nba-yellow))]" : "text-primary";
   const ariaLabel = isOut ? "Outstanding Players" : "Players to Watch";
+  const PhotoBtn = ({ photo, id, side }: { photo?: string | null; id?: number | null; side: "left" | "right" }) =>
+    photo && id ? (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onPlayerClick?.(id); }}
+        className="shrink-0 rounded-full overflow-hidden ring-1 ring-border/50 transition-transform duration-200 hover:scale-125 hover:ring-amber-400/70"
+        aria-label="Open player"
+      >
+        <img src={photo} alt="" className="h-7 w-7 object-cover object-top" />
+      </button>
+    ) : null;
   return (
     <div
       className="relative z-10 flex items-center justify-center gap-1.5 px-2 py-0.5 max-w-full"
       aria-label={ariaLabel}
     >
+      <PhotoBtn photo={awayPhoto} id={awayPlayerId} side="left" />
       <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} aria-hidden />
-      <span className="text-[11px] md:text-[12px] font-semibold italic text-foreground text-center leading-snug">
+      <span className="text-[10px] md:text-[10.5px] font-medium italic text-foreground/90 text-center leading-snug">
         {text}
       </span>
+      <PhotoBtn photo={homePhoto} id={homePlayerId} side="right" />
     </div>
   );
 }
@@ -1103,18 +1127,33 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
 
                 {/* Inline player blurb — centered between teams and actions */}
                 <div className="relative z-10 flex-1 min-w-0 px-3 self-stretch flex items-center justify-center">
-                  {isFinal && (
-                    <GameCardBlurb
-                      kind="outstanding"
-                      text={buildOutstandingBlurb(boxscoreById[g.game_id] ?? [], g.away_team, g.home_team)}
-                    />
-                  )}
-                  {isScheduled && (
-                    <GameCardBlurb
-                      kind="watch"
-                      text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
-                    />
-                  )}
+                  {isFinal && (() => {
+                    const box = boxscoreById[g.game_id] ?? [];
+                    const a = pickGameLeader(box, g.away_team);
+                    const h = pickGameLeader(box, g.home_team);
+                    return (
+                      <GameCardBlurb
+                        kind="outstanding"
+                        text={buildOutstandingBlurb(box, g.away_team, g.home_team)}
+                        awayPhoto={(a as any)?.photo} awayPlayerId={a?.player_id ?? null}
+                        homePhoto={(h as any)?.photo} homePlayerId={h?.player_id ?? null}
+                        onPlayerClick={setSelectedPlayerId}
+                      />
+                    );
+                  })()}
+                  {isScheduled && (() => {
+                    const a = pickWatchLeader(playerItems, g.away_team);
+                    const h = pickWatchLeader(playerItems, g.home_team);
+                    return (
+                      <GameCardBlurb
+                        kind="watch"
+                        text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                        awayPhoto={a?.core.photo ?? null} awayPlayerId={a?.core.id ?? null}
+                        homePhoto={h?.core.photo ?? null} homePlayerId={h?.core.id ?? null}
+                        onPlayerClick={setSelectedPlayerId}
+                      />
+                    );
+                  })()}
                 </div>
 
                 {/* Right: action icons */}

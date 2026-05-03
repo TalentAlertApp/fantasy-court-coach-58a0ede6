@@ -18,16 +18,18 @@ export default function BallersIQTicker({ items, className }: Props) {
   const loop = [...items, ...items];
   return (
     <div className={cn(
-      "flex items-center gap-3 rounded-xl border border-border bg-card/70 backdrop-blur-sm overflow-hidden",
+      "relative flex items-center gap-3 rounded-xl border border-border bg-card/70 backdrop-blur-sm overflow-hidden",
       "px-3 py-2 shadow-[0_2px_10px_-6px_hsl(var(--primary)/0.25)]",
       className,
     )}>
-      <div className="flex items-center gap-2 shrink-0 pr-3 border-r border-border">
-        <BallersIQBrand variant="emblem" size="sm" />
-        <span className="text-[9px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90">
-          Ballers.IQ
-        </span>
-      </div>
+      {/* Emblem icon — transparent, no container */}
+      <BallersIQBrand
+        variant="emblem"
+        size="sm"
+        forceTheme="light"
+        transparent
+        className="shrink-0 !h-6 !w-6"
+      />
       <div className="relative flex-1 overflow-hidden group">
         <div className="flex gap-8 whitespace-nowrap animate-[biq-marquee_28s_linear_infinite] group-hover:[animation-play-state:paused]">
           {loop.map((it, i) => (
@@ -40,6 +42,13 @@ export default function BallersIQTicker({ items, className }: Props) {
           ))}
         </div>
       </div>
+      {/* Wordmark watermark — far right, oversized, rotated, very subtle */}
+      <BallersIQBrand
+        variant="wordmark"
+        forceTheme="light"
+        transparent
+        className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-10 w-auto opacity-[0.10] rotate-[-6deg] select-none"
+      />
     </div>
   );
 }

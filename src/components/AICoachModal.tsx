@@ -256,11 +256,19 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl rounded-lg max-h-[92vh] h-[92vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 font-heading">
-            <BallersIQBrand variant="wordmark" size="sm" />
-            <span className="sr-only">Ballers.IQ</span>
-          </DialogTitle>
+        <DialogHeader className="shrink-0">
+          <DialogTitle className="sr-only">Ballers.IQ</DialogTitle>
+          {/* Premium full-width wordmark banner — transparent so it blends in any theme */}
+          <div className="relative w-full rounded-xl overflow-hidden border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.45)] py-3">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
+            <BallersIQBrand
+              variant="wordmark"
+              forceTheme="light"
+              transparent
+              className="mx-auto !h-10 md:!h-12 w-auto select-none"
+            />
+          </div>
         </DialogHeader>
 
         <Tabs defaultValue="analyze" className="flex-1 min-h-0 flex flex-col">

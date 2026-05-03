@@ -10,6 +10,8 @@ interface Props {
   themeAware?: boolean;
   /** Force a specific theme suffix, overriding both themeAware detection and the default. */
   forceTheme?: "light" | "dark";
+  /** Use the background-removed PNG variant (only available for wordmark + emblem). */
+  transparent?: boolean;
   className?: string;
   alt?: string;
 }
@@ -44,6 +46,7 @@ export default function BallersIQBrand({
   size = "md",
   themeAware = true,
   forceTheme,
+  transparent = false,
   className,
   alt = "Ballers.IQ",
 }: Props) {
@@ -54,11 +57,11 @@ export default function BallersIQBrand({
   let cls = "";
   switch (variant) {
     case "wordmark":
-      src = `/brand/ballers-iq-wordmark-${themeSuffix}.png`;
+      src = `/brand/ballers-iq-wordmark-${themeSuffix}${transparent ? "-transparent" : ""}.png`;
       cls = `${HEIGHTS[size].wordmark} w-auto`;
       break;
     case "emblem":
-      src = `/brand/ballers-iq-emblem-${themeSuffix}.png`;
+      src = `/brand/ballers-iq-emblem-${themeSuffix}${transparent ? "-transparent" : ""}.png`;
       cls = `${HEIGHTS[size].square} object-contain`;
       break;
     case "appIcon":
