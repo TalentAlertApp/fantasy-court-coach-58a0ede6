@@ -33,6 +33,7 @@ import BallersIQPanel from "@/components/ballers-iq/BallersIQPanel";
 import BallersIQCard from "@/components/ballers-iq/BallersIQCard";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
+import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
