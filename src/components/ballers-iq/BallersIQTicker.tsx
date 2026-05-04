@@ -18,8 +18,8 @@ export default function BallersIQTicker({ items, className }: Props) {
   const loop = [...items, ...items];
   return (
     <div className={cn(
-      "relative flex items-center gap-3 rounded-xl border border-border bg-card/70 backdrop-blur-sm overflow-hidden",
-      "px-3 py-2 shadow-[0_2px_10px_-6px_hsl(var(--primary)/0.25)]",
+      "relative flex items-center rounded-xl border border-border bg-card/70 backdrop-blur-sm overflow-hidden",
+      "pl-2 pr-2 py-2 shadow-[0_2px_10px_-6px_hsl(var(--primary)/0.25)]",
       className,
     )}>
       {/* Emblem icon — transparent, no container */}
@@ -28,10 +28,10 @@ export default function BallersIQTicker({ items, className }: Props) {
         size="sm"
         forceTheme="light"
         transparent
-        className="shrink-0 !h-6 !w-6"
+        className="shrink-0 !h-6 !w-6 mr-2"
       />
-      <div className="relative flex-1 overflow-hidden group">
-        <div className="flex gap-8 whitespace-nowrap animate-[biq-marquee_28s_linear_infinite] group-hover:[animation-play-state:paused]">
+      <div className="relative flex-1 min-w-0 overflow-hidden group">
+        <div className="flex gap-10 whitespace-nowrap animate-[biq-marquee_32s_linear_infinite] group-hover:[animation-play-state:paused] w-max">
           {loop.map((it, i) => (
             <span key={i} className="inline-flex items-center gap-1.5 text-[11px]">
               <span className="font-heading font-bold uppercase tracking-wider text-amber-400/90">
@@ -42,13 +42,6 @@ export default function BallersIQTicker({ items, className }: Props) {
           ))}
         </div>
       </div>
-      {/* Wordmark watermark — far right, oversized, rotated, very subtle */}
-      <BallersIQBrand
-        variant="wordmark"
-        forceTheme="light"
-        transparent
-        className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-10 w-auto opacity-[0.10] rotate-[-6deg] select-none"
-      />
     </div>
   );
 }
