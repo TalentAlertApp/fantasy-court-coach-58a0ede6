@@ -11,6 +11,7 @@ import { Table2, BarChart3, Mic, ExternalLink, Tv2 } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -159,10 +160,14 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
           </DialogHeader>
 
           <Tabs defaultValue="played" className="flex-1 min-h-0 flex flex-col px-4 pb-4 pt-3">
-            <TabsList className="rounded-lg shrink-0">
+            <TabsList className="rounded-lg shrink-0 grid grid-cols-4">
               <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-lg">Played ({played.length})</TabsTrigger>
               <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-lg">Upcoming ({upcoming.length})</TabsTrigger>
               <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-lg">Roster ({sortedRoster.length})</TabsTrigger>
+              <TabsTrigger value="biq" className="rounded-lg flex items-center justify-center px-1" title="Ballers.IQ">
+                <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
+                <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="played" className="flex-1 min-h-0">
@@ -314,6 +319,10 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                   </div>
                 </ScrollArea>
               )}
+            </TabsContent>
+
+            <TabsContent value="biq" className="flex-1 min-h-0">
+              <TeamBallersIQ tricode={tricode} played={played} upcoming={upcoming} roster={sortedRoster} />
             </TabsContent>
           </Tabs>
         </DialogContent>
