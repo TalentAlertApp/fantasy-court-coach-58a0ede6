@@ -420,12 +420,12 @@ export default function RosterPage() {
               onClick={() => setAiCoachOpen(true)}
               aria-label="Open Ballers.IQ"
               title="Open Ballers.IQ"
-              className="group relative h-10 px-3 rounded-xl overflow-hidden ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] hover:shadow-[0_6px_28px_-8px_hsl(45_90%_55%/0.85)] transition-all hover:scale-[1.03] active:scale-[0.98] flex items-center justify-center bg-[rgb(253,253,255)] dark:bg-black"
+              className="group relative h-9 px-3 rounded-md overflow-hidden ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] hover:shadow-[0_6px_28px_-8px_hsl(45_90%_55%/0.85)] transition-all hover:scale-[1.03] active:scale-[0.98] inline-flex items-center justify-center bg-[rgb(253,253,255)] dark:bg-black"
             >
               <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-              {/* Wordmark — light png in light theme (white bg matches), dark png in dark theme (black bg matches). */}
-              <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden !h-8 w-auto" />
-              <BallersIQBrand variant="wordmark" forceTheme="dark" className="hidden dark:block !h-8 w-auto" />
+              {/* Wordmark — light theme uses light png; dark theme uses the new transparent dark png. */}
+              <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden !h-5 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-5 w-auto" />
             </button>
             <Button
               size="sm"
