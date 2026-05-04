@@ -18,7 +18,8 @@ export default function BallersIQRecapBlock({ data, className }: Props) {
     )}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
       <header className="flex items-center gap-3 mb-3">
-        <BallersIQBrand variant="wordmark" size="md" />
+        <BallersIQBrand variant="wordmark" size="md" forceTheme="light" transparent className="dark:hidden" />
+        <BallersIQBrand variant="wordmark" size="md" forceTheme="dark" transparent className="hidden dark:block" />
         <span className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-muted-foreground border-l border-border pl-3">
           Recap Story
         </span>
