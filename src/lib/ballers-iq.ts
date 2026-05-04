@@ -139,6 +139,42 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
     });
   }
 
+  // Lineup Pulse — context-sensitive snapshot card placed next to Captain Edge
+  if (rosterPlayers.length) {
+    const totalSalary = rosterPlayers.reduce((s, x) => s + num(x.p.salary), 0);
+    const avgFp5 = rosterPlayers.reduce((s, x) => s + num(x.p.fp_pg5), 0) / rosterPlayers.length;
+    const totalStocks5 = rosterPlayers.reduce((s, x) => s + num(x.p.stl5) + num(x.p.blk5), 0);
+    const fcCount = rosterPlayers.filter((x) => (x.p.fc_bc ?? "").toUpperCase() === "FC").length;
+    const bcCount = rosterPlayers.length - fcCount;
+    const startersFp5 = starters.reduce((s, x) => s + num(x.p.fp_pg5), 0);
+    const benchFp5 = bench.reduce((s, x) => s + num(x.p.fp_pg5), 0);
+    const benchPressure = bench.length
+      ? benchFp5 / bench.length - startersFp5 / Math.max(1, starters.length)
+      : 0;
+    const headline =
+      benchPressure > 2
+        ? "Bench is outscoring your starters."
+        : avgFp5 >= 22
+          ? "Roster running hot — keep it locked."
+          : avgFp5 >= 16
+            ? "Solid baseline — small tweaks possible."
+            : "Roster baseline is light — look for upgrades.";
+    insights.push({
+      type: "LINEUP",
+      title: "Lineup Pulse",
+      headline,
+      bullets: [
+        `Avg FP5 ${avgFp5.toFixed(1)} across ${rosterPlayers.length} players.`,
+        `Cap used $${totalSalary.toFixed(1)}M · ${fcCount} FC / ${bcCount} BC.`,
+        `Stocks5 total ${totalStocks5.toFixed(1)} — ${totalStocks5 >= 12 ? "high defensive ceiling" : "defensive output is modest"}.`,
+      ],
+      playerIds: [],
+      confidence: 0.6,
+      action: benchPressure > 2 ? "START" : "HOLD",
+      riskLevel: avgFp5 < 14 ? "MEDIUM" : "LOW",
+    });
+  }
+
   // Risk Radar — starters with injury, no game tonight, or sliding minutes
   const risky = starters.filter((x) => {
     const hasInjury = !!x.p.injury && x.p.injury.toUpperCase() !== "ACTIVE";
@@ -432,6 +468,44 @@ function buildRecapInsights(payload: BIQPayload): BallersIQResponse {
       action: "START",
       riskLevel: "LOW",
     });
+  }
+
+  // Always produce a 3rd context card if room remains.
+  if (insights.length < 3 && rosterPlayers.length) {
+    const stocksKing = [...rosterPlayers].sort(
+      (a, b) => (num(b.stl5) + num(b.blk5)) - (num(a.stl5) + num(a.blk5))
+    )[0];
+    const stocks = num(stocksKing?.stl5) + num(stocksKing?.blk5);
+    if (stocksKing && stocks >= 1) {
+      insights.push({
+        type: "RECAP",
+        title: "Defensive MVP",
+        headline: `${stocksKing.name} carried the defense.`,
+        bullets: [
+          `Stocks5 ${stocks.toFixed(1)} (STL ${num(stocksKing.stl5).toFixed(1)} · BLK ${num(stocksKing.blk5).toFixed(1)}).`,
+          `FP5 ${num(stocksKing.fp_pg5).toFixed(1)} — defensive upside priced in.`,
+        ],
+        playerIds: [stocksKing.id],
+        confidence: 0.55,
+        action: "HOLD",
+        riskLevel: "LOW",
+      });
+    } else {
+      // Fallback: form mover
+      const mover = [...rosterPlayers].sort((a, b) => num(b.delta_fp) - num(a.delta_fp))[0];
+      if (mover) {
+        insights.push({
+          type: "RECAP",
+          title: "Trend Watch",
+          headline: `${mover.name} is trending ${num(mover.delta_fp) >= 0 ? "up" : "down"}.`,
+          bullets: [`Δ FP ${num(mover.delta_fp) >= 0 ? "+" : ""}${num(mover.delta_fp).toFixed(1)} vs season.`],
+          playerIds: [mover.id],
+          confidence: 0.5,
+          action: "WATCH",
+          riskLevel: "LOW",
+        });
+      }
+    }
   }
 
   return { summary, insights };

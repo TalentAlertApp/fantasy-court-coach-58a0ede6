@@ -11,6 +11,7 @@ import { Table2, BarChart3, Mic, ExternalLink, Tv2 } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -159,10 +160,14 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
           </DialogHeader>
 
           <Tabs defaultValue="played" className="flex-1 min-h-0 flex flex-col px-4 pb-4 pt-3">
-            <TabsList className="rounded-lg shrink-0">
+            <TabsList className="rounded-lg shrink-0 grid grid-cols-4">
               <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-lg">Played ({played.length})</TabsTrigger>
               <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-lg">Upcoming ({upcoming.length})</TabsTrigger>
               <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-lg">Roster ({sortedRoster.length})</TabsTrigger>
+              <TabsTrigger value="biq" className="rounded-lg flex items-center justify-center px-1" title="Ballers.IQ">
+                <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
+                <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="played" className="flex-1 min-h-0">
@@ -315,6 +320,10 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                 </ScrollArea>
               )}
             </TabsContent>
+
+            <TabsContent value="biq" className="flex-1 min-h-0">
+              <TeamBallersIQ tricode={tricode} played={played} upcoming={upcoming} roster={sortedRoster} />
+            </TabsContent>
           </Tabs>
         </DialogContent>
       </Dialog>
@@ -333,4 +342,97 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
 
     </>
   );
+}
+
+// ──────────────── Ballers.IQ Team Assessment (24h cached) ────────────────
+function TeamBallersIQ({ tricode, played, upcoming, roster }: {
+  tricode: string;
+  played: any[];
+  upcoming: any[];
+  roster: any[];
+}) {
+  // Build a deterministic snapshot key — only changes when the inputs do.
+  const snapshot = useMemo(() => ({
+    tricode,
+    played: played.length,
+    wins: played.filter(g => (g.home_team === tricode ? g.home_pts > g.away_pts : g.away_pts > g.home_pts)).length,
+    upcoming: upcoming.length,
+    rosterCount: roster.length,
+    fcStar: [...roster].filter(p => p.fc_bc === "FC").sort((a, b) => b.fpg - a.fpg)[0]?.id ?? null,
+    bcStar: [...roster].filter(p => p.fc_bc === "BC").sort((a, b) => b.fpg - a.fpg)[0]?.id ?? null,
+  }), [tricode, played, upcoming, roster]);
+
+  // 24h localStorage cache, keyed by snapshot.
+  const cacheKey = `nba:team-biq:${tricode}`;
+  const assessment = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.snapshotKey === JSON.stringify(snapshot) && Date.now() - parsed.ts < 24 * 3600_000) {
+          return parsed.body;
+        }
+      }
+    } catch {}
+    const body = buildTeamAssessment(tricode, played, upcoming, roster);
+    try { localStorage.setItem(cacheKey, JSON.stringify({ snapshotKey: JSON.stringify(snapshot), ts: Date.now(), body })); } catch {}
+    return body;
+  }, [cacheKey, snapshot, tricode, played, upcoming, roster]);
+
+  if (!assessment) {
+    return <p className="text-sm text-muted-foreground p-4">Not enough data yet.</p>;
+  }
+
+  return (
+    <ScrollArea className="h-[50vh]">
+      <div className="p-3 space-y-3">
+        <div className="rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card p-3">
+          <p className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90 mb-1">Team Read</p>
+          <p className="text-sm leading-snug">{assessment.summary}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {assessment.standouts.map((s: any) => (
+            <div key={s.id} className="rounded-xl border border-border bg-card/70 p-3">
+              <p className="text-[10px] font-heading font-bold uppercase tracking-[0.14em] text-amber-400/90">
+                Standout · {s.fc_bc}
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  {s.photo && <AvatarImage src={s.photo} />}
+                  <AvatarFallback className="text-[8px]">{s.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-heading font-bold">{s.name}</span>
+              </div>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {s.fpg.toFixed(1)} FP · {s.ppg.toFixed(1)} PTS · {s.mpg.toFixed(1)} MPG
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-xl border border-border bg-card/60 p-3">
+          <p className="text-[10px] font-heading font-bold uppercase tracking-[0.14em] text-muted-foreground mb-1">Schedule outlook</p>
+          <p className="text-xs">{assessment.scheduleNote}</p>
+        </div>
+        <p className="text-[9px] text-muted-foreground text-center">Cached for 24h · refreshes automatically when team data changes.</p>
+      </div>
+    </ScrollArea>
+  );
+}
+
+function buildTeamAssessment(tricode: string, played: any[], upcoming: any[], roster: any[]) {
+  if (!roster.length) return null;
+  const wins = played.filter(g => (g.home_team === tricode ? g.home_pts > g.away_pts : g.away_pts > g.home_pts)).length;
+  const losses = played.length - wins;
+  const winPct = played.length ? (wins / played.length) * 100 : 0;
+  const fcStar = [...roster].filter(p => p.fc_bc === "FC").sort((a, b) => b.fpg - a.fpg)[0];
+  const bcStar = [...roster].filter(p => p.fc_bc === "BC").sort((a, b) => b.fpg - a.fpg)[0];
+  const standouts = [fcStar, bcStar].filter(Boolean);
+  const tone = winPct >= 60 ? "playing high-leverage basketball" : winPct >= 45 ? "trending around .500" : "fighting through a tough stretch";
+  const fcLine = fcStar ? `${fcStar.name} anchors the frontcourt at ${fcStar.fpg.toFixed(1)} FP.` : "";
+  const bcLine = bcStar ? `${bcStar.name} runs the backcourt at ${bcStar.fpg.toFixed(1)} FP.` : "";
+  const summary = `${tricode} is ${wins}-${losses} (${winPct.toFixed(0)}%), ${tone}. ${fcLine} ${bcLine}`.trim();
+  const scheduleNote = upcoming.length
+    ? `${upcoming.length} games remain — fantasy windows open across the slate.`
+    : "No more games on the books for this team.";
+  return { summary, standouts, scheduleNote };
 }

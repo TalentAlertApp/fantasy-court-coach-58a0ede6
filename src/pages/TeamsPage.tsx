@@ -9,6 +9,7 @@ import TeamModal from "@/components/TeamModal";
 import { useNBAStandings } from "@/hooks/useNBAStandings";
 import StandingsPanel from "@/components/standings/StandingsPanel";
 import { cn } from "@/lib/utils";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -155,6 +156,13 @@ export default function TeamsPage() {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                       <img src={t.logo} alt="" className="w-24 h-24 opacity-10 group-hover:scale-125 group-hover:opacity-25 transition-all duration-500" />
                     </div>
+                    {/* NBA league logo — small color watermark, top-right */}
+                    <img
+                      src={nbaLogo}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute top-1.5 right-1.5 h-5 w-auto opacity-80 select-none z-[1]"
+                    />
 
                     <CardContent className="p-5 flex flex-col items-center justify-center gap-2 text-center relative z-10">
                       <p className="font-heading font-black text-lg uppercase tracking-wider">{t.tricode}</p>

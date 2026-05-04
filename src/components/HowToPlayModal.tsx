@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScoringSystem, buildFormulaString, captainMultiplier } from "@/hooks/useScoringSystem";
 
@@ -12,7 +11,6 @@ interface HowToPlayModalProps {
 
 export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
   const { data: scoringRules } = useScoringSystem();
   const formula = buildFormulaString(scoringRules);
   const captainMult = captainMultiplier(scoringRules);
@@ -132,22 +130,6 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
               </AccordionItem>
 
             </Accordion>
-          </div>
-          <div className="pt-3 border-t border-border shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full font-heading uppercase text-xs gap-2"
-              onClick={() => {
-                setOpen(false);
-                // Allow re-showing the recap even if it was already dismissed this session.
-                try { sessionStorage.removeItem("nba_welcome_back_seen"); } catch { /* noop */ }
-                navigate("/?welcomeback=1");
-              }}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-accent" />
-              Preview "Welcome Back" screen
-            </Button>
           </div>
         </DialogContent>
       </Dialog>
