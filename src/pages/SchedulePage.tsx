@@ -105,12 +105,46 @@ export default function SchedulePage() {
   }, [data?.games, rosterData?.roster, playersData?.items]);
 
   const tickerItems = useMemo(() => {
-    if (!biq) return [];
-    return biq.insights.slice(0, 5).map((ins) => ({
-      label: ins.title,
-      text: ins.headline,
-    }));
-  }, [biq]);
+    const items: { label: string; text: string }[] = [];
+    const seen = new Set<string>();
+    const push = (label: string, text: string) => {
+      const key = `${label}|${text}`;
+      if (!text || seen.has(key)) return;
+      seen.add(key);
+      items.push({ label, text });
+    };
+
+    if (biq) {
+      for (const ins of biq.insights) push(ins.title, ins.headline);
+    }
+
+    // Marquee matchup — pick the game whose teams have the highest combined
+    // win count from the broader schedule (proxy for "two strong teams").
+    const games = data?.games ?? [];
+    if (games.length) {
+      const winsByTeam: Record<string, number> = {};
+      for (const g of games) {
+        const isFinal = g.status?.toUpperCase().includes("FINAL");
+        if (!isFinal) continue;
+        const homeWon = (g.home_pts ?? 0) > (g.away_pts ?? 0);
+        winsByTeam[g.home_team] = (winsByTeam[g.home_team] ?? 0) + (homeWon ? 1 : 0);
+        winsByTeam[g.away_team] = (winsByTeam[g.away_team] ?? 0) + (homeWon ? 0 : 1);
+      }
+      const upcomingGames = games.filter((g: any) => !g.status?.toUpperCase().includes("FINAL"));
+      const ranked = [...upcomingGames].sort((a: any, b: any) =>
+        ((winsByTeam[b.home_team] ?? 0) + (winsByTeam[b.away_team] ?? 0)) -
+        ((winsByTeam[a.home_team] ?? 0) + (winsByTeam[a.away_team] ?? 0))
+      );
+      const m = ranked[0];
+      if (m) push("Marquee Matchup", `${m.away_team} @ ${m.home_team} — primetime fantasy fireworks expected.`);
+
+      // Scoring potential — slate-wide
+      const totalGames = upcomingGames.length || games.length;
+      push("Scoring Potential", `${totalGames} games on the slate — broad ceiling for stacked rosters tonight.`);
+    }
+
+    return items.slice(0, 6);
+  }, [biq, data?.games]);
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
