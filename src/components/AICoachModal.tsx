@@ -266,7 +266,13 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               variant="wordmark"
               forceTheme="light"
               transparent
-              className="mx-auto !h-10 md:!h-12 w-auto select-none"
+              className="dark:hidden mx-auto !h-10 md:!h-12 w-auto select-none"
+            />
+            <BallersIQBrand
+              variant="wordmark"
+              forceTheme="dark"
+              transparent
+              className="hidden dark:block mx-auto !h-10 md:!h-12 w-auto select-none"
             />
           </div>
         </DialogHeader>
