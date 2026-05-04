@@ -470,6 +470,44 @@ function buildRecapInsights(payload: BIQPayload): BallersIQResponse {
     });
   }
 
+  // Always produce a 3rd context card if room remains.
+  if (insights.length < 3 && rosterPlayers.length) {
+    const stocksKing = [...rosterPlayers].sort(
+      (a, b) => (num(b.stl5) + num(b.blk5)) - (num(a.stl5) + num(a.blk5))
+    )[0];
+    const stocks = num(stocksKing?.stl5) + num(stocksKing?.blk5);
+    if (stocksKing && stocks >= 1) {
+      insights.push({
+        type: "RECAP",
+        title: "Defensive MVP",
+        headline: `${stocksKing.name} carried the defense.`,
+        bullets: [
+          `Stocks5 ${stocks.toFixed(1)} (STL ${num(stocksKing.stl5).toFixed(1)} · BLK ${num(stocksKing.blk5).toFixed(1)}).`,
+          `FP5 ${num(stocksKing.fp_pg5).toFixed(1)} — defensive upside priced in.`,
+        ],
+        playerIds: [stocksKing.id],
+        confidence: 0.55,
+        action: "HOLD",
+        riskLevel: "LOW",
+      });
+    } else {
+      // Fallback: form mover
+      const mover = [...rosterPlayers].sort((a, b) => num(b.delta_fp) - num(a.delta_fp))[0];
+      if (mover) {
+        insights.push({
+          type: "RECAP",
+          title: "Trend Watch",
+          headline: `${mover.name} is trending ${num(mover.delta_fp) >= 0 ? "up" : "down"}.`,
+          bullets: [`Δ FP ${num(mover.delta_fp) >= 0 ? "+" : ""}${num(mover.delta_fp).toFixed(1)} vs season.`],
+          playerIds: [mover.id],
+          confidence: 0.5,
+          action: "WATCH",
+          riskLevel: "LOW",
+        });
+      }
+    }
+  }
+
   return { summary, insights };
 }
 
