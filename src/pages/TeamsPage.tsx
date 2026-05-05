@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import TeamModal from "@/components/TeamModal";
 import { useNBAStandings } from "@/hooks/useNBAStandings";
 import StandingsPanel from "@/components/standings/StandingsPanel";
+import StandingsFilters, { type StandingsView } from "@/components/standings/StandingsFilters";
 import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
