@@ -6,6 +6,28 @@ import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
 import { cn } from "@/lib/utils";
 
+const LABEL_STYLES: Record<string, string> = {
+  "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
+  "USAGE MONSTER": "bg-purple-400/15 text-purple-300 border-purple-400/40",
+  "GLASS CLEANER": "bg-emerald-400/15 text-emerald-300 border-emerald-400/40",
+  "TWO-WAY JUICE": "bg-orange-400/15 text-orange-300 border-orange-400/40",
+  "VALUE POP": "bg-emerald-400/15 text-emerald-300 border-emerald-400/40",
+  "CAPTAIN MATERIAL": "bg-amber-400/20 text-amber-300 border-amber-400/50",
+  "TRAP GAME": "bg-red-400/15 text-red-300 border-red-400/40",
+  "SLATE HAMMER": "bg-amber-400/20 text-amber-300 border-amber-400/50",
+};
+
+function StoryBadge({ label }: { label?: string }) {
+  if (!label) return null;
+  return (
+    <span className={cn(
+      "inline-flex items-center px-2 py-0.5 rounded-md border text-[9px] font-heading font-black uppercase tracking-[0.14em]",
+      LABEL_STYLES[label] ?? "border-white/20 text-white/70 bg-white/5",
+    )}>{label}</span>
+  );
+}
+
+
 interface Props {
   slide: CourtShowSlideItem;
   onPlayerClick: (id: number) => void;
@@ -139,6 +161,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   <div className="h-6 w-6 rounded-full bg-amber-400 text-black flex items-center justify-center font-heading font-black text-xs">{i + 1}</div>
                   <Trophy className="h-3 w-3 text-amber-400" />
                   <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">{p.fp.toFixed(1)} FP</span>
+                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
                 </div>
                 <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} />
                 <div className="grid grid-cols-5 gap-1 mt-4 text-center">
@@ -171,6 +194,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
                     {p.value5 != null ? `${p.value5.toFixed(2)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} FP5`}
                   </span>
+                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
                 </div>
                 <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} accent="amber" />
                 <div className="mt-4 flex items-center justify-around text-center">
@@ -261,6 +285,19 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   </div>
                   <TeamBadge tricode={g.home_team} size={56} onClick={() => onTeamClick(g.home_team)} />
                 </div>
+                <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
+                  {g.label && <StoryBadge label={g.label} />}
+                  {g.starPower > 0 && (
+                    <span className="text-[10px] text-white/60 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                      Star {g.starPower}
+                    </span>
+                  )}
+                  {g.rosterRelevant > 0 && (
+                    <span className="text-[10px] text-white/60 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                      {g.rosterRelevant} fantasy-rel.
+                    </span>
+                  )}
+                </div>
               </motion.button>
             ))}
           </div>
@@ -279,6 +316,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 <div className="flex items-center gap-2 mb-3">
                   <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
                   <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">2× Captain Pick</span>
+                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
                 </div>
                 <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} />
                 <div className="mt-4 grid grid-cols-2 gap-2 text-center">
