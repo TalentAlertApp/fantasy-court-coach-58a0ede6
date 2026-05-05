@@ -480,6 +480,17 @@ export default function RosterPage() {
             </Button>
           </div>
         </div>
+        {biqAdvisor && (
+          <div className="mt-2">
+            <BallersIQLineupStrip
+              captainName={biqStrip.captainName}
+              riskCount={biqStrip.riskCount}
+              valueName={biqStrip.valueName}
+              scheduleDragCount={biqStrip.scheduleDragCount}
+              onOpen={() => setAiCoachOpen(true)}
+            />
+          </div>
+        )}
       </div>
 
       {isBootstrapping ? (
@@ -537,16 +548,6 @@ export default function RosterPage() {
         )
       ) : (
         <>
-          {/* ── Ballers.IQ compact strip ── */}
-          {biqAdvisor && (
-            <BallersIQLineupStrip
-              captainName={biqStrip.captainName}
-              riskCount={biqStrip.riskCount}
-              valueName={biqStrip.valueName}
-              scheduleDragCount={biqStrip.scheduleDragCount}
-              onOpen={() => setAiCoachOpen(true)}
-            />
-          )}
           {/* ── Toolbar Row ── */}
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
             <div className="flex items-center gap-2">
