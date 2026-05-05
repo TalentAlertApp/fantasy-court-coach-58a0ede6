@@ -17,7 +17,6 @@ import SchedulePage from "@/pages/SchedulePage";
 import ScheduleGridPage from "@/pages/ScheduleGridPage";
 import ScoringPage from "@/pages/ScoringPage";
 
-import AIHubPage from "@/pages/AIHubPage";
 import CommissionerPage from "@/pages/CommissionerPage";
 import AdvancedPage from "@/pages/AdvancedPage";
 import NotFound from "@/pages/NotFound";
@@ -55,7 +54,6 @@ const App = () => (
                 <Route path="/schedule" element={<SchedulePage />} />
                 <Route path="/schedule/grid" element={<ScheduleGridPage />} />
                 <Route path="/advanced" element={<AdvancedPage />} />
-                <Route path="/ai" element={<AIHubPage />} />
                 <Route path="/commissioner" element={<CommissionerPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
