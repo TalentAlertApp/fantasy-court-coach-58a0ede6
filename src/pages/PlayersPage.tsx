@@ -751,6 +751,51 @@ export default function PlayersPage() {
                             </Avatar>
                             <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
+                            {(() => {
+                              const v5 = Number((p as any).last5?.value5 ?? 0);
+                              const sal = Number(p.core.salary ?? 0);
+                              const dfp = Number((p as any).last5?.delta_fp ?? 0);
+                              const fp5 = Number((p as any).last5?.fp5 ?? 0);
+                              const inj = (p.core as any)?.injury;
+                              // Drop Risk wins, then Value Add, then Stream — at most one badge.
+                              if (inj || dfp <= -4) {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center text-[7.5px] font-heading font-bold uppercase tracking-wider px-1 py-0 h-3.5 rounded-sm border border-red-500/40 text-red-400 bg-red-500/10">
+                                        Drop Risk
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-[10px]">{inj ? `Injury: ${inj}` : `Form drop Δ${dfp.toFixed(1)} FP`}</TooltipContent>
+                                  </Tooltip>
+                                );
+                              }
+                              if (sal > 0 && v5 >= 2.2 && fp5 >= 18) {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center text-[7.5px] font-heading font-bold uppercase tracking-wider px-1 py-0 h-3.5 rounded-sm border border-emerald-500/40 text-emerald-400 bg-emerald-500/10">
+                                        Value
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-[10px]">V5 {v5.toFixed(1)} · FP5 {fp5.toFixed(1)}</TooltipContent>
+                                  </Tooltip>
+                                );
+                              }
+                              if (sal > 0 && sal <= 4 && fp5 >= 14) {
+                                return (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center text-[7.5px] font-heading font-bold uppercase tracking-wider px-1 py-0 h-3.5 rounded-sm border border-violet-500/40 text-violet-400 bg-violet-500/10">
+                                        Stream
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-[10px]">Cheap streamer · ${sal}M / FP5 {fp5.toFixed(1)}</TooltipContent>
+                                  </Tooltip>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
