@@ -31,21 +31,26 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
     let cancelled = false;
     setEmbeddedImage(null);
     if (!ctx.imageUrl) return;
-    (async () => {
+    const direct = ctx.imageUrl;
+    // weserv proxy strips protocol and serves with permissive CORS headers,
+    // which lets us inline NBA CDN photos as data URLs for html-to-image.
+    const proxied = `https://images.weserv.nl/?url=${encodeURIComponent(direct.replace(/^https?:\/\//, ""))}`;
+    const tryFetch = async (url: string): Promise<string | null> => {
       try {
-        const r = await fetch(ctx.imageUrl!, { mode: "cors" });
-        if (!r.ok) throw new Error(String(r.status));
+        const r = await fetch(url, { mode: "cors" });
+        if (!r.ok) return null;
         const blob = await r.blob();
-        const dataUrl: string = await new Promise((resolve, reject) => {
+        return await new Promise<string>((resolve, reject) => {
           const fr = new FileReader();
           fr.onload = () => resolve(String(fr.result));
           fr.onerror = reject;
           fr.readAsDataURL(blob);
         });
-        if (!cancelled) setEmbeddedImage(dataUrl);
-      } catch {
-        if (!cancelled) setEmbeddedImage(null);
-      }
+      } catch { return null; }
+    };
+    (async () => {
+      const dataUrl = (await tryFetch(direct)) ?? (await tryFetch(proxied));
+      if (!cancelled) setEmbeddedImage(dataUrl);
     })();
     return () => { cancelled = true; };
   }, [ctx.imageUrl]);
@@ -119,11 +124,11 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
         <p className={cn("font-bold leading-tight text-white", headlineSize)}>
           {insight.headline}
         </p>
-        <ul className="mt-4 space-y-2">
+        <ul className="mt-4 flex flex-col gap-3">
           {insight.bullets.slice(0, format === "wide" ? 2 : 3).map((b, i) => (
-            <li key={i} className="flex items-start gap-3 text-white/80 text-[18px] leading-snug">
-              <span className="mt-2 inline-block h-1.5 w-6 shrink-0 rounded-full bg-amber-300/80" />
-              <span>{b}</span>
+            <li key={i} className="flex items-center gap-3 text-white/80 text-[18px] leading-[1.3]">
+              <span className="inline-block h-1.5 w-6 shrink-0 rounded-full bg-amber-300/80" />
+              <span className="block">{b}</span>
             </li>
           ))}
         </ul>

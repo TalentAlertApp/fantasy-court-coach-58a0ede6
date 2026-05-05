@@ -555,7 +555,7 @@ function YourTeamView({
         <div className="relative px-4 py-4 h-52">
           {recapOpen && selectedDay && (
             <div className="absolute inset-x-2 top-2 z-20">
-              <div className="relative">
+              <div className="relative rounded-2xl bg-card shadow-2xl">
                 <button
                   type="button"
                   onClick={() => setRecapOpen(false)}
