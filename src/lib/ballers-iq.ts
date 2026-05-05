@@ -628,8 +628,5 @@ export function getBallersIQInsights(
     default:
       raw = { summary: "", insights: [] };
   }
-  // Lazy import to avoid any cycle concern; quality.ts only imports types.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { gateBallersIQ } = require("./ballers-iq/quality") as typeof import("./ballers-iq/quality");
-  return gateBallersIQ(raw);
+  return _gateBallersIQ(raw);
 }
