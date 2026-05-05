@@ -529,9 +529,10 @@ export default function PlayersPage() {
           variant="outline"
           className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
           onClick={() => setAiCoachOpen(true)}
-          title="Open AI Coach"
+          title="Open Ballers.IQ"
+          aria-label="Open Ballers.IQ"
         >
-          <Bot className="h-3.5 w-3.5" />AI Coach
+          <BallersIQBrand variant="emblem" size="sm" className="!h-3.5 !w-3.5" />Ballers.IQ
         </Button>
         {/* Page-level chips: All-Star + Wildcard */}
         <Button
