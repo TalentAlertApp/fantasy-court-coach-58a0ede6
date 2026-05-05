@@ -101,6 +101,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [shareCardOpen, setShareCardOpen] = useState(false);
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
@@ -217,6 +218,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     >
                       <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
                     </button>
+                    <button
+                      onClick={() => setShareCardOpen(true)}
+                      className="p-1.5 hover:text-amber-400 transition-colors"
+                      title="Create Ballers.IQ Share Card"
+                    >
+                      <Share2 className="h-4 w-4 text-amber-400/80" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -251,7 +259,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                   imageUrl: c.photo ?? null,
                   insight: ins,
                 };
-                return <VerdictWithShare insight={ins} shareCtx={shareCtx} />;
+                return (
+                  <>
+                    <BallersIQPlayerVerdict insight={ins} />
+                    <BallersIQShareCardModal open={shareCardOpen} onOpenChange={setShareCardOpen} ctx={shareCtx} />
+                  </>
+                );
               })()}
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
