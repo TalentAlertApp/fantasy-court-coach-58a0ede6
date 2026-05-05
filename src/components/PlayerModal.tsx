@@ -15,6 +15,7 @@ import PlayerCompareModal from "@/components/PlayerCompareModal";
 import { useWishlist } from "@/hooks/useWishlist";
 import nbaLogo from "@/assets/nba-logo.svg";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import TeamModal from "@/components/TeamModal";
 import BallersIQPlayerVerdict from "@/components/ballers-iq/BallersIQPlayerVerdict";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 
@@ -95,6 +96,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [boxscorePlayerId, setBoxscorePlayerId] = useState<number | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
+  const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
@@ -169,9 +171,19 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                   <div className="flex-1 min-w-0">
                     <p className="font-heading font-bold uppercase truncate">{data.player.core.name}</p>
                     <div className="flex items-center gap-1.5">
-                      {teamLogo && <img src={teamLogo} alt={data.player.core.team} className="w-4 h-4" />}
+                      <button
+                        type="button"
+                        onClick={() => setTeamModalTri(data.player.core.team)}
+                        className="inline-flex items-center gap-1.5 hover:text-primary transition-colors"
+                        title={`Open ${data.player.core.team}`}
+                      >
+                        {teamLogo && <img src={teamLogo} alt={data.player.core.team} className="w-4 h-4" />}
+                        <span className="text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline">
+                          {data.player.core.team}
+                        </span>
+                      </button>
                       <p className="text-xs text-muted-foreground">
-                        {data.player.core.team} · #{data.player.core.jersey} · {data.player.core.pos}
+                        · #{data.player.core.jersey} · {data.player.core.pos}
                       </p>
                     </div>
                     <p className="text-[10px] text-muted-foreground/80 truncate">
@@ -582,6 +594,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         game={selectedGame}
         open={selectedGame !== null}
         onOpenChange={(o) => !o && setSelectedGame(null)}
+      />
+      <TeamModal
+        tricode={teamModalTri}
+        open={teamModalTri !== null}
+        onOpenChange={(o) => !o && setTeamModalTri(null)}
       />
     </>
   );

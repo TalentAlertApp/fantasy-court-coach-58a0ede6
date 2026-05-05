@@ -56,7 +56,7 @@ export default function LineupAdvisorPanel({ data, className, onClose }: Props) 
         </header>
         <div className="grid sm:grid-cols-2 gap-2">
           {data.insights.map((ins, i) => (
-            <BallersIQCard key={i} insight={ins} compact />
+            <BallersIQCard key={i} insight={ins} compact watermark="none" />
           ))}
         </div>
       </div>

@@ -17,6 +17,13 @@ export default function BallersIQRecapBlock({ data, className }: Props) {
       className,
     )}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+      {/* Emblem watermark — top right, oversized, rotated, transparent (matches Lineup Advisor) */}
+      <BallersIQBrand
+        variant="emblem"
+        forceTheme="light"
+        transparent
+        className="pointer-events-none absolute -top-8 -right-8 !h-44 !w-44 object-contain opacity-[0.14] rotate-12 select-none"
+      />
       <header className="flex items-center gap-3 mb-3">
         <BallersIQBrand variant="wordmark" size="md" forceTheme="light" transparent className="dark:hidden" />
         <BallersIQBrand variant="wordmark" size="md" forceTheme="dark" transparent className="hidden dark:block" />
@@ -25,12 +32,12 @@ export default function BallersIQRecapBlock({ data, className }: Props) {
         </span>
       </header>
       {data.summary && (
-        <p className="text-sm text-foreground/90 leading-snug mb-3">{data.summary}</p>
+        <p className="relative z-[1] text-sm text-foreground/90 leading-snug mb-3">{data.summary}</p>
       )}
       {data.insights.length > 0 && (
-        <div className="grid sm:grid-cols-3 gap-2">
+        <div className="relative z-[1] grid sm:grid-cols-3 gap-2">
           {data.insights.map((ins, i) => (
-            <BallersIQCard key={i} insight={ins} compact />
+            <BallersIQCard key={i} insight={ins} compact watermark="none" />
           ))}
         </div>
       )}

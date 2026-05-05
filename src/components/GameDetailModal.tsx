@@ -7,6 +7,7 @@ import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 export interface GameDetailGame {
   game_id: string;
@@ -87,35 +88,41 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
   };
 
   return (
-    <div className="border-t bg-muted/20">
+    <div className="relative border-t bg-muted/20">
+      <img
+        src={nbaLogo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
+      />
       <div
-        className="grid grid-cols-[minmax(0,1fr)_repeat(9,32px)] gap-0 px-3 py-2 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40"
+        className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,32px)] gap-0 px-3 py-2 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40"
       >
-        <div className="pr-2 flex items-center gap-1 flex-wrap">
+        <div className="pr-2 flex items-center gap-1 flex-wrap h-7">
           <span>Player</span>
           <button
             onClick={() => setFilterTeam(filterTeam === game.away_team ? null : game.away_team)}
-            className={`flex items-center gap-0.5 px-1 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === game.away_team ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center gap-0.5 h-6 px-1.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === game.away_team ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
           >
             {awayLogo && <img src={awayLogo} alt="" className="w-3 h-3" />}
             {game.away_team}
           </button>
           <button
             onClick={() => setFilterTeam(filterTeam === game.home_team ? null : game.home_team)}
-            className={`flex items-center gap-0.5 px-1 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === game.home_team ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center gap-0.5 h-6 px-1.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === game.home_team ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
           >
             {homeLogo && <img src={homeLogo} alt="" className="w-3 h-3" />}
             {game.home_team}
           </button>
           <button
             onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
-            className={`px-1.5 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
           >
             FC
           </button>
           <button
             onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
-            className={`px-1.5 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
           >
             BC
           </button>
@@ -132,7 +139,7 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
           </button>
         ))}
       </div>
-      <div className="max-h-[50vh] overflow-y-auto">
+      <div className="relative z-[1] max-h-[50vh] overflow-y-auto">
         {sorted.map((p) => {
           const isFc = p.fc_bc === "FC";
           return (
@@ -192,21 +199,37 @@ export default function GameDetailModal({ game, open, onOpenChange }: GameDetail
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-sm"} rounded-xl p-0 overflow-hidden`}>
-        <div className="p-4">
+        <div className="relative p-4 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           <DialogHeader>
             <DialogTitle className="font-heading text-sm uppercase">Game Detail</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center gap-3 py-2">
-            <div className="flex items-center gap-1.5 text-right">
-              {awayLogo && <img src={awayLogo} alt="" className="w-6 h-6" />}
-              <span className="font-heading font-bold text-sm">{game.away_team}</span>
+          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-3">
+            {/* Away — name on right of watermark */}
+            <div className="relative h-16 flex items-center justify-end pr-2 overflow-hidden">
+              {awayLogo && (
+                <img
+                  src={awayLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 h-20 w-20 object-contain opacity-25 -rotate-12 select-none"
+                />
+              )}
+              <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
             </div>
             <div className="text-center">
-              <span className="font-mono font-black text-lg">{game.away_pts} - {game.home_pts}</span>
+              <span className="font-mono font-black text-2xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-heading font-bold text-sm">{game.home_team}</span>
-              {homeLogo && <img src={homeLogo} alt="" className="w-6 h-6" />}
+            {/* Home — name on left of watermark */}
+            <div className="relative h-16 flex items-center justify-start pl-2 overflow-hidden">
+              {homeLogo && (
+                <img
+                  src={homeLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-20 w-20 object-contain opacity-25 rotate-12 select-none"
+                />
+              )}
+              <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.home_team}</span>
             </div>
           </div>
           <div className="flex items-center justify-center gap-2 py-1 flex-wrap">

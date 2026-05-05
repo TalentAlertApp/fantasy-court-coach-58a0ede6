@@ -26,6 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
 import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays, X } from "lucide-react";
+import { Check } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
 import DraftPicker from "@/components/onboarding/DraftPicker";
@@ -549,39 +551,44 @@ export default function RosterPage() {
               >
                 <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
               </Button>
-              <Button
-                onClick={() => setChipCaptain(!chipCaptain)}
-                variant={chipCaptain ? "default" : "outline"}
-                size="sm"
-                className={`rounded-xl font-heading uppercase text-xs ${chipCaptain ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-                title="Activate Captain chip — doubles captain's FP"
-              >
-                <Star className="h-3.5 w-3.5 mr-1" />Captain
-              </Button>
-              <Button
-                onClick={() => setChipAllStar(!chipAllStar)}
-                variant={chipAllStar ? "default" : "outline"}
-                size="sm"
-                className={`rounded-xl font-heading uppercase text-xs ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-                title="Activate All-Star chip — boost all starters"
-              >
-                <Sparkles className="h-3.5 w-3.5 mr-1" />All-Star
-              </Button>
-              <Button
-                onClick={() => setChipWildcard(!chipWildcard)}
-                variant={chipWildcard ? "default" : "outline"}
-                size="sm"
-                className={`rounded-xl font-heading uppercase text-xs ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-                title="Activate Wildcard chip — unlimited free transfers"
-              >
-                <RefreshCw className="h-3.5 w-3.5 mr-1" />Wildcard
-              </Button>
-
-              {starters.length + bench.length < 10 && (
-                <Button onClick={handleAddPlayer} variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs">
-                  <Plus className="h-4 w-4 mr-1" />Add Player
-                </Button>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="relative rounded-xl font-heading uppercase text-xs"
+                    title="Chips & extras"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 mr-1" />Chips
+                    {(chipCaptain || chipAllStar || chipWildcard) && (
+                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-background" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                  <DropdownMenuLabel className="font-heading uppercase text-[10px] tracking-wider">Chips</DropdownMenuLabel>
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setChipCaptain(!chipCaptain); }} className="font-heading uppercase text-xs">
+                    <Star className="h-3.5 w-3.5 mr-2" />Captain
+                    {chipCaptain && <Check className="h-3.5 w-3.5 ml-auto text-amber-400" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setChipAllStar(!chipAllStar); }} className="font-heading uppercase text-xs">
+                    <Sparkles className="h-3.5 w-3.5 mr-2" />All-Star
+                    {chipAllStar && <Check className="h-3.5 w-3.5 ml-auto text-amber-400" />}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setChipWildcard(!chipWildcard); }} className="font-heading uppercase text-xs">
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />Wildcard
+                    {chipWildcard && <Check className="h-3.5 w-3.5 ml-auto text-amber-400" />}
+                  </DropdownMenuItem>
+                  {starters.length + bench.length < 10 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => handleAddPlayer()} className="font-heading uppercase text-xs">
+                        <Plus className="h-3.5 w-3.5 mr-2" />Add Player
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 onClick={handleOptimize}
                 variant="outline"

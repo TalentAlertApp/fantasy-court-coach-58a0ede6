@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import TeamModal from "@/components/TeamModal";
 import { useNBAStandings } from "@/hooks/useNBAStandings";
 import StandingsPanel from "@/components/standings/StandingsPanel";
+import StandingsFilters, { type StandingsView } from "@/components/standings/StandingsFilters";
 import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
@@ -30,6 +31,7 @@ type Tab = "teams" | "standings";
 export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("teams");
+  const [standingsView, setStandingsView] = useState<StandingsView>("division");
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["nba-teams-schedule-stats"],
@@ -132,6 +134,11 @@ export default function TeamsPage() {
             </button>
           ))}
         </div>
+        {tab === "standings" && (
+          <div className="ml-2">
+            <StandingsFilters view={standingsView} onChange={setStandingsView} />
+          </div>
+        )}
       </div>
 
       {tab === "teams" && (
@@ -188,11 +195,13 @@ export default function TeamsPage() {
         isLoading ? (
           <div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
-          <div className="flex flex-col gap-3 h-[calc(100vh-220px)]">
+          <div className="flex flex-col gap-3 h-[calc(100vh-180px)]">
             <div className="flex-1 min-h-0 overflow-auto pr-1">
-              <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} />
+              <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} view={standingsView} />
             </div>
-            <StandingsBallersIQ standings={standings} onTeamClick={setSelectedTeam} />
+            <div className="mt-auto">
+              <StandingsBallersIQ standings={standings} onTeamClick={setSelectedTeam} />
+            </div>
           </div>
         )
       )}
@@ -234,10 +243,9 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
 
   const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="relative rounded-xl border border-amber-400/25 bg-card/60 p-3 overflow-hidden">
-      <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-12 w-auto opacity-[0.08] rotate-12 select-none" />
-      <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-12 w-auto opacity-[0.10] rotate-12 select-none" />
+      <BallersIQBrand variant="emblem" forceTheme="light" transparent className="pointer-events-none absolute -top-3 -right-3 !h-20 !w-20 object-contain opacity-[0.14] rotate-12 select-none" />
       <header className="flex items-center gap-2 mb-1.5 relative z-[1]">
-        <BallersIQBrand variant="emblem" forceTheme="light" size="sm" />
+        <BallersIQBrand variant="emblem" forceTheme="light" transparent size="sm" />
         <span className="text-[9px] font-heading font-bold uppercase tracking-[0.16em] text-amber-400/90">{title}</span>
       </header>
       <div className="relative z-[1] space-y-0.5">{children}</div>

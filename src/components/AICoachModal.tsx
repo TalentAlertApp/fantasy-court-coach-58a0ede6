@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import InjuryReportModal from "@/components/InjuryReportModal";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { useQueryClient } from "@tanstack/react-query";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 interface AICoachModalProps {
   open: boolean;
@@ -279,11 +280,17 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
         <Tabs defaultValue="analyze" className="flex-1 min-h-0 flex flex-col">
           {isRosterEmpty && (
-            <div className="shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
+            <div className="relative overflow-hidden shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
+              <img
+                src={nbaLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.08] select-none"
+              />
               <div className="h-10 w-10 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
                 <Sparkles className="h-5 w-5 text-accent" />
               </div>
-              <div className="flex-1 min-w-0">
+              <div className="relative z-[1] flex-1 min-w-0">
                 <p className="font-heading uppercase tracking-wider text-sm font-bold">No roster yet</p>
                 <p className="text-xs text-muted-foreground">Let me build a balanced 10-player squad and pick your captain.</p>
               </div>
@@ -291,7 +298,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 size="sm"
                 onClick={handleDraftFromEmpty}
                 disabled={draftingFromEmpty}
-                className="rounded-lg font-heading uppercase text-xs shrink-0"
+                className="relative z-[1] rounded-lg font-heading uppercase text-xs shrink-0"
               >
                 {draftingFromEmpty ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Bot className="h-4 w-4 mr-1" />}
                 Draft my squad with AI
