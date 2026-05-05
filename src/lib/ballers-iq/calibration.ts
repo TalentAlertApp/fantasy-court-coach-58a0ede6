@@ -63,3 +63,12 @@ export const BIQ_DIFFICULTY_FP_MULT = {
   Elite: 1.15,
   "Trap Spot": 1.05,
 } as const;
+
+// ─── Central named thresholds (used by quality gate & narrative layer) ──
+export const BIQ_ELITE = BIQ_THRESHOLDS.rating.elite;
+export const BIQ_STRONG = BIQ_THRESHOLDS.rating.strong;
+export const CAPTAIN_SAFE = BIQ_THRESHOLDS.captain.safe;
+export const RISK_HIGH = BIQ_THRESHOLDS.risk.high;
+export const VALUE_STRONG = BIQ_THRESHOLDS.salary.underpriced;
+export const SCHEDULE_BOOST = BIQ_THRESHOLDS.schedule.boost;
+export const FANTASY_ENV_HIGH = BIQ_THRESHOLDS.environment.high;
