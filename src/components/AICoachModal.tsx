@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag } from "lucide-react";
+import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag, History } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 import { useTeam } from "@/contexts/TeamContext";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import {
@@ -43,6 +45,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const { data: upcomingByTeam } = useUpcomingByTeam();
   const queryClient = useQueryClient();
 
   const [analyzeResult, setAnalyzeResult] = useState<any>(null);
@@ -195,18 +198,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
   // Injury monitoring is now delegated to the standalone <InjuryReportModal />.
 
-  const handleExplain = async () => {
-    let target = selectedExplainPlayer;
-    if (!target && explainMatches.length > 0) {
-      target = explainMatches[0];
-      setSelectedExplainPlayer(target);
-      setExplainSearch(target.core.name);
-      setShowDropdown(false);
-    }
-    if (!target) {
-      toast({ title: "Type a player name to search", variant: "destructive" });
-      return;
-    }
+  const runExplain = async (target: any) => {
+    if (!target?.core?.id) return;
     setExplainLoading(true); setExplainResult(null);
     try {
       const res = await aiExplainPlayer({ player_id: target.core.id }, selectedTeamId ?? undefined);
@@ -237,18 +230,14 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     setSelectedExplainPlayer(found);
     setExplainSearch(found.core.name);
     setShowDropdown(false);
-    setExplainLoading(true); setExplainResult(null);
-    try {
-      const res = await aiExplainPlayer({ player_id: found.core.id }, selectedTeamId ?? undefined);
-      setExplainResult(res);
-    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
-    finally { setExplainLoading(false); }
+    await runExplain(found);
   };
 
   const handleSelectExplainPlayer = (p: any) => {
     setExplainSearch(p.core.name);
     setSelectedExplainPlayer(p);
     setShowDropdown(false);
+    void runExplain(p);
   };
 
   const statusColor = (s: string) => {
@@ -390,8 +379,15 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 });
                 const market = all.filter((p: any) => !rosterIds.has(p.core.id)).map(toMP);
                 const rosterPlayers = all.filter((p: any) => rosterIds.has(p.core.id)).map(toMP);
-                const today = new Date().toISOString().slice(0, 10);
-                const todayTeams: string[] = []; // schedule not loaded here; streams will simply be empty
+                // Today (Europe/Lisbon) — match the rest of the app's TZ contract.
+                const todayLisbon = new Intl.DateTimeFormat("en-CA", {
+                  timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
+                }).format(new Date());
+                const todayTeams = upcomingByTeam
+                  ? Object.entries(upcomingByTeam)
+                      .filter(([, games]) => games.some((g) => g.date === todayLisbon))
+                      .map(([tri]) => tri)
+                  : [];
                 return (
                   <BallersIQMarketWatch
                     market={market}
@@ -401,8 +397,10 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                     onPickPlayer={(id) => {
                       const p = all.find((x: any) => x.core.id === id);
                       if (p) {
-                        setSelectedExplainPlayer({ id: p.core.id, name: p.core.name, team: p.core.team, photo: p.core.photo, fc_bc: p.core.fc_bc });
+                        setSelectedExplainPlayer(p);
+                        setExplainSearch(p.core.name);
                         setActiveTab("explain");
+                        void runExplain(p);
                       }
                     }}
                   />
@@ -463,33 +461,6 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
-              {/* Recent 5 explained chips */}
-              {!explainSearch && !explainResult && recentExplained.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">Recent</span>
-                  {recentExplained.map((r) => {
-                    const logo = getTeamLogo(r.team);
-                    const lastName = r.name.split(/\s+/).slice(-1)[0];
-                    return (
-                      <button
-                        key={r.id}
-                        onClick={() => handleRecentClick(r)}
-                        className="inline-flex items-center gap-1.5 bg-muted hover:bg-accent/50 transition-colors rounded-full pl-0.5 pr-2 py-0.5 border"
-                        title={r.name}
-                      >
-                        {r.photo ? (
-                          <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
-                        ) : logo ? (
-                          <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
-                        ) : (
-                          <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">{r.name.slice(0,1)}</span>
-                        )}
-                        <span className="text-[10px] font-heading font-semibold">{lastName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
               <Popover open={showDropdown && explainMatches.length > 0} onOpenChange={setShowDropdown}>
                 <div className="flex gap-2">
                   <PopoverAnchor asChild>
@@ -497,13 +468,63 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                       placeholder="Search player name or team..."
                       value={explainSearch}
                       onChange={(e) => handleExplainSearchChange(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleExplain()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const target = selectedExplainPlayer ?? explainMatches[0];
+                          if (target) {
+                            setSelectedExplainPlayer(target);
+                            setExplainSearch(target.core.name);
+                            setShowDropdown(false);
+                            void runExplain(target);
+                          }
+                        }
+                      }}
                       className="rounded-lg flex-1"
                     />
                   </PopoverAnchor>
-                  <Button size="sm" onClick={handleExplain} disabled={explainLoading || (!selectedExplainPlayer && explainMatches.length === 0)}>
-                    {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title="Recently explained"
+                        aria-label="Recently explained"
+                        disabled={recentExplained.length === 0}
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                      <DropdownMenuLabel className="font-heading uppercase text-[10px] tracking-wider">
+                        Recent · last 5
+                      </DropdownMenuLabel>
+                      {recentExplained.length === 0 ? (
+                        <DropdownMenuItem disabled className="text-xs italic">
+                          No history yet
+                        </DropdownMenuItem>
+                      ) : recentExplained.map((r) => {
+                        const logo = getTeamLogo(r.team);
+                        return (
+                          <DropdownMenuItem
+                            key={r.id}
+                            onSelect={() => handleRecentClick(r)}
+                            className="text-xs gap-2"
+                          >
+                            {r.photo ? (
+                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
+                            ) : logo ? (
+                              <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">
+                                {r.name.slice(0, 1)}
+                              </span>
+                            )}
+                            <span className="truncate">{r.name}</span>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <PopoverContent

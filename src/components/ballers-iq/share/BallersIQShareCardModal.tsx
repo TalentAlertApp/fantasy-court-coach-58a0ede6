@@ -39,8 +39,6 @@ export default function BallersIQShareCardModal({ open, onOpenChange, ctx }: Pro
     if (!cardRef.current) return;
     setExporting(true);
     try {
-      // Best-effort dynamic import — if html-to-image isn't installed we fall
-      // back gracefully without breaking the build.
       const mod: any = await import("html-to-image").catch(() => null);
       if (!mod?.toPng) {
         toast({
@@ -49,13 +47,41 @@ export default function BallersIQShareCardModal({ open, onOpenChange, ctx }: Pro
         });
         return;
       }
-      const dataUrl = await mod.toPng(cardRef.current, { pixelRatio: 1, cacheBust: true });
+
+      // Pre-decode every <img> inside the card so html-to-image doesn't snapshot
+      // a half-loaded tree. Failed images are removed so they don't taint the canvas.
+      const imgs = Array.from(cardRef.current.querySelectorAll("img"));
+      await Promise.all(imgs.map(async (img) => {
+        try {
+          if (!img.complete || img.naturalWidth === 0) await img.decode();
+        } catch {
+          img.remove();
+        }
+      }));
+
+      const opts = {
+        pixelRatio: 2,
+        cacheBust: true,
+        skipFonts: true,
+        imagePlaceholder:
+          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lPAAAAABJRU5ErkJggg==",
+      };
+
+      let dataUrl: string;
+      try {
+        dataUrl = await mod.toPng(cardRef.current, opts);
+      } catch (innerErr) {
+        console.warn("toPng failed, falling back to toJpeg", innerErr);
+        dataUrl = await mod.toJpeg(cardRef.current, { ...opts, quality: 0.95, backgroundColor: "#0b0f1a" });
+      }
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `ballers-iq-${ctx.template}-${format}.png`;
+      a.download = `ballers-iq-${ctx.template}-${format}.${dataUrl.startsWith("data:image/jpeg") ? "jpg" : "png"}`;
       a.click();
     } catch (e: any) {
-      toast({ title: "Export failed", description: e?.message ?? "Unknown error", variant: "destructive" });
+      console.error("Share card export failed:", e);
+      const msg = e?.message || e?.name || "Export blocked by the browser (likely a cross-origin image).";
+      toast({ title: "Export failed", description: msg, variant: "destructive" });
     } finally {
       setExporting(false);
     }

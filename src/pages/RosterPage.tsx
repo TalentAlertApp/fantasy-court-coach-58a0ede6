@@ -25,7 +25,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays, X } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays, X, Brain } from "lucide-react";
 import { Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AICoachModal from "@/components/AICoachModal";
@@ -34,7 +34,7 @@ import DraftPicker from "@/components/onboarding/DraftPicker";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
-import BallersIQLineupStrip from "@/components/ballers-iq/BallersIQLineupStrip";
+import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -76,6 +76,7 @@ export default function RosterPage() {
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -480,17 +481,6 @@ export default function RosterPage() {
             </Button>
           </div>
         </div>
-        {biqAdvisor && (
-          <div className="mt-2">
-            <BallersIQLineupStrip
-              captainName={biqStrip.captainName}
-              riskCount={biqStrip.riskCount}
-              valueName={biqStrip.valueName}
-              scheduleDragCount={biqStrip.scheduleDragCount}
-              onOpen={() => setAiCoachOpen(true)}
-            />
-          </div>
-        )}
       </div>
 
       {isBootstrapping ? (
@@ -573,6 +563,18 @@ export default function RosterPage() {
                 title="Toggle schedule preview"
               >
                 <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
+              </Button>
+              <Button
+                onClick={() => setAdvisorOpen((v) => !v)}
+                variant={advisorOpen ? "default" : "outline"}
+                size="sm"
+                disabled={!biqAdvisor}
+                className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ring-1 ring-amber-400/40 ${advisorOpen ? "bg-amber-400 text-amber-950 hover:bg-amber-400/90" : "hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
+                title="Ballers.IQ Lineup Advisor"
+              >
+                <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="dark:hidden !h-3.5 !w-3.5 mr-1" />
+                <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="hidden dark:block !h-3.5 !w-3.5 mr-1" />
+                Lineup Advisor
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -657,6 +659,11 @@ export default function RosterPage() {
                 <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
               </div>
             )}
+            {advisorOpen && biqAdvisor && (
+              <div className="absolute left-0 right-0 top-0 z-30 animate-accordion-down">
+                <LineupAdvisorPanel data={biqAdvisor} onClose={() => setAdvisorOpen(false)} />
+              </div>
+            )}
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}
@@ -681,7 +688,7 @@ export default function RosterPage() {
             ) : (
               <>
                 <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-                <div className="mt-4">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <RosterSidebar
                     gw={currentGameday.gw}
                     day={currentGameday.day}
@@ -692,6 +699,7 @@ export default function RosterPage() {
                     bcStarters={bcStarters}
                     totalSalary={totalSalary}
                   />
+                  {biqAdvisor && <LineupAdvisorPanel data={biqAdvisor} />}
                 </div>
               </>
             )}

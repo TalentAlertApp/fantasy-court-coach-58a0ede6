@@ -528,12 +528,13 @@ export default function PlayersPage() {
         <Button
           size="sm"
           variant="outline"
-          className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
+          className="rounded-xl h-8 px-3 font-heading uppercase text-[10px] gap-1.5 ring-1 ring-amber-400/40 hover:ring-amber-400/80 dark:bg-black"
           onClick={() => setAiCoachOpen(true)}
           title="Open Ballers.IQ"
           aria-label="Open Ballers.IQ"
         >
-          <BallersIQBrand variant="emblem" size="sm" className="!h-3.5 !w-3.5" />Ballers.IQ
+          <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
+          <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
         </Button>
         {/* Page-level chips: All-Star + Wildcard */}
         <Button

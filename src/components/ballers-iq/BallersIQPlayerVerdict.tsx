@@ -27,13 +27,27 @@ export default function BallersIQPlayerVerdict({ insight, className }: Props) {
   const action = insight.action ?? "HOLD";
   return (
     <div className={cn(
-      "relative rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/10 via-card to-card p-2",
+      "relative overflow-hidden rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/10 via-card to-card p-2",
       "shadow-[0_4px_20px_-10px_hsl(45_90%_55%/0.5)]",
       className,
     )}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
-      <div className="flex items-center gap-2 mb-1.5">
-        <BallersIQBrand variant="emblem" size="sm" />
+      {/* Wordmark watermark — far right, oversized, rotated, very low opacity */}
+      <BallersIQBrand
+        variant="wordmark"
+        forceTheme="light"
+        transparent
+        className="dark:hidden pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-16 w-auto opacity-[0.08] rotate-[-8deg] select-none"
+      />
+      <BallersIQBrand
+        variant="wordmark"
+        forceTheme="dark"
+        transparent
+        className="hidden dark:block pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-16 w-auto opacity-[0.10] rotate-[-8deg] select-none"
+      />
+      <div className="relative flex items-center gap-2 mb-1.5">
+        <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="dark:hidden" />
+        <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="hidden dark:block" />
         <span className="text-[9px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90">
           Ballers.IQ Verdict
         </span>
@@ -51,7 +65,7 @@ export default function BallersIQPlayerVerdict({ insight, className }: Props) {
           </span>
         )}
       </div>
-      <div className="flex items-start gap-2.5">
+      <div className="relative flex items-start gap-2.5">
         <div className={cn(
           "shrink-0 px-2.5 py-1.5 rounded-lg font-heading font-black uppercase tracking-wider text-xs leading-none",
           ACTION_STYLES[action],
