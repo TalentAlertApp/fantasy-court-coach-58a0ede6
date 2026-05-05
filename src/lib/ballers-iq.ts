@@ -10,6 +10,7 @@
  */
 
 export type BallersIQContext = "lineup" | "player" | "game_night" | "recap";
+import { gateBallersIQ as _gateBallersIQ } from "./ballers-iq/quality";
 export type BallersIQAction =
   | "START" | "BENCH" | "CAPTAIN" | "ADD" | "DROP" | "WATCH" | "HOLD" | null;
 export type BallersIQRisk = "LOW" | "MEDIUM" | "HIGH" | null;
@@ -615,16 +616,18 @@ export function getBallersIQInsights(
   context: BallersIQContext,
   payload: BIQPayload
 ): BallersIQResponse {
+  let raw: BallersIQResponse;
   switch (context) {
     case "lineup":
-      return buildLineupInsights(payload);
+      raw = buildLineupInsights(payload); break;
     case "player":
-      return buildPlayerInsights(payload);
+      raw = buildPlayerInsights(payload); break;
     case "game_night":
-      return buildGameNightInsights(payload);
+      raw = buildGameNightInsights(payload); break;
     case "recap":
-      return buildRecapInsights(payload);
+      raw = buildRecapInsights(payload); break;
     default:
-      return { summary: "", insights: [] };
+      raw = { summary: "", insights: [] };
   }
+  return _gateBallersIQ(raw);
 }
