@@ -16,18 +16,24 @@ interface Props {
   alt?: string;
 }
 
-/** Detect dark theme from the <html class="dark"> attribute (this app is dark-first). */
+/**
+ * Ballers.IQ brand asset usage standard:
+ * - wordmark: modal/page headers
+ * - emblem:   compact cards, inline buttons
+ * - appIcon:  launch/action tiles only
+ * - badge:    premium insight cards (use sparingly)
+ * Use `forceTheme` to override theme-aware detection.
+ */
 function useIsDark(): boolean {
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof document === "undefined") return true;
-    return document.documentElement.classList.contains("dark") ||
-      window.matchMedia?.("(prefers-color-scheme: dark)").matches ||
-      true; // default to dark — app is dark-themed
+    if (document.documentElement.classList.contains("dark")) return true;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
   });
   useEffect(() => {
     if (typeof document === "undefined") return;
     const obs = new MutationObserver(() => {
-      setDark(document.documentElement.classList.contains("dark") || true);
+      setDark(document.documentElement.classList.contains("dark"));
     });
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();

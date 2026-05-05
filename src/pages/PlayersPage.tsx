@@ -15,11 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, Bot, X, CalendarDays, Users, Sparkles, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
 import AICoachModal from "@/components/AICoachModal";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
@@ -529,9 +530,10 @@ export default function PlayersPage() {
           variant="outline"
           className="rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5"
           onClick={() => setAiCoachOpen(true)}
-          title="Open AI Coach"
+          title="Open Ballers.IQ"
+          aria-label="Open Ballers.IQ"
         >
-          <Bot className="h-3.5 w-3.5" />AI Coach
+          <BallersIQBrand variant="emblem" size="sm" className="!h-3.5 !w-3.5" />Ballers.IQ
         </Button>
         {/* Page-level chips: All-Star + Wildcard */}
         <Button

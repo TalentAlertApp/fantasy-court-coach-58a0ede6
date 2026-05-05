@@ -10,51 +10,56 @@ function readPref(): boolean {
 }
 
 /**
- * Procedural ambient audio bed for the Daily Court Show.
- * Uses Web Audio API only — no external assets, no licensed samples.
+ * Looping ambient audio bed for the Daily Court Show.
+ * Properly tears down the <audio> element + listeners whenever
+ * the modal closes (active=false) or the component unmounts.
  */
 export function useCourtShowAudio(active: boolean) {
   const [enabled, setEnabled] = useState<boolean>(readPref);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const ensureAudio = useCallback(() => {
-    if (typeof window === "undefined") return null;
-    if (!audioRef.current) {
-      const a = new Audio(bedUrl);
-      a.loop = true;
-      a.volume = 0.35;
-      a.preload = "auto";
-      audioRef.current = a;
-    }
-    return audioRef.current;
-  }, []);
-
-  const startBed = useCallback(() => {
-    const a = ensureAudio();
-    if (!a) return;
-    a.currentTime = a.currentTime || 0;
-    a.play().catch(() => {});
-  }, [ensureAudio]);
-
-  const stopBed = useCallback(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    try { a.pause(); a.currentTime = 0; } catch {}
-  }, []);
-
-  // Lifecycle: start/stop based on active+enabled
-  useEffect(() => {
-    if (active && enabled) startBed();
-    else stopBed();
-    return () => stopBed();
-  }, [active, enabled, startBed, stopBed]);
 
   useEffect(() => {
-    return () => {
-      stopBed();
-      audioRef.current = null;
+    if (typeof window === "undefined") return;
+    if (!active || !enabled) return;
+
+    const a = new Audio(bedUrl);
+    a.loop = true;
+    a.volume = 0.35;
+    a.preload = "auto";
+
+    const noop = () => {};
+    a.addEventListener("error", noop);
+    a.addEventListener("ended", noop);
+
+    let cancelled = false;
+    const playPromise = a.play().catch(() => {});
+
+    const onVisibility = () => {
+      if (cancelled) return;
+      if (document.hidden) {
+        try { a.pause(); } catch {}
+      } else {
+        a.play().catch(() => {});
+      }
     };
-  }, [stopBed]);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisibility);
+      a.removeEventListener("error", noop);
+      a.removeEventListener("ended", noop);
+      // Wait for any in-flight play() to settle before pausing,
+      // so we don't trigger an AbortError in the console.
+      Promise.resolve(playPromise).finally(() => {
+        try {
+          a.pause();
+          a.currentTime = 0;
+          a.src = "";
+          a.load();
+        } catch {}
+      });
+    };
+  }, [active, enabled]);
 
   const onSlideChange = useCallback(() => {
     // No-op: bed loops continuously; no per-slide cue.
