@@ -195,11 +195,13 @@ export default function TeamsPage() {
         isLoading ? (
           <div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
-          <div className="flex flex-col gap-3 h-[calc(100vh-220px)]">
+          <div className="flex flex-col gap-3 h-[calc(100vh-180px)]">
             <div className="flex-1 min-h-0 overflow-auto pr-1">
-              <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} />
+              <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} view={standingsView} />
             </div>
-            <StandingsBallersIQ standings={standings} onTeamClick={setSelectedTeam} />
+            <div className="mt-auto">
+              <StandingsBallersIQ standings={standings} onTeamClick={setSelectedTeam} />
+            </div>
           </div>
         )
       )}
