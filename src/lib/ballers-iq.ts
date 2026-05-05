@@ -615,16 +615,21 @@ export function getBallersIQInsights(
   context: BallersIQContext,
   payload: BIQPayload
 ): BallersIQResponse {
+  let raw: BallersIQResponse;
   switch (context) {
     case "lineup":
-      return buildLineupInsights(payload);
+      raw = buildLineupInsights(payload); break;
     case "player":
-      return buildPlayerInsights(payload);
+      raw = buildPlayerInsights(payload); break;
     case "game_night":
-      return buildGameNightInsights(payload);
+      raw = buildGameNightInsights(payload); break;
     case "recap":
-      return buildRecapInsights(payload);
+      raw = buildRecapInsights(payload); break;
     default:
-      return { summary: "", insights: [] };
+      raw = { summary: "", insights: [] };
   }
+  // Lazy import to avoid any cycle concern; quality.ts only imports types.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { gateBallersIQ } = require("./ballers-iq/quality") as typeof import("./ballers-iq/quality");
+  return gateBallersIQ(raw);
 }
