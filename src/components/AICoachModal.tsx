@@ -647,6 +647,16 @@ function ExplainReport({ result, player }: { result: any; player: any }) {
   const fp5 = Number(player?.last5?.fp5 ?? 0);
   const seasonFp = Number(player?.season?.fp ?? 0);
   const palette = actionPalette(result?.recommendation?.action ?? "hold");
+  const verdict = String(result?.verdict ?? "").toUpperCase();
+  const vPalette = verdict ? verdictPalette(verdict) : null;
+  const biqRating = typeof result?.biq_rating === "number" ? result.biq_rating : null;
+  const biqLabel = result?.biq_label as string | undefined;
+  const archetype = result?.archetype as string | undefined;
+  const formSignal = result?.form_signal as string | undefined;
+  const salaryEff = result?.salary_efficiency as string | undefined;
+  const riskLevel = result?.risk_level as string | undefined;
+  const riskFlags = Array.isArray(result?.risk_flags) ? (result.risk_flags as string[]) : [];
+  const sched = result?.schedule_context as { next_game?: string | null; games_count?: number; label?: string; warning?: string | null } | undefined;
 
   return (
     <div className="space-y-3">
@@ -685,6 +695,94 @@ function ExplainReport({ result, player }: { result: any; player: any }) {
               <p className="text-[10px] font-mono text-muted-foreground tabular-nums mt-0.5">Season {seasonFp.toFixed(1)}</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Verdict + BIQ Rating */}
+      {(vPalette || biqRating !== null) && (
+        <div className={`rounded-xl border px-3 py-2.5 flex items-center gap-3 ${vPalette ? vPalette.band : "border-border bg-muted/20"}`}>
+          {vPalette && (
+            <span className={`shrink-0 inline-flex items-center justify-center font-heading font-black text-sm px-3 py-1 rounded-lg ${vPalette.chip}`}>
+              {vPalette.label}
+            </span>
+          )}
+          {biqRating !== null && (
+            <div className="flex items-baseline gap-1.5">
+              <Gauge className={`h-3.5 w-3.5 ${biqRatingClasses(biqRating)}`} />
+              <span className={`font-mono font-black text-2xl leading-none tabular-nums ${biqRatingClasses(biqRating)}`}>{biqRating}</span>
+              <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">/100</span>
+              {biqLabel && (
+                <span className="ml-1 text-[10px] font-heading font-bold uppercase tracking-wider text-muted-foreground">
+                  {biqLabel}
+                </span>
+              )}
+            </div>
+          )}
+          <div className="ml-auto flex items-center gap-1.5 flex-wrap justify-end">
+            {archetype && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/40">
+                <Tag className="h-3 w-3" /> {archetype}
+              </span>
+            )}
+            {formSignal && formSignal !== "Stable" && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500 border border-orange-500/40">
+                <Flame className="h-3 w-3" /> {formSignal}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Salary + Risk + Schedule grid */}
+      {(salaryEff || riskLevel || sched) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {salaryEff && (
+            <div className={`rounded-xl px-3 py-2 ${salaryClasses(salaryEff)}`}>
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-heading font-bold uppercase tracking-wider opacity-80">Salary</span>
+              </div>
+              <p className="font-heading font-bold text-xs uppercase mt-0.5">{salaryEff}</p>
+            </div>
+          )}
+          {riskLevel && (
+            <div className={`rounded-xl px-3 py-2 ${riskClasses(riskLevel)}`}>
+              <div className="flex items-center gap-1.5">
+                <ShieldAlert className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-heading font-bold uppercase tracking-wider opacity-80">Risk</span>
+              </div>
+              <p className="font-heading font-bold text-xs uppercase mt-0.5">{riskLevel}</p>
+              {riskFlags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {riskFlags.slice(0, 4).map((f, i) => (
+                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-background/40 border border-current/30 font-mono lowercase">
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {sched && (sched.label || typeof sched.games_count === "number" || sched.next_game) && (
+            <div className={`rounded-xl px-3 py-2 ${scheduleClasses(sched.label ?? "")}`}>
+              <div className="flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-heading font-bold uppercase tracking-wider opacity-80">Schedule</span>
+              </div>
+              <p className="font-heading font-bold text-xs uppercase mt-0.5">
+                {sched.label ?? "—"}
+                {typeof sched.games_count === "number" && (
+                  <span className="ml-1 font-mono opacity-80">· {sched.games_count}G</span>
+                )}
+              </p>
+              {sched.next_game && (
+                <p className="text-[10px] font-mono mt-0.5 opacity-90">Next: {sched.next_game}</p>
+              )}
+              {sched.warning && (
+                <p className="text-[10px] mt-0.5 opacity-90">{sched.warning}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
