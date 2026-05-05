@@ -134,6 +134,11 @@ export default function TeamsPage() {
             </button>
           ))}
         </div>
+        {tab === "standings" && (
+          <div className="ml-2">
+            <StandingsFilters view={standingsView} onChange={setStandingsView} />
+          </div>
+        )}
       </div>
 
       {tab === "teams" && (
