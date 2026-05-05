@@ -8,17 +8,23 @@ const DIVISIONS = ["Atlantic", "Central", "Southeast", "Northwest", "Pacific", "
 interface Props {
   standings: StandingRow[];
   onTeamClick?: (tricode: string) => void;
+  /** Optional controlled view; when omitted, the panel shows its own filter UI. */
+  view?: StandingsView;
+  onViewChange?: (v: StandingsView) => void;
 }
 
-export default function StandingsPanel({ standings, onTeamClick }: Props) {
-  const [view, setView] = useState<StandingsView>("division");
+export default function StandingsPanel({ standings, onTeamClick, view: viewProp, onViewChange }: Props) {
+  const [internalView, setInternalView] = useState<StandingsView>("division");
+  const view = viewProp ?? internalView;
+  const setView = onViewChange ?? setInternalView;
+  const showOwnFilters = viewProp === undefined;
 
   const east = standings.filter((r) => r.conference === "East").sort((a, b) => b.pct - a.pct || b.w - a.w);
   const west = standings.filter((r) => r.conference === "West").sort((a, b) => b.pct - a.pct || b.w - a.w);
 
   return (
     <div className="space-y-4">
-      <StandingsFilters view={view} onChange={setView} />
+      {showOwnFilters && <StandingsFilters view={view} onChange={setView} />}
 
       {view === "league" && (
         <StandingsTable rows={standings} showCutoffs={false} onTeamClick={onTeamClick} />
