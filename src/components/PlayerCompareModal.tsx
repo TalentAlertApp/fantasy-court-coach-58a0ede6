@@ -7,6 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 interface PlayerCompareModalProps {
   open: boolean;
@@ -89,10 +91,17 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setSelectedId(null); setSearch(""); } }}>
-      <DialogContent className="max-w-lg rounded-lg max-h-[85vh] flex flex-col overflow-hidden">
-        <DialogHeader>
-          <DialogTitle className="font-heading uppercase tracking-wider text-sm">Player Comparison</DialogTitle>
+      <DialogContent className="max-w-xl rounded-xl max-h-[94vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="relative overflow-hidden border-b border-border/50 px-5 pt-5 pb-4 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
+          <img
+            src={nbaLogo}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute -top-6 -right-6 h-32 w-auto opacity-10 rotate-12 select-none blur-[1px]"
+          />
+          <DialogTitle className="font-heading uppercase tracking-wider text-base relative z-10">Player Comparison</DialogTitle>
         </DialogHeader>
+        <div className="flex-1 min-h-0 overflow-auto p-4">
 
         {!selectedId ? (
           <div className="space-y-3">
@@ -113,17 +122,24 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
                       return (
                         <div
                           key={p.core.id}
-                          className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer"
+                          className="group relative overflow-hidden flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-accent/50 cursor-pointer"
                           onClick={() => { setSelectedId(p.core.id); setSearch(""); }}
                         >
+                          {logo && (
+                            <img
+                              src={logo}
+                              alt=""
+                              aria-hidden
+                              className="pointer-events-none absolute -top-1 -right-1 h-10 w-10 object-contain opacity-15 group-hover:opacity-30 rotate-12 transition-opacity select-none"
+                            />
+                          )}
                           {p.core.photo ? (
                             <img src={p.core.photo} alt="" className="w-6 h-6 rounded-full object-cover" />
                           ) : (
                             <div className="w-6 h-6 rounded-full bg-muted" />
                           )}
-                          {logo && <img src={logo} alt="" className="w-4 h-4" />}
-                          <span className="text-xs font-medium">{p.core.name}</span>
-                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg">{p.core.fc_bc}</Badge>
+                          <span className="text-xs font-medium relative z-10">{p.core.name}</span>
+                          <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg relative z-10">{p.core.fc_bc}</Badge>
                         </div>
                       );
                     })}
@@ -167,9 +183,55 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
             >
               Compare with another player
             </button>
+
+            {/* Ballers.IQ Take */}
+            <BallersIQTake playerA={playerA} playerB={playerB} />
           </div>
         ) : null}
+        </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function BallersIQTake({ playerA, playerB }: { playerA: any; playerB: any }) {
+  const fpA = playerA.season.fp ?? 0, fpB = playerB.season.fp ?? 0;
+  const valA = playerA.computed.value ?? 0, valB = playerB.computed.value ?? 0;
+  const dFpA = playerA.computed.delta_fp ?? 0, dFpB = playerB.computed.delta_fp ?? 0;
+  const stA = (playerA.season.stl ?? 0) + (playerA.season.blk ?? 0);
+  const stB = (playerB.season.stl ?? 0) + (playerB.season.blk ?? 0);
+
+  const prodLeader = fpA >= fpB ? playerA : playerB;
+  const prodLag = fpA >= fpB ? playerB : playerA;
+  const valLeader = valA >= valB ? playerA : playerB;
+  const formLeader = dFpA >= dFpB ? playerA : playerB;
+  const stockLeader = stA >= stB ? playerA : playerB;
+
+  const lines = [
+    `Production: ${prodLeader.name} leads at ${(prodLeader === playerA ? fpA : fpB).toFixed(1)} FP/G vs ${(prodLag === playerA ? fpA : fpB).toFixed(1)}.`,
+    `Efficiency: ${valLeader.name} delivers more FP per dollar (${(valLeader === playerA ? valA : valB).toFixed(2)} value).`,
+    `Form & defense: ${formLeader.name} trends up (Δ ${(formLeader === playerA ? dFpA : dFpB).toFixed(1)} FP); ${stockLeader.name} edges defensive stocks at ${(stockLeader === playerA ? stA : stB).toFixed(1)}.`,
+  ];
+  const conclusion = `Pick ${prodLeader.name} for raw output — but ${valLeader === prodLeader ? formLeader.name : valLeader.name} wins on ${valLeader === prodLeader ? "form/defense" : "value"}.`;
+
+  return (
+    <section className="relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card p-4 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.35)] overflow-hidden">
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
+      {/* Wordmark watermark — far right */}
+      <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 !h-20 w-auto opacity-[0.08] rotate-12 select-none" />
+      <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 !h-20 w-auto opacity-[0.10] rotate-12 select-none" />
+      {/* NBA logo centered */}
+      <img src={nbaLogo} alt="" aria-hidden className="pointer-events-none absolute inset-0 m-auto h-32 w-auto opacity-[0.05] select-none" />
+      <header className="relative z-[1] flex items-center gap-2 mb-2">
+        <BallersIQBrand variant="emblem" forceTheme="light" size="sm" />
+        <span className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90">Ballers.IQ Take</span>
+      </header>
+      <ul className="relative z-[1] space-y-1">
+        {lines.map((l, i) => (
+          <li key={i} className="text-[12px] text-foreground/90 leading-snug pl-3 relative before:content-['·'] before:absolute before:left-0 before:text-amber-400/70">{l}</li>
+        ))}
+      </ul>
+      <p className="relative z-[1] mt-2 text-xs font-semibold text-foreground">{conclusion}</p>
+    </section>
   );
 }
