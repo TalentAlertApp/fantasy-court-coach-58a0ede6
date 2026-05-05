@@ -1,104 +1,65 @@
-# Plan — Court Show audio cleanup + Ballers.IQ UI consolidation
+## Ballers.IQ Explain Tab — Player Intelligence Report Upgrade
 
-## A) Court Show audio: proper pause/stop + listener cleanup
+Upgrade the existing Explain tab in `AICoachModal` so the AI's `explain-player` response is rendered as a structured scouting report (verdict, BIQ rating, archetype, form, salary, risk, schedule). No new buttons, no new modals, no new entry points — just enrich the schema, the edge function payload, and the existing `ExplainReport` component.
 
-**File:** `src/components/court-show/useCourtShowAudio.ts`
+### 1. Extend the explain-player schema (`src/lib/ballers-iq/schemas.ts`)
+Extend `BIQExplainPlayerResponse` and `validateExplainPlayer` with optional fields:
+- `biq_label?: "Elite" | "Strong" | "Playable" | "Watch" | "Risk"`
+- `archetype?: string` (Usage Engine, Stocks Hunter, Glass Cleaner, Value Play, Form Climber, Minutes Monster, Safe Floor, Ceiling Swing, Trap Pick)
+- `risk_flags?: string[]`
+- `schedule_context?: { next_game?: string | null; games_count?: number; label?: "Schedule Boost" | "Schedule Drag" | "Neutral" | "No Game Risk"; warning?: string | null }`
+- Keep existing required fields untouched so older responses still validate.
 
-Issues today:
-- The dual `useEffect` (one lifecycle + one unmount) both call `stopBed` but the audio element is created lazily and never gets explicit `removeEventListener` / source detach.
-- When the modal closes mid-loop, autoplay-blocked play promise rejections silently fail and the element can be left attached.
-- `audioRef.current = null` happens only on full unmount, not when modal toggles closed → next open creates a fresh element each time but old one isn't fully torn down if play() promise was still pending.
+### 2. Compute archetype + schedule context server-side (`supabase/functions/_shared/biq.ts`)
+Add a pure `archetypeFor(p, packParts)` helper based on existing index values (no new data sources):
+- High usage + high fp5 → "Usage Engine"
+- High `stocks5` → "Stocks Hunter"
+- High rebound contribution → "Glass Cleaner"
+- `salary_eff.label === "Underpriced"` + decent rating → "Value Play"
+- `form === "Form Spike" | "Minutes Spike"` → "Form Climber"
+- High `mpg5` + stable minutes → "Minutes Monster" / "Safe Floor"
+- High ceiling vs floor gap → "Ceiling Swing"
+- `salary_eff.label === "Salary Trap"` → "Trap Pick"
+- Default → "Safe Floor"
 
-Changes:
-1. Track the in-flight `play()` promise in a ref; on stop, await/cancel it before pausing to avoid `AbortError` warnings.
-2. Add `pause`/`ended`/`error` listeners on the audio element only for diagnostics, and remove them in cleanup.
-3. Collapse the two effects into one: when `active && enabled` → start; otherwise → stop. On cleanup (effect re-run or unmount): pause, reset `currentTime`, remove listeners, set `src = ""`, and null out `audioRef.current`. This guarantees a clean teardown every time the modal closes (active flips false), not only on full unmount.
-4. Also stop on `document.visibilitychange` → hidden, resume when visible if still active+enabled. Listener properly removed on cleanup.
-5. Keep `loop = true`, `volume = 0.35`, `localStorage` mute pref, and the existing `{ enabled, toggle, onSlideChange }` API — no consumer changes needed.
+Extend `buildPlayerPack` to also return `archetype` and a richer `schedule` field including the next upcoming opponent string (e.g. `vs LAL` / `@ BOS` from the first matching game) and a `warning` when `games === 0`.
 
-**File:** `src/components/court-show/CourtShowModal.tsx` (verify only)
-- Confirm `useCourtShowAudio(open)` is called with the modal-open boolean so the new cleanup fires on close. No code change expected unless it's currently passing something else.
+### 3. Wire new fields into the edge function (`supabase/functions/ai-coach/index.ts`)
+- Update the `explain-player` prompt schema description so the model echoes `biq_label`, `archetype`, `risk_flags` (verbatim from `biq.player.risk.flags`), and `schedule_context` (verbatim from `biq.player.schedule`), and so the `verdict` rule references the archetype/risk combo.
+- `validateShape("explain-player", ...)` stays permissive (current required keys only) so the AI Coach modal never hard-fails on the richer schema. The client-side validator already accepts unknown extra fields.
 
-## B) Ballers.IQ UI consolidation (anti-clutter pass)
+### 4. Update fallback (`src/lib/ballers-iq/narrative.ts`)
+Extend `fallbackExplainPlayer` to populate `biq_label`, `archetype`, `risk_flags`, and `schedule_context` from the locally-built `BIQPlayerIndexPack` so the report still renders fully if the AI call fails.
 
-### B1. Audit results — duplicated entry points to remove
+### 5. Redesign `ExplainReport` in `src/components/AICoachModal.tsx` (no new files)
+Keep the existing player header, summary block, "Why it scores" list, and recommendation banner. Reorganize so the report reads as a scouting card:
 
-- `src/App.tsx` route `/ai` → `AIHubPage`. `AIHubPage.tsx` is a near-duplicate of `AICoachModal` (same 5 actions, lower-fidelity UI). It is not linked from the sidebar but the route exists.
-  - **Action:** delete `src/pages/AIHubPage.tsx` and remove the `/ai` route + import in `App.tsx`. `AICoachModal` becomes the single Ballers.IQ control center.
-- `src/pages/PlayersPage.tsx` line ~532: small "AI Coach" pill button.
-  - **Action:** rename label to "Ballers.IQ" and swap the `Bot` icon for `<BallersIQBrand variant="emblem" size="sm" />`. Keep it — it's the page's single entry point.
-- `src/pages/RosterPage.tsx`: already uses Ballers.IQ wordmark for the modal trigger ✓ (one entry point — keep).
-- `src/pages/ScoringPage.tsx`: Ballers.IQ Recap toggle is content, not a duplicate AI Coach trigger ✓ (keep).
-- `src/pages/SchedulePage.tsx`: `BallersIQTicker` is inline content, no AI Coach button ✓ (keep).
-- `src/pages/TeamsPage.tsx`: `StandingsBallersIQ` is a content panel, not a CTA ✓ (keep).
-- `PlayerModal`, `PlayerCompareModal`, `TeamModal`: spot-check that they don't open AI Coach separately. If they have an "Explain" button, leave it (it's contextual and routes into the same modal's Explain tab) — only remove if it's a literal duplicate of the page-level button.
-
-### B2. AICoachModal stays as the control center
-
-No structural change. Tabs Analyze / Captain / Transfers / Injuries / Explain remain. Header already shows `BallersIQBrand` wordmark ✓.
-
-Minor: ensure the `DialogTitle` says "Ballers.IQ" (currently `sr-only`). Add a visible `<span class="sr-only">` is fine; visible header already shows wordmark.
-
-### B3. Naming pass
-
-- Tooltip/aria changes only — no new visible text:
-  - `PlayersPage.tsx` line 532-534: `title="Open AI Coach"` → `title="Open Ballers.IQ"`, label "AI Coach" → "Ballers.IQ".
-  - Keep "AI Coach" as fallback aria-label only where Ballers.IQ wordmark image is the visible affordance and screen readers need the function name.
-
-### B4. Tabs unchanged
-
-Analyze / Captain / Transfers / Injuries / Explain — keep, no additions.
-
-### B5. `BallersIQBrand.tsx` theme detection fix
-
-Current bug (lines 22-30): the initial state and the MutationObserver both `|| true` at the end → **always returns dark**, breaking light mode and `themeAware=false`.
-
-Fix `useIsDark`:
-```ts
-const [dark, setDark] = useState<boolean>(() => {
-  if (typeof document === "undefined") return true;
-  if (document.documentElement.classList.contains("dark")) return true;
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
-});
-useEffect(() => {
-  const obs = new MutationObserver(() => {
-    setDark(document.documentElement.classList.contains("dark"));
-  });
-  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-  return () => obs.disconnect();
-}, []);
+```text
+┌─ Player header (unchanged) ─────────────────┐
+├─ VERDICT pill  +  BIQ Rating (score / label)
+│  Archetype chip · Form Signal chip
+├─ Salary Efficiency  |  Risk Radar (LOW/MED/HIGH + flags chips)
+├─ Schedule Context (next game · games count · boost/drag · no-game warning)
+├─ Summary (italic quote — existing)
+├─ Why it scores (existing list)
+└─ Recommendation banner (existing)
 ```
 
-`forceTheme` precedence already correct in `themeSuffix = forceTheme ?? (themeAware ? ... : "dark")` — preserved.
+Rules respected:
+- Single primary button stays the existing "Explain" — no new CTAs.
+- Recent player chips above search remain untouched.
+- Sections render only when their field is present (graceful with partial AI/fallback data).
+- All new chips use existing `Badge` / utility classes; no new dependencies.
 
-### B6. Visual usage standard (documented, applied where wrong)
+### 6. Acceptance check
+- Existing search, autocomplete, recent chips, and AI streaming still work.
+- Report shows verdict, BIQ rating + label, archetype, form signal, salary efficiency, risk radar with flags, and schedule context (when data exists).
+- No new entry points elsewhere in the app; Explain remains inside the AI Coach modal.
+- Light/dark theme respected via existing tokens.
 
-Add a top-of-file JSDoc block to `BallersIQBrand.tsx`:
-- `wordmark` → modal headers, page headers
-- `emblem` → compact cards, inline buttons
-- `appIcon` → launch/action tiles only
-- `badge` → premium insight cards, sparingly
-
-Audit existing usages and fix outliers:
-- `RosterPage.tsx` line 542: `emblem` inside an inline toggle ✓
-- `RosterPage.tsx` line 447-448: `wordmark` inside a button trigger — acceptable (page-level entry)
-- `PlayersPage.tsx` after rename: switch to `emblem` size="sm" inside the small pill (compact card pattern)
-- `TeamsPage.tsx` line 256-258: decorative emblem watermark ✓
-
-No other usages need changes.
-
-## Files touched
-
-- `src/components/court-show/useCourtShowAudio.ts` — single effect, listener cleanup, visibility handling
-- `src/components/ballers-iq/BallersIQBrand.tsx` — fix forced-dark bug, add usage JSDoc
-- `src/App.tsx` — remove `/ai` route + import
-- `src/pages/AIHubPage.tsx` — **delete**
-- `src/pages/PlayersPage.tsx` — rename "AI Coach" → "Ballers.IQ", swap icon to emblem
-
-## Acceptance verification
-
-- Open Daily Court Show → close → no orphan audio, no console warnings, no AbortError.
-- Toggle browser tab → audio pauses; return → resumes if still open.
-- Toggle `<html class="dark">` off → light wordmark/emblem assets load.
-- `/ai` no longer routable; `AICoachModal` is the only Ballers.IQ hub.
-- Players page button reads "Ballers.IQ"; Roster page trigger unchanged; no new top-level buttons added anywhere.
+### Files touched
+- `src/lib/ballers-iq/schemas.ts` (extend interface + validator)
+- `src/lib/ballers-iq/narrative.ts` (extend fallback)
+- `supabase/functions/_shared/biq.ts` (archetype + richer schedule)
+- `supabase/functions/ai-coach/index.ts` (prompt schema for explain-player) — redeploy
+- `src/components/AICoachModal.tsx` (`ExplainReport` only; no other UI)

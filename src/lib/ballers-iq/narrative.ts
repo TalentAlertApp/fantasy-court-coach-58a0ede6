@@ -90,14 +90,34 @@ export function fallbackExplainPlayer(p: BIQPlayer, ctx: BIQNarrativeContext): B
     pack.biqRating.score >= 75 ? "START" :
     pack.biqRating.score >= 55 ? "HOLD" :
     pack.riskRadar.level === "HIGH" ? "DROP" : "WATCH";
+  const archetype = computeArchetype(p, pack);
+  const team = String(p.team ?? "").toUpperCase();
+  const nextGameRow = sched.find((g: any) =>
+    String(g.home_team ?? "").toUpperCase() === team ||
+    String(g.away_team ?? "").toUpperCase() === team,
+  );
+  const nextGame = nextGameRow
+    ? (String((nextGameRow as any).home_team ?? "").toUpperCase() === team
+        ? `vs ${(nextGameRow as any).away_team}`
+        : `@ ${(nextGameRow as any).home_team}`)
+    : null;
   return {
     player_id: p.id,
     summary: `${p.name}: BIQ ${pack.biqRating.score} (${pack.biqRating.label}). Form ${pack.formSignal.label}. Risk ${pack.riskRadar.level}.`,
     verdict,
     biq_rating: pack.biqRating.score,
+    biq_label: pack.biqRating.label as any,
+    archetype,
     form_signal: pack.formSignal.label,
     salary_efficiency: pack.salaryEfficiency.label,
     risk_level: pack.riskRadar.level,
+    risk_flags: pack.riskRadar.flags,
+    schedule_context: {
+      next_game: nextGame,
+      games_count: pack.scheduleEdge.gamesCount,
+      label: pack.scheduleEdge.label as any,
+      warning: pack.scheduleEdge.gamesCount === 0 ? "No games scheduled this gameweek." : null,
+    },
     why_it_scores: [
       { factor: "minutes", impact: "medium", note: `MPG5 ${p.mpg5 ?? "n/a"}` },
       { factor: "stocks", impact: "medium", note: `stocks5 ${p.stocks5 ?? 0}` },
@@ -108,6 +128,23 @@ export function fallbackExplainPlayer(p: BIQPlayer, ctx: BIQNarrativeContext): B
       rationale: `Index-based: ${pack.biqRating.label}, ${pack.salaryEfficiency.label}, risk ${pack.riskRadar.level}.`,
     },
   };
+}
+
+function computeArchetype(p: BIQPlayer, pack: ReturnType<typeof buildPlayerIndexPack>): string {
+  const fp5 = Number(p.fp_pg5 ?? 0);
+  const mpg5 = Number(p.mpg5 ?? p.mpg ?? 0);
+  const stocks5 = Number(p.stocks5 ?? 0);
+  const ast5 = Number(p.ast5 ?? 0);
+  const dMpg = Number(p.delta_mpg ?? 0);
+  if (pack.salaryEfficiency.label === "Salary Trap") return "Trap Pick";
+  if (pack.formSignal.label === "Form Spike" || pack.formSignal.label === "Minutes Spike") return "Form Climber";
+  if (stocks5 >= 3) return "Stocks Hunter";
+  if (pack.salaryEfficiency.label === "Underpriced" && pack.biqRating.score >= 55) return "Value Play";
+  if (mpg5 >= 32 && Math.abs(dMpg) <= 2) return "Minutes Monster";
+  if (fp5 >= 32 && ast5 >= 5) return "Usage Engine";
+  if (mpg5 >= 28 && pack.riskRadar.level === "LOW") return "Safe Floor";
+  if (pack.biqRating.score >= 60 && pack.riskRadar.level !== "LOW") return "Ceiling Swing";
+  return "Safe Floor";
 }
 
 export function fallbackExplainTrade(outs: BIQPlayer[], ins: BIQPlayer[]): BIQExplainTradeResponse {

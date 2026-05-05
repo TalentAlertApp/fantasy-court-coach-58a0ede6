@@ -86,15 +86,37 @@ function scheduleEdge(p: PlayerRow, upcoming: GameRow[]): { score: number; label
   return { score, label, games: games.length };
 }
 
+function nextGameLabel(p: PlayerRow, upcoming: GameRow[]): string | null {
+  const team = String(p.team ?? "").toUpperCase();
+  const g = upcoming.find((g) => eqTri(g.home_team, team) || eqTri(g.away_team, team));
+  if (!g) return null;
+  return eqTri(g.home_team, team) ? `vs ${String(g.away_team ?? "").toUpperCase()}` : `@ ${String(g.home_team ?? "").toUpperCase()}`;
+}
+
+function archetypeFor(p: PlayerRow, parts: { rating: { score: number }; sal: { label: string }; form: string; risk: { level: string } }): string {
+  const fp5 = num(p.fp_pg5), mpg5 = num(p.mpg5 ?? p.mpg), stocks5 = num(p.stocks5), ast5 = num(p.ast5);
+  const dMpg = num(p.delta_mpg);
+  if (parts.sal.label === "Salary Trap") return "Trap Pick";
+  if (parts.form === "Form Spike" || parts.form === "Minutes Spike") return "Form Climber";
+  if (stocks5 >= 3) return "Stocks Hunter";
+  if (parts.sal.label === "Underpriced" && parts.rating.score >= 55) return "Value Play";
+  if (mpg5 >= 32 && Math.abs(dMpg) <= 2) return "Minutes Monster";
+  if (fp5 >= 32 && ast5 >= 5) return "Usage Engine";
+  if (mpg5 >= 28 && parts.risk.level === "LOW") return "Safe Floor";
+  if (parts.rating.score >= 60 && parts.risk.level !== "LOW") return "Ceiling Swing";
+  return "Safe Floor";
+}
+
 export interface BIQPlayerPack {
   id: number; name: string; team: string | null; fc_bc: string | null; salary: number;
   biq_rating: number; biq_label: string;
   captain_edge: number; captain_label: string;
-  schedule: { score: number; label: string; games: number };
+  schedule: { score: number; label: string; games: number; next_game: string | null; warning: string | null };
   salary_eff: { score: number; label: string; ratio: number };
   form: string;
   risk: { level: string; score: number; flags: string[] };
   adj_fp: number;
+  archetype: string;
 }
 
 export function buildPlayerPack(p: PlayerRow, upcoming: GameRow[]): BIQPlayerPack {
@@ -103,16 +125,20 @@ export function buildPlayerPack(p: PlayerRow, upcoming: GameRow[]): BIQPlayerPac
   const cap = captainEdge(p, sched.games > 0);
   const rating = ratingScore(p);
   const risk = riskRadar(p, sched.games > 0, sal.score);
+  const form = formSignal(p);
+  const next = nextGameLabel(p, upcoming);
+  const archetype = archetypeFor(p, { rating, sal, form, risk });
   return {
     id: Number(p.id), name: String(p.name ?? ""), team: p.team ?? null, fc_bc: p.fc_bc ?? null,
     salary: num(p.salary),
     biq_rating: rating.score, biq_label: rating.label,
     captain_edge: cap.score, captain_label: cap.label,
-    schedule: sched,
+    schedule: { ...sched, next_game: next, warning: sched.games === 0 ? "No games scheduled this gameweek." : null },
     salary_eff: sal,
-    form: formSignal(p),
+    form,
     risk,
     adj_fp: Math.round(num(p.fp_pg5) * 10) / 10,
+    archetype,
   };
 }
 

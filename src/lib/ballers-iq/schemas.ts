@@ -32,7 +32,7 @@ export function validateAnalyze(d: unknown): Validation<BIQAnalyzeResponse> {
   if (!isStrArr(d.weaknesses)) errs.push("weaknesses missing");
   if (!isStrArr(d.notes)) errs.push("notes missing");
   if (!Array.isArray(d.quick_wins)) errs.push("quick_wins missing");
-  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as BIQAnalyzeResponse };
+  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as unknown as BIQAnalyzeResponse };
 }
 
 export interface BIQCaptainResponse {
@@ -49,7 +49,7 @@ export function validateCaptain(d: unknown): Validation<BIQCaptainResponse> {
   if (!isStrArr(d.reason_bullets)) errs.push("reason_bullets");
   if (!isNum(d.confidence)) errs.push("confidence");
   if (!Array.isArray(d.alternatives)) errs.push("alternatives");
-  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as BIQCaptainResponse };
+  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as unknown as BIQCaptainResponse };
 }
 
 export interface BIQTransferMove {
@@ -65,7 +65,7 @@ export function validateTransfers(d: unknown): Validation<BIQTransferResponse> {
   const errs: string[] = [];
   if (!Array.isArray(d.moves)) errs.push("moves");
   if (!isStrArr(d.notes)) errs.push("notes");
-  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as BIQTransferResponse };
+  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as unknown as BIQTransferResponse };
 }
 
 export interface BIQExplainPlayerResponse {
@@ -73,9 +73,18 @@ export interface BIQExplainPlayerResponse {
   summary: string;
   verdict?: "START" | "BENCH" | "HOLD" | "WATCH" | "DROP";
   biq_rating?: number;
+  biq_label?: "Elite" | "Strong" | "Playable" | "Watch" | "Risk";
+  archetype?: string;
   form_signal?: string;
   salary_efficiency?: string;
   risk_level?: "LOW" | "MEDIUM" | "HIGH";
+  risk_flags?: string[];
+  schedule_context?: {
+    next_game?: string | null;
+    games_count?: number;
+    label?: "Schedule Boost" | "Schedule Drag" | "Neutral" | "No Game Risk";
+    warning?: string | null;
+  };
   why_it_scores: { factor: string; impact: string; note: string }[];
   trend_flags: { type: string; detail: string }[];
   recommendation: { action: "add" | "hold" | "drop"; rationale: string };
@@ -86,7 +95,7 @@ export function validateExplainPlayer(d: unknown): Validation<BIQExplainPlayerRe
   if (typeof d.summary !== "string") errs.push("summary");
   if (!Array.isArray(d.why_it_scores)) errs.push("why_it_scores");
   if (!isObj(d.recommendation)) errs.push("recommendation");
-  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as BIQExplainPlayerResponse };
+  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as unknown as BIQExplainPlayerResponse };
 }
 
 export interface BIQExplainTradeResponse {
@@ -107,7 +116,7 @@ export function validateExplainTrade(d: unknown): Validation<BIQExplainTradeResp
   if (!isStrArr(d.pros)) errs.push("pros");
   if (!isStrArr(d.cons)) errs.push("cons");
   if (!isNum(d.confidence)) errs.push("confidence");
-  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as BIQExplainTradeResponse };
+  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as unknown as BIQExplainTradeResponse };
 }
 
 export interface BIQInjuryResponse {
@@ -126,7 +135,7 @@ export function validateInjury(d: unknown): Validation<BIQInjuryResponse> {
   const errs: string[] = [];
   if (!Array.isArray(d.items)) errs.push("items");
   if (!isStrArr(d.notes)) errs.push("notes");
-  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as BIQInjuryResponse };
+  return errs.length ? { ok: false, errors: errs } : { ok: true, data: d as unknown as BIQInjuryResponse };
 }
 
 export const VALIDATORS = {
