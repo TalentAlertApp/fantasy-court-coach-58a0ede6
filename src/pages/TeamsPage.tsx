@@ -31,6 +31,7 @@ type Tab = "teams" | "standings";
 export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("teams");
+  const [standingsView, setStandingsView] = useState<StandingsView>("division");
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["nba-teams-schedule-stats"],
