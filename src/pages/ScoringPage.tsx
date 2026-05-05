@@ -19,7 +19,7 @@ import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
-import { X } from "lucide-react";
+import AICoachModal from "@/components/AICoachModal";
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
@@ -43,6 +43,7 @@ export default function ScoringPage() {
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
   const [playerModalId, setPlayerModalId] = useState<number | null>(null);
+  const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const rosterRef = useRef<HTMLDivElement>(null);
   const [sortCol, setSortCol] = useState<SortCol>("gw");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -156,6 +157,7 @@ export default function ScoringPage() {
               sortDir={sortDir} setSortDir={setSortDir}
               onTeamModal={setTeamModalTeam}
               onPlayerModal={setPlayerModalId}
+              onOpenAICoach={() => setAiCoachOpen(true)}
             />
           )}
         </TabsContent>
@@ -179,6 +181,7 @@ export default function ScoringPage() {
         open={playerModalId !== null}
         onOpenChange={(open) => { if (!open) setPlayerModalId(null); }}
       />
+      <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
     </div>
   );
 }
