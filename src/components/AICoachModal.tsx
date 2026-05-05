@@ -452,33 +452,6 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
-              {/* Recent 5 explained chips */}
-              {!explainSearch && !explainResult && recentExplained.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">Recent</span>
-                  {recentExplained.map((r) => {
-                    const logo = getTeamLogo(r.team);
-                    const lastName = r.name.split(/\s+/).slice(-1)[0];
-                    return (
-                      <button
-                        key={r.id}
-                        onClick={() => handleRecentClick(r)}
-                        className="inline-flex items-center gap-1.5 bg-muted hover:bg-accent/50 transition-colors rounded-full pl-0.5 pr-2 py-0.5 border"
-                        title={r.name}
-                      >
-                        {r.photo ? (
-                          <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
-                        ) : logo ? (
-                          <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
-                        ) : (
-                          <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">{r.name.slice(0,1)}</span>
-                        )}
-                        <span className="text-[10px] font-heading font-semibold">{lastName}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
               <Popover open={showDropdown && explainMatches.length > 0} onOpenChange={setShowDropdown}>
                 <div className="flex gap-2">
                   <PopoverAnchor asChild>
@@ -486,13 +459,63 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                       placeholder="Search player name or team..."
                       value={explainSearch}
                       onChange={(e) => handleExplainSearchChange(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleExplain()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const target = selectedExplainPlayer ?? explainMatches[0];
+                          if (target) {
+                            setSelectedExplainPlayer(target);
+                            setExplainSearch(target.core.name);
+                            setShowDropdown(false);
+                            void runExplain(target);
+                          }
+                        }
+                      }}
                       className="rounded-lg flex-1"
                     />
                   </PopoverAnchor>
-                  <Button size="sm" onClick={handleExplain} disabled={explainLoading || (!selectedExplainPlayer && explainMatches.length === 0)}>
-                    {explainLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Explain"}
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        title="Recently explained"
+                        aria-label="Recently explained"
+                        disabled={recentExplained.length === 0}
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
+                      <DropdownMenuLabel className="font-heading uppercase text-[10px] tracking-wider">
+                        Recent · last 5
+                      </DropdownMenuLabel>
+                      {recentExplained.length === 0 ? (
+                        <DropdownMenuItem disabled className="text-xs italic">
+                          No history yet
+                        </DropdownMenuItem>
+                      ) : recentExplained.map((r) => {
+                        const logo = getTeamLogo(r.team);
+                        return (
+                          <DropdownMenuItem
+                            key={r.id}
+                            onSelect={() => handleRecentClick(r)}
+                            className="text-xs gap-2"
+                          >
+                            {r.photo ? (
+                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
+                            ) : logo ? (
+                              <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">
+                                {r.name.slice(0, 1)}
+                              </span>
+                            )}
+                            <span className="truncate">{r.name}</span>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <PopoverContent
