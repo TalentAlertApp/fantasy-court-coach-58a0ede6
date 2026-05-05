@@ -586,6 +586,60 @@ function actionPalette(action: string): { chip: string; band: string; label: str
   }
 }
 
+function verdictPalette(verdict: string): { chip: string; band: string; label: string } {
+  const v = (verdict || "").toUpperCase();
+  switch (v) {
+    case "START":
+      return { chip: "bg-emerald-500 text-white", band: "border-emerald-500/40 bg-emerald-500/10", label: "START" };
+    case "BENCH":
+      return { chip: "bg-amber-500 text-white", band: "border-amber-500/40 bg-amber-500/10", label: "BENCH" };
+    case "HOLD":
+      return { chip: "bg-sky-500 text-white", band: "border-sky-500/40 bg-sky-500/10", label: "HOLD" };
+    case "WATCH":
+      return { chip: "bg-violet-500 text-white", band: "border-violet-500/40 bg-violet-500/10", label: "WATCH" };
+    case "DROP":
+      return { chip: "bg-destructive text-destructive-foreground", band: "border-destructive/40 bg-destructive/10", label: "DROP" };
+    default:
+      return { chip: "bg-muted text-muted-foreground", band: "border-border bg-muted/30", label: v || "—" };
+  }
+}
+
+function biqRatingClasses(score: number): string {
+  if (score >= 85) return "text-emerald-500";
+  if (score >= 70) return "text-emerald-400";
+  if (score >= 55) return "text-sky-400";
+  if (score >= 40) return "text-amber-500";
+  return "text-destructive";
+}
+
+function riskClasses(level: string): string {
+  switch ((level || "").toUpperCase()) {
+    case "LOW": return "bg-emerald-500/15 text-emerald-500 border border-emerald-500/40";
+    case "MEDIUM": return "bg-amber-500/15 text-amber-500 border border-amber-500/40";
+    case "HIGH": return "bg-destructive/15 text-destructive border border-destructive/40";
+    default: return "bg-muted text-muted-foreground border border-border";
+  }
+}
+
+function salaryClasses(label: string): string {
+  switch ((label || "").toLowerCase()) {
+    case "underpriced": return "bg-emerald-500/15 text-emerald-500 border border-emerald-500/40";
+    case "fair value": return "bg-muted text-muted-foreground border border-border";
+    case "overpriced": return "bg-amber-500/15 text-amber-500 border border-amber-500/40";
+    case "salary trap": return "bg-destructive/15 text-destructive border border-destructive/40";
+    default: return "bg-muted text-muted-foreground border border-border";
+  }
+}
+
+function scheduleClasses(label: string): string {
+  switch ((label || "").toLowerCase()) {
+    case "schedule boost": return "bg-emerald-500/15 text-emerald-500 border border-emerald-500/40";
+    case "schedule drag": return "bg-amber-500/15 text-amber-500 border border-amber-500/40";
+    case "no game risk": return "bg-destructive/15 text-destructive border border-destructive/40";
+    default: return "bg-muted text-muted-foreground border border-border";
+  }
+}
+
 function ExplainReport({ result, player }: { result: any; player: any }) {
   const teamTricode = player?.core?.team;
   const teamLogo = teamTricode ? getTeamLogo(teamTricode) : null;
