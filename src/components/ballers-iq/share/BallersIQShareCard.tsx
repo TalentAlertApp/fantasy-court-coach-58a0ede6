@@ -71,6 +71,9 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
   const nameSize = format === "wide" ? "text-[48px]" : "text-[60px]";
   // Mark when the embedded image is fully decoded so the modal export can await it.
   const photoReady = !ctx.imageUrl || embeddedImage !== null;
+  const [directLoaded, setDirectLoaded] = useState(false);
+  const photoSrc = embeddedImage ?? ctx.imageUrl ?? null;
+  const readyMarker = !ctx.imageUrl || embeddedImage !== null || directLoaded;
 
   return (
     <div
@@ -101,11 +104,13 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       {/* Subject block */}
       <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "top-28" : "top-36")}>
         <div className="flex items-center gap-6">
-          {embeddedImage ? (
+          {photoSrc ? (
             <img
-              src={embeddedImage}
+              src={photoSrc}
               alt=""
               referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+              onLoad={() => setDirectLoaded(true)}
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               className={cn("rounded-2xl object-cover ring-2 ring-amber-300/40 shadow-2xl bg-white/5",
                 format === "wide" ? "h-32 w-32" : "h-44 w-44")}
@@ -149,12 +154,12 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       <footer className="absolute bottom-0 inset-x-0 px-12 pb-8 flex items-end justify-between">
         <div className="flex items-center gap-3">
           {insight.action && (
-            <span className="px-4 py-1.5 rounded-lg bg-amber-300 text-amber-950 text-[16px] font-black uppercase tracking-widest">
+            <span className="px-4 py-1.5 rounded-lg bg-amber-300 text-amber-950 text-[16px] font-black uppercase tracking-widest whitespace-nowrap">
               {insight.action}
             </span>
           )}
           {insight.riskLevel && (
-            <span className="px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-[14px] font-bold uppercase tracking-widest">
+            <span className="px-4 py-1.5 rounded-lg bg-white/10 border border-white/20 text-[14px] font-bold uppercase tracking-widest whitespace-nowrap">
               Risk · {insight.riskLevel}
             </span>
           )}
@@ -170,7 +175,7 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
         </div>
       </footer>
       {/* Hidden marker so the modal can await image readiness without timing hacks. */}
-      <span data-photo-ready={photoReady ? "1" : "0"} className="hidden" aria-hidden />
+      <span data-photo-ready={readyMarker ? "1" : "0"} className="hidden" aria-hidden />
     </div>
   );
 });
