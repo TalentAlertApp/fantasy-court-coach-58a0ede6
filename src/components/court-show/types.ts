@@ -7,6 +7,16 @@ export type SlideKind =
   | "captain"
   | "outro";
 
+export type StoryLabel =
+  | "STOCK ALERT"
+  | "USAGE MONSTER"
+  | "GLASS CLEANER"
+  | "TWO-WAY JUICE"
+  | "VALUE POP"
+  | "CAPTAIN MATERIAL"
+  | "TRAP GAME"
+  | "SLATE HAMMER";
+
 export interface TopPerformer {
   player_id: number;
   name: string;
@@ -19,6 +29,9 @@ export interface TopPerformer {
   ast?: number;
   stl?: number;
   blk?: number;
+  mp?: number;
+  label?: StoryLabel;
+  onRosterCount?: number;
 }
 
 export interface ValuePlay {
@@ -30,6 +43,7 @@ export interface ValuePlay {
   fp5?: number;
   value5?: number;
   mpg5?: number;
+  label?: StoryLabel;
 }
 
 export interface RecapGame {
@@ -51,6 +65,9 @@ export interface MatchupGame {
   away_team: string;
   tipoff_utc?: string | null;
   competitiveScore: number;
+  rosterRelevant: number;
+  starPower: number;
+  label?: StoryLabel;
 }
 
 export interface CaptainPick {
@@ -61,6 +78,7 @@ export interface CaptainPick {
   fp5?: number;
   mpg5?: number;
   fpProj?: number;
+  label?: StoryLabel;
 }
 
 export interface IntroPayload {
