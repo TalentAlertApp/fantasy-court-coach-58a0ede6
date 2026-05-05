@@ -1,56 +1,54 @@
-## 1) /teams — Standings: pin Ballers.IQ cards to bottom of sidebar
+# Daily Court Show — Polish Pass
 
-**File:** `src/pages/TeamsPage.tsx`
+Three focused changes, all scoped to `src/components/court-show/*`. No DB, no schema, no changes to `SchedulePage` structure.
 
-The standings view already uses a flex column with `mt-auto` on the BIQ row, but its outer height (`h-[calc(100vh-180px)]`) doesn't reach the bottom of the left sidebar (which extends to the viewport edge).
+## 1) Smarter autoplay + clean close behavior
 
-- Replace the wrapper height with a fill-height layout so the BIQ row sits flush with the sidebar bottom:
-  - Change outer `<div className="space-y-4">` (page root) to `<div className="flex flex-col h-full min-h-0">` so the page consumes the AppLayout's available height.
-  - Header row stays `shrink-0`.
-  - Replace `<div className="flex flex-col gap-3 h-[calc(100vh-180px)]">` with `<div className="flex-1 min-h-0 flex flex-col gap-3">`.
-  - Keep the scrollable standings (`flex-1 min-h-0 overflow-auto`) and the BIQ block (`shrink-0 mt-auto`) as-is — now the bottom edge of the BIQ section will align with the bottom of the persistent left sidebar.
+**File:** `CourtShowModal.tsx`
 
-No visual change to Teams tab.
+- Manual navigation (Prev/Next buttons, ArrowLeft/ArrowRight keys) now **pauses autoplay**: each handler calls `setPlaying(false)` in addition to advancing the index. The user resumes by hitting the Play button (already wired) or Space.
+- Autoplay continues to resume automatically after the user un-pauses; no auto-resume after a manual jump (per spec: "resume only when appropriate" = explicit user action).
+- Hover-pause logic stays unchanged.
+- Reset on open: keep current `useEffect` that resets `index=0`, `playing=true` when `open` flips true. Add a guard so the reset does **not** fire when only `gw`/`day` props change while the modal is already open mid-show (prevents jarring restart if SchedulePage re-renders).
+- Closing: modal is a Radix `Dialog` overlay — `/schedule` route, scroll position, gw/day selection and all underlying state are untouched today. Verified. Plan adds a comment noting this contract and ensures we do **not** call `navigate()` or change URL on close.
 
-## 2) /MY ROSTER — Header & toolbar polish
+## 2) Outro arrow → /MY ROSTER
 
-**File:** `src/pages/RosterPage.tsx`
+**Files:** `CourtShowSlide.tsx`, `CourtShowModal.tsx`
 
-### a) Ballers.IQ button — transparent image (light theme)
-The dark theme already uses `ballers-iq-wordmark-dark-transparent.png`. The light theme variant is currently the non-transparent `wordmark-light`. Update the light branch:
-```tsx
-<BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
-```
-(adds `transparent` so the PNG background no longer overlaps the button bg).
+- Add an optional `onOutroAction?: () => void` prop on `CourtShowSlide`.
+- In the `outro` branch, wrap the existing pulsing `ArrowRight` in a `<button>` with `aria-label="Go to My Roster"`, hover lift, that calls `onOutroAction`. Works for both played-day and upcoming-day variants (single outro slide for both).
+- `CourtShowModal` passes `onOutroAction={() => { onOpenChange(false); navigate('/'); }}` using `useNavigate` from `react-router-dom`. (`/` is the My Roster route per the existing `RosterPage` mapping in `App.tsx` — verified earlier in session memory.)
 
-### b) Ballers.IQ + WISHLIST buttons — same width
-Wrap both with a fixed width class so they match exactly:
-- Ballers.IQ button: add `w-32 justify-center` (replaces ad-hoc `px-3`).
-- Wishlist `<Button>`: add `w-32 justify-center` and keep `Heart` + label.
+## 3) Contextual ambient sound (royalty-free) + mute toggle
 
-### c) LINEUP ADVISOR / SCHEDULE / CHIPS / OPTIMIZE — equal width + per-button hover color + new LA icon
-Apply `w-40 justify-center` to all four buttons (same uniform pill).
+**Approach (zero rights risk):** generate the audio in-browser with the Web Audio API. Nothing is downloaded, nothing is licensed, nothing is shipped as an asset — purely procedural tones. This is the cleanest way to guarantee no IP exposure.
 
-Per-button hover tints (using existing palette tokens — distinct, on-brand):
-- **Lineup Advisor** — amber (already has `border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400`). Keep.
-- **Schedule** — sky: `hover:bg-sky-400/10 hover:text-sky-400 hover:border-sky-400/60`.
-- **Chips** — violet: `hover:bg-violet-400/10 hover:text-violet-400 hover:border-violet-400/60`.
-- **Optimize** — keep existing yellow/orange hover, plus border highlight.
+**New file:** `src/components/court-show/useCourtShowAudio.ts`
 
-Replace the `Sparkles` icon on the **Lineup Advisor** button with the Ballers.IQ emblem so it's no longer duplicated with the Chips button:
-```tsx
-<BallersIQBrand
-  variant="emblem"
-  forceTheme="light"
-  transparent
-  className="!h-4 !w-4 mr-1 opacity-90"
-/>
-```
-The `light + transparent` emblem PNG embeds cleanly on both light and dark button backgrounds (already used the same way inside `BallersIQCard` and `BallersIQRecapBlock`).
+A small hook that owns an `AudioContext` and builds a soft "broadcast intro" bed:
 
-Chips button keeps its `Sparkles` icon — no other icon changes.
+- 2 detuned sine oscillators at A2/E3 through a low-pass filter (cutoff ~600Hz) → gentle pad.
+- A slow LFO on a gain node for subtle swell (very low volume, master gain ~0.05).
+- Optional short shimmer triggered on slide change (sine blip at C5, 120ms, gain 0.03) — adds the "broadcast cue" feel without being intrusive.
+- API: `{ enabled, toggle, onSlideChange }`. `enabled` defaults to `true` but is read from `localStorage["courtshow.audio"]` so the user's mute preference persists across sessions and across opens. Auto-starts on mount only if `enabled`. Stops + closes context on unmount or when `enabled` flips to false. Resumes context on first user gesture inside the modal (Safari requirement) — modal-open click counts.
 
-### Technical notes
-- No state, handler, or data-flow changes.
-- No new assets — `ballers-iq-wordmark-light-transparent.png` and `ballers-iq-emblem-light-transparent.png` already exist in `public/brand/`.
-- Pure className/markup edits in two files: `src/pages/TeamsPage.tsx` and `src/pages/RosterPage.tsx`.
+**Wire in `CourtShowModal.tsx`:**
+
+- Instantiate `useCourtShowAudio()` only while `open` is true.
+- Call `audio.onSlideChange()` inside the existing slide-advance `useEffect` and in manual nav handlers.
+- **Mute icon top-right:** add a button next to the existing `X` close button. Uses `Volume2` / `VolumeX` from `lucide-react`. Tooltip: "Mute sound" / "Unmute sound". Same styling as the close button.
+- Icon is context-sensitive (reflects current `enabled` state). Click toggles and persists preference.
+
+## Acceptance
+
+- Pressing Prev/Next or arrow keys halts autoplay; only Play button or Space resumes it.
+- Closing the modal returns to the exact same `/schedule` view (route, scroll, gw/day filters preserved). Re-opening starts from slide 1.
+- Outro arrow navigates to `/` (My Roster) and closes the modal.
+- Sound starts softly when the modal opens; mute icon appears top-right; toggling persists across opens; no external audio files are bundled or fetched.
+
+## Files touched
+
+- `src/components/court-show/CourtShowModal.tsx` (autoplay pauses on manual nav, navigate to /, mute button, audio hook integration)
+- `src/components/court-show/CourtShowSlide.tsx` (outro arrow becomes button with `onOutroAction`)
+- `src/components/court-show/useCourtShowAudio.ts` (new, ~80 lines, Web Audio API only)
