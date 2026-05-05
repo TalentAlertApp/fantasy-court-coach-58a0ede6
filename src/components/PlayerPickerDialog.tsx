@@ -45,6 +45,8 @@ interface PlayerPickerDialogProps {
   canConfirm?: boolean;
   /** Called when the user clicks the centered "Save Current Roster" CTA at 10/10 */
   onConfirm?: () => void;
+  /** When set, renders an "Open in Trade Center" CTA in the picker header. */
+  onOpenTradeCenter?: () => void;
 }
 
 const SFX_KEY = "nba_picker_sfx";
@@ -53,7 +55,7 @@ export default function PlayerPickerDialog({
   open, onOpenChange, allPlayers, rosterIds, rosterTeams = [], onSelect, title = "Pick a Player",
   bankRemaining, swapPlayerSalary, swapPlayerPosition,
   showCourtPreview = false, picks = [], onRemovePick,
-  canConfirm = false, onConfirm,
+  canConfirm = false, onConfirm, onOpenTradeCenter,
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
@@ -172,9 +174,19 @@ export default function PlayerPickerDialog({
       <DialogContent className={dialogClass}>
         {/* LEFT — search + player list */}
         <div className={`flex flex-col min-h-0 p-4 ${showCourtPreview ? "border-r border-border" : ""}`}>
-          <DialogHeader className="pr-10 shrink-0">
+          <DialogHeader className={`pr-10 shrink-0 ${title === "Quick Trade" ? "relative -mx-4 -mt-4 px-5 pt-4 pb-3 mb-2 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border-b border-border" : ""}`}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <DialogTitle className="font-heading">{title}</DialogTitle>
+              <DialogTitle className={`font-heading ${title === "Quick Trade" ? "uppercase tracking-wider text-base" : ""}`}>{title}</DialogTitle>
+              {onOpenTradeCenter && (
+                <button
+                  type="button"
+                  onClick={onOpenTradeCenter}
+                  className="text-[10px] font-heading uppercase tracking-wider rounded-lg px-2.5 py-1 border border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400 transition-colors"
+                  title="Open the full Trade Center"
+                >
+                  Open in Trade Center →
+                </button>
+              )}
               {budgetAvailable != null && !showCourtPreview && (
                 <Badge variant="outline" className="text-[10px] font-mono rounded-lg">
                   Budget: ${budgetAvailable.toFixed(1)}M
