@@ -43,28 +43,21 @@ export default function LineupAdvisorPanel({ data, className, onClose }: Props) 
         </button>
       )}
 
-      <div className="relative z-[1] flex items-stretch gap-3 p-3">
-        {/* Left: wordmark "logo" — fully transparent, blends with card bg */}
-        <div className="shrink-0 flex flex-col items-center justify-center px-2 border-r border-border/40">
-          <BallersIQBrand
-            variant="wordmark"
-            forceTheme="light"
-            transparent
-            className="!h-7 w-auto"
-          />
-          <span className="mt-1 text-[9px] font-heading font-bold uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="relative z-[1] p-3">
+        <header className="flex items-center gap-2.5 mb-2">
+          <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-6 w-auto" />
+          <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-6 w-auto" />
+          <span className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-muted-foreground border-l border-border pl-2.5">
             Lineup Advisor
           </span>
-        </div>
-        <div className="flex-1 min-w-0">
           {data.summary && (
-            <p className="text-[12px] text-muted-foreground leading-snug mb-2">{data.summary}</p>
+            <span className="text-[11px] text-muted-foreground truncate ml-2">{data.summary}</span>
           )}
-          <div className="grid sm:grid-cols-2 gap-2">
-            {data.insights.map((ins, i) => (
-              <BallersIQCard key={i} insight={ins} compact />
-            ))}
-          </div>
+        </header>
+        <div className="grid sm:grid-cols-2 gap-2">
+          {data.insights.map((ins, i) => (
+            <BallersIQCard key={i} insight={ins} compact />
+          ))}
         </div>
       </div>
     </section>

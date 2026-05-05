@@ -37,8 +37,20 @@ export default function BallersIQCard({ insight, className, compact, onClick }: 
         className,
       )}
     >
-      <div className="flex items-start gap-2.5">
-        <BallersIQBrand variant="emblem" size={compact ? "sm" : "md"} className="shrink-0 mt-0.5" />
+      {/* Wordmark watermark — far right, oversized, rotated, subtle */}
+      <BallersIQBrand
+        variant="wordmark"
+        forceTheme="light"
+        className="dark:hidden pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-14 w-auto opacity-[0.08] rotate-12 select-none"
+      />
+      <BallersIQBrand
+        variant="wordmark"
+        forceTheme="dark"
+        transparent
+        className="hidden dark:block pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-14 w-auto opacity-[0.10] rotate-12 select-none"
+      />
+      <div className="relative z-[1] flex items-start gap-2.5">
+        <BallersIQBrand variant="emblem" forceTheme="light" size={compact ? "sm" : "md"} className="shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-heading font-bold uppercase tracking-[0.14em] text-amber-400/90">

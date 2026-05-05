@@ -1,115 +1,112 @@
 
-# Plan — Photo fixes, Recap cleanup & Ballers.IQ AI insight layer
+## 1) Recompute Ballers.IQ on roster change
+**File:** `src/pages/RosterPage.tsx`, `src/pages/ScoringPage.tsx`
+- The `biqAdvisor` `useMemo` already depends on `[starters, bench, captainId]`, but those arrays are derived via `.map(resolvePlayer)` which produces new references even when content is identical, causing fine. The actual problem is **stale insights when roster mutates server-side** because `getBallersIQInsights` runs once and the page memoizes by reference. Add a stable signature: `JSON.stringify(roster.starters + roster.bench + captainId + roster.updated_at)` as the memo dependency. Same fix applied to `ScoringRecapBlock` (re-key by `selectedDay.day + total_fp + players signature`).
+- Also drop the 24h `localStorage` cache in `TeamModal.TeamBallersIQ` when roster changes within the snapshot — already keyed by snapshot, no change needed (verify).
 
-## 0) Player photos — natural proportion everywhere
+## 2) MY SQUAD page
 
-**Root cause:** `AvatarImage` (radix) uses `aspect-square h-full w-full` with no `object-fit`. NBA headshots are wider than tall, so they get squished. In `PlayerRow.tsx` the `<img>` uses `object-cover` on a 10×10 square, which crops the head.
+### a) Lineup Advisor card layout (List view)
+**File:** `src/components/ballers-iq/LineupAdvisorPanel.tsx`
+- Restructure to **header on top** (wordmark + "LINEUP ADVISOR" label + summary line), and a 2-col grid of cards filling full width. Remove the left-side vertical wordmark column. Keep emblem watermark top-right.
 
-**Fix:** Treat headshots as portrait crops anchored to the top of the head.
+### b) Card icons inside the 2 inner cards
+**File:** `src/components/ballers-iq/BallersIQCard.tsx`
+- Change top-left icon to always render `BallersIQBrand variant="emblem" forceTheme="light"` (no `transparent` flag — that emblem file is the requested asset).
 
-- Update `src/components/ui/avatar.tsx` → `AvatarImage` default classes to `aspect-square h-full w-full object-cover object-top`.
-- Update `src/components/PlayerRow.tsx` photo `<img>` → add `object-top` (keep `object-cover`) and a tiny scale so face shows: `object-cover object-top scale-110`.
-- Apply the same `object-cover object-top` to:
-  - `src/components/RosterListView.tsx` (list rows)
-  - `src/components/transactions/RosterPane.tsx` (Avatar usage already inherits the fix)
-  - `src/components/GameDetailModal.tsx` (Avatar usage inherits)
-  - `src/components/TeamModal.tsx` roster table photos
-  - `src/components/TransactionsTable.tsx` if it renders photos
-- For larger circular avatars (≥ 40px) keep `object-top`; for small chips (≤ 28px) use `object-top scale-[1.15]` so the face isn't tiny.
+### c) Header Ballers.IQ button = Wishlist size
+**File:** `src/pages/RosterPage.tsx`
+- Wishlist Button is `size="sm"` (h-9 with px-3). Replace the custom `<button>` (currently `h-9 px-3` already) with a `<Button size="sm" variant="outline">` wrapper so padding, border-radius (`rounded-xl`), and font sizing match exactly. Inner content stays as wordmark image.
 
-Result: across `/`, `/transactions`, `/schedule`, team modal — players show natural head/shoulders, no squish.
+### d) College column not truncating
+**File:** `src/components/RosterListView.tsx` + `src/components/PlayerRow.tsx`
+- Increase `<TableHead>` width for College from `w-32` to `w-44`.
+- In `PlayerRow.tsx`, drop `truncate max-w-[8rem]` from the College cell, set `whitespace-nowrap`.
 
-## 1) `/schedule` Watch Recap — remove green monitor placeholder
+### e) "Swap Player" → "Quick Trade" + enforce 2-per-GW + premium header + jump to /transactions
+**Files:** `src/pages/RosterPage.tsx`, `src/components/PlayerPickerDialog.tsx`
+- Rename title prop passed in `RosterPage` from `"Swap Player"` to `"Quick Trade"`.
+- **Enforcement**: before opening the picker for a swap (in `handleSwapRequest`) and before submitting `handleSwapSelect`, check `roster.free_transfers_remaining`. If `<= 0`, toast "GW transfer cap reached (2/2). Use Wildcard or wait until next GW." and abort. (`roster-current` already returns this from the server.)
+- **Premium header in `PlayerPickerDialog`**: when `title === "Quick Trade"`, render a gradient header bar (matches `TeamModal` header style: `bg-gradient-to-br from-primary/15 via-primary/5 to-transparent`, larger title, FC/BC pill of swap player), and add a right-aligned action button **"Open in Trade Center"** that navigates via `useNavigate()` to `/transactions` (closes the dialog first).
 
-In `src/components/ScheduleList.tsx` (lines ~88–116):
-- Remove the green circle + `Tv2` icon block (lines 105–107) and the secondary subtitle (lines 110–112).
-- Keep:
-  - Two team badges (move them from background watermark to foreground at sensible size, e.g. `w-16 h-16`, full opacity, with `@` between them or just spaced).
-  - The `WATCH RECAP` label as the main centered text below the badges.
-- Keep hover state (border highlight) and click-to-expand behavior intact.
+### f) DOB (Age) on one line
+**File:** `src/components/PlayerRow.tsx`
+- Replace the two stacked `<span>`s with one inline: `{dobLabel} ({core.age || "—"})`. Keep `tabular-nums` and current font.
 
-## 2) Ballers.IQ — branded AI insight layer
+### g) Unify table value typography
+**File:** `src/components/PlayerRow.tsx`
+- All numeric/text cells should use the same classes as the College cell: `text-xs text-muted-foreground` (currently mix of `text-sm font-mono`). Apply to Salary, FP5, Value5, Last FP, Total FP, MPG, etc. Total FP keeps `font-bold text-foreground`. Photo and Player name unchanged.
 
-### 2a) Brand assets
-Copy uploaded images into `public/brand/`:
-- `ballers-iq-wordmark-light.png`, `ballers-iq-wordmark-dark.png`
-- `ballers-iq-emblem-light.png`, `ballers-iq-emblem-dark.png`
-- `ballers-iq-app-icon.png`
-- `ballers-iq-badge.png`
+## 3) /scoring
 
-### 2b) Insight service (deterministic v1, AI-ready)
+### a) Recap button uses dark transparent wordmark in dark theme
+**File:** `src/pages/ScoringPage.tsx` (search for `FP TIMELINE` recap toggle button)
+- Replace the existing wordmark image inside the toggle button with theme-aware variants:
+  - light: `wordmark-light.png` (current default works)
+  - dark: `wordmark-dark-transparent.png` via `<BallersIQBrand variant="wordmark" forceTheme="dark" transparent />`.
 
-**New file:** `src/lib/ballers-iq.ts`
+### b) Recap card icons + watermark
+**File:** `src/components/ballers-iq/BallersIQCard.tsx` (already changed in step 2b → covers icon)
+**File:** `src/components/ballers-iq/BallersIQRecapBlock.tsx`
+- Add a far-right oversized rotated wordmark watermark to **each** of the 3 inner `<BallersIQCard>` instances. Approach: wrap each card and absolutely position a `<BallersIQBrand variant="wordmark" forceTheme>` image — light theme uses `wordmark-light` (non-transparent) and dark uses `wordmark-dark-transparent`. Style: `absolute -right-6 top-1/2 -translate-y-1/2 h-16 opacity-10 rotate-12 pointer-events-none`. Easier: add the watermark directly inside `BallersIQCard.tsx` so all 3 get it (ok since cards have `overflow-hidden`).
 
-```ts
-export type BallersIQContext = "lineup" | "player" | "game_night" | "recap";
-export type BallersIQAction = "START"|"BENCH"|"CAPTAIN"|"ADD"|"DROP"|"WATCH"|"HOLD"|null;
-export type BallersIQRisk = "LOW"|"MEDIUM"|"HIGH"|null;
-export type BallersIQInsightType =
-  "CAPTAIN"|"LINEUP"|"PLAYER"|"GAME"|"RECAP"|"RISK"|"VALUE"|"FORM"|"MARKET";
+## 4) Team modal
 
-export interface BallersIQInsight {
-  type: BallersIQInsightType;
-  title: string;
-  headline: string;
-  bullets: string[];
-  playerIds: number[];
-  confidence: number;   // 0..1
-  action: BallersIQAction;
-  riskLevel: BallersIQRisk;
-}
+### a) Bigger Ballers.IQ tab image
+**File:** `src/components/TeamModal.tsx` (TabsTrigger for "biq")
+- Change wordmark height from `!h-4` to `!h-5` (matches font height of "Played (81)" tab labels).
 
-export interface BallersIQResponse { summary: string; insights: BallersIQInsight[]; }
+### b) Wire standout player photos+name → PlayerModal
+**File:** `src/components/TeamModal.tsx` (`TeamBallersIQ` section)
+- Pull `player_id` of FC/BC stars (`fcStar.id`, `bcStar.id`). Make the standout card a `<button>` that calls `setSelectedPlayerId(s.id)` (need to lift the setter in via prop or expose). Currently `selectedPlayerId` lives in parent `TeamModal` component — pass `onPlayerClick={(id) => setSelectedPlayerId(id)}` into `TeamBallersIQ`.
 
-export function getBallersIQInsights(
-  context: BallersIQContext,
-  payload: { players?: any[]; roster?: any[]; schedule?: any[]; player?: any; recap?: any }
-): BallersIQResponse;
-```
+### c) NBA logo watermark on the BIQ tab
+**File:** `src/components/TeamModal.tsx`
+- Inside `TeamBallersIQ`, add absolutely-positioned `<img src={nbaLogo}>` (import from `@/assets/nba-logo.svg`) at top-right, `h-20 opacity-10 pointer-events-none`, similar to PlayerModal pattern.
 
-Deterministic rules (no API call needed for v1):
-- **lineup:** Captain Edge = roster starter with highest `fp_pg5`. Risk Radar = starters with `injury` flag or `delta_mpg < -3` or no upcoming game. Value Pick = bench player with best `value5`.
-- **player:** action by `delta_fp` (>+3 START, <-3 BENCH/DROP, else HOLD/WATCH); risk from `injury`/minutes volatility.
-- **game_night:** count active roster players in tonight's games; flag late tipoffs; flag starters with no game.
-- **recap:** scan last gameweek's totals — best contributor, captain ROI, missed bench upside.
+## 5) Player Comparison modal
 
-Always grounded in app data only. No fabricated injuries/news.
+### a) Bottom Ballers.IQ assessment card
+**File:** `src/components/PlayerCompareModal.tsx`
+- Increase `DialogContent` from `max-w-lg` / `max-h-[85vh]` to `max-w-xl` / `max-h-[92vh]` and add a `min-h` so all content shows without inner scroll.
+- After the stats rows, render a new card when both players exist:
+  - Header: `BallersIQBrand emblem` + "BALLERS.IQ TAKE" label + premium gradient (`from-amber-400/10 via-card to-card border border-amber-400/30`).
+  - Far-right wordmark watermark (light theme = `wordmark-light`, dark = `wordmark-dark-transparent`), oversized + rotated like team modal.
+  - Centered NBA logo watermark behind text (`opacity-5 h-32`).
+  - Body: 3 deterministic assessments + 1 conclusion, computed from the existing `stats` array:
+    1. Production: compare FP/G & PTS — name the leader.
+    2. Efficiency: compare Value (FP per $).
+    3. Floor/Ceiling: compare Δ FP (form trend) and STL+BLK.
+    - Conclusion: "Pick **X** for [reason] — but **Y** wins on [metric]."
+- Pure utility added inline (no new file needed), guards against `b == null`.
 
-### 2c) Reusable UI components
+### b) Premium header style on PlayerCompareModal
+- Replace `DialogHeader` with a gradient header matching `TeamModal`/`PlayerModal`: `bg-gradient-to-br from-primary/15 via-primary/5 to-transparent`, oversized blurred NBA logo watermark behind the title.
 
-All under `src/components/ballers-iq/`:
+### c) Search-result row: remove inline team badge, add team badge as top-right watermark
+**File:** `src/components/PlayerCompareModal.tsx`
+- Remove the inline `{logo && <img />}` chip in the result button row.
+- Make each result row `relative overflow-hidden`, append an absolute team-badge watermark top-right (`h-10 opacity-15 group-hover:opacity-30 -mr-1 transition-opacity`), mirroring the team-modal header watermark style.
 
-1. **`BallersIQBrand.tsx`** — props: `variant: "wordmark"|"emblem"|"appIcon"|"badge"`, `size: "sm"|"md"|"lg"`, `themeAware?: boolean`. Picks `-light` vs `-dark` from the active theme via `useTheme()` hook (already in repo) or `prefers-color-scheme` fallback. Heights: sm 16px, md 24px, lg 36px (wordmark); emblem square.
-2. **`BallersIQCard.tsx`** — compact card: emblem (sm) + title + headline + bullets + optional confidence pill + optional action badge (color by action: START=emerald, BENCH=zinc, CAPTAIN=gold, RISK=red).
-3. **`BallersIQPanel.tsx`** — section container: wordmark header + summary + slot for cards. Dark/light theme aware borders & background (`bg-card border-border` for light, `bg-card/60 backdrop-blur` for dark).
-4. **`BallersIQTicker.tsx`** — horizontal scrolling/fading strip of one-liners (CSS marquee, pauses on hover).
-5. **`BallersIQPlayerVerdict.tsx`** — large action label, headline, 2–3 bullets, risk + confidence chips.
-6. **`BallersIQRecapBlock.tsx`** — narrative block: summary, "Best Call", "Missed Edge", "Next Move".
+## 6) /teams
 
-Style tokens: gold = `#c9a84c`/`text-amber-400`, navy = existing `bg-card`. No hard-coded backgrounds that fail in light mode.
+### a) Team name in primary color, bold
+**File:** `src/pages/TeamsPage.tsx`
+- Team name `<p>` (currently `text-[10px] text-muted-foreground`): change to `style={{ color: t.primaryColor }} className="text-[10px] font-bold"`.
 
-### 2d) Integrations (no removals)
+### b) Standings tab: add Ballers.IQ insights card, compress League standings
+**Files:** `src/pages/TeamsPage.tsx`, `src/components/standings/StandingsPanel.tsx` (or wrap at page level)
+- At the bottom of the Standings tab, add a new BIQ card with 3 inner sub-cards:
+  1. **Outstanding teams** — top 3 by win-pct from `standings`.
+  2. **Watch list** — teams with **0** players on the user's current roster (use `useRosterQuery` + roster `team` tricodes).
+  3. **Hidden gems** — top FP players whose NBA team is below median win-pct (query `players` aggregated FP, filter team-rank > 15).
+- Each sub-card uses `BallersIQCard` styling (emblem icon top-left + wordmark watermark right per step 3b).
+- **Layout & sizing**: wrap Standings tab content in a flex column with `h-[calc(100vh-220px)]`. The standings list area becomes a scrollable region (`flex-1 overflow-auto`); the Ballers.IQ card is fixed at the bottom. The card's bottom edge aligns with the page's left sidebar bottom (already covered by the viewport-height container).
+- Card vertical height kept minimal: 3 sub-cards in a single row (`grid-cols-3`), each ~110px tall.
 
-- **Lineup page (`src/pages/RosterPage.tsx` / `RosterCourtView`/`RosterSidebar`)**: add a `BallersIQPanel` titled "Ballers.IQ Lineup Advisor" with cards for Captain Edge, Risk Radar, Value Pick. Place in existing right rail (do not overlap court).
-- **Player Modal (`src/components/PlayerModal.tsx`)**: add `BallersIQPlayerVerdict` near the top stats area (after header, before deep stats). Replaces nothing.
-- **Schedule (`src/components/ScheduleList.tsx` / `SchedulePage`)**: add a slim `BallersIQTicker` strip above the day's games + a `BallersIQCard` ("Tonight's Edge") in the side panel.
-- **Scoring/Recap (`src/pages/ScoringPage.tsx`)**: add a `BallersIQRecapBlock` above the detail table.
-- **AI Coach button (`src/components/AICoachModal.tsx` trigger in nav/sidebar)**: keep functionality, but rename label to "Ballers.IQ" and swap the icon to `ballers-iq-app-icon.png`. Inside the modal, add a small `BallersIQBrand variant="wordmark"` header. Existing `ai-coach` edge function untouched.
+## Technical notes
 
-### 2e) AI wiring (optional v1)
-
-`getBallersIQInsights` first returns deterministic insights. A flag `BALLERS_IQ_USE_AI` (default `false`) can later switch to call the existing `ai-coach` edge function and reshape the JSON to the schema above — no edge-function changes required for v1.
-
-## Acceptance
-
-- Player headshots display with natural head/shoulders framing on `/`, `/transactions`, `/schedule` and team modal.
-- Watch Recap card on `/schedule` shows only team badges + "WATCH RECAP" text; click still expands inline.
-- New `Ballers.IQ` panel/cards/verdict/recap/ticker render in both light & dark themes using the right brand asset.
-- AI Coach functionality preserved; relabeled to Ballers.IQ with new icon.
-- No fabricated data — insights grounded in existing roster/players/schedule/scoring data.
-
-## Files
-
-**New:** `public/brand/*.png` (6 assets), `src/lib/ballers-iq.ts`, `src/components/ballers-iq/{BallersIQBrand,BallersIQCard,BallersIQPanel,BallersIQTicker,BallersIQPlayerVerdict,BallersIQRecapBlock}.tsx`
-
-**Edited:** `src/components/ui/avatar.tsx`, `src/components/PlayerRow.tsx`, `src/components/RosterListView.tsx`, `src/components/TeamModal.tsx`, `src/components/TransactionsTable.tsx` (if applicable), `src/components/ScheduleList.tsx`, `src/pages/RosterPage.tsx`, `src/components/PlayerModal.tsx`, `src/pages/ScoringPage.tsx`, `src/components/AICoachModal.tsx` (+ its trigger in `src/components/layout/AppLayout.tsx`).
+- `roster.free_transfers_remaining` is already on the contract (returned by `roster-current` and `transactions-commit`) — no schema change.
+- The `Quick Trade` swap path still uses `saveRoster` (not `transactions-commit`), so transfer counter enforcement is **client-side guard only** until `RosterPage` is migrated to `transactions-commit`. We add the client guard now to match UX expectations; server enforcement on `saveRoster` is a separate change (out of scope here).
+- All new asset paths reuse existing `public/brand/` files; no new uploads required.
+- No DB migration; no edge-function deploy.
