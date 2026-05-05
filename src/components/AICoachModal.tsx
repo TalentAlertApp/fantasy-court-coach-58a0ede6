@@ -56,6 +56,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const [explainLoading, setExplainLoading] = useState(false);
   const [explainSearch, setExplainSearch] = useState("");
   const [selectedExplainPlayer, setSelectedExplainPlayer] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>("analyze");
   const [showDropdown, setShowDropdown] = useState(false);
   const [recentExplained, setRecentExplained] = useState<Array<{ id: number; name: string; team: string; photo: string | null; fc_bc: string }>>(() => {
     try {
@@ -285,7 +286,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           </div>
         </DialogHeader>
 
-        <Tabs defaultValue="analyze" className="flex-1 min-h-0 flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
           {isRosterEmpty && (
             <div className="relative overflow-hidden shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
               <img
