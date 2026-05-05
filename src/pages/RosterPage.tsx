@@ -76,6 +76,7 @@ export default function RosterPage() {
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [advisorOpen, setAdvisorOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -480,17 +481,6 @@ export default function RosterPage() {
             </Button>
           </div>
         </div>
-        {biqAdvisor && (
-          <div className="mt-2">
-            <BallersIQLineupStrip
-              captainName={biqStrip.captainName}
-              riskCount={biqStrip.riskCount}
-              valueName={biqStrip.valueName}
-              scheduleDragCount={biqStrip.scheduleDragCount}
-              onOpen={() => setAiCoachOpen(true)}
-            />
-          </div>
-        )}
       </div>
 
       {isBootstrapping ? (
