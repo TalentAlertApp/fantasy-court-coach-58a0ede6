@@ -37,6 +37,14 @@ export default function BallersIQShareCardModal({ open, onOpenChange, ctx }: Pro
         return;
       }
 
+      // Wait until the embedded player photo (data URL) is ready — the share card
+      // sets a data attribute when the async fetch + FileReader settle.
+      for (let i = 0; i < 25; i++) {
+        const el = cardRef.current?.querySelector("[data-photo-ready]") as HTMLElement | null;
+        if (!el || el.getAttribute("data-photo-ready") === "1") break;
+        await new Promise((r) => setTimeout(r, 120));
+      }
+
       // Pre-decode every <img> inside the card so html-to-image doesn't snapshot
       // a half-loaded tree. Failed images are removed so they don't taint the canvas.
       const imgs = Array.from(cardRef.current.querySelectorAll("img"));
@@ -51,7 +59,9 @@ export default function BallersIQShareCardModal({ open, onOpenChange, ctx }: Pro
       const opts = {
         pixelRatio: 2,
         cacheBust: true,
-        skipFonts: true,
+        // Keep fonts so the export matches the on-screen preview (Barlow Condensed).
+        // Skipping fonts caused width drift → wrapping/overlap in the exported PNG.
+        skipFonts: false,
         imagePlaceholder:
           "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lPAAAAABJRU5ErkJggg==",
       };
