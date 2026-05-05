@@ -379,8 +379,15 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 });
                 const market = all.filter((p: any) => !rosterIds.has(p.core.id)).map(toMP);
                 const rosterPlayers = all.filter((p: any) => rosterIds.has(p.core.id)).map(toMP);
-                const today = new Date().toISOString().slice(0, 10);
-                const todayTeams: string[] = []; // schedule not loaded here; streams will simply be empty
+                // Today (Europe/Lisbon) — match the rest of the app's TZ contract.
+                const todayLisbon = new Intl.DateTimeFormat("en-CA", {
+                  timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
+                }).format(new Date());
+                const todayTeams = upcomingByTeam
+                  ? Object.entries(upcomingByTeam)
+                      .filter(([, games]) => games.some((g) => g.date === todayLisbon))
+                      .map(([tri]) => tri)
+                  : [];
                 return (
                   <BallersIQMarketWatch
                     market={market}
@@ -390,8 +397,10 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                     onPickPlayer={(id) => {
                       const p = all.find((x: any) => x.core.id === id);
                       if (p) {
-                        setSelectedExplainPlayer({ id: p.core.id, name: p.core.name, team: p.core.team, photo: p.core.photo, fc_bc: p.core.fc_bc });
+                        setSelectedExplainPlayer(p);
+                        setExplainSearch(p.core.name);
                         setActiveTab("explain");
+                        void runExplain(p);
                       }
                     }}
                   />
