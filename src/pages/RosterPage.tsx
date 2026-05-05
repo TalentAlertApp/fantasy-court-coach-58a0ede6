@@ -564,6 +564,18 @@ export default function RosterPage() {
               >
                 <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
               </Button>
+              <Button
+                onClick={() => setAdvisorOpen((v) => !v)}
+                variant={advisorOpen ? "default" : "outline"}
+                size="sm"
+                disabled={!biqAdvisor}
+                className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ring-1 ring-amber-400/40 ${advisorOpen ? "bg-amber-400 text-amber-950 hover:bg-amber-400/90" : "hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
+                title="Ballers.IQ Lineup Advisor"
+              >
+                <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="dark:hidden !h-3.5 !w-3.5 mr-1" />
+                <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="hidden dark:block !h-3.5 !w-3.5 mr-1" />
+                Lineup Advisor
+              </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
