@@ -33,6 +33,7 @@ interface Props {
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
   onGameClick: (game: RecapGame | MatchupGame) => void;
+  onOutroAction?: () => void;
 }
 
 function fmtDeadline(iso: string | null): string {
@@ -82,7 +83,7 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
   );
 }
 
-export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick }: Props) {
+export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
     (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
@@ -361,7 +362,13 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 </div>
               )}
             </div>
-            <ArrowRight className="h-6 w-6 text-amber-400 mt-4 animate-pulse" />
+            <button
+              onClick={onOutroAction}
+              aria-label="Go to My Roster"
+              className="mt-4 inline-flex items-center justify-center h-12 w-12 rounded-full bg-amber-400/10 border border-amber-400/40 text-amber-400 hover:bg-amber-400 hover:text-black hover:scale-110 transition-all animate-pulse"
+            >
+              <ArrowRight className="h-6 w-6" />
+            </button>
           </div>
         )}
       </div>
