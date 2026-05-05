@@ -41,8 +41,7 @@ export default function BallersIQShareCardModal({ open, onOpenChange, ctx }: Pro
     try {
       // Best-effort dynamic import — if html-to-image isn't installed we fall
       // back gracefully without breaking the build.
-      const moduleName = "html-to-image";
-      const mod: any = await import(/* @vite-ignore */ moduleName).catch(() => null);
+      const mod: any = await import("html-to-image").catch(() => null);
       if (!mod?.toPng) {
         toast({
           title: "PNG export unavailable",
