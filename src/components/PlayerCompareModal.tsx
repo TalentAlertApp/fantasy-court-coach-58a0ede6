@@ -158,13 +158,19 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
             </div>
 
             {/* Stat rows */}
-            <div className="space-y-1">
+            <div className="relative space-y-1">
+              <img
+                src={nbaLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 m-auto h-44 w-auto opacity-[0.05] select-none"
+              />
               {stats.map(({ label, a, b }) => {
                 const bVal = b ?? 0;
                 const aWins = a > bVal;
                 const bWins = bVal > a;
                 return (
-                  <div key={label} className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-1 border-b border-border/30">
+                  <div key={label} className="relative z-[1] grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-1 border-b border-border/30">
                     <span className={`text-xs font-mono text-right ${aWins ? "font-bold text-emerald-400" : ""}`}>
                       {typeof a === "number" ? (Number.isInteger(a) ? a : a.toFixed(1)) : a}
                     </span>
@@ -217,13 +223,15 @@ function BallersIQTake({ playerA, playerB }: { playerA: any; playerB: any }) {
   return (
     <section className="relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card p-4 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.35)] overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
-      {/* Wordmark watermark — far right */}
-      <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 !h-20 w-auto opacity-[0.08] rotate-12 select-none" />
-      <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 !h-20 w-auto opacity-[0.10] rotate-12 select-none" />
-      {/* NBA logo centered */}
-      <img src={nbaLogo} alt="" aria-hidden className="pointer-events-none absolute inset-0 m-auto h-32 w-auto opacity-[0.05] select-none" />
+      {/* Emblem watermark — top right, transparent (matches Lineup Advisor) */}
+      <BallersIQBrand
+        variant="emblem"
+        forceTheme="light"
+        transparent
+        className="pointer-events-none absolute -top-8 -right-8 !h-44 !w-44 object-contain opacity-[0.14] rotate-12 select-none"
+      />
       <header className="relative z-[1] flex items-center gap-2 mb-2">
-        <BallersIQBrand variant="emblem" forceTheme="light" size="sm" />
+        <BallersIQBrand variant="emblem" forceTheme="light" transparent size="sm" />
         <span className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90">Ballers.IQ Take</span>
       </header>
       <ul className="relative z-[1] space-y-1">
