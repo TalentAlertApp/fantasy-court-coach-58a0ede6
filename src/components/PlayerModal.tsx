@@ -18,6 +18,9 @@ import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailMod
 import TeamModal from "@/components/TeamModal";
 import BallersIQPlayerVerdict from "@/components/ballers-iq/BallersIQPlayerVerdict";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
+import BallersIQShareCardModal from "@/components/ballers-iq/share/BallersIQShareCardModal";
+import type { ShareCardContext } from "@/components/ballers-iq/share/formatBallersIQShareText";
+import { Share2 } from "lucide-react";
 
 function BreakdownCard({ data }: { data: any }) {
   const [view, setView] = useState<"season" | "lastGame">("season");
@@ -239,9 +242,16 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     injury: c.injury,
                   },
                 });
-                return verdict.insights[0] ? (
-                  <BallersIQPlayerVerdict insight={verdict.insights[0]} />
-                ) : null;
+                const ins = verdict.insights[0];
+                if (!ins) return null;
+                const shareCtx: ShareCardContext = {
+                  template: "player_verdict",
+                  subject: c.name,
+                  subtitle: `${c.team} · ${c.fc_bc} · $${c.salary}M`,
+                  imageUrl: c.photo ?? null,
+                  insight: ins,
+                };
+                return <VerdictWithShare insight={ins} shareCtx={shareCtx} />;
               })()}
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
