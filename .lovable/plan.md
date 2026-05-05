@@ -1,102 +1,58 @@
-## Scope
+# Polish Pass — 7 Fixes
 
-Eight targeted fixes. No new pages, no new buttons beyond what the prompt explicitly allows.
+## 1) /scoring — Recap Story overlays the FP Timeline (no push-down)
+**File:** `src/pages/ScoringPage.tsx`
+- Wrap the timeline chart container (line ~540) in `relative`. Render `ScoringRecapBlock` as an **absolute overlay** when `recapOpen`:
+  - `absolute inset-x-2 top-12 z-20` (sits below the FP TIMELINE header bar, over the chart).
+  - Add a small close (`X`) button inside the recap card to dismiss.
+  - Pass `pageSize={3}` (already wired).
+- Underlying timeline keeps its height; recap floats over it instead of pushing chart down.
 
----
+## 2) AI Coach modal → Explain → History dropdown items: add team-badge watermark
+**File:** `src/components/AICoachModal.tsx` (lines ~505–525, `recentExplained.map`)
+- Make `DropdownMenuItem` `relative overflow-hidden`.
+- Inside, render a watermark `<img src={logo} class="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-[0.18] rotate-12 select-none">` mirroring the TeamModal header watermark pattern.
+- Player photo + name stay on top via `relative z-10`.
 
-### 1) Market Watch — real "Schedule Streams"
+## 3) /schedule — strip game-card labels
+**File:** `src/components/ballers-iq/GameCardBadges.tsx`
+- a) Remove the `recap_ready` (blue "RECAP") badge from `META`, or simpler: in `GameCardBadges` filter it out.
+- b) Make the component a no-op: render `null` regardless of badges (kills TRAP GAME / NO OWNED / HIGH CEILING / CAPTAIN). Keeps the import sites untouched.
 
-`src/components/AICoachModal.tsx` (Transfers tab):
-- Replace the hard-coded `todayTeams: string[] = []` with the team set from `useUpcomingByTeam()` (already used on Roster). Compute today's tricodes (`Europe/Lisbon` date) and pass as `todayTeams`.
-- Streams lane will now surface affordable players whose team has a game today.
+## 4) /schedule — remove the entire Game Night strip
+**File:** `src/pages/SchedulePage.tsx` (lines 563–568)
+- Delete the `gameNightSummary` block + the `BallersIQGameNightSummary` import (line 18). Drop the `gameNightSummary` state/build code if unused after removal.
 
-### 2) Market Watch row → focus Explain tab
+## 5) Player modal — move "Create Card" to header
+**Files:** `src/components/PlayerModal.tsx`
+- In header action row (lines ~205–220), add a third icon button right after Heart:
+  - `<button title="Create Ballers.IQ Share Card"><Share2 className="h-4 w-4 text-amber-400/90" /></button>` that opens `BallersIQShareCardModal`.
+- Hoist the modal `open` state + `shareCtx` builder up to the parent `PlayerModal` component (same data already computed in the verdict block — extract once).
+- Remove the inline `VerdictWithShare` "Create Card" button row; render `<BallersIQPlayerVerdict>` directly.
 
-Already partially wired (`onPickPlayer` switches to Explain). Improvements:
-- Preserve current `selectedExplainPlayer` only if the row matches it; otherwise replace.
-- Auto-run explain on selection (see #6) — the row click becomes "select + run".
-- Keep recent-explained list updated.
+## 6) Share Card — broken layout & missing photo (PNG export)
+**Files:** `src/components/ballers-iq/share/BallersIQShareCard.tsx`, `BallersIQShareCardModal.tsx`
+- **Photo missing in PNG**: NBA player photos are CORS-tainted → `toPng` skips them silently in our current setup. Fix:
+  - In `BallersIQShareCard`, fetch the image at render-time via `useEffect` → convert to base64 data URL via `fetch(url).then(r=>r.blob()).then(FileReader)`, fall back to initials on failure. Render `<img src={dataUrl}>` so html-to-image can rasterise it safely.
+- **Text overlap (NIKOLA / JOKIĆ stacked over subtitle)**: the subject `<h1>` uses oversized line-height and the subtitle is positioned absolutely behind it. Restructure subject block:
+  - Use a flex column with explicit `gap-2`, `leading-[0.95]`, `whitespace-nowrap`, and split first/last name on space → render as two `<span class="block">` lines with controlled spacing.
+  - Move subtitle to a separate row **below** the name with `mt-3`, smaller font.
+- **Bullet text stacked over headline (Wide preview)**: the bullets list sits in `bottom-44/28` while body uses huge font; reduce headline to `text-[36px]` (square) / `text-[28px]` (wide) and bump bottom padding.
+- Re-test square + wide: name on two lines, subtitle clear, bullets aligned.
 
-### 3) /my-roster header & list cleanup
+## 7) /transactions — Players table default to All
+**File:** `src/pages/PlayersPage.tsx` (line 48)
+- `useState<PageSizeOption>("All")` instead of `20`.
 
-`src/pages/RosterPage.tsx`:
-
-a) **Header** — remove the `<BallersIQLineupStrip />` block (lines 483–493). Keep the Ballers.IQ wordmark button and Wishlist button untouched.
-
-b) **Restore "LINEUP ADVISOR" toolbar button** (court view) — add a button next to Schedule/Chips/Optimize labelled `LINEUP ADVISOR` (icon: BallersIQ emblem). Clicking toggles an inline overlay rendering `<LineupAdvisorPanel data={biqAdvisor} onClose=… />` with the same look/content as the previous strip-driven panel (image reference matches Captain Edge + Lineup Pulse cards).
-
-c) **List view** — below `<RosterListView>`, render a 2-column row (50/50 on `md+`):
-   - Left: existing `<RosterSidebar … />`
-   - Right: `<LineupAdvisorPanel data={biqAdvisor} />` (full content + watermark, no close button)
-
-   Replaces the current full-width sidebar block (lines 682–696).
-
-### 4) /scoring — Ballers.IQ Recap toggle on FP Timeline
-
-`src/pages/ScoringPage.tsx`:
-- Remove the always-rendered `<ScoringRecapBlock />` (lines 536–553).
-- Add a small `Ballers.IQ` toggle button at the top-right of the **FP TIMELINE** card header (line 557).
-- When enabled, render the recap block above the timeline as a paginated row showing **3 cards at a time** with `<` / `>` controls flanking the row (left and right ends).
-- Persist the toggle in component state only.
-- Update `BallersIQRecapBlock` to accept `pageSize` (default all) + simple internal pagination, OR keep the block intact and add a wrapper `ScoringRecapPager` in `ScoringPage.tsx` that slices `data.insights` into pages of 3.
-
-### 5) /transactions — transparent Ballers.IQ button icon
-
-`src/pages/PlayersPage.tsx` (line 528–537):
-- Swap `BallersIQBrand variant="emblem"` for theme-aware transparent wordmarks (same pattern as the Roster header button, lines 470–471 of `RosterPage.tsx`):
-  ```
-  <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
-  <BallersIQBrand variant="wordmark" forceTheme="dark"  transparent className="hidden dark:block !h-4 w-auto" />
-  ```
-- Drop the trailing "Ballers.IQ" text (the wordmark is the label). Same compact button shell.
-
-### 6) AI Coach modal — auto-Explain + Recent history dropdown
-
-`src/components/AICoachModal.tsx` (Explain tab):
-- In `handleSelectExplainPlayer` (line 248) and the `onPickPlayer` Market Watch path, call `aiExplainPlayer` immediately after setting `selectedExplainPlayer` (factor existing `handleExplain` body into `runExplain(target)` and reuse).
-- Replace the inline **"Explain"** button (line 504–506) with an icon-only `History` button (lucide `History`) that opens a `DropdownMenu` listing the last 5 entries of `recentExplained` (already persisted to `localStorage`). Selecting an entry calls `runExplain` for that player.
-- Remove the existing "Recent" chip row (lines 467–492) since the dropdown replaces it.
-
-### 7) Player Modal — Verdict card polish (light theme)
-
-`src/components/ballers-iq/BallersIQPlayerVerdict.tsx`:
-- Replace the single `BallersIQBrand variant="emblem" size="sm"` with a theme-pair using the **transparent** variant:
-  - `forceTheme="light" transparent` shown via `dark:hidden`
-  - `forceTheme="dark"  transparent` shown via `hidden dark:block`
-- Add a wordmark watermark at the **far right** of the card, mirroring the player-modal team-badge watermark pattern: oversized, rotated, very low opacity, `pointer-events-none`, absolutely positioned. Use `ballers-iq-wordmark-light-transparent` / `-dark-transparent` switched by theme.
-- Bump card `overflow-hidden` to keep the watermark contained.
-
-### 8) Create Share Card — photo + PNG export
-
-**Photo missing:**
-- `src/components/ballers-iq/share/BallersIQShareCard.tsx`: NBA player CDN photos lack CORS headers, so `crossOrigin="anonymous"` causes the browser to drop the image. Drop `crossOrigin` and add `onError` fallback to the team logo or a tinted initials block. The card already receives `imageUrl` from `PlayerModal` (`c.photo`).
-
-**PNG export "unknown error":**
-- The error stems from `html-to-image` trying to inline cross-origin images and CSS that uses `radial-gradient` with multiple stops on Tailwind `bg-[radial-gradient(...)]` arbitrary values plus `BallersIQBrand` PNGs from `/brand/`.
-- Fixes in `BallersIQShareCardModal.tsx` `handleDownload`:
-  - Pre-load player image and brand PNGs into HTMLImageElement with `await img.decode()` to ensure they're rendered before snapshot.
-  - Pass `toPng` options:
-    ```
-    { pixelRatio: 2, cacheBust: true,
-      skipFonts: true,
-      filter: (node) => !(node instanceof Element && node.tagName === "LINK"),
-      imagePlaceholder: <transparent 1x1 dataURL>,
-      fetchRequestInit: { mode: "cors" } }
-    ```
-  - Wrap the call in a try block that, on failure, falls back to `mod.toJpeg` (more lenient with tainted canvas) and surfaces the real error message in the toast (currently swallowed as "Unknown error" because `e?.message` is empty for `SecurityError`).
-- Improve toast: show `e?.name + ": " + (e?.message || "see console")` and `console.error(e)` so future failures are diagnosable.
+## 8) /advanced — All Actions dropdown clipped at "Ejection"
+**File:** `src/pages/AdvancedPage.tsx` (line 440)
+- `CommandList` currently `max-h-[320px]` and the popover sits inside a constrained container — Ejection is hidden behind viewport edge.
+- Bump `max-h-[60vh]` and add `overflow-y-auto`. Also ensure `PopoverContent` has `collisionPadding={12}` so Radix flips/scrolls when near bottom.
 
 ---
 
-## Files touched
-
-- `src/pages/RosterPage.tsx`
-- `src/pages/ScoringPage.tsx`
-- `src/pages/PlayersPage.tsx`
-- `src/components/AICoachModal.tsx`
-- `src/components/ballers-iq/BallersIQPlayerVerdict.tsx`
-- `src/components/ballers-iq/share/BallersIQShareCard.tsx`
-- `src/components/ballers-iq/share/BallersIQShareCardModal.tsx`
-- (optional) `src/components/ballers-iq/BallersIQRecapBlock.tsx` if pagination is added there instead of in `ScoringPage`.
-
-No new dependencies. No DB or edge-function changes.
+## Technical notes
+- No new dependencies.
+- Watermark pattern reused from `TeamModal` header (`opacity-[0.18] rotate-12`).
+- Share card photo fix uses a small `useEffect` + `FileReader` — no library change. JPEG fallback already in place.
+- `GameCardBadges` becoming a no-op is the smallest-blast-radius way to kill all top-right schedule labels without touching every render site.

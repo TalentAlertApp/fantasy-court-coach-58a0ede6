@@ -45,7 +45,7 @@ export default function PlayersPage() {
   const [search, setSearch] = useState("");
   const [maxSalary, setMaxSalary] = useState(50);
   const [team, setTeam] = useState("ALL");
-  const [pageSize, setPageSize] = useState<PageSizeOption>(20);
+  const [pageSize, setPageSize] = useState<PageSizeOption>("All");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortCol, setSortCol] = useState<string>("fp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");

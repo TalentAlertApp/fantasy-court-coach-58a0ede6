@@ -15,23 +15,8 @@ const META: Record<GameBadgeKey, { label: string; icon: any; classes: string }> 
 };
 
 export default function GameCardBadges({ badges }: { badges: GameBadge[] }) {
-  if (!badges || badges.length === 0) return null;
-  return (
-    <div className="flex items-center gap-1 flex-wrap">
-      {badges.slice(0, 2).map((b) => {
-        const m = META[b.key];
-        if (!m) return null;
-        const Icon = m.icon;
-        return (
-          <span
-            key={b.key}
-            className={`inline-flex items-center gap-0.5 text-[8px] font-heading font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border ${m.classes}`}
-          >
-            <Icon className="h-2.5 w-2.5" />
-            {m.label}
-          </span>
-        );
-      })}
-    </div>
-  );
+  // Intentionally rendered as no-op: schedule game cards no longer surface
+  // top-right intelligence labels (TRAP GAME, NO OWNED, HIGH CEILING, RECAP, CAPTAIN).
+  void badges; void META;
+  return null;
 }

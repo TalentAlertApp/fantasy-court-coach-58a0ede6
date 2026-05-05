@@ -101,6 +101,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const [shareCardOpen, setShareCardOpen] = useState(false);
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
@@ -217,6 +218,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     >
                       <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
                     </button>
+                    <button
+                      onClick={() => setShareCardOpen(true)}
+                      className="p-1.5 hover:text-amber-400 transition-colors"
+                      title="Create Ballers.IQ Share Card"
+                    >
+                      <Share2 className="h-4 w-4 text-amber-400/80" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -251,7 +259,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                   imageUrl: c.photo ?? null,
                   insight: ins,
                 };
-                return <VerdictWithShare insight={ins} shareCtx={shareCtx} />;
+                return (
+                  <>
+                    <BallersIQPlayerVerdict insight={ins} />
+                    <BallersIQShareCardModal open={shareCardOpen} onOpenChange={setShareCardOpen} ctx={shareCtx} />
+                  </>
+                );
               })()}
 
               <Tabs defaultValue="stats" className="flex-1 min-h-0 flex flex-col">
@@ -611,26 +624,5 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         onOpenChange={(o) => !o && setTeamModalTri(null)}
       />
     </>
-  );
-}
-
-function VerdictWithShare({ insight, shareCtx }: { insight: any; shareCtx: ShareCardContext }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="space-y-1.5">
-      <BallersIQPlayerVerdict insight={insight} />
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border border-amber-400/30 hover:border-amber-400/70 text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors"
-          title="Create a Ballers.IQ share card"
-        >
-          <Share2 className="h-3 w-3" />
-          Create Card
-        </button>
-      </div>
-      <BallersIQShareCardModal open={open} onOpenChange={setOpen} ctx={shareCtx} />
-    </div>
   );
 }

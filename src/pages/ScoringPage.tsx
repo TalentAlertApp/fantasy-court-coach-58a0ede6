@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -552,12 +552,22 @@ function YourTeamView({
             Ballers.IQ
           </button>
         </div>
-        {recapOpen && selectedDay && (
-          <div className="px-4 pt-3">
-            <ScoringRecapBlock selectedDay={selectedDay} />
-          </div>
-        )}
-        <div className="px-4 py-4 h-52">
+        <div className="relative px-4 py-4 h-52">
+          {recapOpen && selectedDay && (
+            <div className="absolute inset-x-2 top-2 z-20">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setRecapOpen(false)}
+                  aria-label="Close recap"
+                  className="absolute -top-1 -right-1 z-30 h-6 w-6 inline-flex items-center justify-center rounded-full border border-amber-400/40 bg-card/90 text-muted-foreground hover:text-foreground hover:border-amber-400/70 backdrop-blur-sm"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <ScoringRecapBlock selectedDay={selectedDay} />
+              </div>
+            </div>
+          )}
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={timelineData}>
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} interval="preserveStartEnd" />

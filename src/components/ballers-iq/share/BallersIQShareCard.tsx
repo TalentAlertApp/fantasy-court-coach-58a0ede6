@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "../BallersIQBrand";
 import { templateLabel, type ShareCardContext } from "./formatBallersIQShareText";
@@ -24,6 +24,37 @@ const SIZE: Record<ShareCardFormat, { w: number; h: number }> = {
 const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "square", className }, ref) => {
   const size = SIZE[format];
   const { insight } = ctx;
+  // Pre-fetch the player image and convert to a same-origin data URL so html-to-image
+  // can rasterise it (NBA CDN images are CORS-tainted otherwise).
+  const [embeddedImage, setEmbeddedImage] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setEmbeddedImage(null);
+    if (!ctx.imageUrl) return;
+    (async () => {
+      try {
+        const r = await fetch(ctx.imageUrl!, { mode: "cors" });
+        if (!r.ok) throw new Error(String(r.status));
+        const blob = await r.blob();
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result));
+          fr.onerror = reject;
+          fr.readAsDataURL(blob);
+        });
+        if (!cancelled) setEmbeddedImage(dataUrl);
+      } catch {
+        if (!cancelled) setEmbeddedImage(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ctx.imageUrl]);
+
+  const nameParts = ctx.subject.trim().split(/\s+/);
+  const firstName = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : "";
+  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ctx.subject;
+  const headlineSize = format === "wide" ? "text-[28px]" : "text-[34px]";
+  const nameSize = format === "wide" ? "text-[48px]" : "text-[60px]";
 
   return (
     <div
@@ -52,11 +83,11 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       </header>
 
       {/* Subject block */}
-      <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "top-32" : "top-40")}>
+      <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "top-28" : "top-36")}>
         <div className="flex items-center gap-6">
-          {ctx.imageUrl ? (
+          {embeddedImage ? (
             <img
-              src={ctx.imageUrl}
+              src={embeddedImage}
               alt=""
               referrerPolicy="no-referrer"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
@@ -69,12 +100,13 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
               {ctx.subject.split(/\s+/).map((s) => s[0]).slice(0, 2).join("")}
             </div>
           )}
-          <div className="min-w-0">
-            <h1 className={cn("font-black uppercase leading-none tracking-tight", format === "wide" ? "text-[56px]" : "text-[68px]")}>
-              {ctx.subject}
+          <div className="min-w-0 flex flex-col">
+            <h1 className={cn("font-black uppercase tracking-tight leading-[0.95]", nameSize)}>
+              {firstName && <span className="block whitespace-nowrap">{firstName}</span>}
+              <span className="block whitespace-nowrap">{lastName}</span>
             </h1>
             {ctx.subtitle && (
-              <p className="mt-2 text-[20px] uppercase tracking-[0.18em] text-white/60 font-bold">
+              <p className="mt-3 text-[18px] uppercase tracking-[0.18em] text-white/60 font-bold whitespace-nowrap">
                 {ctx.subtitle}
               </p>
             )}
@@ -83,13 +115,13 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       </div>
 
       {/* Insight body */}
-      <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "bottom-28" : "bottom-44")}>
-        <p className={cn("font-bold leading-tight text-white", format === "wide" ? "text-[34px]" : "text-[42px]")}>
+      <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "bottom-32" : "bottom-48")}>
+        <p className={cn("font-bold leading-tight text-white", headlineSize)}>
           {insight.headline}
         </p>
         <ul className="mt-4 space-y-2">
           {insight.bullets.slice(0, format === "wide" ? 2 : 3).map((b, i) => (
-            <li key={i} className="flex items-start gap-3 text-white/80 text-[20px] leading-snug">
+            <li key={i} className="flex items-start gap-3 text-white/80 text-[18px] leading-snug">
               <span className="mt-2 inline-block h-1.5 w-6 shrink-0 rounded-full bg-amber-300/80" />
               <span>{b}</span>
             </li>

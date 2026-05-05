@@ -508,18 +508,25 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                           <DropdownMenuItem
                             key={r.id}
                             onSelect={() => handleRecentClick(r)}
-                            className="text-xs gap-2"
+                            className="text-xs gap-2 relative overflow-hidden"
                           >
+                            {logo && (
+                              <img
+                                src={logo}
+                                alt=""
+                                className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-[0.18] rotate-12 select-none"
+                              />
+                            )}
                             {r.photo ? (
-                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card" />
+                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card relative z-10" />
                             ) : logo ? (
-                              <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card" />
+                              <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card relative z-10" />
                             ) : (
-                              <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center">
+                              <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center relative z-10">
                                 {r.name.slice(0, 1)}
                               </span>
                             )}
-                            <span className="truncate">{r.name}</span>
+                            <span className="truncate relative z-10">{r.name}</span>
                           </DropdownMenuItem>
                         );
                       })}
