@@ -54,14 +54,20 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       {/* Subject block */}
       <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "top-32" : "top-40")}>
         <div className="flex items-center gap-6">
-          {ctx.imageUrl && (
+          {ctx.imageUrl ? (
             <img
               src={ctx.imageUrl}
               alt=""
-              crossOrigin="anonymous"
-              className={cn("rounded-2xl object-cover ring-2 ring-amber-300/40 shadow-2xl",
+              referrerPolicy="no-referrer"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              className={cn("rounded-2xl object-cover ring-2 ring-amber-300/40 shadow-2xl bg-white/5",
                 format === "wide" ? "h-32 w-32" : "h-44 w-44")}
             />
+          ) : (
+            <div className={cn("rounded-2xl ring-2 ring-amber-300/40 bg-white/10 flex items-center justify-center text-white/80 font-black",
+              format === "wide" ? "h-32 w-32 text-3xl" : "h-44 w-44 text-4xl")}>
+              {ctx.subject.split(/\s+/).map((s) => s[0]).slice(0, 2).join("")}
+            </div>
           )}
           <div className="min-w-0">
             <h1 className={cn("font-black uppercase leading-none tracking-tight", format === "wide" ? "text-[56px]" : "text-[68px]")}>
