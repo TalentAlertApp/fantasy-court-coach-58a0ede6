@@ -442,16 +442,16 @@ export default function RosterPage() {
               onClick={() => setAiCoachOpen(true)}
               aria-label="Open Ballers.IQ"
               title="Open Ballers.IQ"
-              className="group relative inline-flex items-center justify-center rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-xs font-heading uppercase ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] transition-all dark:bg-black"
+              className="group relative inline-flex items-center justify-center w-32 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 text-xs font-heading uppercase ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] transition-all dark:bg-black"
             >
-              <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden !h-4 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
               <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
             </button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => setWishlistOpen(true)}
-              className="rounded-xl font-heading uppercase text-xs"
+              className="w-32 justify-center rounded-xl font-heading uppercase text-xs"
             >
               <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
             </Button>
@@ -536,17 +536,18 @@ export default function RosterPage() {
                   onClick={() => setAdvisorOpen((v) => !v)}
                   variant={advisorOpen ? "default" : "outline"}
                   size="sm"
-                  className={`rounded-xl font-heading uppercase text-xs ${advisorOpen ? "bg-amber-400 text-black hover:bg-amber-400/90 border-amber-400" : "border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400"}`}
+                  className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ${advisorOpen ? "bg-amber-400 text-black hover:bg-amber-400/90 border-amber-400" : "border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
                   title="Toggle Ballers.IQ Lineup Advisor"
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-1" />Lineup Advisor
+                  <BallersIQBrand variant="emblem" forceTheme="light" transparent className="!h-4 !w-4 mr-1 opacity-90" />
+                  Lineup Advisor
                 </Button>
               )}
               <Button
                 onClick={() => setScheduleOpen((v) => !v)}
                 variant={scheduleOpen ? "default" : "outline"}
                 size="sm"
-                className={`rounded-xl font-heading uppercase text-xs ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
+                className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : "hover:bg-sky-400/10 hover:text-sky-400 hover:border-sky-400/60"}`}
                 title="Toggle schedule preview"
               >
                 <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
@@ -556,7 +557,7 @@ export default function RosterPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="relative rounded-xl font-heading uppercase text-xs"
+                    className="relative w-40 justify-center rounded-xl font-heading uppercase text-xs hover:bg-violet-400/10 hover:text-violet-400 hover:border-violet-400/60"
                     title="Chips & extras"
                   >
                     <Sparkles className="h-3.5 w-3.5 mr-1" />Chips
@@ -593,7 +594,7 @@ export default function RosterPage() {
                 onClick={handleOptimize}
                 variant="outline"
                 size="sm"
-                className="rounded-xl font-heading uppercase text-xs hover:bg-yellow-400 hover:text-black dark:hover:bg-orange-500 dark:hover:text-white"
+                className="w-40 justify-center rounded-xl font-heading uppercase text-xs hover:bg-yellow-400 hover:text-black hover:border-yellow-400 dark:hover:bg-orange-500 dark:hover:text-white dark:hover:border-orange-500"
                 title="Auto-optimize lineup for maximum FP"
               >
                 <Zap className="h-4 w-4 mr-1" />Optimize
