@@ -530,18 +530,6 @@ export default function RosterPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {biqAdvisor && biqAdvisor.insights.length > 0 && (
-                <Button
-                  onClick={() => setAdvisorOpen((v) => !v)}
-                  variant={advisorOpen ? "default" : "outline"}
-                  size="sm"
-                  className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ${advisorOpen ? "bg-amber-400 text-black hover:bg-amber-400/90 border-amber-400" : "border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
-                  title="Toggle Ballers.IQ Lineup Advisor"
-                >
-                  <BallersIQBrand variant="emblem" forceTheme="light" transparent className="!h-4 !w-4 mr-1 opacity-90" />
-                  Lineup Advisor
-                </Button>
-              )}
               <Button
                 onClick={() => setScheduleOpen((v) => !v)}
                 variant={scheduleOpen ? "default" : "outline"}
