@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag } from "lucide-react";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -367,6 +368,45 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Transfers */}
             <TabsContent value="transfers" className="mt-0 space-y-3">
+              {(() => {
+                const all = playersData?.items ?? [];
+                const rosterIds = new Set<number>([
+                  ...(rosterData?.roster?.starters ?? []),
+                  ...(rosterData?.roster?.bench ?? []),
+                ].filter(Boolean));
+                const toMP = (p: any) => ({
+                  id: p.core.id,
+                  name: p.core.name,
+                  team: p.core.team,
+                  fc_bc: p.core.fc_bc,
+                  salary: p.core.salary,
+                  fp_pg5: p.last5?.fp5,
+                  fp_pg_t: p.season?.fp,
+                  value5: p.last5?.value5,
+                  delta_fp: p.last5?.delta_fp,
+                  delta_mpg: p.last5?.delta_mpg,
+                  injury: p.core?.injury,
+                });
+                const market = all.filter((p: any) => !rosterIds.has(p.core.id)).map(toMP);
+                const rosterPlayers = all.filter((p: any) => rosterIds.has(p.core.id)).map(toMP);
+                const today = new Date().toISOString().slice(0, 10);
+                const todayTeams: string[] = []; // schedule not loaded here; streams will simply be empty
+                return (
+                  <BallersIQMarketWatch
+                    market={market}
+                    rosterPlayers={rosterPlayers}
+                    bankRemaining={Number(rosterData?.roster?.bank_remaining ?? 0)}
+                    todayTeams={todayTeams}
+                    onPickPlayer={(id) => {
+                      const p = all.find((x: any) => x.core.id === id);
+                      if (p) {
+                        setSelectedExplainPlayer({ id: p.core.id, name: p.core.name, team: p.core.team, photo: p.core.photo, fc_bc: p.core.fc_bc });
+                        setActiveTab("explain");
+                      }
+                    }}
+                  />
+                );
+              })()}
               <Button size="sm" onClick={handleTransfers} disabled={transfersLoading} className="w-full">
                 {transfersLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowLeftRight className="h-4 w-4 mr-2" />}
                 Suggest Transfers
