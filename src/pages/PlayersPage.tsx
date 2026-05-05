@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
 import AICoachModal from "@/components/AICoachModal";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
