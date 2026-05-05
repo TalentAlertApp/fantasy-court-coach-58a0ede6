@@ -34,7 +34,7 @@ import DraftPicker from "@/components/onboarding/DraftPicker";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
-import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
+import BallersIQLineupStrip from "@/components/ballers-iq/BallersIQLineupStrip";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -76,7 +76,6 @@ export default function RosterPage() {
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [advisorOpen, setAdvisorOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
