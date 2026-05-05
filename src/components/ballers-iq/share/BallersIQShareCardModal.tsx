@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Download, Square, RectangleHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import BallersIQShareCard, { type ShareCardFormat } from "./BallersIQShareCard";
-import { formatBallersIQShareText, type ShareCardContext } from "./formatBallersIQShareText";
+import { type ShareCardContext } from "./formatBallersIQShareText";
 
 interface Props {
   open: boolean;
