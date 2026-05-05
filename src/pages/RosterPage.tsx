@@ -186,6 +186,30 @@ export default function RosterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [biqSignature, starters, bench]);
 
+  // Compact strip values derived from advisor + upcoming schedule.
+  const biqStrip = useMemo(() => {
+    const insights = biqAdvisor?.insights ?? [];
+    const captain = insights.find((i) => i.type === "CAPTAIN");
+    const risk = insights.find((i) => i.type === "RISK");
+    const value = insights.find((i) => i.type === "VALUE");
+    const captainPid = captain?.playerIds?.[0];
+    const valuePid = value?.playerIds?.[0];
+    const findName = (id?: number) =>
+      id ? [...starters, ...bench].find((p) => p.core.id === id)?.core.name ?? null : null;
+    const dragCount = starters.filter((p) => {
+      const tri = String(p.core.team ?? "").toUpperCase();
+      if (!tri) return false;
+      const games = upcomingByTeam?.[tri] ?? [];
+      return games.length === 0;
+    }).length;
+    return {
+      captainName: findName(captainPid),
+      riskCount: risk?.playerIds?.length ?? 0,
+      valueName: findName(valuePid),
+      scheduleDragCount: dragCount,
+    };
+  }, [biqAdvisor, starters, bench, upcomingByTeam]);
+
   useMemo(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
   }, [roster?.captain_id, captainId]);
