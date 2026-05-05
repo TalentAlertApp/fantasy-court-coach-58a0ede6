@@ -115,8 +115,8 @@ export default function TeamsPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col h-full min-h-0 space-y-4">
+      <div className="flex items-center gap-4 shrink-0">
         <h1 className="text-xl font-heading font-bold uppercase tracking-wider">NBA Teams</h1>
         <div className="inline-flex bg-muted rounded-xl p-0.5 gap-0.5">
           {TABS.map((t) => (
@@ -195,7 +195,7 @@ export default function TeamsPage() {
         isLoading ? (
           <div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
-          <div className="flex flex-col gap-3 h-[calc(100vh-180px)]">
+          <div className="flex-1 min-h-0 flex flex-col gap-3">
             <div className="flex-1 min-h-0 overflow-auto pr-1">
               <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} view={standingsView} />
             </div>
