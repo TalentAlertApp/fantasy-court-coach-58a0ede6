@@ -32,9 +32,14 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
     setEmbeddedImage(null);
     if (!ctx.imageUrl) return;
     const direct = ctx.imageUrl;
-    // weserv proxy strips protocol and serves with permissive CORS headers,
-    // which lets us inline NBA CDN photos as data URLs for html-to-image.
-    const proxied = `https://images.weserv.nl/?url=${encodeURIComponent(direct.replace(/^https?:\/\//, ""))}`;
+    const stripped = direct.replace(/^https?:\/\//, "");
+    // Multiple permissive-CORS proxies so we can inline NBA CDN photos as data URLs.
+    const candidates = [
+      direct,
+      `https://images.weserv.nl/?url=${encodeURIComponent(stripped)}`,
+      `https://wsrv.nl/?url=${encodeURIComponent(stripped)}`,
+      `https://corsproxy.io/?${encodeURIComponent(direct)}`,
+    ];
     const tryFetch = async (url: string): Promise<string | null> => {
       try {
         const r = await fetch(url, { mode: "cors" });
@@ -49,8 +54,12 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       } catch { return null; }
     };
     (async () => {
-      const dataUrl = (await tryFetch(direct)) ?? (await tryFetch(proxied));
-      if (!cancelled) setEmbeddedImage(dataUrl);
+      for (const u of candidates) {
+        const dataUrl = await tryFetch(u);
+        if (cancelled) return;
+        if (dataUrl) { setEmbeddedImage(dataUrl); return; }
+      }
+      if (!cancelled) setEmbeddedImage(null);
     })();
     return () => { cancelled = true; };
   }, [ctx.imageUrl]);
@@ -60,6 +69,8 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
   const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ctx.subject;
   const headlineSize = format === "wide" ? "text-[28px]" : "text-[34px]";
   const nameSize = format === "wide" ? "text-[48px]" : "text-[60px]";
+  // Mark when the embedded image is fully decoded so the modal export can await it.
+  const photoReady = !ctx.imageUrl || embeddedImage !== null;
 
   return (
     <div
@@ -82,7 +93,7 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       {/* Top bar */}
       <header className="absolute top-0 inset-x-0 px-12 pt-10 flex items-center gap-4">
         <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="!h-12 w-auto" />
-        <span className="text-[14px] font-bold uppercase tracking-[0.3em] text-amber-300/90 border-l border-white/20 pl-4">
+        <span className="text-[14px] font-bold uppercase tracking-[0.3em] text-amber-300/90 border-l border-white/20 pl-4 whitespace-nowrap">
           {templateLabel(ctx.template)}
         </span>
       </header>
@@ -124,11 +135,11 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
         <p className={cn("font-bold leading-tight text-white", headlineSize)}>
           {insight.headline}
         </p>
-        <ul className="mt-4 flex flex-col gap-3">
+        <ul className="mt-4 flex flex-col gap-3" data-share-bullets>
           {insight.bullets.slice(0, format === "wide" ? 2 : 3).map((b, i) => (
-            <li key={i} className="flex items-center gap-3 text-white/80 text-[18px] leading-[1.3]">
+            <li key={i} className="flex items-center gap-3 text-white/80 text-[16px] leading-[1.2] whitespace-nowrap">
               <span className="inline-block h-1.5 w-6 shrink-0 rounded-full bg-amber-300/80" />
-              <span className="block">{b}</span>
+              <span className="block whitespace-nowrap overflow-hidden text-ellipsis">{b}</span>
             </li>
           ))}
         </ul>
@@ -158,6 +169,8 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
           )}
         </div>
       </footer>
+      {/* Hidden marker so the modal can await image readiness without timing hacks. */}
+      <span data-photo-ready={photoReady ? "1" : "0"} className="hidden" aria-hidden />
     </div>
   );
 });
