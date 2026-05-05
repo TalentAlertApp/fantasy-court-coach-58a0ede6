@@ -47,6 +47,11 @@ describe("BallersIQShareCard regression", () => {
     }
     expect(screen.getByText("START")).toBeInTheDocument();
     expect(screen.getByText(/Risk · LOW/)).toBeInTheDocument();
+    // Photo renders immediately (direct URL) — no initials fallback while embed resolves.
+    const initialImgs = Array.from(document.querySelectorAll("img"));
+    expect(initialImgs.some((i) => !!i.getAttribute("src"))).toBe(true);
+    // Risk chip must never wrap.
+    expect(screen.getByText(/Risk · LOW/).className).toMatch(/whitespace-nowrap/);
     // Player photo embedded as data URL — confirms the async pipeline resolved.
     await waitFor(() => {
       const imgs = document.querySelectorAll("img");
