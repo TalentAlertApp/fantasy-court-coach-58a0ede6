@@ -231,7 +231,7 @@ function ScoringRecapBlock({ selectedDay }: { selectedDay: any }) {
   const recap = { total_fp: selectedDay?.total_fp ?? 0, dayPlayers };
   const data = getBallersIQInsights("recap", { players, roster, recap });
   if (!data.insights.length && !data.summary) return null;
-  return <BallersIQRecapBlock data={data} />;
+  return <BallersIQRecapBlock data={data} pageSize={3} />;
 }
 
 type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
