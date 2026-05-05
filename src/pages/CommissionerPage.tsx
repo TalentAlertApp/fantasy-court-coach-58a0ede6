@@ -181,6 +181,15 @@ export default function CommissionerPage() {
   const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
   const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
 
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window === "undefined") return "players";
+    return localStorage.getItem("commissioner_active_tab") ?? "players";
+  });
+  const handleTabChange = (v: string) => {
+    setActiveTab(v);
+    try { localStorage.setItem("commissioner_active_tab", v); } catch { /* noop */ }
+  };
+
   // Admin secret persisted in localStorage so admin edge functions accept calls.
   const [adminSecret, setAdminSecret] = useState<string>(() => {
     if (typeof window === "undefined") return "";
