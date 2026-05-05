@@ -73,9 +73,18 @@ export interface BIQExplainPlayerResponse {
   summary: string;
   verdict?: "START" | "BENCH" | "HOLD" | "WATCH" | "DROP";
   biq_rating?: number;
+  biq_label?: "Elite" | "Strong" | "Playable" | "Watch" | "Risk";
+  archetype?: string;
   form_signal?: string;
   salary_efficiency?: string;
   risk_level?: "LOW" | "MEDIUM" | "HIGH";
+  risk_flags?: string[];
+  schedule_context?: {
+    next_game?: string | null;
+    games_count?: number;
+    label?: "Schedule Boost" | "Schedule Drag" | "Neutral" | "No Game Risk";
+    warning?: string | null;
+  };
   why_it_scores: { factor: string; impact: string; note: string }[];
   trend_flags: { type: string; detail: string }[];
   recommendation: { action: "add" | "hold" | "drop"; rationale: string };
