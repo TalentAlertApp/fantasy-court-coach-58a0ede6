@@ -622,12 +622,6 @@ export default function RosterPage() {
                 <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
               </div>
             )}
-            {/* Lineup Advisor — court mode: absolute overlay matching schedule preview behaviour */}
-            {advisorOpen && viewMode === "court" && biqAdvisor && (
-              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm rounded-xl shadow-2xl max-h-[520px] overflow-auto animate-accordion-down">
-                <LineupAdvisorPanel data={biqAdvisor} onClose={() => setAdvisorOpen(false)} />
-              </div>
-            )}
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}
@@ -652,25 +646,17 @@ export default function RosterPage() {
             ) : (
               <>
                 <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-                {/* List view: Roster Info + Lineup Advisor side-by-side, equal width & height */}
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-                  <div className="h-full">
-                    <RosterSidebar
-                      gw={currentGameday.gw}
-                      day={currentGameday.day}
-                      teamId={selectedTeamId ?? undefined}
-                      bankRemaining={roster?.bank_remaining ?? 0}
-                      freeTransfers={roster?.free_transfers_remaining ?? 0}
-                      fcStarters={fcStarters}
-                      bcStarters={bcStarters}
-                      totalSalary={totalSalary}
-                    />
-                  </div>
-                  <div className="h-full">
-                    {biqAdvisor && biqAdvisor.insights.length > 0 ? (
-                      <LineupAdvisorPanel data={biqAdvisor} className="h-full" />
-                    ) : null}
-                  </div>
+                <div className="mt-4">
+                  <RosterSidebar
+                    gw={currentGameday.gw}
+                    day={currentGameday.day}
+                    teamId={selectedTeamId ?? undefined}
+                    bankRemaining={roster?.bank_remaining ?? 0}
+                    freeTransfers={roster?.free_transfers_remaining ?? 0}
+                    fcStarters={fcStarters}
+                    bcStarters={bcStarters}
+                    totalSalary={totalSalary}
+                  />
                 </div>
               </>
             )}
