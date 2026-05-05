@@ -3,6 +3,7 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
 import { fetchScoringRules, formulaString } from "../_shared/scoring.ts";
+import { buildPlayerPack, buildRosterPack, buildMarketPack } from "../_shared/biq.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY_NBA")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -71,13 +72,35 @@ Keep content short, direct, decision-focused. No vague adjectives without data.
 ## SAFETY
 Do not fabricate stats, injuries, or schedules. If unsure, say so via notes or risk_flags.`;
 
+// Ballers.IQ index guidance — appended to every system prompt so OpenAI
+// reasons over the precomputed indexes instead of inventing generic advice.
+const BIQ_GUIDANCE = `
+
+## BALLERS.IQ INDEX GUIDANCE
+The internal payload includes a "biq" object with precomputed indexes:
+- biq.starters[] / biq.bench[]: each player has biq_rating (0-100, label Elite/Strong/Playable/Watch/Risk),
+  captain_edge (0-100, label Safe/Upside/Viable/Avoid Captain), schedule (score+label+games),
+  salary_eff (score+label Underpriced/Fair/Overpriced/Salary Trap, ratio), form (Form Spike/Minutes Spike/etc.),
+  risk (level LOW/MED/HIGH + flags), adj_fp (difficulty-adjusted FP5).
+- biq.roster_summary: projected_fp, captain_candidates (sorted), risk_players, value_players, schedule_boost_players, construction_notes.
+- biq.market (when present): underpriced/formSpikes/scheduleBoosts/avoid candidates league-wide.
+REASONING RULES:
+- ALWAYS reference these indexes by label in your bullets (e.g., "Form Spike", "BIQ 82 Strong", "Salary Trap", "Schedule Boost").
+- For pick-captain: prefer the highest captain_edge with risk LOW/MED.
+- For suggest-transfers: pull adds from biq.market.underpriced or formSpikes; drops from risk_players or salary traps.
+- For explain-player: include verdict (START/BENCH/HOLD/WATCH/DROP), echo biq_rating, form_signal, salary_efficiency, risk_level.
+- For analyze-roster: ground every strength/weakness in a specific index value.
+- For explain-trade: cite fp_delta, biq_delta, salary_delta from biq.deltas.
+- Never invent numbers not present in the payload. Keep bullets <=14 words, fantasy-native.`;
+
+
 const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "suggest-transfers": `Return JSON: { "moves": [{ "add": number, "drop": number, "cap_after": number, "reason_bullets": string[], "expected_delta": { "proj_fp5": number, "proj_stocks5": number, "proj_ast5": number }, "risk_flags": string[], "confidence": number(0-1) }], "notes": string[] }. moves array: 1-5 items. reason_bullets: 1-6 items each max ~12 words. CRITICAL CONSTRAINTS for every move: (1) ADD player's fc_bc MUST equal DROP player's fc_bc (preserves 5 FC + 5 BC). (2) cap_after = roster_salary_total - drop.salary + add.salary MUST be <= salary_cap. (3) After applying the swap, the count of roster players from add.team MUST be <= 2 (use team_distribution from payload, subtract 1 if drop is from same team). (4) Both add and drop players MUST exist in the players list. Set cap_after as a number (in $M) so the server can verify. If no legal move exists, return moves: [] and explain in notes.`,
-  "pick-captain": `Return JSON: { "captain_id": number, "alternatives": [{ "id": number, "why": string }], "reason_bullets": string[], "confidence": number(0-1) }. captain_id must be from starters. Pick the best captain for the ENTIRE GAMEWEEK (not just one day). Consider total projected FP across all remaining gamedays, schedule density, matchup quality, and form. alternatives: 0-3.`,
-  "explain-player": `Return JSON: { "player_id": number, "summary": string, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id from the input. Do not substitute another player. The player_id you return MUST equal target_player_id exactly.`,
-  "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[] }`,
+  "pick-captain": `Return JSON: { "captain_id": number, "alternatives": [{ "id": number, "why": string }], "reason_bullets": string[], "confidence": number(0-1), "risk_note": string|null }. captain_id must be from starters. Use biq.roster_summary.captain_candidates as the ranking source — top captain_edge with risk LOW/MED wins. alternatives: 0-3 next-best candidates with one-sentence why citing captain_edge label and form.`,
+  "explain-player": `Return JSON: { "player_id": number, "summary": string, "verdict": "START"|"BENCH"|"HOLD"|"WATCH"|"DROP", "biq_rating": number, "form_signal": string, "salary_efficiency": string, "risk_level": "LOW"|"MEDIUM"|"HIGH", "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id. Echo biq_rating, form_signal, salary_efficiency, risk_level VERBATIM from biq.player. Verdict must align with the indexes (Elite/Strong → START; Playable → HOLD; Watch → WATCH; Risk + HIGH risk → DROP).`,
+  "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[], "biq_summary": { "projected_fp": number, "risk_count": number, "value_count": number } }. Ground every strength/weakness in a specific Ballers.IQ index value (e.g., "BIQ 82 Strong", "Salary Trap", "Form Spike").`,
   "injury-monitor": `Return JSON: { "items": [{ "player_id": number, "status": "OUT"|"Q"|"DTD"|"ACTIVE"|"UNKNOWN", "headline": string|null, "impact": "low"|"medium"|"high", "recommended_move": { "action": "hold"|"bench"|"drop"|"swap", "replacement_targets": [{ "player_id": number, "why": string[], "confidence": number(0-1) }] }, "risk_flags": string[] }], "notes": string[] }`,
-  "explain-trade": `Return JSON: { "verdict": "favorable"|"neutral"|"unfavorable", "summary": string, "pros": string[](1-5), "cons": string[](1-5), "risk_flags": string[], "confidence": number(0-1) }. summary: 1-2 sentences (max ~40 words). Each pro/con: <= 14 words, decision-focused. CRITICAL: Use ONLY the trade_outs and trade_ins arrays from the input — do not suggest alternative players. Compare OUT vs IN on FP5, value5, stocks5, minutes trend, schedule density, role certainty.`,
+  "explain-trade": `Return JSON: { "verdict": "favorable"|"neutral"|"unfavorable", "summary": string, "pros": string[](1-5), "cons": string[](1-5), "risk_flags": string[], "confidence": number(0-1), "fp_delta": number, "value_delta": number, "schedule_impact": string }. Cite biq.deltas.fp_delta and biq.deltas.biq_delta in summary. Each pro/con <=14 words, anchored in a specific BIQ index. Use ONLY trade_outs/trade_ins.`,
 };
 
 async function fetchContext(sb: any, teamId?: string) {
@@ -153,7 +176,7 @@ async function callOpenAI(
     const rules = await fetchScoringRules(sb);
     scoringFormula = formulaString(rules);
   } catch (_) { /* fall back to default */ }
-  const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{SCORING_FORMULA}}", scoringFormula);
+  const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{SCORING_FORMULA}}", scoringFormula) + BIQ_GUIDANCE;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -368,6 +391,53 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ---- Ballers.IQ index pack (precomputed, fed to the model) ----
+    const upcomingGames = (ctx.schedule ?? []).filter((g: any) =>
+      !/FINAL/i.test(String(g.status ?? "")));
+    const rosterPlayerFull = rosterPlayerRows;
+    // Reattach signal fields from the broader player table for richer indexes.
+    const playerById = new Map<number, any>();
+    for (const p of ctx.players) playerById.set(Number(p.id), p);
+    const startersFull = ctx.roster
+      .filter((r: any) => r.slot === "starter" || r.is_captain)
+      .map((r: any) => playerById.get(Number(r.player_id)) ?? rosterPlayerById.get(Number(r.player_id)))
+      .filter(Boolean);
+    const benchFull = ctx.roster
+      .filter((r: any) => r.slot === "bench")
+      .map((r: any) => playerById.get(Number(r.player_id)) ?? rosterPlayerById.get(Number(r.player_id)))
+      .filter(Boolean);
+    const captainSlot = ctx.roster.find((r: any) => r.is_captain);
+    const captainIdForBIQ = captainSlot?.player_id ?? null;
+    const biqRoster = buildRosterPack(startersFull, benchFull, upcomingGames, captainIdForBIQ);
+    const biqMarket = buildMarketPack(ctx.players, rosterPlayerIds, upcomingGames, 6,
+      Number(params?.max_cost ?? bank_remaining ?? salary_cap));
+    let biqPlayer: any = undefined;
+    if (action === "explain-player" && targetPlayerId !== undefined) {
+      const tp = playerById.get(Number(targetPlayerId)) ??
+        (await sb.from("players").select("*").eq("id", targetPlayerId).maybeSingle()).data;
+      if (tp) biqPlayer = buildPlayerPack(tp, upcomingGames);
+    }
+    let biqDeltas: any = undefined;
+    if (action === "explain-trade") {
+      const oPacks = tradeOutsDetail.map((p: any) => buildPlayerPack(playerById.get(Number(p.id)) ?? p, upcomingGames));
+      const iPacks = tradeInsDetail.map((p: any) => buildPlayerPack(playerById.get(Number(p.id)) ?? p, upcomingGames));
+      const sum = (arr: any[], k: string) => arr.reduce((s, x) => s + Number(x[k] ?? 0), 0);
+      biqDeltas = {
+        outs: oPacks, ins: iPacks,
+        deltas: {
+          fp_delta: Math.round((sum(iPacks, "adj_fp") - sum(oPacks, "adj_fp")) * 10) / 10,
+          biq_delta: Math.round(sum(iPacks, "biq_rating") - sum(oPacks, "biq_rating")),
+          salary_delta: Math.round((sum(iPacks, "salary") - sum(oPacks, "salary")) * 10) / 10,
+        },
+      };
+    }
+    const biq = {
+      ...biqRoster,
+      market: biqMarket,
+      ...(biqPlayer ? { player: biqPlayer } : {}),
+      ...(biqDeltas ? biqDeltas : {}),
+    };
+
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
       roster_players: rosterPlayerRows.map((p) => ({
@@ -382,6 +452,7 @@ Deno.serve(async (req) => {
       players: finalPlayerSummary,
       schedule: ctx.schedule.slice(0, 20),
       params,
+      biq,
       ...(targetPlayerId !== undefined ? { target_player_id: targetPlayerId } : {}),
       ...(action === "explain-trade"
         ? { trade_outs: tradeOutsDetail, trade_ins: tradeInsDetail }
