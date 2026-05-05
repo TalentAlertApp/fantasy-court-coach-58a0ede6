@@ -24,7 +24,7 @@ export default function BallersIQRecapBlock({ data, className, pageSize }: Props
   return (
     <section className={cn(
       "relative rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card",
-      "p-4 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.35)] overflow-hidden",
+      "p-3 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.35)] overflow-hidden",
       className,
     )}>
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
@@ -33,9 +33,9 @@ export default function BallersIQRecapBlock({ data, className, pageSize }: Props
         variant="emblem"
         forceTheme="light"
         transparent
-        className="pointer-events-none absolute -top-8 -right-8 !h-44 !w-44 object-contain opacity-[0.14] rotate-12 select-none"
+        className="pointer-events-none absolute -top-6 -right-6 !h-32 !w-32 object-contain opacity-[0.14] rotate-12 select-none"
       />
-      <header className="flex items-center gap-3 mb-3">
+      <header className="flex items-center gap-3 mb-2">
         <BallersIQBrand variant="wordmark" size="md" forceTheme="light" transparent className="dark:hidden" />
         <BallersIQBrand variant="wordmark" size="md" forceTheme="dark" transparent className="hidden dark:block" />
         <span className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-muted-foreground border-l border-border pl-3">
@@ -43,7 +43,7 @@ export default function BallersIQRecapBlock({ data, className, pageSize }: Props
         </span>
       </header>
       {data.summary && (
-        <p className="relative z-[1] text-sm text-foreground/90 leading-snug mb-3">{data.summary}</p>
+        <p className="relative z-[1] text-xs text-foreground/90 leading-snug mb-2">{data.summary}</p>
       )}
       {total > 0 && (
         <div className="relative z-[1] flex items-stretch gap-2">
