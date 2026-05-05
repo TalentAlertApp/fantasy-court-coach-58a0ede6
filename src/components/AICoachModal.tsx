@@ -198,18 +198,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
   // Injury monitoring is now delegated to the standalone <InjuryReportModal />.
 
-  const handleExplain = async () => {
-    let target = selectedExplainPlayer;
-    if (!target && explainMatches.length > 0) {
-      target = explainMatches[0];
-      setSelectedExplainPlayer(target);
-      setExplainSearch(target.core.name);
-      setShowDropdown(false);
-    }
-    if (!target) {
-      toast({ title: "Type a player name to search", variant: "destructive" });
-      return;
-    }
+  const runExplain = async (target: any) => {
+    if (!target?.core?.id) return;
     setExplainLoading(true); setExplainResult(null);
     try {
       const res = await aiExplainPlayer({ player_id: target.core.id }, selectedTeamId ?? undefined);
@@ -240,18 +230,14 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     setSelectedExplainPlayer(found);
     setExplainSearch(found.core.name);
     setShowDropdown(false);
-    setExplainLoading(true); setExplainResult(null);
-    try {
-      const res = await aiExplainPlayer({ player_id: found.core.id }, selectedTeamId ?? undefined);
-      setExplainResult(res);
-    } catch (e: any) { toast({ title: "Error", description: e.message, variant: "destructive" }); }
-    finally { setExplainLoading(false); }
+    await runExplain(found);
   };
 
   const handleSelectExplainPlayer = (p: any) => {
     setExplainSearch(p.core.name);
     setSelectedExplainPlayer(p);
     setShowDropdown(false);
+    void runExplain(p);
   };
 
   const statusColor = (s: string) => {
