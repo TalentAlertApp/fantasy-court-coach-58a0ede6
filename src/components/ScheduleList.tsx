@@ -114,9 +114,12 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
 
 type ScheduleGame = z.infer<typeof ScheduleGameSchema>;
 
+import GameCardBadges, { type GameBadge as BIQGameBadge } from "@/components/ballers-iq/GameCardBadges";
+
 interface ScheduleListProps {
   games: ScheduleGame[];
   viewMode?: "list" | "grid";
+  gameBadges?: Record<string, BIQGameBadge[]>;
 }
 
 function formatTipoff(utc: string): string {
@@ -730,7 +733,7 @@ function useColsPerRow() {
   return cols;
 }
 
-export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListProps) {
+export default function ScheduleList({ games, viewMode = "grid", gameBadges }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
@@ -825,6 +828,11 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
           />
         )}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
+        {gameBadges && gameBadges[g.game_id] && gameBadges[g.game_id].length > 0 && (
+          <div className="absolute top-1.5 right-2 z-20 pointer-events-none">
+            <GameCardBadges badges={gameBadges[g.game_id]} />
+          </div>
+        )}
 
         {compact ? (
           <>
@@ -1075,6 +1083,11 @@ export default function ScheduleList({ games, viewMode = "grid" }: ScheduleListP
                   />
                 )}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
+        {gameBadges && gameBadges[g.game_id] && gameBadges[g.game_id].length > 0 && (
+          <div className="absolute top-1.5 right-2 z-20 pointer-events-none">
+            <GameCardBadges badges={gameBadges[g.game_id]} />
+          </div>
+        )}
 
                 <div className="relative z-10 flex items-center w-full">
                 {/* Teams */}
