@@ -659,6 +659,11 @@ export default function RosterPage() {
                 <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
               </div>
             )}
+            {advisorOpen && biqAdvisor && (
+              <div className="absolute left-0 right-0 top-0 z-30 animate-accordion-down">
+                <LineupAdvisorPanel data={biqAdvisor} onClose={() => setAdvisorOpen(false)} />
+              </div>
+            )}
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}
@@ -683,7 +688,7 @@ export default function RosterPage() {
             ) : (
               <>
                 <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-                <div className="mt-4">
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <RosterSidebar
                     gw={currentGameday.gw}
                     day={currentGameday.day}
@@ -694,6 +699,7 @@ export default function RosterPage() {
                     bcStarters={bcStarters}
                     totalSalary={totalSalary}
                   />
+                  {biqAdvisor && <LineupAdvisorPanel data={biqAdvisor} />}
                 </div>
               </>
             )}
