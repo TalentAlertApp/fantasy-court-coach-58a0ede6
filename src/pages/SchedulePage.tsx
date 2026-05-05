@@ -15,7 +15,6 @@ import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import BallersIQGameNightSummary, { type GameNightSummary } from "@/components/ballers-iq/BallersIQGameNightSummary";
 import AICoachModal from "@/components/AICoachModal";
 import type { GameBadge } from "@/components/ballers-iq/GameCardBadges";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -164,72 +163,6 @@ export default function SchedulePage() {
     for (const p of all) m.set(p.core.id, p);
     return m;
   }, [playersData?.items]);
-
-  const gameNightSummary = useMemo<GameNightSummary | null>(() => {
-    const games = data?.games ?? [];
-    const r = rosterData?.roster;
-    if (!games.length || !r) return null;
-
-    const playingTeams = new Set<string>();
-    for (const g of games) {
-      playingTeams.add(String(g.home_team).toUpperCase());
-      playingTeams.add(String(g.away_team).toUpperCase());
-    }
-
-    const ownedAll = [...(r.starters ?? []), ...(r.bench ?? [])].filter((id: number) => id > 0);
-    const ownedActive: number[] = [];
-    const noGameOwned: string[] = [];
-    for (const pid of ownedAll) {
-      const p = playerById.get(pid);
-      const tri = String(p?.core?.team ?? "").toUpperCase();
-      if (tri && playingTeams.has(tri)) ownedActive.push(pid);
-      else if (p) noGameOwned.push(p.core.name);
-    }
-
-    let captainStatus: GameNightSummary["captainStatus"] = null;
-    if (r.captain_id) {
-      const p = playerById.get(r.captain_id);
-      if (p) {
-        const tri = String(p.core.team ?? "").toUpperCase();
-        captainStatus = { name: p.core.name, playing: tri ? playingTeams.has(tri) : false };
-      }
-    }
-
-    // Top fantasy environment proxy: average FP5 of starters of both teams
-    let topGame: GameNightSummary["topGame"] = null;
-    let topScore = -1;
-    for (const g of games) {
-      const home = String(g.home_team).toUpperCase();
-      const away = String(g.away_team).toUpperCase();
-      let total = 0, count = 0;
-      for (const p of playersData?.items ?? []) {
-        const tri = String(p.core?.team ?? "").toUpperCase();
-        if (tri === home || tri === away) {
-          const fp5 = Number(p.last5?.fp5 ?? 0);
-          if (fp5 > 0) { total += fp5; count += 1; }
-        }
-      }
-      const score = count > 0 ? Math.round((total / count) * 10) : 0;
-      if (score > topScore) {
-        topScore = score;
-        topGame = { label: `${away} @ ${home}`, score };
-      }
-    }
-
-    const recapReady = games.filter((g: any) =>
-      String(g.status ?? "").toUpperCase().includes("FINAL") &&
-      (g.youtube_recap_id || g.game_recap_url)
-    ).length;
-
-    return {
-      activePlayers: ownedActive.length,
-      totalRoster: ownedAll.length,
-      captainStatus,
-      topGame,
-      noGameWarning: noGameOwned.length > 0 ? { count: noGameOwned.length, names: noGameOwned } : null,
-      recapReadyCount: recapReady,
-    };
-  }, [data?.games, rosterData?.roster, playerById, playersData?.items]);
 
   const gameBadges = useMemo<Record<string, GameBadge[]>>(() => {
     const out: Record<string, GameBadge[]> = {};
@@ -560,12 +493,6 @@ export default function SchedulePage() {
 
       {/* Games — scrollable */}
       <div className="flex-1 overflow-y-auto">
-        {/* Ballers.IQ Game Night summary */}
-        {gameNightSummary && (
-          <div className="px-1 mb-2">
-            <BallersIQGameNightSummary summary={gameNightSummary} onOpen={() => setAiCoachOpen(true)} />
-          </div>
-        )}
         {isLoading ? (
           <div className="space-y-2 px-1">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-xl" />)}</div>
         ) : isError ? (
