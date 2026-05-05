@@ -32,9 +32,14 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
     setEmbeddedImage(null);
     if (!ctx.imageUrl) return;
     const direct = ctx.imageUrl;
-    // weserv proxy strips protocol and serves with permissive CORS headers,
-    // which lets us inline NBA CDN photos as data URLs for html-to-image.
-    const proxied = `https://images.weserv.nl/?url=${encodeURIComponent(direct.replace(/^https?:\/\//, ""))}`;
+    const stripped = direct.replace(/^https?:\/\//, "");
+    // Multiple permissive-CORS proxies so we can inline NBA CDN photos as data URLs.
+    const candidates = [
+      direct,
+      `https://images.weserv.nl/?url=${encodeURIComponent(stripped)}`,
+      `https://wsrv.nl/?url=${encodeURIComponent(stripped)}`,
+      `https://corsproxy.io/?${encodeURIComponent(direct)}`,
+    ];
     const tryFetch = async (url: string): Promise<string | null> => {
       try {
         const r = await fetch(url, { mode: "cors" });
@@ -49,8 +54,12 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       } catch { return null; }
     };
     (async () => {
-      const dataUrl = (await tryFetch(direct)) ?? (await tryFetch(proxied));
-      if (!cancelled) setEmbeddedImage(dataUrl);
+      for (const u of candidates) {
+        const dataUrl = await tryFetch(u);
+        if (cancelled) return;
+        if (dataUrl) { setEmbeddedImage(dataUrl); return; }
+      }
+      if (!cancelled) setEmbeddedImage(null);
     })();
     return () => { cancelled = true; };
   }, [ctx.imageUrl]);
