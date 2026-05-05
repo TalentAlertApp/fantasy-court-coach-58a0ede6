@@ -435,9 +435,9 @@ function NBAPlaySearchSection() {
                       <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)]" align="start">
+                  <PopoverContent className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)]" align="start" collisionPadding={12}>
                     <Command>
-                      <CommandList className="max-h-[320px]">
+                      <CommandList className="max-h-[60vh] overflow-y-auto">
                         <CommandGroup>
                           {ACTION_TYPES.map((a) => {
                             const checked = actionTypes.includes(a.value);
