@@ -15,7 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import BallersIQTicker from "@/components/ballers-iq/BallersIQTicker";
+import BallersIQGameNightSummary, { type GameNightSummary } from "@/components/ballers-iq/BallersIQGameNightSummary";
+import AICoachModal from "@/components/AICoachModal";
+import type { GameBadge } from "@/components/ballers-iq/GameCardBadges";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
@@ -60,6 +62,7 @@ export default function SchedulePage() {
   const [potdOpen, setPotdOpen] = useState(false);
   const [injuryOpen, setInjuryOpen] = useState(false);
   const [courtShowOpen, setCourtShowOpen] = useState(false);
+  const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "grid";
     return (localStorage.getItem("schedule_view_mode") as "list" | "grid") || "grid";
@@ -147,6 +150,138 @@ export default function SchedulePage() {
 
     return items.slice(0, 6);
   }, [biq, data?.games]);
+
+  // Compact Game Night Summary + per-game micro-badges
+  const ownedIds = useMemo(() => {
+    const r = rosterData?.roster;
+    if (!r) return new Set<number>();
+    return new Set<number>([...(r.starters ?? []), ...(r.bench ?? [])].filter((id: number) => id > 0));
+  }, [rosterData?.roster]);
+
+  const playerById = useMemo(() => {
+    const all = playersData?.items ?? [];
+    const m = new Map<number, any>();
+    for (const p of all) m.set(p.core.id, p);
+    return m;
+  }, [playersData?.items]);
+
+  const gameNightSummary = useMemo<GameNightSummary | null>(() => {
+    const games = data?.games ?? [];
+    const r = rosterData?.roster;
+    if (!games.length || !r) return null;
+
+    const playingTeams = new Set<string>();
+    for (const g of games) {
+      playingTeams.add(String(g.home_team).toUpperCase());
+      playingTeams.add(String(g.away_team).toUpperCase());
+    }
+
+    const ownedAll = [...(r.starters ?? []), ...(r.bench ?? [])].filter((id: number) => id > 0);
+    const ownedActive: number[] = [];
+    const noGameOwned: string[] = [];
+    for (const pid of ownedAll) {
+      const p = playerById.get(pid);
+      const tri = String(p?.core?.team ?? "").toUpperCase();
+      if (tri && playingTeams.has(tri)) ownedActive.push(pid);
+      else if (p) noGameOwned.push(p.core.name);
+    }
+
+    let captainStatus: GameNightSummary["captainStatus"] = null;
+    if (r.captain_id) {
+      const p = playerById.get(r.captain_id);
+      if (p) {
+        const tri = String(p.core.team ?? "").toUpperCase();
+        captainStatus = { name: p.core.name, playing: tri ? playingTeams.has(tri) : false };
+      }
+    }
+
+    // Top fantasy environment proxy: average FP5 of starters of both teams
+    let topGame: GameNightSummary["topGame"] = null;
+    let topScore = -1;
+    for (const g of games) {
+      const home = String(g.home_team).toUpperCase();
+      const away = String(g.away_team).toUpperCase();
+      let total = 0, count = 0;
+      for (const p of playersData?.items ?? []) {
+        const tri = String(p.core?.team ?? "").toUpperCase();
+        if (tri === home || tri === away) {
+          const fp5 = Number(p.last5?.fp5 ?? 0);
+          if (fp5 > 0) { total += fp5; count += 1; }
+        }
+      }
+      const score = count > 0 ? Math.round((total / count) * 10) : 0;
+      if (score > topScore) {
+        topScore = score;
+        topGame = { label: `${away} @ ${home}`, score };
+      }
+    }
+
+    const recapReady = games.filter((g: any) =>
+      String(g.status ?? "").toUpperCase().includes("FINAL") &&
+      (g.youtube_recap_id || g.game_recap_url)
+    ).length;
+
+    return {
+      activePlayers: ownedActive.length,
+      totalRoster: ownedAll.length,
+      captainStatus,
+      topGame,
+      noGameWarning: noGameOwned.length > 0 ? { count: noGameOwned.length, names: noGameOwned } : null,
+      recapReadyCount: recapReady,
+    };
+  }, [data?.games, rosterData?.roster, playerById, playersData?.items]);
+
+  const gameBadges = useMemo<Record<string, GameBadge[]>>(() => {
+    const out: Record<string, GameBadge[]> = {};
+    const games = data?.games ?? [];
+    const r = rosterData?.roster;
+    const captainId = r?.captain_id ?? null;
+    // Pre-bucket players by team
+    const byTeam = new Map<string, any[]>();
+    for (const p of playersData?.items ?? []) {
+      const tri = String(p.core?.team ?? "").toUpperCase();
+      if (!tri) continue;
+      if (!byTeam.has(tri)) byTeam.set(tri, []);
+      byTeam.get(tri)!.push(p);
+    }
+    // Compute slate ceiling threshold for High Ceiling badge: top quartile of avg FP5
+    const envScores: { id: string; score: number }[] = [];
+    for (const g of games) {
+      const home = String(g.home_team).toUpperCase();
+      const away = String(g.away_team).toUpperCase();
+      const pool = [...(byTeam.get(home) ?? []), ...(byTeam.get(away) ?? [])];
+      const fps = pool.map((p) => Number(p.last5?.fp5 ?? 0)).filter((n) => n > 0);
+      const avg = fps.length ? fps.reduce((a, b) => a + b, 0) / fps.length : 0;
+      envScores.push({ id: g.game_id, score: avg });
+    }
+    const sorted = [...envScores].sort((a, b) => b.score - a.score);
+    const highThreshold = sorted.length ? sorted[Math.floor(sorted.length * 0.25)]?.score ?? 0 : 0;
+    const lowThreshold = sorted.length ? sorted[Math.max(0, Math.floor(sorted.length * 0.75) - 1)]?.score ?? 0 : 0;
+    const envById = new Map(envScores.map((e) => [e.id, e.score]));
+
+    for (const g of games) {
+      const badges: GameBadge[] = [];
+      const home = String(g.home_team).toUpperCase();
+      const away = String(g.away_team).toUpperCase();
+      const ownedHere = [...(byTeam.get(home) ?? []), ...(byTeam.get(away) ?? [])]
+        .filter((p) => ownedIds.has(p.core.id));
+      const captainHere = captainId && ownedHere.some((p) => p.core.id === captainId);
+      const isFinal = String(g.status ?? "").toUpperCase().includes("FINAL");
+      const env = envById.get(g.game_id) ?? 0;
+
+      if (captainHere) badges.push({ key: "captain_active" });
+      else if (isFinal && (g.youtube_recap_id || g.game_recap_url)) badges.push({ key: "recap_ready" });
+      else if (ownedHere.length === 0) badges.push({ key: "no_owned" });
+
+      if (badges.length < 2) {
+        if (!isFinal && env >= highThreshold && env > 0) badges.push({ key: "high_ceiling" });
+        else if (!isFinal && env <= lowThreshold && env > 0 && sorted.length >= 4) badges.push({ key: "trap_game" });
+      }
+      if (badges.length) out[g.game_id] = badges;
+    }
+    return out;
+  }, [data?.games, rosterData?.roster, playersData?.items, ownedIds]);
+
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
   const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
@@ -425,10 +560,10 @@ export default function SchedulePage() {
 
       {/* Games — scrollable */}
       <div className="flex-1 overflow-y-auto">
-        {/* Ballers.IQ ticker + Tonight's Edge */}
-        {tickerItems.length > 0 && (
+        {/* Ballers.IQ Game Night summary */}
+        {gameNightSummary && (
           <div className="px-1 mb-2">
-            <BallersIQTicker items={tickerItems} />
+            <BallersIQGameNightSummary summary={gameNightSummary} onOpen={() => setAiCoachOpen(true)} />
           </div>
         )}
         {isLoading ? (
@@ -443,13 +578,14 @@ export default function SchedulePage() {
             </Button>
           </div>
         ) : (
-          <ScheduleList games={data?.games ?? []} viewMode={viewMode} />
+          <ScheduleList games={data?.games ?? []} viewMode={viewMode} gameBadges={gameBadges} />
         )}
       </div>
 
       <TeamOfTheWeekModal open={totwOpen} onOpenChange={setTotwOpen} gw={gw} />
       <InjuryReportModal open={injuryOpen} onOpenChange={setInjuryOpen} />
       <CourtShowModal open={courtShowOpen} onOpenChange={setCourtShowOpen} gw={gw} day={day} />
+      <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
     </div>
   );
 }
