@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { NBA_TEAMS, getTeamLogo } from "@/lib/nba-teams";
+import { NBA_TEAMS, getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -197,8 +197,16 @@ export default function TeamsPage() {
           <div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col gap-3">
-            <div className="flex-1 min-h-0 overflow-auto pr-1">
-              <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} view={standingsView} />
+            <div className="relative flex-1 min-h-0">
+              <img
+                src={nbaLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 m-auto h-[60%] max-h-[420px] w-auto opacity-[0.05] dark:opacity-[0.06] select-none z-0"
+              />
+              <div className="relative z-[1] h-full overflow-auto pr-1">
+                <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} view={standingsView} />
+              </div>
             </div>
             <div className="mt-auto">
               <StandingsBallersIQ standings={standings} onTeamClick={setSelectedTeam} />
@@ -265,8 +273,8 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
                 {logo && (
                   <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-3" />
                 )}
-                <span className="font-heading font-bold uppercase">{t.tricode}</span>
-                <span className="ml-auto text-muted-foreground">{t.w}-{t.l} · {((t.pct ?? 0) * 100).toFixed(0)}%</span>
+                <span className="font-heading font-bold truncate">{getTeamByTricode(t.tricode)?.name ?? t.tricode}</span>
+                <span className="ml-auto text-muted-foreground shrink-0">{t.w}-{t.l} · {((t.pct ?? 0) * 100).toFixed(0)}%</span>
               </button>
             );
           })}
@@ -279,8 +287,8 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
                 {logo && (
                   <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-3" />
                 )}
-                <span className="font-heading font-bold uppercase">{t.tricode}</span>
-                <span className="ml-auto text-muted-foreground">{t.w}-{t.l}</span>
+                <span className="font-heading font-bold truncate">{getTeamByTricode(t.tricode)?.name ?? t.tricode}</span>
+                <span className="ml-auto text-muted-foreground shrink-0">{t.w}-{t.l}</span>
               </button>
             );
           }) : <p className="text-[11px] text-muted-foreground">All top teams represented.</p>}
