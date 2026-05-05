@@ -13,3 +13,6 @@ export * from "./rosterIntelligence";
 export * from "./marketIntelligence";
 export * from "./recapIntelligence";
 export * from "./indexes";
+export * from "./schemas";
+export * from "./promptBuilder";
+export * from "./narrative";
