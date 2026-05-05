@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard, Volume2, VolumeX } from "lucide-react";
 import { useCourtShowData } from "./useCourtShowData";
 import CourtShowSlide from "./CourtShowSlide";
+import { useCourtShowAudio } from "./useCourtShowAudio";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
@@ -21,9 +23,11 @@ const SLIDE_MS = 7500;
 
 export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const { data, isLoading, games } = useCourtShowData(gw, day);
+  const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [hover, setHover] = useState(false);
+  const audio = useCourtShowAudio(open);
 
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const [openTri, setOpenTri] = useState<string | null>(null);
@@ -33,7 +37,9 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
 
   useEffect(() => {
     if (open) { setIndex(0); setPlaying(true); }
-  }, [open, gw, day]);
+    // Intentionally only reset when `open` flips — not when gw/day change mid-show.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const slides = data?.slides ?? [];
   const total = slides.length;
@@ -47,13 +53,23 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") setIndex((i) => Math.min(total - 1, i + 1));
-      else if (e.key === "ArrowLeft") setIndex((i) => Math.max(0, i - 1));
+      if (e.key === "ArrowRight") { setIndex((i) => Math.min(total - 1, i + 1)); setPlaying(false); audio.onSlideChange(); }
+      else if (e.key === "ArrowLeft") { setIndex((i) => Math.max(0, i - 1)); setPlaying(false); audio.onSlideChange(); }
       else if (e.key === " ") { e.preventDefault(); setPlaying((p) => !p); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, total]);
+  }, [open, total, audio]);
+
+  // Cue on autoplay slide change
+  useEffect(() => {
+    if (open) audio.onSlideChange();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, open]);
+
+  const goPrev = () => { setIndex((i) => Math.max(0, i - 1)); setPlaying(false); };
+  const goNext = () => { setIndex((i) => Math.min(total - 1, i + 1)); setPlaying(false); };
+  const handleOutroAction = () => { onOpenChange(false); navigate("/"); };
 
   const current = slides[index];
 
@@ -91,6 +107,14 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-[10px] font-mono text-white/60">{total > 0 ? `${index + 1} / ${total}` : "—"}</span>
+                <button
+                  onClick={audio.toggle}
+                  className="text-white/60 hover:text-amber-400 transition-colors"
+                  aria-label={audio.enabled ? "Mute sound" : "Unmute sound"}
+                  title={audio.enabled ? "Mute sound" : "Unmute sound"}
+                >
+                  {audio.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                </button>
                 <button onClick={() => onOpenChange(false)} className="text-white/60 hover:text-white transition-colors">
                   <X className="h-4 w-4" />
                 </button>
@@ -126,6 +150,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                     onPlayerClick={setOpenPlayerId}
                     onTeamClick={setOpenTri}
                     onGameClick={handleGameClick}
+                    onOutroAction={handleOutroAction}
                   />
                 </AnimatePresence>
               )}
@@ -134,7 +159,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
             {/* Footer controls */}
             <div className="absolute bottom-0 inset-x-0 z-30 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-t from-black/80 to-transparent">
               <button
-                onClick={() => setIndex((i) => Math.max(0, i - 1))}
+                onClick={goPrev}
                 disabled={index === 0}
                 className="p-2 rounded-full bg-white/5 text-white hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Previous slide"
@@ -149,7 +174,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                 {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               </button>
               <button
-                onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}
+                onClick={goNext}
                 disabled={index >= total - 1}
                 className="p-2 rounded-full bg-white/5 text-white hover:bg-white/15 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 aria-label="Next slide"
