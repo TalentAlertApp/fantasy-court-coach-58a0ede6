@@ -3,6 +3,7 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
 import { fetchScoringRules, formulaString } from "../_shared/scoring.ts";
+import { buildPlayerPack, buildRosterPack, buildMarketPack } from "../_shared/biq.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY_NBA")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -390,6 +391,53 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ---- Ballers.IQ index pack (precomputed, fed to the model) ----
+    const upcomingGames = (ctx.schedule ?? []).filter((g: any) =>
+      !/FINAL/i.test(String(g.status ?? "")));
+    const rosterPlayerFull = rosterPlayerRows;
+    // Reattach signal fields from the broader player table for richer indexes.
+    const playerById = new Map<number, any>();
+    for (const p of ctx.players) playerById.set(Number(p.id), p);
+    const startersFull = ctx.roster
+      .filter((r: any) => r.slot === "starter" || r.is_captain)
+      .map((r: any) => playerById.get(Number(r.player_id)) ?? rosterPlayerById.get(Number(r.player_id)))
+      .filter(Boolean);
+    const benchFull = ctx.roster
+      .filter((r: any) => r.slot === "bench")
+      .map((r: any) => playerById.get(Number(r.player_id)) ?? rosterPlayerById.get(Number(r.player_id)))
+      .filter(Boolean);
+    const captainSlot = ctx.roster.find((r: any) => r.is_captain);
+    const captainIdForBIQ = captainSlot?.player_id ?? null;
+    const biqRoster = buildRosterPack(startersFull, benchFull, upcomingGames, captainIdForBIQ);
+    const biqMarket = buildMarketPack(ctx.players, rosterPlayerIds, upcomingGames, 6,
+      Number(params?.max_cost ?? bank_remaining ?? salary_cap));
+    let biqPlayer: any = undefined;
+    if (action === "explain-player" && targetPlayerId !== undefined) {
+      const tp = playerById.get(Number(targetPlayerId)) ??
+        (await sb.from("players").select("*").eq("id", targetPlayerId).maybeSingle()).data;
+      if (tp) biqPlayer = buildPlayerPack(tp, upcomingGames);
+    }
+    let biqDeltas: any = undefined;
+    if (action === "explain-trade") {
+      const oPacks = tradeOutsDetail.map((p: any) => buildPlayerPack(playerById.get(Number(p.id)) ?? p, upcomingGames));
+      const iPacks = tradeInsDetail.map((p: any) => buildPlayerPack(playerById.get(Number(p.id)) ?? p, upcomingGames));
+      const sum = (arr: any[], k: string) => arr.reduce((s, x) => s + Number(x[k] ?? 0), 0);
+      biqDeltas = {
+        outs: oPacks, ins: iPacks,
+        deltas: {
+          fp_delta: Math.round((sum(iPacks, "adj_fp") - sum(oPacks, "adj_fp")) * 10) / 10,
+          biq_delta: Math.round(sum(iPacks, "biq_rating") - sum(oPacks, "biq_rating")),
+          salary_delta: Math.round((sum(iPacks, "salary") - sum(oPacks, "salary")) * 10) / 10,
+        },
+      };
+    }
+    const biq = {
+      ...biqRoster,
+      market: biqMarket,
+      ...(biqPlayer ? { player: biqPlayer } : {}),
+      ...(biqDeltas ? biqDeltas : {}),
+    };
+
     const contextPayload = JSON.stringify({
       roster: rosterSlots,
       roster_players: rosterPlayerRows.map((p) => ({
@@ -404,6 +452,7 @@ Deno.serve(async (req) => {
       players: finalPlayerSummary,
       schedule: ctx.schedule.slice(0, 20),
       params,
+      biq,
       ...(targetPlayerId !== undefined ? { target_player_id: targetPlayerId } : {}),
       ...(action === "explain-trade"
         ? { trade_outs: tradeOutsDetail, trade_ins: tradeInsDetail }
