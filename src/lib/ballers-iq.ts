@@ -410,44 +410,118 @@ function buildRecapInsights(payload: BIQPayload): BallersIQResponse {
   const captainId = roster.find((r) => r.is_captain)?.player_id;
 
   const rosterPlayers = players.filter((p) => rosterIds.has(p.id));
-  const top = [...rosterPlayers].sort((a, b) => num(b.fp_pg5) - num(a.fp_pg5))[0];
   const captain = captainId ? players.find((p) => p.id === captainId) : null;
-  const benchMissed = rosterPlayers
-    .filter((p) => {
-      const slot = roster.find((r) => r.player_id === p.id)?.slot ?? "";
-      return !isStarter(slot);
-    })
-    .sort((a, b) => num(b.fp_pg5) - num(a.fp_pg5))[0];
+
+  // Optional rich day-level data: { player_id, fp, mp, salary, is_starter, is_captain, captain_bonus, result_wl, opp }
+  const dayPlayers: any[] = Array.isArray(recap?.dayPlayers) ? recap.dayPlayers : [];
+  const byId = new Map<number, any>(dayPlayers.map((d) => [d.player_id, d]));
+
+  // Build merged view: prefer day-level FP/MP; fall back to fp_pg5 if absent.
+  type Merged = BIQPlayer & {
+    dayFp: number; dayMp: number; daySal: number;
+    starter: boolean; captainHere: boolean; captainBonus: number;
+    result?: string | null;
+  };
+  const merged: Merged[] = rosterPlayers.map((p) => {
+    const d = byId.get(p.id) ?? {};
+    const slot = roster.find((r) => r.player_id === p.id)?.slot ?? "";
+    return {
+      ...p,
+      dayFp: num(d.fp, num(p.fp_pg5)),
+      dayMp: num(d.mp, num(p.mpg5)),
+      daySal: num(d.salary, num(p.salary)),
+      starter: typeof d.is_starter === "boolean" ? d.is_starter : isStarter(slot),
+      captainHere: !!d.is_captain || captainId === p.id,
+      captainBonus: num(d.captain_bonus),
+      result: d.result_wl ?? null,
+    };
+  });
+
+  const startersM = merged.filter((m) => m.starter);
+  const benchM = merged.filter((m) => !m.starter);
+
+  const top = [...merged].sort((a, b) => b.dayFp - a.dayFp)[0];
+  const weak = [...startersM].filter((m) => m.dayFp >= 0).sort((a, b) => a.dayFp - b.dayFp)[0];
 
   const totalScore = num(recap?.total_fp);
+  const wins = merged.filter((m) => m.result === "W").length;
+  const losses = merged.filter((m) => m.result === "L").length;
+  const recordSegment = wins + losses ? ` · roster went ${wins}-${losses}.` : ".";
   const summary = totalScore
-    ? `Gameweek total: ${totalScore.toFixed(1)} FP. Captain bonus + stocks carried the load.`
+    ? `Day total ${totalScore.toFixed(1)} FP${top ? ` — ${top.name} led with ${top.dayFp.toFixed(1)}` : ""}${recordSegment}`
     : top
       ? `${top.name} led the roster on FP5.`
       : "Recap unavailable.";
 
   const insights: BallersIQInsight[] = [];
 
+  // Best Call
   if (top) {
+    const valTxt = top.daySal > 0 ? ` · $${top.daySal.toFixed(1)}M` : "";
+    const mpTxt = top.dayMp > 0 ? ` in ${top.dayMp.toFixed(0)}'` : "";
     insights.push({
       type: "RECAP",
       title: "Best Call",
-      headline: `${top.name} delivered.`,
-      bullets: [`FP5 ${num(top.fp_pg5).toFixed(1)} — top of the roster.`],
+      headline: `${top.name} delivered ${top.dayFp.toFixed(1)} FP${mpTxt}.`,
+      bullets: [
+        `Top of the roster${valTxt}${top.captainHere ? " · wore the armband" : ""}.`,
+      ],
       playerIds: [top.id],
-      confidence: 0.7,
+      confidence: 0.75,
       action: null,
       riskLevel: "LOW",
     });
   }
+
+  // Weak Spot — starter who underperformed expectation
+  if (weak && top && weak.id !== top.id && weak.dayFp < num(weak.fp_pg5) - 3) {
+    const expected = num(weak.fp_pg5);
+    insights.push({
+      type: "RECAP",
+      title: "Weak Spot",
+      headline: `${weak.name} fell short — ${weak.dayFp.toFixed(1)} FP vs ${expected.toFixed(1)} expected.`,
+      bullets: [
+        weak.dayMp > 0 ? `Played ${weak.dayMp.toFixed(0)}' but couldn't convert.` : `Limited minutes weighed on the line.`,
+      ],
+      playerIds: [weak.id],
+      confidence: 0.6,
+      action: "WATCH",
+      riskLevel: "MEDIUM",
+    });
+  }
+
+  // Difficulty-Adjusted MVP — best FP/$ on the day
+  const valued = merged.filter((m) => m.dayFp > 0 && m.daySal > 0);
+  if (valued.length) {
+    const mvp = [...valued].sort((a, b) => b.dayFp / b.daySal - a.dayFp / a.daySal)[0];
+    if (mvp && (!top || mvp.id !== top.id)) {
+      const ratio = mvp.dayFp / mvp.daySal;
+      insights.push({
+        type: "RECAP",
+        title: "Adj. MVP",
+        headline: `${mvp.name} returned ${ratio.toFixed(1)} FP per $M.`,
+        bullets: [`${mvp.dayFp.toFixed(1)} FP at $${mvp.daySal.toFixed(1)}M — best efficiency on the slate.`],
+        playerIds: [mvp.id],
+        confidence: 0.55,
+        action: "HOLD",
+        riskLevel: "LOW",
+      });
+    }
+  }
+
+  // Captain edge missed
   if (captain && top && captain.id !== top.id) {
+    const capDayFp = byId.get(captain.id)?.fp;
+    const headline = capDayFp != null
+      ? `Captain bonus on ${top.name} would have added ~${(top.dayFp - num(capDayFp)).toFixed(1)} FP.`
+      : `Captain bonus would have been bigger on ${top.name}.`;
     insights.push({
       type: "RECAP",
       title: "Missed Edge",
-      headline: `Captain bonus would have been bigger on ${top.name}.`,
+      headline,
       bullets: [
-        `Armband on ${captain.name} (${num(captain.fp_pg5).toFixed(1)} FP5).`,
-        `${top.name} sits at ${num(top.fp_pg5).toFixed(1)} FP5.`,
+        `Armband on ${captain.name}${capDayFp != null ? ` (${num(capDayFp).toFixed(1)} FP today)` : ""}.`,
+        `${top.name} delivered ${top.dayFp.toFixed(1)} FP.`,
       ],
       playerIds: [captain.id, top.id],
       confidence: 0.6,
@@ -455,22 +529,46 @@ function buildRecapInsights(payload: BIQPayload): BallersIQResponse {
       riskLevel: "MEDIUM",
     });
   }
-  if (benchMissed && num(benchMissed.fp_pg5) >= num(top?.fp_pg5 ?? 0) * 0.7) {
+
+  // Bench Opportunity Cost — biggest day-FP swap missed
+  if (startersM.length && benchM.length) {
+    const worstStarter = [...startersM].sort((a, b) => a.dayFp - b.dayFp)[0];
+    const bestBench = [...benchM].sort((a, b) => b.dayFp - a.dayFp)[0];
+    const delta = bestBench.dayFp - worstStarter.dayFp;
+    if (delta >= 5) {
+      insights.push({
+        type: "RECAP",
+        title: "Bench Cost",
+        headline: `Starting ${bestBench.name} over ${worstStarter.name} would have added ${delta.toFixed(1)} FP.`,
+        bullets: [
+          `${bestBench.name} (bench) ${bestBench.dayFp.toFixed(1)} FP vs ${worstStarter.name} ${worstStarter.dayFp.toFixed(1)} FP.`,
+        ],
+        playerIds: [bestBench.id, worstStarter.id],
+        confidence: 0.6,
+        action: "START",
+        riskLevel: "MEDIUM",
+      });
+    }
+  }
+
+  // Next Move — promote a hot bench piece for next slate
+  const benchHot = [...benchM].sort((a, b) => num(b.fp_pg5) - num(a.fp_pg5))[0];
+  if (benchHot && num(benchHot.fp_pg5) >= num(top?.fp_pg5 ?? 0) * 0.7) {
     insights.push({
       type: "RECAP",
       title: "Next Move",
-      headline: `Promote ${benchMissed.name} from the bench.`,
+      headline: `Promote ${benchHot.name} for the next slate.`,
       bullets: [
-        `Bench FP5 ${num(benchMissed.fp_pg5).toFixed(1)} — close to your top starter.`,
+        `Bench FP5 ${num(benchHot.fp_pg5).toFixed(1)} — close to your top starter's form.`,
       ],
-      playerIds: [benchMissed.id],
+      playerIds: [benchHot.id],
       confidence: 0.55,
       action: "START",
       riskLevel: "LOW",
     });
   }
 
-  // Always produce a 3rd context card if room remains.
+  // Always produce a context card if room remains.
   if (insights.length < 3 && rosterPlayers.length) {
     const stocksKing = [...rosterPlayers].sort(
       (a, b) => (num(b.stl5) + num(b.blk5)) - (num(a.stl5) + num(a.blk5))
