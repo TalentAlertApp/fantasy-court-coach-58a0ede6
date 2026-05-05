@@ -595,6 +595,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         open={selectedGame !== null}
         onOpenChange={(o) => !o && setSelectedGame(null)}
       />
+      <TeamModal
+        tricode={teamModalTri}
+        open={teamModalTri !== null}
+        onOpenChange={(o) => !o && setTeamModalTri(null)}
+      />
     </>
   );
 }
