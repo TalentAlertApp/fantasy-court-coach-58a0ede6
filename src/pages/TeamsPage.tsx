@@ -243,10 +243,9 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
 
   const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="relative rounded-xl border border-amber-400/25 bg-card/60 p-3 overflow-hidden">
-      <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-12 w-auto opacity-[0.08] rotate-12 select-none" />
-      <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-12 w-auto opacity-[0.10] rotate-12 select-none" />
+      <BallersIQBrand variant="emblem" forceTheme="light" transparent className="pointer-events-none absolute -top-3 -right-3 !h-20 !w-20 object-contain opacity-[0.14] rotate-12 select-none" />
       <header className="flex items-center gap-2 mb-1.5 relative z-[1]">
-        <BallersIQBrand variant="emblem" forceTheme="light" size="sm" />
+        <BallersIQBrand variant="emblem" forceTheme="light" transparent size="sm" />
         <span className="text-[9px] font-heading font-bold uppercase tracking-[0.16em] text-amber-400/90">{title}</span>
       </header>
       <div className="relative z-[1] space-y-0.5">{children}</div>
