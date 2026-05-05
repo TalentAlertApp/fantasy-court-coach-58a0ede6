@@ -626,24 +626,3 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     </>
   );
 }
-
-function VerdictWithShare({ insight, shareCtx }: { insight: any; shareCtx: ShareCardContext }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="space-y-1.5">
-      <BallersIQPlayerVerdict insight={insight} />
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border border-amber-400/30 hover:border-amber-400/70 text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors"
-          title="Create a Ballers.IQ share card"
-        >
-          <Share2 className="h-3 w-3" />
-          Create Card
-        </button>
-      </div>
-      <BallersIQShareCardModal open={open} onOpenChange={setOpen} ctx={shareCtx} />
-    </div>
-  );
-}
