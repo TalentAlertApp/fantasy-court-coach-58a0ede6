@@ -10,6 +10,7 @@
  */
 
 export type BallersIQContext = "lineup" | "player" | "game_night" | "recap";
+import { gateBallersIQ as _gateBallersIQ } from "./ballers-iq/quality";
 export type BallersIQAction =
   | "START" | "BENCH" | "CAPTAIN" | "ADD" | "DROP" | "WATCH" | "HOLD" | null;
 export type BallersIQRisk = "LOW" | "MEDIUM" | "HIGH" | null;
