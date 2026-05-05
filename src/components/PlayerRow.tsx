@@ -73,12 +73,11 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-center w-20 font-mono text-[11px] text-muted-foreground tabular-nums">
-        <span className="block leading-none">{dobLabel}</span>
-        <span className="block text-[9px] text-muted-foreground/70 mt-0.5">({core.age || "—"})</span>
+      <TableCell className="text-center w-28 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+        {dobLabel} ({core.age || "—"})
       </TableCell>
-      <TableCell className="text-center w-16 font-mono text-xs text-muted-foreground">{core.height ?? "—"}</TableCell>
-      <TableCell className="w-32 text-xs text-muted-foreground truncate max-w-[8rem]" title={core.college ?? undefined}>
+      <TableCell className="text-center w-16 text-xs text-muted-foreground">{core.height ?? "—"}</TableCell>
+      <TableCell className="w-44 text-xs text-muted-foreground whitespace-nowrap" title={core.college ?? undefined}>
         {core.college ?? "—"}
       </TableCell>
       <TableCell className="text-center w-20">
@@ -86,11 +85,11 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           {core.fc_bc}
         </Badge>
       </TableCell>
-      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">${core.salary}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">{last5.fp5.toFixed(1)}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">{computed.value5.toFixed(2)}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24 tabular-nums">{lastGame.fp.toFixed(1)}</TableCell>
-      <TableCell className="text-right font-mono text-sm w-24 font-bold tabular-nums text-foreground">{Number(totalFp).toFixed(0)}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">${core.salary}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{last5.fp5.toFixed(1)}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{computed.value5.toFixed(2)}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{lastGame.fp.toFixed(1)}</TableCell>
+      <TableCell className="text-right text-xs text-foreground font-bold w-24 tabular-nums">{Number(totalFp).toFixed(0)}</TableCell>
       <TableCell className="text-right">
         {onSwap && (
           <Button
