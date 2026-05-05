@@ -45,6 +45,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
   const { selectedTeamId, teams } = useTeam();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const { data: upcomingByTeam } = useUpcomingByTeam();
   const queryClient = useQueryClient();
 
   const [analyzeResult, setAnalyzeResult] = useState<any>(null);
