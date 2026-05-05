@@ -534,29 +534,27 @@ function YourTeamView({
       </div>
 
       {/* Ballers.IQ Recap Story — compact, inline, above the timeline */}
-      {selectedDay && (
-        <div className="space-y-2">
-          <ScoringRecapBlock selectedDay={selectedDay} />
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={onOpenAICoach}
-              className="group inline-flex items-center gap-2 h-7 px-3 rounded-lg border border-amber-400/30 hover:border-amber-400/70 transition-colors bg-transparent text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground"
-              title="Open Ballers.IQ"
-            >
-              <BallersIQBrand variant="emblem" forceTheme="light" transparent className="dark:hidden h-3.5 w-3.5" />
-              <BallersIQBrand variant="emblem" forceTheme="dark" transparent className="hidden dark:block h-3.5 w-3.5" />
-              Open Ballers.IQ
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Timeline */}
       <div className="relative bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">FP Timeline</h2>
+          <button
+            type="button"
+            onClick={() => setRecapOpen((v) => !v)}
+            aria-pressed={recapOpen}
+            title="Toggle Ballers.IQ Recap"
+            className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border transition-colors text-[10px] font-heading uppercase tracking-[0.18em] ${recapOpen ? "border-amber-400/70 text-foreground bg-amber-400/10" : "border-amber-400/30 text-muted-foreground hover:text-foreground hover:border-amber-400/70"}`}
+          >
+            <BallersIQBrand variant="emblem" forceTheme="light" transparent className="dark:hidden h-3.5 w-3.5" />
+            <BallersIQBrand variant="emblem" forceTheme="dark" transparent className="hidden dark:block h-3.5 w-3.5" />
+            Ballers.IQ
+          </button>
         </div>
+        {recapOpen && selectedDay && (
+          <div className="px-4 pt-3">
+            <ScoringRecapBlock selectedDay={selectedDay} />
+          </div>
+        )}
         <div className="px-4 py-4 h-52">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={timelineData}>
