@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote } from "lucide-react";
+import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag } from "lucide-react";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
