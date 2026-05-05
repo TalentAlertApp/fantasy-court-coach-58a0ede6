@@ -34,7 +34,7 @@ import DraftPicker from "@/components/onboarding/DraftPicker";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
-import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
+import BallersIQLineupStrip from "@/components/ballers-iq/BallersIQLineupStrip";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -76,7 +76,6 @@ export default function RosterPage() {
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [advisorOpen, setAdvisorOpen] = useState(false);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -186,6 +185,30 @@ export default function RosterPage() {
     return getBallersIQInsights("lineup", { players: biqPlayers, roster: biqRoster });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [biqSignature, starters, bench]);
+
+  // Compact strip values derived from advisor + upcoming schedule.
+  const biqStrip = useMemo(() => {
+    const insights = biqAdvisor?.insights ?? [];
+    const captain = insights.find((i) => i.type === "CAPTAIN");
+    const risk = insights.find((i) => i.type === "RISK");
+    const value = insights.find((i) => i.type === "VALUE");
+    const captainPid = captain?.playerIds?.[0];
+    const valuePid = value?.playerIds?.[0];
+    const findName = (id?: number) =>
+      id ? [...starters, ...bench].find((p) => p.core.id === id)?.core.name ?? null : null;
+    const dragCount = starters.filter((p) => {
+      const tri = String(p.core.team ?? "").toUpperCase();
+      if (!tri) return false;
+      const games = upcomingByTeam?.[tri] ?? [];
+      return games.length === 0;
+    }).length;
+    return {
+      captainName: findName(captainPid),
+      riskCount: risk?.playerIds?.length ?? 0,
+      valueName: findName(valuePid),
+      scheduleDragCount: dragCount,
+    };
+  }, [biqAdvisor, starters, bench, upcomingByTeam]);
 
   useMemo(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
@@ -514,6 +537,16 @@ export default function RosterPage() {
         )
       ) : (
         <>
+          {/* ── Ballers.IQ compact strip ── */}
+          {biqAdvisor && (
+            <BallersIQLineupStrip
+              captainName={biqStrip.captainName}
+              riskCount={biqStrip.riskCount}
+              valueName={biqStrip.valueName}
+              scheduleDragCount={biqStrip.scheduleDragCount}
+              onOpen={() => setAiCoachOpen(true)}
+            />
+          )}
           {/* ── Toolbar Row ── */}
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
             <div className="flex items-center gap-2">
@@ -531,18 +564,6 @@ export default function RosterPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {biqAdvisor && biqAdvisor.insights.length > 0 && (
-                <Button
-                  onClick={() => setAdvisorOpen((v) => !v)}
-                  variant={advisorOpen ? "default" : "outline"}
-                  size="sm"
-                  className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ${advisorOpen ? "bg-amber-400 text-black hover:bg-amber-400/90 border-amber-400" : "border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
-                  title="Toggle Ballers.IQ Lineup Advisor"
-                >
-                  <BallersIQBrand variant="emblem" forceTheme="light" transparent className="!h-4 !w-4 mr-1 opacity-90" />
-                  Lineup Advisor
-                </Button>
-              )}
               <Button
                 onClick={() => setScheduleOpen((v) => !v)}
                 variant={scheduleOpen ? "default" : "outline"}
@@ -635,12 +656,6 @@ export default function RosterPage() {
                 <SchedulePreviewBody rosterTeams={rosterTeams} variant="panel" />
               </div>
             )}
-            {/* Lineup Advisor — court mode: absolute overlay matching schedule preview behaviour */}
-            {advisorOpen && viewMode === "court" && biqAdvisor && (
-              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm rounded-xl shadow-2xl max-h-[520px] overflow-auto animate-accordion-down">
-                <LineupAdvisorPanel data={biqAdvisor} onClose={() => setAdvisorOpen(false)} />
-              </div>
-            )}
             {viewMode === "court" ? (
               <RosterCourtView
                 starters={starters}
@@ -665,25 +680,17 @@ export default function RosterPage() {
             ) : (
               <>
                 <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
-                {/* List view: Roster Info + Lineup Advisor side-by-side, equal width & height */}
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-                  <div className="h-full">
-                    <RosterSidebar
-                      gw={currentGameday.gw}
-                      day={currentGameday.day}
-                      teamId={selectedTeamId ?? undefined}
-                      bankRemaining={roster?.bank_remaining ?? 0}
-                      freeTransfers={roster?.free_transfers_remaining ?? 0}
-                      fcStarters={fcStarters}
-                      bcStarters={bcStarters}
-                      totalSalary={totalSalary}
-                    />
-                  </div>
-                  <div className="h-full">
-                    {biqAdvisor && biqAdvisor.insights.length > 0 ? (
-                      <LineupAdvisorPanel data={biqAdvisor} className="h-full" />
-                    ) : null}
-                  </div>
+                <div className="mt-4">
+                  <RosterSidebar
+                    gw={currentGameday.gw}
+                    day={currentGameday.day}
+                    teamId={selectedTeamId ?? undefined}
+                    bankRemaining={roster?.bank_remaining ?? 0}
+                    freeTransfers={roster?.free_transfers_remaining ?? 0}
+                    fcStarters={fcStarters}
+                    bcStarters={bcStarters}
+                    totalSalary={totalSalary}
+                  />
                 </div>
               </>
             )}

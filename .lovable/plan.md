@@ -1,65 +1,37 @@
-## Ballers.IQ Explain Tab — Player Intelligence Report Upgrade
+## Ballers.IQ Lineup Strip — Single Compact Entry Point
 
-Upgrade the existing Explain tab in `AICoachModal` so the AI's `explain-player` response is rendered as a structured scouting report (verdict, BIQ rating, archetype, form, salary, risk, schedule). No new buttons, no new modals, no new entry points — just enrich the schema, the edge function payload, and the existing `ExplainReport` component.
+Add one compact horizontal Ballers.IQ summary strip to the Lineup page. Remove the existing "Lineup Advisor" toggle + overlay/side panel to avoid duplication. The strip surfaces four signals at a glance and offers a single action that opens the existing AI Coach modal. No per-player buttons, no floating widgets, no extra panels.
 
-### 1. Extend the explain-player schema (`src/lib/ballers-iq/schemas.ts`)
-Extend `BIQExplainPlayerResponse` and `validateExplainPlayer` with optional fields:
-- `biq_label?: "Elite" | "Strong" | "Playable" | "Watch" | "Risk"`
-- `archetype?: string` (Usage Engine, Stocks Hunter, Glass Cleaner, Value Play, Form Climber, Minutes Monster, Safe Floor, Ceiling Swing, Trap Pick)
-- `risk_flags?: string[]`
-- `schedule_context?: { next_game?: string | null; games_count?: number; label?: "Schedule Boost" | "Schedule Drag" | "Neutral" | "No Game Risk"; warning?: string | null }`
-- Keep existing required fields untouched so older responses still validate.
+### Strip content (single row, left-to-right)
+- BallersIQ emblem + label
+- Captain Edge: top starter by `fp_pg5` (e.g. "Dončić")
+- Risk Radar: count of risky starters (injury / minutes slip / no-game)
+- Value Pick: best bench `value5` player name
+- Schedule Drag: count of starters with no upcoming game in the next 7 days
+- Single small "Open Ballers.IQ" button → `setAiCoachOpen(true)` (existing modal)
 
-### 2. Compute archetype + schedule context server-side (`supabase/functions/_shared/biq.ts`)
-Add a pure `archetypeFor(p, packParts)` helper based on existing index values (no new data sources):
-- High usage + high fp5 → "Usage Engine"
-- High `stocks5` → "Stocks Hunter"
-- High rebound contribution → "Glass Cleaner"
-- `salary_eff.label === "Underpriced"` + decent rating → "Value Play"
-- `form === "Form Spike" | "Minutes Spike"` → "Form Climber"
-- High `mpg5` + stable minutes → "Minutes Monster" / "Safe Floor"
-- High ceiling vs floor gap → "Ceiling Swing"
-- `salary_eff.label === "Salary Trap"` → "Trap Pick"
-- Default → "Safe Floor"
+If no signal exists for a slot, show "—" so the strip stays visually steady.
 
-Extend `buildPlayerPack` to also return `archetype` and a richer `schedule` field including the next upcoming opponent string (e.g. `vs LAL` / `@ BOS` from the first matching game) and a `warning` when `games === 0`.
+### Layout
+Insert directly beneath the command header (the deep-blue Gameweek/Day banner around line 460), above the toolbar row. Single row on `md+`, stacks gracefully on mobile. Uses `bg-card`, subtle amber accent for the BIQ chip — consistent with existing brand usage. Court layout stays untouched.
 
-### 3. Wire new fields into the edge function (`supabase/functions/ai-coach/index.ts`)
-- Update the `explain-player` prompt schema description so the model echoes `biq_label`, `archetype`, `risk_flags` (verbatim from `biq.player.risk.flags`), and `schedule_context` (verbatim from `biq.player.schedule`), and so the `verdict` rule references the archetype/risk combo.
-- `validateShape("explain-player", ...)` stays permissive (current required keys only) so the AI Coach modal never hard-fails on the richer schema. The client-side validator already accepts unknown extra fields.
+### Files to edit
+- `src/pages/RosterPage.tsx`
+  - Remove the `advisorOpen` state, the Lineup Advisor toggle button (~lines 534–545), the court-mode `LineupAdvisorPanel` overlay (~lines 638–643), and the list-mode side `LineupAdvisorPanel` (~lines 682–686). Remove the `LineupAdvisorPanel` import.
+  - Compute strip values (memoized) from `biqAdvisor.insights` (Captain / Risk / Value) plus a small helper using `upcomingByTeam` to count starters with zero upcoming games for Schedule Drag.
+  - Render new `<BallersIQLineupStrip />` component just below the command header.
+- `src/components/ballers-iq/BallersIQLineupStrip.tsx` (new)
+  - Pure presentational component. Props: `{ captainName, riskCount, valueName, scheduleDragCount, onOpen }`.
+  - Compact pill row with `BallersIQBrand` emblem and a small `Button` "Open Ballers.IQ" calling `onOpen()`.
 
-### 4. Update fallback (`src/lib/ballers-iq/narrative.ts`)
-Extend `fallbackExplainPlayer` to populate `biq_label`, `archetype`, `risk_flags`, and `schedule_context` from the locally-built `BIQPlayerIndexPack` so the report still renders fully if the AI call fails.
+### What stays untouched
+- The existing wordmark "Open Ballers.IQ" button in the command header remains (it is the canonical entry).
+- AICoachModal logic, Analyze/Captain/Transfer/Explain flows.
+- Schedule preview overlay, Optimize, Wishlist, court/list toggle, RosterCourtView, RosterListView, RosterSidebar.
+- `LineupAdvisorPanel.tsx` file remains on disk (just unused on the lineup page) so other consumers aren't broken.
 
-### 5. Redesign `ExplainReport` in `src/components/AICoachModal.tsx` (no new files)
-Keep the existing player header, summary block, "Why it scores" list, and recommendation banner. Reorganize so the report reads as a scouting card:
-
-```text
-┌─ Player header (unchanged) ─────────────────┐
-├─ VERDICT pill  +  BIQ Rating (score / label)
-│  Archetype chip · Form Signal chip
-├─ Salary Efficiency  |  Risk Radar (LOW/MED/HIGH + flags chips)
-├─ Schedule Context (next game · games count · boost/drag · no-game warning)
-├─ Summary (italic quote — existing)
-├─ Why it scores (existing list)
-└─ Recommendation banner (existing)
-```
-
-Rules respected:
-- Single primary button stays the existing "Explain" — no new CTAs.
-- Recent player chips above search remain untouched.
-- Sections render only when their field is present (graceful with partial AI/fallback data).
-- All new chips use existing `Badge` / utility classes; no new dependencies.
-
-### 6. Acceptance check
-- Existing search, autocomplete, recent chips, and AI streaming still work.
-- Report shows verdict, BIQ rating + label, archetype, form signal, salary efficiency, risk radar with flags, and schedule context (when data exists).
-- No new entry points elsewhere in the app; Explain remains inside the AI Coach modal.
-- Light/dark theme respected via existing tokens.
-
-### Files touched
-- `src/lib/ballers-iq/schemas.ts` (extend interface + validator)
-- `src/lib/ballers-iq/narrative.ts` (extend fallback)
-- `supabase/functions/_shared/biq.ts` (archetype + richer schedule)
-- `supabase/functions/ai-coach/index.ts` (prompt schema for explain-player) — redeploy
-- `src/components/AICoachModal.tsx` (`ExplainReport` only; no other UI)
+### Acceptance check
+- One compact strip visible on Lineup with the four signals.
+- Only one new tiny CTA, "Open Ballers.IQ", reusing the existing modal.
+- The duplicate "Lineup Advisor" toggle and side panel are gone.
+- No new floating widget, no per-player AI button, court area unchanged in size.
