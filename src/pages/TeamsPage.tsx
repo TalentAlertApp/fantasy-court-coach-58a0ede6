@@ -10,6 +10,9 @@ import { useNBAStandings } from "@/hooks/useNBAStandings";
 import StandingsPanel from "@/components/standings/StandingsPanel";
 import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -166,7 +169,7 @@ export default function TeamsPage() {
 
                     <CardContent className="p-5 flex flex-col items-center justify-center gap-2 text-center relative z-10">
                       <p className="font-heading font-black text-lg uppercase tracking-wider">{t.tricode}</p>
-                      <p className="text-[10px] text-muted-foreground">{t.name}</p>
+                      <p className="text-[10px] font-bold" style={{ color: t.primaryColor }}>{t.name}</p>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-sm font-bold">{t.wins}-{t.losses}</span>
                         <span className="text-[10px] text-muted-foreground">({wp}%)</span>
@@ -185,7 +188,12 @@ export default function TeamsPage() {
         isLoading ? (
           <div className="space-y-2">{Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>
         ) : (
-          <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} />
+          <div className="flex flex-col gap-3 h-[calc(100vh-220px)]">
+            <div className="flex-1 min-h-0 overflow-auto pr-1">
+              <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} />
+            </div>
+            <StandingsBallersIQ standings={standings} onTeamClick={setSelectedTeam} />
+          </div>
         )
       )}
 
@@ -195,5 +203,75 @@ export default function TeamsPage() {
         onOpenChange={(open) => !open && setSelectedTeam(null)}
       />
     </div>
+  );
+}
+
+function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTeamClick: (tri: string) => void }) {
+  const { data: rosterData } = useRosterQuery();
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
+
+  const userTeams = new Set<string>();
+  const ids: number[] = [
+    ...(rosterData?.roster?.starters ?? []),
+    ...(rosterData?.roster?.bench ?? []),
+  ].filter((x) => x > 0);
+  for (const id of ids) {
+    const p = playersData?.items.find((x: any) => x.core.id === id);
+    if (p?.core.team) userTeams.add(p.core.team);
+  }
+
+  const sorted = [...standings].sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+  const outstanding = sorted.slice(0, 3);
+  const watchList = sorted.filter((t) => !userTeams.has(t.tricode)).slice(0, 3);
+
+  // Hidden gems: top players from bottom-half teams by FP
+  const median = sorted[Math.floor(sorted.length / 2)]?.pct ?? 0;
+  const lowerTeams = new Set(sorted.filter((t) => (t.pct ?? 0) < median).map((t) => t.tricode));
+  const gems = (playersData?.items ?? [])
+    .filter((p: any) => lowerTeams.has(p.core.team))
+    .sort((a: any, b: any) => (b.season?.fp ?? 0) - (a.season?.fp ?? 0))
+    .slice(0, 3);
+
+  const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="relative rounded-xl border border-amber-400/25 bg-card/60 p-3 overflow-hidden">
+      <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-12 w-auto opacity-[0.08] rotate-12 select-none" />
+      <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 !h-12 w-auto opacity-[0.10] rotate-12 select-none" />
+      <header className="flex items-center gap-2 mb-1.5 relative z-[1]">
+        <BallersIQBrand variant="emblem" forceTheme="light" size="sm" />
+        <span className="text-[9px] font-heading font-bold uppercase tracking-[0.16em] text-amber-400/90">{title}</span>
+      </header>
+      <div className="relative z-[1] space-y-0.5">{children}</div>
+    </div>
+  );
+
+  return (
+    <section className="shrink-0 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.04] via-card to-card p-3 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.3)]">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <Card title="Outstanding teams">
+          {outstanding.map((t) => (
+            <button key={t.tricode} onClick={() => onTeamClick(t.tricode)} className="w-full flex items-center justify-between text-left text-xs hover:text-amber-400 transition-colors">
+              <span className="font-heading font-bold uppercase">{t.tricode}</span>
+              <span className="text-muted-foreground">{t.w}-{t.l} · {((t.pct ?? 0) * 100).toFixed(0)}%</span>
+            </button>
+          ))}
+        </Card>
+        <Card title="Watch list (no roster players)">
+          {watchList.length ? watchList.map((t) => (
+            <button key={t.tricode} onClick={() => onTeamClick(t.tricode)} className="w-full flex items-center justify-between text-left text-xs hover:text-amber-400 transition-colors">
+              <span className="font-heading font-bold uppercase">{t.tricode}</span>
+              <span className="text-muted-foreground">{t.w}-{t.l}</span>
+            </button>
+          )) : <p className="text-[11px] text-muted-foreground">All top teams represented.</p>}
+        </Card>
+        <Card title="Hidden gems (lower-ranked teams)">
+          {gems.length ? gems.map((p: any) => (
+            <div key={p.core.id} className="flex items-center justify-between text-xs">
+              <span className="truncate">{p.core.name}</span>
+              <span className="text-muted-foreground ml-2">{p.core.team} · {(p.season?.fp ?? 0).toFixed(1)} FP</span>
+            </div>
+          )) : <p className="text-[11px] text-muted-foreground">Not enough data.</p>}
+        </Card>
+      </div>
+    </section>
   );
 }

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -53,6 +54,7 @@ function useCountdown(deadlineUtc: string | null) {
 
 export default function RosterPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { selectedTeamId, teams, isReady: teamReady, isError: teamError } = useTeam();
   const { data: rosterData, isLoading: rosterLoading, isError: rosterIsError, isSuccess: rosterSuccess, refetch: refetchRoster } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
@@ -154,6 +156,14 @@ export default function RosterPage() {
   const bcStarters = starters.filter((p) => p.core.fc_bc === "BC").length;
   const totalSalary = [...starters, ...bench].reduce((s, p) => s + p.core.salary, 0);
 
+  // Stable signature — recomputes BIQ insights only when the actual roster ids / captain / updated_at change.
+  const biqSignature = useMemo(() => JSON.stringify({
+    s: roster?.starters ?? [],
+    b: roster?.bench ?? [],
+    c: captainId,
+    u: roster?.updated_at ?? null,
+  }), [roster?.starters, roster?.bench, roster?.updated_at, captainId]);
+
   // Ballers.IQ Lineup Advisor — computed up here so the toggle button (court) and inline panel (list) share it.
   const biqAdvisor = useMemo(() => {
     if (!starters.length && !bench.length) return null;
@@ -172,7 +182,8 @@ export default function RosterPage() {
       ...bench.map((p, i) => ({ player_id: p.core.id, slot: `B${i + 1}`, is_captain: false })),
     ];
     return getBallersIQInsights("lineup", { players: biqPlayers, roster: biqRoster });
-  }, [starters, bench, captainId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [biqSignature, starters, bench]);
 
   useMemo(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
@@ -267,6 +278,15 @@ export default function RosterPage() {
   };
 
   const handleSwapRequest = (playerId: number) => {
+    const ft = roster?.free_transfers_remaining ?? 0;
+    if (ft <= 0) {
+      toast({
+        title: "GW transfer cap reached",
+        description: "You used all 2 transfers for this gameweek. Use Wildcard or wait until next GW.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSwapPlayerId(playerId);
     setPickerOpen(true);
   };
@@ -420,12 +440,10 @@ export default function RosterPage() {
               onClick={() => setAiCoachOpen(true)}
               aria-label="Open Ballers.IQ"
               title="Open Ballers.IQ"
-              className="group relative h-9 px-3 rounded-md overflow-hidden ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] hover:shadow-[0_6px_28px_-8px_hsl(45_90%_55%/0.85)] transition-all hover:scale-[1.03] active:scale-[0.98] inline-flex items-center justify-center bg-[rgb(253,253,255)] dark:bg-black"
+              className="group relative inline-flex items-center justify-center rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-xs font-heading uppercase ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] transition-all dark:bg-black"
             >
-              <span aria-hidden className="absolute inset-0 bg-gradient-to-r from-amber-400/0 via-amber-400/20 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
-              {/* Wordmark — light theme uses light png; dark theme uses the new transparent dark png. */}
-              <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden !h-5 w-auto" />
-              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-5 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden !h-4 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
             </button>
             <Button
               size="sm"
@@ -674,7 +692,8 @@ export default function RosterPage() {
             rosterIds={rosterIds}
             rosterTeams={rosterTeams}
             onSelect={swapPlayerId ? handleSwapSelect : handleAddSelect}
-            title={swapPlayerId ? "Swap Player" : "Add Player"}
+            title={swapPlayerId ? "Quick Trade" : "Add Player"}
+            onOpenTradeCenter={swapPlayerId ? () => { setPickerOpen(false); setSwapPlayerId(null); navigate("/transactions"); } : undefined}
             bankRemaining={roster?.bank_remaining ?? 100}
             swapPlayerSalary={swapPlayerId ? swapPlayerSalary : undefined}
             swapPlayerPosition={swapPlayerId && totalPlayers >= 10 ? swapPlayerPosition : null}

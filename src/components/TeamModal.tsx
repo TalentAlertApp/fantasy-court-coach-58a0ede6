@@ -12,6 +12,7 @@ import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import PlayerModal from "@/components/PlayerModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -165,8 +166,8 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
               <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-lg">Upcoming ({upcoming.length})</TabsTrigger>
               <TabsTrigger value="roster" className="font-heading text-xs uppercase rounded-lg">Roster ({sortedRoster.length})</TabsTrigger>
               <TabsTrigger value="biq" className="rounded-lg flex items-center justify-center px-1" title="Ballers.IQ">
-                <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
-                <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
+                <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-5 w-auto" />
+                <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-5 w-auto" />
               </TabsTrigger>
             </TabsList>
 
@@ -322,7 +323,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
             </TabsContent>
 
             <TabsContent value="biq" className="flex-1 min-h-0">
-              <TeamBallersIQ tricode={tricode} played={played} upcoming={upcoming} roster={sortedRoster} />
+              <TeamBallersIQ tricode={tricode} played={played} upcoming={upcoming} roster={sortedRoster} onPlayerClick={setSelectedPlayerId} />
             </TabsContent>
           </Tabs>
         </DialogContent>
@@ -345,11 +346,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
 }
 
 // ──────────────── Ballers.IQ Team Assessment (24h cached) ────────────────
-function TeamBallersIQ({ tricode, played, upcoming, roster }: {
+function TeamBallersIQ({ tricode, played, upcoming, roster, onPlayerClick }: {
   tricode: string;
   played: any[];
   upcoming: any[];
   roster: any[];
+  onPlayerClick: (id: number) => void;
 }) {
   // Build a deterministic snapshot key — only changes when the inputs do.
   const snapshot = useMemo(() => ({
@@ -385,14 +387,25 @@ function TeamBallersIQ({ tricode, played, upcoming, roster }: {
 
   return (
     <ScrollArea className="h-[50vh]">
-      <div className="p-3 space-y-3">
+      <div className="relative p-3 space-y-3">
+        <img
+          src={nbaLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute top-2 right-2 h-16 w-auto opacity-10 select-none"
+        />
         <div className="rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card p-3">
           <p className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90 mb-1">Team Read</p>
           <p className="text-sm leading-snug">{assessment.summary}</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {assessment.standouts.map((s: any) => (
-            <div key={s.id} className="rounded-xl border border-border bg-card/70 p-3">
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onPlayerClick(s.id)}
+              className="text-left rounded-xl border border-border bg-card/70 p-3 hover:border-amber-400/50 hover:bg-card transition-colors"
+            >
               <p className="text-[10px] font-heading font-bold uppercase tracking-[0.14em] text-amber-400/90">
                 Standout · {s.fc_bc}
               </p>
@@ -406,7 +419,7 @@ function TeamBallersIQ({ tricode, played, upcoming, roster }: {
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {s.fpg.toFixed(1)} FP · {s.ppg.toFixed(1)} PTS · {s.mpg.toFixed(1)} MPG
               </p>
-            </div>
+            </button>
           ))}
         </div>
         <div className="rounded-xl border border-border bg-card/60 p-3">

@@ -531,7 +531,8 @@ function YourTeamView({
               aria-label="Toggle Ballers.IQ Recap"
               title="Ballers.IQ Recap"
             >
-              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="!h-5 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="light" className="dark:hidden !h-5 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-5 w-auto" />
             </button>
           )}
         </div>
