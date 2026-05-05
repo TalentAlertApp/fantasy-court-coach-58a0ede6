@@ -502,6 +502,8 @@ function YourTeamView({
     if (next >= 0 && next < game_days.length) setSelectedDayIdx(next);
   };
 
+  const [recapOpen, setRecapOpen] = useState(false);
+
   const toggleSort = (col: SortCol) => {
     if (sortCol === col) setSortDir((d: SortDir) => d === "asc" ? "desc" : "asc");
     else { setSortCol(col); setSortDir("desc"); }
