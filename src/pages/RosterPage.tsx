@@ -17,6 +17,7 @@ import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
 import RosterSidebar from "@/components/RosterSidebar";
 import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
+import { useRosterPlayerLogs } from "@/hooks/useRosterPlayerLogs";
 
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
@@ -113,6 +114,8 @@ export default function RosterPage() {
     ...(roster?.starters ?? []),
     ...(roster?.bench ?? []),
   ].filter((id) => id > 0), [roster?.starters, roster?.bench]);
+
+  const { data: gameLogsByPlayer } = useRosterPlayerLogs(rosterPlayerIds);
 
   const missingIds = useMemo(() => {
     const known = new Set(allPlayers.map((p) => p.core.id));
@@ -705,6 +708,7 @@ export default function RosterPage() {
                 onDnDSwap={handleDnDSwap}
                 upcomingByTeam={upcomingByTeam}
                 onSlotClick={openGameFromSlot}
+                gameLogsByPlayer={gameLogsByPlayer}
                 sidebarProps={{
                   gw: currentGameday.gw,
                   day: currentGameday.day,
@@ -718,7 +722,7 @@ export default function RosterPage() {
               />
             ) : (
               <>
-                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} />
+                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} gameLogsByPlayer={gameLogsByPlayer} />
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <RosterSidebar
                     gw={currentGameday.gw}

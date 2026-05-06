@@ -28,9 +28,10 @@ interface PlayerRowProps {
   weekSlots?: (UpcomingGame | null)[];
   difficultyMap?: Record<string, BIQTeamDifficulty>;
   onSlotClick?: (g: UpcomingGame) => void;
+  gameLogs?: Record<string, { fp: number; mp: number; pts: number }>;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const { isWnba } = useLeague();
   const teamLogo = getTeamLogo(core.team);
@@ -86,17 +87,30 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
                 <div className="flex items-center gap-1 ml-3">
                   {weekSlots.map((day, i) => {
                     const diff = day ? difficultyMap?.[day.opponent] : undefined;
-                    const ring = day
-                      ? difficultyRingColor(diff?.label)
-                      : "hsl(var(--border))";
+                    const isFinal = day ? /FINAL/i.test(String(day.status ?? "")) : false;
+                    let ring = day ? difficultyRingColor(diff?.label) : "hsl(var(--border))";
+                    let tip: string;
+                    if (day && isFinal) {
+                      const playerIsHome = core.team === day.homeTeam;
+                      const myPts = playerIsHome ? (day.homePts ?? 0) : (day.awayPts ?? 0);
+                      const oppPts = playerIsHome ? (day.awayPts ?? 0) : (day.homePts ?? 0);
+                      const won = (myPts ?? 0) > (oppPts ?? 0);
+                      ring = won ? "hsl(142 76% 45%)" : "hsl(0 84% 60%)";
+                      const venue = day.isHome ? "vs" : "@";
+                      const result = won ? "W" : "L";
+                      const log = day.gameId ? gameLogs?.[day.gameId] : undefined;
+                      const fpPart = log ? ` · FP ${log.fp.toFixed(1)}` : "";
+                      tip = `${venue} ${day.opponent} — ${result} ${myPts}-${oppPts}${fpPart}`;
+                    } else {
+                      tip = slotTooltip(
+                        day?.opponent ?? null,
+                        !!day?.isHome,
+                        day ? formatTipoffLabel(day.tipoffUtc) : undefined,
+                        diff?.label,
+                        diff?.score,
+                      );
+                    }
                     const oppLogo = day ? getTeamLogo(day.opponent) : null;
-                    const tip = slotTooltip(
-                      day?.opponent ?? null,
-                      !!day?.isHome,
-                      day ? formatTipoffLabel(day.tipoffUtc) : undefined,
-                      diff?.label,
-                      diff?.score,
-                    );
                     const clickable = !!day && !!onSlotClick;
                     return (
                       <div

@@ -43,7 +43,9 @@ export function useUpcomingByTeam() {
       const anchor = gdDate < realNow ? gdDate : realNow;
       // Look back 1 day to absorb timezone edges, forward 8 to cover the week.
       const start = new Date(anchor);
-      start.setDate(start.getDate() - 1);
+      // Look back a full week so earlier days of the current GW (already played)
+      // are included alongside upcoming slots.
+      start.setDate(start.getDate() - 7);
       const startStr = start.toISOString().slice(0, 10);
       const end = new Date(anchor);
       end.setDate(end.getDate() + 7);

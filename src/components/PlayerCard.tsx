@@ -27,6 +27,8 @@ interface PlayerCardProps {
   upcoming?: (UpcomingGame | null)[];
   difficultyMap?: Record<string, BIQTeamDifficulty>;
   onSlotClick?: (g: UpcomingGame) => void;
+  /** Per-game performance (fp/mp/pts) for THIS player, keyed by game_id. */
+  gameLogs?: Record<string, { fp: number; mp: number; pts: number }>;
 }
 
 function formatShortName(fullName: string): string {
@@ -78,7 +80,7 @@ function OpponentSlot({
 
 export default function PlayerCard({
   player, isCaptain, onClick, onSetCaptain, onSwap, draggable,
-  onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming, difficultyMap, onSlotClick,
+  onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming, difficultyMap, onSlotClick, gameLogs,
 }: PlayerCardProps) {
   const { core } = player;
   const isFc = core.fc_bc === "FC";
@@ -92,6 +94,20 @@ export default function PlayerCard({
   const slotFor = (day: UpcomingGame | null) => {
     if (!day) {
       return { ringColor: "hsl(var(--border))", title: slotTooltip(null, false) };
+    }
+    const isFinal = /FINAL/i.test(String(day.status ?? ""));
+    if (isFinal) {
+      const playerIsHome = core.team === day.homeTeam;
+      const myPts = playerIsHome ? (day.homePts ?? 0) : (day.awayPts ?? 0);
+      const oppPts = playerIsHome ? (day.awayPts ?? 0) : (day.homePts ?? 0);
+      const won = (myPts ?? 0) > (oppPts ?? 0);
+      const ringColor = won ? "hsl(142 76% 45%)" : "hsl(0 84% 60%)";
+      const venue = day.isHome ? "vs" : "@";
+      const result = won ? "W" : "L";
+      const log = day.gameId ? gameLogs?.[day.gameId] : undefined;
+      const fpPart = log ? ` · FP ${log.fp.toFixed(1)}` : "";
+      const title = `${venue} ${day.opponent} — ${result} ${myPts}-${oppPts}${fpPart}`;
+      return { ringColor, title };
     }
     const diff = difficultyMap?.[day.opponent];
     return {

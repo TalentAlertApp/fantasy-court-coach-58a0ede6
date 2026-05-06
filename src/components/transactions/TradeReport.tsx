@@ -155,7 +155,7 @@ export default function TradeReport(props: TradeReportProps) {
   const afterTeams = new Set(postRosterPre.map((p) => p.core.team)).size;
 
   // AI verdict
-  const [verdict, setVerdict] = useState<{ verdict: string; summary: string; pros: string[]; cons: string[]; confidence: number } | null>(null);
+  const [verdict, setVerdict] = useState<{ verdict: string; summary: string; pros: string[]; cons: string[]; confidence: number; fp_delta?: number; biq_delta?: number; salary_delta?: number } | null>(null);
   const [verdictLoading, setVerdictLoading] = useState(true);
   const [verdictError, setVerdictError] = useState<string | null>(null);
 
@@ -231,7 +231,11 @@ export default function TradeReport(props: TradeReportProps) {
               <MetricRow label="Salary used" before={beforeSalary} after={afterSalary} format={(n) => `$${n.toFixed(1)}M`} invert />
               <MetricRow label="Bank" before={beforeBank} after={afterBank} format={(n) => `$${n.toFixed(1)}M`} />
               <MetricRow label="Avg FP / Game" before={beforeFp} after={afterFp} hint="Fantasy Points per game per player, averaged across the roster (last 5 games). FP = PS + R + 2·A + 3·S + 3·B." />
-              <MetricRow label="Avg BIQ" before={beforeBiq} after={afterBiq} hint="Ballers.IQ — proprietary 0–100 player rating combining FP form, stocks (steals + blocks), and salary value. Higher is better." />
+              {typeof verdict?.biq_delta === "number" ? (
+                <MetricRow label="BIQ Δ" before={0} after={verdict.biq_delta} format={(n) => n.toFixed(0)} hint="Ballers.IQ delta — server-computed change in roster rating after this trade." />
+              ) : (
+                <MetricRow label="Avg BIQ" before={beforeBiq} after={afterBiq} hint="Ballers.IQ — proprietary 0–100 player rating combining FP form, stocks (steals + blocks), and salary value. Higher is better." />
+              )}
               <MetricRow label="Avg Stocks / Game" before={beforeStocks} after={afterStocks} hint="Steals + blocks per game (last 5)." />
               <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} hint="Distinct NBA teams represented in the roster (max 2 per team allowed)." />
               <MetricRow label="Avg PTS / Game" before={beforePts} after={afterPts} />
