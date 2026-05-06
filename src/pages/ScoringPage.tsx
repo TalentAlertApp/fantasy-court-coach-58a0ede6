@@ -505,6 +505,53 @@ function YourTeamView({
   };
 
   const [recapOpen, setRecapOpen] = useState(false);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Build a roster-of-the-season (unique players who appeared on any game day) for the picker.
+  const allPlayersInRoster = useMemo(() => {
+    const map = new Map<number, { id: number; name: string; team: string; photo: string | null; fc_bc: "FC" | "BC" }>();
+    for (const gd of game_days as ScoringGameDay[]) {
+      for (const p of gd.players ?? []) {
+        if (!map.has(p.player_id)) {
+          map.set(p.player_id, { id: p.player_id, name: p.name, team: p.team, photo: p.photo, fc_bc: p.fc_bc });
+        }
+      }
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [game_days]);
+
+  // Per-day FP map keyed by `playerKey_<id>` so we can layer extra Lines on the chart.
+  const enrichedTimeline = useMemo(() => {
+    return (game_days as ScoringGameDay[]).map((gd, i) => {
+      const row: any = {
+        label: `W${gd.gw}D${gd.day}`,
+        fp: gd.total_fp,
+        index: i,
+        hasTxn: txnDates.has(gd.game_date),
+      };
+      for (const pid of selectedPlayerIds) {
+        const p = (gd.players ?? []).find((pl) => pl.player_id === pid);
+        row[`p_${pid}`] = p ? p.fp : null;
+      }
+      return row;
+    });
+  }, [game_days, selectedPlayerIds, txnDates]);
+
+  // Stable color palette (HSL) for player overlays.
+  const PLAYER_COLORS = [
+    "hsl(0 84% 60%)", "hsl(142 76% 45%)", "hsl(220 90% 60%)", "hsl(280 75% 60%)",
+    "hsl(25 95% 55%)", "hsl(180 70% 45%)", "hsl(330 80% 60%)", "hsl(50 95% 50%)",
+    "hsl(160 70% 45%)", "hsl(200 85% 55%)",
+  ];
+
+  const togglePlayer = (id: number) => {
+    setSelectedPlayerIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 10) return prev;
+      return [...prev, id];
+    });
+  };
 
   const toggleSort = (col: SortCol) => {
     if (sortCol === col) setSortDir((d: SortDir) => d === "asc" ? "desc" : "asc");
