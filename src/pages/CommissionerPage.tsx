@@ -1160,6 +1160,82 @@ export default function CommissionerPage() {
           )}
         </div>
       </div>
+
+      {schedulePreview && scheduleValidation && (
+        <div className="bg-card border rounded-lg overflow-hidden">
+          <div className="section-bar flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Schedule Preview — Validate Before Import
+          </div>
+          <div className="p-4 space-y-3 text-xs">
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-amber-200">
+              <strong>Replace scope:</strong> this will replace only <strong>{leagueCode.toUpperCase()}</strong> schedule. The other league's data will not be touched.
+            </div>
+            <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+              <div className="font-heading uppercase text-muted-foreground">Validation</div>
+              <div>Rows: <strong>{scheduleValidation.rowCount}</strong>{scheduleValidation.expectedRows ? <span className="text-muted-foreground"> (expected {scheduleValidation.expectedRows})</span> : null}</div>
+              <div>Detected teams ({scheduleValidation.detectedTeams.length}{scheduleValidation.expectedTeams ? `/${scheduleValidation.expectedTeams}` : ""}): <span className="font-mono">{scheduleValidation.detectedTeams.join(", ") || "—"}</span></div>
+              {scheduleValidation.expectedPerTeam && (() => {
+                const offenders = Object.entries(scheduleValidation.perTeamCounts)
+                  .filter(([, n]) => n !== scheduleValidation.expectedPerTeam)
+                  .map(([t, n]) => `${t}:${n}`);
+                return offenders.length > 0 ? (
+                  <div className="text-amber-300">Teams not at expected {scheduleValidation.expectedPerTeam} games: {offenders.join(", ")}</div>
+                ) : (
+                  <div className="text-emerald-400">All teams at exactly {scheduleValidation.expectedPerTeam} games ✓</div>
+                );
+              })()}
+              {scheduleValidation.unknownTeams.length > 0 && (
+                <div className="text-destructive">Unknown team codes: <span className="font-mono">{scheduleValidation.unknownTeams.join(", ")}</span></div>
+              )}
+              {scheduleValidation.duplicateGameIds.length > 0 && (
+                <div className="text-destructive">Duplicate Game IDs: {scheduleValidation.duplicateGameIds.join(", ")}</div>
+              )}
+              {scheduleValidation.blockers.length > 0 ? (
+                <div className="mt-1 text-destructive font-bold">⛔ Import blocked: {scheduleValidation.blockers.join(" · ")}</div>
+              ) : (
+                <div className="mt-1 text-emerald-400 font-bold">✅ Validation passed</div>
+              )}
+            </div>
+            <div className="overflow-auto max-h-[240px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>GW</TableHead><TableHead>Day</TableHead>
+                    <TableHead>Date</TableHead><TableHead>Time</TableHead>
+                    <TableHead>Home</TableHead><TableHead>Away</TableHead>
+                    <TableHead>Game ID</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedulePreview.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{r.gw}</TableCell>
+                      <TableCell>{r.day}</TableCell>
+                      <TableCell>{r.date}</TableCell>
+                      <TableCell>{r.time}</TableCell>
+                      <TableCell className="font-mono">{r.home_team}</TableCell>
+                      <TableCell className="font-mono">{r.away_team}</TableCell>
+                      <TableCell className="font-mono text-[10px]">{r.game_id}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleConfirmScheduleImport}
+                disabled={isImportingSchedule || scheduleValidation.blockers.length > 0}
+                className="flex-1"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isImportingSchedule ? "Importing…" : `Confirm Import (${schedulePendingPayload?.length ?? 0} games)`}
+              </Button>
+              <Button onClick={handleCancelSchedulePreview} variant="outline">Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
         </TabsContent>
 
         <TabsContent value="sync" className="space-y-6 mt-0">
