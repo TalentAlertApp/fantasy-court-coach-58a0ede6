@@ -24,6 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
+import { NBA_TEAMS } from "@/lib/nba-teams";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
