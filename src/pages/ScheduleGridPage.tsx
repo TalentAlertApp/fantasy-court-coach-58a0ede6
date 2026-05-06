@@ -5,9 +5,10 @@ import { DEADLINES } from "@/lib/deadlines";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Swords } from "lucide-react";
 import { format } from "date-fns";
 import TeamModal from "@/components/TeamModal";
+import TeamCompareModal from "@/components/TeamCompareModal";
 
 function buildWeekDayToDate(): Record<string, string> {
   const map: Record<string, string> = {};
@@ -26,6 +27,7 @@ export default function ScheduleGridPage() {
   const { data: games, isLoading } = useScheduleWeekGames(gw);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
 
   const weekDays = useMemo(() => {
     return DEADLINES
