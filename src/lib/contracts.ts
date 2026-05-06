@@ -744,8 +744,11 @@ export const AIExplainTradePayloadSchema = z
     cons: z.array(z.string()).min(0).max(5),
     risk_flags: z.array(z.string()).optional().default([]),
     confidence: z.number().min(0).max(1),
+    fp_delta: z.number().optional(),
+    biq_delta: z.number().optional(),
+    salary_delta: z.number().optional(),
   })
-  .strict();
+  .passthrough();
 
 export const AIExplainTradeResponseSchema = EnvelopeSchema(AIExplainTradePayloadSchema);
 
