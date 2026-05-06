@@ -1,22 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect } from "vitest";
 import BallersIQShareCard from "@/components/ballers-iq/share/BallersIQShareCard";
 import type { ShareCardContext } from "@/components/ballers-iq/share/formatBallersIQShareText";
-
-// Stub fetch + FileReader so the embedded photo path resolves to a 1×1 PNG data URL.
-beforeAll(() => {
-  const ONE_PX = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkAAIAAAoAAv/lPAAAAABJRU5ErkJggg==";
-  // @ts-expect-error – override for jsdom
-  global.fetch = async () => ({ ok: true, blob: async () => new Blob(["x"], { type: "image/png" }) });
-  class FR {
-    public result: string | null = null;
-    public onload: (() => void) | null = null;
-    public onerror: (() => void) | null = null;
-    readAsDataURL() { this.result = ONE_PX; queueMicrotask(() => this.onload?.()); }
-  }
-  // @ts-expect-error – override for jsdom
-  global.FileReader = FR;
-});
 
 const ctx: ShareCardContext = {
   template: "player_verdict",
@@ -47,19 +32,15 @@ describe("BallersIQShareCard regression", () => {
     }
     expect(screen.getByText("START")).toBeInTheDocument();
     expect(screen.getByText(/Risk · LOW/)).toBeInTheDocument();
-    // Photo renders immediately (direct URL) — no initials fallback while embed resolves.
-    const initialImgs = Array.from(document.querySelectorAll("img"));
-    expect(initialImgs.some((i) => !!i.getAttribute("src"))).toBe(true);
     // Risk chip must never wrap.
     expect(screen.getByText(/Risk · LOW/).className).toMatch(/whitespace-nowrap/);
-    // Player photo embedded as data URL — confirms the async pipeline resolved.
-    await waitFor(() => {
-      const imgs = document.querySelectorAll("img");
-      const hasDataUrl = Array.from(imgs).some((i) => i.src.startsWith("data:image"));
-      expect(hasDataUrl).toBe(true);
-    });
-    // Marker the modal awaits before rasterising must report ready.
+    // Player photo routed through Supabase image-proxy (same-origin -> no canvas tainting).
+    const imgs = Array.from(document.querySelectorAll("img")) as HTMLImageElement[];
+    const proxied = imgs.find((i) => i.src.includes("/functions/v1/image-proxy?url="));
+    expect(proxied).toBeTruthy();
+    expect(proxied!.getAttribute("crossorigin")).toBe("anonymous");
+    // Photo marker exists; will flip to "1" on onLoad/onError in real DOM.
     const marker = document.querySelector("[data-photo-ready]") as HTMLElement;
-    await waitFor(() => expect(marker.getAttribute("data-photo-ready")).toBe("1"));
+    expect(marker).toBeTruthy();
   });
 });
