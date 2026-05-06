@@ -16,7 +16,6 @@ import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer } from "recharts";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
