@@ -97,7 +97,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
           ppg: s ? s.total_pts / s.gp : 0,
           fpg: s ? s.total_fp / s.gp : 0,
         };
-      }).filter(p => p.gp > 0);
+      });
     },
     enabled: open && !!tricode && !!leagueId,
     staleTime: 60_000,
