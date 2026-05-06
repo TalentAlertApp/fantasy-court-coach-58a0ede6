@@ -739,6 +739,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
+  const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
   const colsPerRow = useColsPerRow();
 
   // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
