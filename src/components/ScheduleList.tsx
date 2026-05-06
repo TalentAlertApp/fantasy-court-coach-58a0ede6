@@ -1064,6 +1064,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           open={selectedLast5Game !== null}
           onOpenChange={(open) => !open && setSelectedLast5Game(null)}
         />
+        <TeamCompareModal
+          teamA={comparePair?.a ?? null}
+          teamB={comparePair?.b ?? null}
+          open={comparePair !== null}
+          onOpenChange={(open) => !open && setComparePair(null)}
+        />
       </div>
     );
   }
@@ -1264,6 +1270,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         game={selectedLast5Game}
         open={selectedLast5Game !== null}
         onOpenChange={(open) => !open && setSelectedLast5Game(null)}
+      />
+      <TeamCompareModal
+        teamA={comparePair?.a ?? null}
+        teamB={comparePair?.b ?? null}
+        open={comparePair !== null}
+        onOpenChange={(open) => !open && setComparePair(null)}
       />
     </div>
   );
