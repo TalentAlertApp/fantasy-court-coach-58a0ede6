@@ -3,6 +3,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
 import React, { useState } from "react";
+import { useUpcomingByTeam, getTeamUpcoming } from "@/hooks/useUpcomingByTeam";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -16,6 +17,7 @@ interface RosterListViewProps {
 
 export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap }: RosterListViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const { data: upcomingByTeam } = useUpcomingByTeam();
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -68,6 +70,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       onDragOver={(e) => handleDragOver(e, p.core.id)}
       onDrop={(e) => handleDrop(e, p.core.id)}
       onDragEnd={handleDragEnd}
+      nextGame={getTeamUpcoming(upcomingByTeam, p.core.team)[0] ?? null}
     />
   );
 
