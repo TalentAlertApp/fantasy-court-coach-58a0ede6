@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Loader2, Mail, Lock } from "lucide-react";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -105,7 +106,11 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <img src={nbaLogo} alt="NBA" className="h-12 w-auto" />
+          <div className="flex items-center gap-4">
+            <img src={nbaLogo} alt="NBA" className="h-12 w-auto" />
+            <span className="h-8 w-px bg-border/60" aria-hidden="true" />
+            <img src={wnbaLogo} alt="WNBA" className="h-12 w-auto object-contain" />
+          </div>
           <h1 className="text-2xl font-heading font-bold uppercase tracking-[0.2em] text-foreground">
             Fantasy
           </h1>
