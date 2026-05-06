@@ -5,6 +5,7 @@ import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { ArrowLeftRight, GripVertical } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
+import { formatTipoffLabel, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -19,9 +20,10 @@ interface PlayerRowProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
+  nextGame?: UpcomingGame | null;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, nextGame }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const teamLogo = getTeamLogo(core.team);
   const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
@@ -66,9 +68,25 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           )}
           <div>
             <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors">{core.name}</p>
-            <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
+            <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1 flex-wrap">
               <span>{core.team}</span>
               {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
+              {nextGame && (() => {
+                const nextLogo = getTeamLogo(nextGame.opponent);
+                const tip = `${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`;
+                return (
+                  <span
+                    className="ml-1.5 inline-flex items-center gap-1 rounded-md bg-muted/60 border border-border/40 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-foreground/80"
+                    title={tip}
+                  >
+                    <span className="text-muted-foreground">Next</span>
+                    <span className="font-bold text-foreground">
+                      {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
+                    </span>
+                    {nextLogo && <img src={nextLogo} alt={nextGame.opponent} className="w-3.5 h-3.5 object-contain" />}
+                  </span>
+                );
+              })()}
             </p>
           </div>
         </div>

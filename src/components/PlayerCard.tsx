@@ -4,6 +4,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
+import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -32,13 +33,13 @@ function formatShortName(fullName: string): string {
   return `${firstInitial}.${lastName}`.toUpperCase();
 }
 
-function OpponentBadge({ tricode, size = "sm" }: { tricode: string; size?: "sm" | "md" }) {
+function OpponentBadge({ tricode, size = "sm", title }: { tricode: string; size?: "sm" | "md"; title?: string }) {
   const logo = getTeamLogo(tricode);
   const cls = size === "md" ? "w-7 h-7" : "w-4 h-4";
   return logo ? (
-    <img src={logo} alt={tricode} className={`${cls} object-contain transition-transform hover:scale-110`} title={tricode} />
+    <img src={logo} alt={tricode} className={`${cls} object-contain transition-transform hover:scale-110`} title={title ?? tricode} />
   ) : (
-    <span className="text-[6px] font-bold text-muted-foreground">{tricode}</span>
+    <span className="text-[6px] font-bold text-muted-foreground" title={title ?? tricode}>{tricode}</span>
   );
 }
 
@@ -126,11 +127,18 @@ export default function PlayerCard({
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-[6px] font-heading font-bold text-muted-foreground uppercase">Next</span>
                   {nextGame ? (
-                    <span className="inline-flex items-center gap-0.5">
+                    <span
+                      className="inline-flex items-center gap-0.5"
+                      title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+                    >
                       <span className="text-[9px] font-heading font-bold text-foreground">
                         {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
                       </span>
-                      <OpponentBadge tricode={nextGame.opponent} size="sm" />
+                      <OpponentBadge
+                        tricode={nextGame.opponent}
+                        size="sm"
+                        title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+                      />
                     </span>
                   ) : <span className="text-[7px] text-muted-foreground">—</span>}
                 </div>
@@ -139,8 +147,18 @@ export default function PlayerCard({
               {upcoming && upcomingDays.length > 0 && (
                 <div className="flex items-center gap-0.5 shrink-0">
                   {upcomingDays.map((day, i) => (
-                    <div key={i} className="flex items-center justify-center w-5 h-5">
-                      {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
+                    <div
+                      key={i}
+                      className="flex items-center justify-center w-5 h-5"
+                      title={day ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}` : undefined}
+                    >
+                      {day ? (
+                        <OpponentBadge
+                          tricode={day.opponent}
+                          size="md"
+                          title={`${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`}
+                        />
+                      ) : <span className="text-[5px] text-muted-foreground/40">—</span>}
                     </div>
                   ))}
                 </div>
@@ -243,18 +261,35 @@ export default function PlayerCard({
       {upcoming && upcomingDays.length > 0 && (
         <div className="flex flex-col items-center gap-0.5 mt-1.5 z-10">
           {nextGame && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm">
+            <div
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm"
+              title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+            >
               <span className="text-[8px] font-heading font-bold uppercase tracking-wider text-white/70">Next</span>
               <span className="text-[10px] font-heading font-bold text-white">
                 {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
               </span>
-              <OpponentBadge tricode={nextGame.opponent} size="sm" />
+              <OpponentBadge
+                tricode={nextGame.opponent}
+                size="sm"
+                title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+              />
             </div>
           )}
           <div className="flex items-center gap-0.5">
             {Array.from({ length: 6 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
-              <div key={i} className="flex items-center justify-center w-6 h-6 bg-black/30 rounded" title={day ? `${day.isHome ? "vs" : "@"}${day.opponent}` : undefined}>
-                {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[6px] text-white/30">—</span>}
+              <div
+                key={i}
+                className="flex items-center justify-center w-6 h-6 bg-black/30 rounded"
+                title={day ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}` : undefined}
+              >
+                {day ? (
+                  <OpponentBadge
+                    tricode={day.opponent}
+                    size="md"
+                    title={`${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`}
+                  />
+                ) : <span className="text-[6px] text-white/30">—</span>}
               </div>
             ))}
           </div>
