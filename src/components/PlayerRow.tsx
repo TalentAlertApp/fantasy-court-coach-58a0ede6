@@ -8,6 +8,7 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import { formatTipoffLabel, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
+import { formatSalary } from "@/lib/format-salary";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -131,7 +132,7 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           {core.fc_bc}
         </Badge>
       </TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">${core.salary}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatSalary(core.salary)}</TableCell>
       <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{last5.fp5.toFixed(1)}</TableCell>
       <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{computed.value5.toFixed(2)}</TableCell>
       <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{lastGame.fp.toFixed(1)}</TableCell>

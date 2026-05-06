@@ -82,6 +82,14 @@ Deno.serve(async (req) => {
 
     const { team_id } = await resolveTeam(req, userClient);
 
+    // Resolve team's sport league once for all subsequent writes.
+    const { data: teamRow } = await userClient
+      .from("teams").select("sport_league_id").eq("id", team_id).maybeSingle();
+    const teamLeagueId: string | null = teamRow?.sport_league_id ?? null;
+    if (!teamLeagueId) {
+      return errorResponse("TEAM_LEAGUE_MISSING", "Team has no sport league assigned", null, 400);
+    }
+
     // 1. Load current roster (RLS-scoped) and team settings
     const [rosterRes, settingsRes] = await Promise.all([
       userClient.from("roster").select("id, player_id, slot").eq("team_id", team_id),
@@ -119,7 +127,7 @@ Deno.serve(async (req) => {
     const allIds = Array.from(new Set<number>([...rosterRows.map((r: any) => r.player_id), ...ins]));
     const { data: playerRows, error: playerErr } = await userClient
       .from("players")
-      .select("id, name, team, fc_bc, salary")
+      .select("id, name, team, fc_bc, salary, league_id")
       .in("id", allIds);
     if (playerErr) {
       return errorResponse("PLAYERS_LOAD_FAILED", playerErr.message, null, 500);
@@ -130,6 +138,12 @@ Deno.serve(async (req) => {
     for (const id of ins) {
       if (!playerById.has(id)) {
         return errorResponse("INVALID_TRADE", `incoming player ${id} not found`);
+      }
+      if (playerById.get(id).league_id !== teamLeagueId) {
+        return errorResponse(
+          "CROSS_LEAGUE_TRADE",
+          `player ${id} belongs to a different league than this team`,
+        );
       }
     }
 
@@ -233,6 +247,7 @@ Deno.serve(async (req) => {
       for (const inId of ins) {
         const insRes = await userClient.from("roster").insert({
           team_id,
+          league_id: teamLeagueId,
           player_id: inId,
           slot: "BENCH",
           gw,
@@ -245,6 +260,7 @@ Deno.serve(async (req) => {
           .from("transactions")
           .insert({
             team_id,
+            league_id: teamLeagueId,
             type: "ADD",
             player_in_id: inId,
             player_out_id: 0,
@@ -273,6 +289,7 @@ Deno.serve(async (req) => {
         }
         const insRes = await userClient.from("roster").insert({
           team_id,
+          league_id: teamLeagueId,
           player_id: inId,
           slot,
           gw,
@@ -280,7 +297,7 @@ Deno.serve(async (req) => {
         });
         if (insRes.error) {
           // Best-effort rollback: re-insert the OUT row so the user isn't left short.
-          await userClient.from("roster").insert({ team_id, player_id: outId, slot, gw, day });
+          await userClient.from("roster").insert({ team_id, league_id: teamLeagueId, player_id: outId, slot, gw, day });
           return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
         }
 
@@ -288,6 +305,7 @@ Deno.serve(async (req) => {
           .from("transactions")
           .insert({
             team_id,
+            league_id: teamLeagueId,
             type: "SWAP",
             player_in_id: inId,
             player_out_id: outId,

@@ -16,18 +16,39 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { gw, day, starters, bench, captain_id } = body;
 
-    // Delete existing roster for this team
+    // Resolve team's sport league
+    const { data: teamRow } = await sb
+      .from("teams").select("sport_league_id").eq("id", team_id).maybeSingle();
+    const teamLeagueId = teamRow?.sport_league_id;
+    if (!teamLeagueId) return errorResponse("TEAM_LEAGUE_MISSING", "Team has no sport league assigned", null, 400);
+
+    // Validate every player belongs to this team's league
+    const allPids = [...starters, ...bench].filter((id: number) => id > 0);
+    if (allPids.length > 0) {
+      const { data: pRows } = await sb.from("players").select("id, league_id").in("id", allPids);
+      const wrong = (pRows || []).filter((p: any) => p.league_id !== teamLeagueId);
+      if (wrong.length > 0) {
+        return errorResponse(
+          "CROSS_LEAGUE_PLAYERS",
+          `Players from another league cannot be added to this roster`,
+          JSON.stringify(wrong.map((w: any) => w.id)),
+          400,
+        );
+      }
+    }
+
+    // Delete existing roster for this team (already team-scoped; team is league-scoped)
     await sb.from("roster").delete().eq("team_id", team_id);
 
     // Insert new rows
     const rows: any[] = [];
     for (const pid of starters) {
       if (pid === 0) continue;
-      rows.push({ player_id: pid, slot: "STARTER", is_captain: pid === captain_id, gw, day, team_id });
+      rows.push({ player_id: pid, slot: "STARTER", is_captain: pid === captain_id, gw, day, team_id, league_id: teamLeagueId });
     }
     for (const pid of bench) {
       if (pid === 0) continue;
-      rows.push({ player_id: pid, slot: "BENCH", is_captain: pid === captain_id, gw, day, team_id });
+      rows.push({ player_id: pid, slot: "BENCH", is_captain: pid === captain_id, gw, day, team_id, league_id: teamLeagueId });
     }
 
     if (rows.length > 0) {

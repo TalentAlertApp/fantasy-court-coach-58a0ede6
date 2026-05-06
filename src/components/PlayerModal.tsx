@@ -199,7 +199,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                         {data.player.core.fc_bc}
                       </Badge>
                       <span className="font-mono text-sm font-bold px-2 py-0.5 rounded-md bg-foreground/10 border border-foreground/20">
-                        ${data.player.core.salary}M
+                        {data.player.core.salary > 0 ? `$${data.player.core.salary}M` : "TBD"}
                       </span>
                     </div>
                   </div>

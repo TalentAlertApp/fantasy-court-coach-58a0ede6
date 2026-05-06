@@ -14,11 +14,19 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { team_id, team_name } = await resolveTeam(req, sb);
 
+    // Resolve the team's sport league once; used to scope roster rows
+    // defensively so a stale cross-league roster row never leaks through.
+    const { data: teamRow } = await sb
+      .from("teams").select("sport_league_id").eq("id", team_id).maybeSingle();
+    const teamLeagueId = teamRow?.sport_league_id ?? null;
+
     // Single retry for transient upstream 502s
     let rows: any[] | null = null;
     let lastErr: any = null;
     for (let attempt = 0; attempt < 2; attempt++) {
-      const { data, error } = await sb.from("roster").select("*").eq("team_id", team_id);
+      let q = sb.from("roster").select("*").eq("team_id", team_id);
+      if (teamLeagueId) q = q.eq("league_id", teamLeagueId);
+      const { data, error } = await q;
       if (!error) { rows = data ?? []; lastErr = null; break; }
       lastErr = error;
       await new Promise((r) => setTimeout(r, 250));
