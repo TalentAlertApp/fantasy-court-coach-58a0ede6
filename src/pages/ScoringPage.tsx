@@ -587,8 +587,81 @@ function YourTeamView({
       {/* Ballers.IQ Recap Story — compact, inline, above the timeline */}
       {/* Timeline */}
       <div className="relative bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">FP Timeline</h2>
+
+          {/* Roster picker (multi-select, max 10) */}
+          <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+            {selectedPlayerIds.map((pid, i) => {
+              const p = allPlayersInRoster.find((pp) => pp.id === pid);
+              if (!p) return null;
+              return (
+                <span
+                  key={pid}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/70 pl-1 pr-1.5 py-0.5 text-[10px] font-heading uppercase"
+                  style={{ borderColor: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+                >
+                  <PlayerPhoto photo={p.photo} name={p.name} />
+                  <span className="font-bold">{p.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => togglePlayer(pid)}
+                    className="text-muted-foreground hover:text-destructive ml-0.5"
+                    aria-label={`Remove ${p.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              );
+            })}
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={selectedPlayerIds.length >= 10}
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-dashed border-border/60 hover:border-primary/60 text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                  title={selectedPlayerIds.length >= 10 ? "Maximum 10 players" : "Add player to chart"}
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Players ({selectedPlayerIds.length}/10)
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0" align="end">
+                <Command>
+                  <CommandInput placeholder="Search player…" className="h-9" />
+                  <CommandList className="max-h-[260px]">
+                    <CommandEmpty>No players</CommandEmpty>
+                    <CommandGroup>
+                      {allPlayersInRoster.map((p) => {
+                        const checked = selectedPlayerIds.includes(p.id);
+                        return (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.name} ${p.team}`}
+                            onSelect={() => togglePlayer(p.id)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              readOnly
+                              className="accent-primary"
+                            />
+                            <PlayerPhoto photo={p.photo} name={p.name} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-heading font-bold uppercase truncate">{p.name}</div>
+                              <div className="text-[9px] text-muted-foreground">{p.team} · {p.fc_bc}</div>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <button
             type="button"
             onClick={() => setRecapOpen((v) => !v)}
@@ -618,7 +691,7 @@ function YourTeamView({
             </div>
           )}
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={timelineData}>
+            <LineChart data={enrichedTimeline}>
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} width={35} />
               <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
@@ -640,6 +713,24 @@ function YourTeamView({
                 }}
                 activeDot={false}
               />
+              {selectedPlayerIds.map((pid, i) => {
+                const p = allPlayersInRoster.find((pp) => pp.id === pid);
+                const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+                return (
+                  <Line
+                    key={pid}
+                    type="monotone"
+                    dataKey={`p_${pid}`}
+                    name={p?.name ?? `#${pid}`}
+                    stroke={color}
+                    strokeWidth={1.5}
+                    dot={{ r: 2, fill: color }}
+                    activeDot={{ r: 4 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
