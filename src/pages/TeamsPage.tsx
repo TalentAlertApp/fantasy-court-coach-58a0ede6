@@ -88,7 +88,7 @@ export default function TeamsPage() {
     staleTime: 120_000,
   });
 
-  const standings = useNBAStandings(scheduleData ?? undefined);
+  const standings = useNBAStandings(scheduleData ?? undefined, leagueTeams);
 
   const teams = useMemo<NbaTeamSummary[]>(() => {
     const records: Record<string, { w: number; l: number; remaining: number }> = {};
