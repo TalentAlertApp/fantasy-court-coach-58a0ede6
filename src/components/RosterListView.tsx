@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import { useUpcomingByTeam, getTeamGameweekSlots, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getCurrentGameday } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import { useLeague } from "@/contexts/LeagueContext";
@@ -25,7 +26,8 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: upcomingByTeam } = useUpcomingByTeam();
   const { data: difficultyMap } = useTeamDifficultyMap();
-  const currentGw = getCurrentGameday().gw;
+  const { deadlines } = useLeagueDeadlines();
+  const currentGw = (deadlines.length > 0 ? getCurrentGamedayFrom(deadlines)?.gw : undefined) ?? getCurrentGameday().gw;
   const { league } = useLeague();
   const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
@@ -80,7 +82,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       onDragOver={(e) => handleDragOver(e, p.core.id)}
       onDrop={(e) => handleDrop(e, p.core.id)}
       onDragEnd={handleDragEnd}
-      weekSlots={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
+      weekSlots={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw, deadlines)}
       difficultyMap={difficultyMap}
       onSlotClick={onSlotClick}
     />
