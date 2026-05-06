@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentGameday } from "@/lib/deadlines";
 
 export interface UpcomingGame {
   date: string;    // YYYY-MM-DD
   opponent: string; // tricode
   isHome: boolean;
+  tipoffUtc: string; // ISO
 }
 
 export type UpcomingByTeam = Record<string, UpcomingGame[]>;
@@ -13,16 +15,28 @@ export function useUpcomingByTeam() {
   return useQuery({
     queryKey: ["upcoming-by-team"],
     queryFn: async () => {
-      const today = new Date();
-      const todayStr = today.toISOString().slice(0, 10);
-      const end = new Date(today);
+      // Anchor "today" on the current gameday deadline rather than wall-clock.
+      // The schedule may end before real-world now (off-season / dataset cutoff),
+      // so we fall back to the current gameday's deadline date so upcoming
+      // opponents still surface for the active GW.
+      const realNow = new Date();
+      const gd = getCurrentGameday();
+      const gdDate = new Date(gd.deadline_utc);
+      // Use the EARLIER of (real now, current gameday deadline) so we always
+      // include the next gameday's games — even if dataset hasn't been bumped.
+      const anchor = gdDate < realNow ? gdDate : realNow;
+      // Look back 1 day to absorb timezone edges, forward 8 to cover the week.
+      const start = new Date(anchor);
+      start.setDate(start.getDate() - 1);
+      const startStr = start.toISOString().slice(0, 10);
+      const end = new Date(anchor);
       end.setDate(end.getDate() + 7);
       const endStr = end.toISOString().slice(0, 10);
 
       const { data, error } = await supabase
         .from("schedule_games")
         .select("home_team, away_team, tipoff_utc, status")
-        .gte("tipoff_utc", todayStr)
+        .gte("tipoff_utc", startStr)
         .lte("tipoff_utc", endStr + "T23:59:59Z")
         .order("tipoff_utc", { ascending: true });
 
@@ -42,8 +56,8 @@ export function useUpcomingByTeam() {
 
         if (!map[home]) map[home] = [];
         if (!map[away]) map[away] = [];
-        map[home].push({ date, opponent: away, isHome: true });
-        map[away].push({ date, opponent: home, isHome: false });
+        map[home].push({ date, opponent: away, isHome: true, tipoffUtc: g.tipoff_utc });
+        map[away].push({ date, opponent: home, isHome: false, tipoffUtc: g.tipoff_utc });
       }
       return map;
     },
@@ -59,7 +73,12 @@ export function getTeamUpcoming(map: UpcomingByTeam | undefined, teamTricode: st
     timeZone: "Europe/Lisbon",
     year: "numeric", month: "2-digit", day: "2-digit",
   });
-  const today = new Date();
+  // Anchor on the current gameday rather than wall-clock so we keep showing
+  // upcoming opponents during off-season / dataset gaps.
+  const realNow = new Date();
+  const gd = getCurrentGameday();
+  const gdDate = new Date(gd.deadline_utc);
+  const today = gdDate < realNow ? gdDate : realNow;
   const days: (UpcomingGame | null)[] = [];
 
   const teamGames = map[teamTricode] ?? [];
@@ -73,4 +92,20 @@ export function getTeamUpcoming(map: UpcomingByTeam | undefined, teamTricode: st
   }
 
   return days;
+}
+
+/** Format an ISO tipoff into a friendly Europe/Lisbon "Sun 12 Apr · 21:30" label. */
+export function formatTipoffLabel(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const date = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Lisbon",
+      weekday: "short", day: "numeric", month: "short",
+    }).format(d);
+    const time = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Lisbon",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    }).format(d);
+    return `${date} · ${time}`;
+  } catch { return iso; }
 }
