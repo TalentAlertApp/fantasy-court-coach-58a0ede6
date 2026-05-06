@@ -30,6 +30,7 @@ export type Database = {
           home_pts: number | null
           home_team: string | null
           home_team_abbr: string | null
+          league_id: string
           nba_game_url: string | null
           season: number | null
           status: string
@@ -50,6 +51,7 @@ export type Database = {
           home_pts?: number | null
           home_team?: string | null
           home_team_abbr?: string | null
+          league_id: string
           nba_game_url?: string | null
           season?: number | null
           status?: string
@@ -70,12 +72,21 @@ export type Database = {
           home_pts?: number | null
           home_team?: string | null
           home_team_abbr?: string | null
+          league_id?: string
           nba_game_url?: string | null
           season?: number | null
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "games_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leagues: {
         Row: {
@@ -83,8 +94,10 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          kind: string
           name: string
           scoring_system_id: string
+          sport: string | null
           updated_at: string
         }
         Insert: {
@@ -92,8 +105,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          kind?: string
           name: string
           scoring_system_id: string
+          sport?: string | null
           updated_at?: string
         }
         Update: {
@@ -101,8 +116,10 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          kind?: string
           name?: string
           scoring_system_id?: string
+          sport?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -130,6 +147,7 @@ export type Database = {
           game_recap_url: string | null
           home_away: string | null
           id: string
+          league_id: string
           matchup: string | null
           mp: number
           nba_game_url: string | null
@@ -154,6 +172,7 @@ export type Database = {
           game_recap_url?: string | null
           home_away?: string | null
           id?: string
+          league_id: string
           matchup?: string | null
           mp?: number
           nba_game_url?: string | null
@@ -178,6 +197,7 @@ export type Database = {
           game_recap_url?: string | null
           home_away?: string | null
           id?: string
+          league_id?: string
           matchup?: string | null
           mp?: number
           nba_game_url?: string | null
@@ -188,7 +208,15 @@ export type Database = {
           stl?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pgl_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       player_last_game: {
         Row: {
@@ -204,6 +232,7 @@ export type Database = {
           h_pts: number
           home_away: string | null
           id: string
+          league_id: string
           mp: number
           nba_game_url: string | null
           opp: string | null
@@ -227,6 +256,7 @@ export type Database = {
           h_pts?: number
           home_away?: string | null
           id?: string
+          league_id: string
           mp?: number
           nba_game_url?: string | null
           opp?: string | null
@@ -250,6 +280,7 @@ export type Database = {
           h_pts?: number
           home_away?: string | null
           id?: string
+          league_id?: string
           mp?: number
           nba_game_url?: string | null
           opp?: string | null
@@ -266,6 +297,13 @@ export type Database = {
             columns: ["player_id"]
             isOneToOne: true
             referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plg_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
         ]
@@ -299,6 +337,7 @@ export type Database = {
           id: number
           injury: string | null
           jersey: number
+          league_id: string
           mpg: number
           mpg5: number
           name: string
@@ -314,6 +353,9 @@ export type Database = {
           reb: number
           reb5: number
           salary: number
+          source_league: string | null
+          source_player_id: string | null
+          source_url: string | null
           stl: number
           stl5: number
           stocks: number
@@ -357,6 +399,7 @@ export type Database = {
           id: number
           injury?: string | null
           jersey?: number
+          league_id: string
           mpg?: number
           mpg5?: number
           name: string
@@ -372,6 +415,9 @@ export type Database = {
           reb?: number
           reb5?: number
           salary?: number
+          source_league?: string | null
+          source_player_id?: string | null
+          source_url?: string | null
           stl?: number
           stl5?: number
           stocks?: number
@@ -415,6 +461,7 @@ export type Database = {
           id?: number
           injury?: string | null
           jersey?: number
+          league_id?: string
           mpg?: number
           mpg5?: number
           name?: string
@@ -430,6 +477,9 @@ export type Database = {
           reb?: number
           reb5?: number
           salary?: number
+          source_league?: string | null
+          source_player_id?: string | null
+          source_url?: string | null
           stl?: number
           stl5?: number
           stocks?: number
@@ -445,7 +495,15 @@ export type Database = {
           value5?: number
           weight?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "players_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roster: {
         Row: {
@@ -454,6 +512,7 @@ export type Database = {
           gw: number
           id: string
           is_captain: boolean
+          league_id: string
           player_id: number
           slot: string
           team_id: string
@@ -465,6 +524,7 @@ export type Database = {
           gw?: number
           id?: string
           is_captain?: boolean
+          league_id: string
           player_id: number
           slot: string
           team_id: string
@@ -476,12 +536,20 @@ export type Database = {
           gw?: number
           id?: string
           is_captain?: boolean
+          league_id?: string
           player_id?: number
           slot?: string
           team_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "roster_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "roster_player_id_fkey"
             columns: ["player_id"]
@@ -511,6 +579,7 @@ export type Database = {
           gw: number
           home_pts: number
           home_team: string
+          league_id: string
           nba_game_url: string | null
           status: string
           tipoff_utc: string | null
@@ -528,6 +597,7 @@ export type Database = {
           gw?: number
           home_pts?: number
           home_team: string
+          league_id: string
           nba_game_url?: string | null
           status?: string
           tipoff_utc?: string | null
@@ -545,12 +615,21 @@ export type Database = {
           gw?: number
           home_pts?: number
           home_team?: string
+          league_id?: string
           nba_game_url?: string | null
           status?: string
           tipoff_utc?: string | null
           youtube_recap_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "schedgames_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scoring_rules: {
         Row: {
@@ -705,6 +784,7 @@ export type Database = {
           league_id: string
           name: string
           owner_id: string
+          sport_league_id: string
           updated_at: string
         }
         Insert: {
@@ -714,6 +794,7 @@ export type Database = {
           league_id: string
           name: string
           owner_id: string
+          sport_league_id: string
           updated_at?: string
         }
         Update: {
@@ -723,12 +804,20 @@ export type Database = {
           league_id?: string
           name?: string
           owner_id?: string
+          sport_league_id?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "teams_league_id_fkey"
             columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_sport_league_fk"
+            columns: ["sport_league_id"]
             isOneToOne: false
             referencedRelation: "leagues"
             referencedColumns: ["id"]
@@ -740,6 +829,7 @@ export type Database = {
           cost_points: number
           created_at: string
           id: string
+          league_id: string
           notes: string | null
           player_in_id: number
           player_out_id: number
@@ -750,6 +840,7 @@ export type Database = {
           cost_points?: number
           created_at?: string
           id?: string
+          league_id: string
           notes?: string | null
           player_in_id?: number
           player_out_id?: number
@@ -760,6 +851,7 @@ export type Database = {
           cost_points?: number
           created_at?: string
           id?: string
+          league_id?: string
           notes?: string | null
           player_in_id?: number
           player_out_id?: number
@@ -772,6 +864,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
         ]
