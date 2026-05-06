@@ -1,6 +1,7 @@
 import { useTeam } from "@/contexts/TeamContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users } from "lucide-react";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 
 export default function HeaderTeamPill() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
@@ -8,7 +9,7 @@ export default function HeaderTeamPill() {
 
   const active = teams.find((t) => t.id === selectedTeamId) as any;
   const activeName = active?.name ?? "Select team";
-  const activeLeague = (active?.league_code ?? "nba").toUpperCase();
+  const activeLeague = (active?.league_code ?? "nba") as "nba" | "wnba";
 
   return (
     <div className="flex items-center gap-2 bg-card border border-border rounded-full pl-3 pr-1 py-1 shadow-sm">
@@ -28,20 +29,15 @@ export default function HeaderTeamPill() {
             <SelectItem key={t.id} value={t.id} className="text-xs font-heading uppercase">
               <span className="flex items-center gap-1.5">
                 {t.name}
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">
-                  {(t.league_code ?? "nba").toUpperCase()}
-                </span>
+                <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
               </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
       {selectedTeamId && (
-        <span
-          className="text-[9px] font-heading uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-primary/15 text-primary mr-1"
-          title={`League: ${activeLeague}`}
-        >
-          {activeLeague}
+        <span className="mr-1">
+          <LeagueLogoBadge league={activeLeague} size="sm" />
         </span>
       )}
     </div>

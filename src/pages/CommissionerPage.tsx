@@ -26,6 +26,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { NBA_TEAMS } from "@/lib/nba-teams";
+import nbaLogoSrc from "@/assets/nba-logo.svg";
+import wnbaLogoSrc from "@/assets/wnba-logo.png";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
@@ -818,8 +820,18 @@ export default function CommissionerPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="nba">NBA</SelectItem>
-            <SelectItem value="wnba">WNBA</SelectItem>
+            <SelectItem value="nba">
+              <span className="inline-flex items-center gap-2">
+                <img src={nbaLogoSrc} alt="NBA" className="h-4 w-4 object-contain" />
+                NBA
+              </span>
+            </SelectItem>
+            <SelectItem value="wnba">
+              <span className="inline-flex items-center gap-2">
+                <img src={wnbaLogoSrc} alt="WNBA" className="h-4 w-4 object-contain" />
+                WNBA
+              </span>
+            </SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">

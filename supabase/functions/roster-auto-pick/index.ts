@@ -23,6 +23,16 @@ Deno.serve(async (req) => {
     // Parse body { gw, day, strategy }
     let body: any = {};
     try { body = await req.json(); } catch { /* noop */ }
+    // Cross-league guard: caller's league_code must match the team's league.
+    const reqLeagueCode = String(body?.league_code ?? "").toLowerCase();
+    if (reqLeagueCode === "nba" || reqLeagueCode === "wnba") {
+      const { data: leagueRow } = await sb
+        .from("leagues").select("id").eq("code", reqLeagueCode).maybeSingle();
+      if (leagueRow?.id && leagueRow.id !== teamLeagueId) {
+        return errorResponse("LEAGUE_MISMATCH",
+          `This team belongs to a different league than the request (${reqLeagueCode}).`, null, 400);
+      }
+    }
     const gw = Number(body.gw) || 1;
     const day = Number(body.day) || 1;
     const strategy: "value5" | "fp5" = body.strategy === "fp5" ? "fp5" : "value5";
@@ -40,7 +50,11 @@ Deno.serve(async (req) => {
       .select("id, name, team, fc_bc, salary, fp_pg5")
       .eq("league_id", teamLeagueId);
     if (pErr) throw pErr;
-    if (!players || players.length === 0) throw new Error("No players available");
+    if (!players || players.length === 0) {
+      throw new Error(
+        "No players available for this league. Import the player file from /commissioner first.",
+      );
+    }
 
     // Load last-5 FP from player_game_logs (paginated)
     const logs: any[] = [];
@@ -66,12 +80,21 @@ Deno.serve(async (req) => {
     }
     const avg = (a: number[]) => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
 
+    // Pre-season fallback: when no game logs exist for this league yet,
+    // we cannot rank by FP/value. Rank by salary as a proxy for talent.
+    const hasGameLogs = logs.length > 0;
+
     type Cand = { id: number; name: string; team: string; fc_bc: string; salary: number; fp5: number; score: number };
     const cands: Cand[] = (players as any[])
       .map((p) => {
         const fp5 = last5Map.has(p.id) ? avg(last5Map.get(p.id)!) : Number(p.fp_pg5) || 0;
         const salary = Number(p.salary) || 0;
-        const score = strategy === "fp5" ? fp5 : (salary > 0 ? fp5 / salary : 0);
+        // Pre-season: rank by salary (talent proxy). Otherwise honor strategy.
+        const score = !hasGameLogs
+          ? salary
+          : strategy === "fp5"
+            ? fp5
+            : (salary > 0 ? fp5 / salary : 0);
         return { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, salary, fp5, score };
       })
       .filter((c) => c.salary > 0 && (c.fc_bc === "FC" || c.fc_bc === "BC"))
@@ -97,11 +120,22 @@ Deno.serve(async (req) => {
     }
 
     if (picks.length < 10 || fc !== 5 || bc !== 5) {
-      throw new Error(`Could not assemble valid roster (picked ${picks.length}: ${fc} FC, ${bc} BC, $${spend.toFixed(1)}M)`);
+      const totalFc = (players as any[]).filter((p) => p.fc_bc === "FC" && Number(p.salary) > 0).length;
+      const totalBc = (players as any[]).filter((p) => p.fc_bc === "BC" && Number(p.salary) > 0).length;
+      throw new Error(
+        `Could not assemble valid roster (picked ${picks.length}: ${fc} FC, ${bc} BC, $${spend.toFixed(1)}M). ` +
+        `Player pool has ${totalFc} FC and ${totalBc} BC with salaries set. ` +
+        (totalFc < 5 || totalBc < 5
+          ? "Run 'Recalculate WNBA Salaries' on the /commissioner page so every player has a salary."
+          : ""),
+      );
     }
 
     // Starters: top-5 by fp5 satisfying ≥fcMin FC and ≥bcMin BC.
-    const byFp = [...picks].sort((a, b) => b.fp5 - a.fp5);
+    // Pre-season: fall back to salary as the ranker.
+    const byFp = [...picks].sort((a, b) =>
+      hasGameLogs ? b.fp5 - a.fp5 : b.salary - a.salary,
+    );
     const starters: Cand[] = [];
     let sFc = 0, sBc = 0;
     for (const c of byFp) {
