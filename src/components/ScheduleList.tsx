@@ -903,6 +903,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                 <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
                 <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
                 <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setComparePair({ a: g.away_team, b: g.home_team }); }}
+                  className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors"
+                  title={`Compare ${g.away_team} vs ${g.home_team}`}
+                >
+                  <Swords className="h-3.5 w-3.5" />
+                </button>
                 {g.nba_game_url && (
                   <a
                     href={g.nba_game_url}
@@ -992,6 +1000,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
               <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
               <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setComparePair({ a: g.away_team, b: g.home_team }); }}
+                className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors"
+                title={`Compare ${g.away_team} vs ${g.home_team}`}
+              >
+                <Swords className="h-4 w-4" />
+              </button>
               {g.nba_game_url && (
                 <a
                   href={g.nba_game_url}
