@@ -103,6 +103,7 @@ export async function apiFetch<T extends z.ZodTypeAny>(
     "sync-sheet",
     "salary-update",
     "youtube-recap-lookup",
+    "wnba-salary-recalc",
   ];
   const isAdminPath = ADMIN_PATH_PREFIXES.some((p) => path.startsWith(p));
   if (isAdminPath) {
@@ -262,7 +263,7 @@ export async function fetchTeams() {
   return unwrap(await apiFetch("teams", TeamListResponseSchema));
 }
 
-export async function createTeam(body: { name: string; description?: string | null }) {
+export async function createTeam(body: { name: string; description?: string | null; league_code?: "nba" | "wnba" }) {
   return unwrap(await apiFetch("teams", TeamCreateResponseSchema, {
     method: "POST", body: JSON.stringify(body),
   }));

@@ -15,13 +15,14 @@ function pickRandom(): string {
 
 interface Props {
   onBack: () => void;
-  onSubmit: (name: string) => void | Promise<void>;
+  onSubmit: (name: string, leagueCode: "nba" | "wnba") => void | Promise<void>;
   submitting: boolean;
 }
 
 export default function NameStep({ onBack, onSubmit, submitting }: Props) {
   const initial = useMemo(() => pickRandom(), []);
   const [name, setName] = useState(initial);
+  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">("nba");
 
   const trimmed = name.trim();
   const canSubmit = trimmed.length >= 2 && !submitting;
@@ -50,7 +51,7 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
             className="h-16 text-2xl md:text-3xl font-heading uppercase tracking-[0.1em] text-center rounded-2xl bg-background/60 border-foreground/15 focus-visible:ring-accent"
             disabled={submitting}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && canSubmit) onSubmit(trimmed);
+              if (e.key === "Enter" && canSubmit) onSubmit(trimmed, leagueCode);
             }}
           />
           <button
@@ -62,6 +63,30 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
           >
             <Shuffle className="h-5 w-5" />
           </button>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-3">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mr-2">
+            League
+          </span>
+          {(["nba", "wnba"] as const).map((c) => {
+            const active = leagueCode === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setLeagueCode(c)}
+                disabled={submitting}
+                className={`px-4 py-2 rounded-full text-[11px] uppercase tracking-[0.2em] border transition-colors ${
+                  active
+                    ? "bg-accent text-accent-foreground border-accent"
+                    : "bg-foreground/5 text-foreground/70 border-foreground/15 hover:border-accent"
+                }`}
+              >
+                {c.toUpperCase()}
+              </button>
+            );
+          })}
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
@@ -91,7 +116,7 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
             <ChevronLeft className="mr-1 h-4 w-4" /> Back
           </Button>
           <Button
-            onClick={() => canSubmit && onSubmit(trimmed)}
+            onClick={() => canSubmit && onSubmit(trimmed, leagueCode)}
             disabled={!canSubmit}
             className="h-14 rounded-full px-10 tracking-[0.25em] shadow-[0_0_40px_-10px_hsl(var(--accent))] hover:translate-y-[-1px] hover:shadow-[0_0_60px_-10px_hsl(var(--accent))] transition-all"
           >

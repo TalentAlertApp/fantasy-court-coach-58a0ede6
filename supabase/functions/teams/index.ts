@@ -5,6 +5,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+async function leaguesByCode(sb: any): Promise<Record<string, string>> {
+  const { data } = await sb.from("leagues").select("id, code");
+  const m: Record<string, string> = {};
+  for (const r of (data ?? []) as any[]) m[String(r.code)] = String(r.id);
+  return m;
+}
+
+function codeForLeagueId(byCode: Record<string, string>, id: string | null | undefined): "nba" | "wnba" {
+  if (!id) return "nba";
+  for (const [code, lid] of Object.entries(byCode)) {
+    if (lid === id && (code === "nba" || code === "wnba")) return code as "nba" | "wnba";
+  }
+  return "nba";
+}
+
 Deno.serve(async (req) => {
   const corsRes = handleCors(req);
   if (corsRes) return corsRes;
@@ -39,17 +54,29 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: true });
       if (error) throw error;
 
+      const byCode = await leaguesByCode(sb);
+      const enriched = (teams ?? []).map((t: any) => ({
+        ...t,
+        league_code: codeForLeagueId(byCode, t.sport_league_id),
+      }));
       const defaultTeamId = (teams && teams.length > 0) ? teams[0].id : null;
-      return okResponse({ items: teams ?? [], default_team_id: defaultTeamId });
+      return okResponse({ items: enriched, default_team_id: defaultTeamId });
     }
 
     if (req.method === "POST") {
       if (!userId) return errorResponse("UNAUTHORIZED", "Sign in required");
       const body = await req.json();
-      const { name, description } = body;
+      const { name, description, league_code } = body;
       if (!name || typeof name !== "string" || name.trim().length === 0) {
         return errorResponse("VALIDATION", "name is required");
       }
+      const code = String(league_code ?? "nba").toLowerCase();
+      if (code !== "nba" && code !== "wnba") {
+        return errorResponse("VALIDATION", "league_code must be 'nba' or 'wnba'");
+      }
+      const byCode = await leaguesByCode(sb);
+      const sportLeagueId = byCode[code];
+      if (!sportLeagueId) return errorResponse("INTERNAL_ERROR", `League '${code}' not configured`);
       const { data: team, error } = await sb
         .from("teams")
         .insert({
@@ -59,11 +86,12 @@ Deno.serve(async (req) => {
           // All new teams join the single shared league for now.
           // Schema is ready for multi-league later.
           league_id: "00000000-0000-0000-0000-000000000010",
+          sport_league_id: sportLeagueId,
         })
         .select()
         .single();
       if (error) throw error;
-      return okResponse({ team });
+      return okResponse({ team: { ...team, league_code: code } });
     }
 
     if (req.method === "PATCH") {
@@ -78,6 +106,9 @@ Deno.serve(async (req) => {
         return errorResponse("FORBIDDEN", "You do not own this team");
       }
       const body = await req.json();
+      if (body.league_code !== undefined) {
+        return errorResponse("VALIDATION", "league cannot be changed after team creation");
+      }
       const updates: Record<string, any> = { updated_at: new Date().toISOString() };
       if (body.name !== undefined) updates.name = body.name;
       if (body.description !== undefined) updates.description = body.description;
@@ -88,7 +119,8 @@ Deno.serve(async (req) => {
         .select()
         .single();
       if (error) throw error;
-      return okResponse({ team });
+      const byCode = await leaguesByCode(sb);
+      return okResponse({ team: { ...team, league_code: codeForLeagueId(byCode, (team as any).sport_league_id) } });
     }
 
     if (req.method === "DELETE") {

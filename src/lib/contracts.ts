@@ -759,6 +759,9 @@ export const TeamSchema = z
     created_at: IsoDateTimeSchema,
     updated_at: IsoDateTimeSchema,
     owner_id: z.string().uuid().nullable().optional(),
+    league_id: z.string().uuid().nullable().optional(),
+    sport_league_id: z.string().uuid().nullable().optional(),
+    league_code: z.enum(["nba", "wnba"]).optional(),
   })
   .strict();
 
@@ -775,6 +778,7 @@ export const TeamCreateBodySchema = z
   .object({
     name: z.string().min(1),
     description: z.string().nullable().optional(),
+    league_code: z.enum(["nba", "wnba"]).optional(),
   })
   .strict();
 
