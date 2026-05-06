@@ -123,9 +123,23 @@ export default function ScoringPage() {
                   <SelectValue placeholder="Pick a team…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {myTeams.map(t => (
-                    <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">{t.name}</SelectItem>
-                  ))}
+                  {myTeams.map((t: any) => {
+                    const code = t.league_code === "wnba" ? "wnba" : "nba";
+                    const lgLogo = code === "wnba" ? wnbaLogo : nbaLogo;
+                    return (
+                      <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
+                        <span className="relative flex items-center pr-7 min-w-[180px]">
+                          <span className="truncate">{t.name}</span>
+                          <img
+                            src={lgLogo}
+                            alt=""
+                            aria-hidden
+                            className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-7 w-7 object-contain opacity-25 rotate-12 select-none"
+                          />
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
