@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronRight, LogOut } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import PlayerMarquee from "./PlayerMarquee";
 
 interface Props {
@@ -21,6 +22,8 @@ export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Pr
       <header className="relative z-10 flex items-center justify-between px-8 py-4 shrink-0">
         <div className="flex items-center gap-3">
           <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
+          <span className="h-6 w-px bg-foreground/20" aria-hidden="true" />
+          <img src={wnbaLogo} alt="WNBA" className="h-9 w-auto object-contain" />
           <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
             Fantasy
           </span>
