@@ -5,6 +5,8 @@ import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
+import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
+import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -23,6 +25,7 @@ interface PlayerCardProps {
   variant?: "court" | "bench";
   compact?: boolean;
   upcoming?: (UpcomingGame | null)[];
+  difficultyMap?: Record<string, BIQTeamDifficulty>;
 }
 
 function formatShortName(fullName: string): string {
@@ -33,19 +36,44 @@ function formatShortName(fullName: string): string {
   return `${firstInitial}.${lastName}`.toUpperCase();
 }
 
-function OpponentBadge({ tricode, size = "sm", title }: { tricode: string; size?: "sm" | "md"; title?: string }) {
-  const logo = getTeamLogo(tricode);
-  const cls = size === "md" ? "w-7 h-7" : "w-4 h-4";
-  return logo ? (
-    <img src={logo} alt={tricode} className={`${cls} object-contain transition-transform hover:scale-110`} title={title ?? tricode} />
-  ) : (
-    <span className="text-[6px] font-bold text-muted-foreground" title={title ?? tricode}>{tricode}</span>
+/**
+ * Circular opponent slot. Inner = team logo; outer ring colored by difficulty
+ * of the opponent (red = elite, orange = tough, blue = neutral, green = easy).
+ */
+function OpponentSlot({
+  day, ringColor, title, size = "md",
+}: {
+  day: UpcomingGame | null;
+  ringColor?: string;
+  title?: string;
+  size?: "sm" | "md";
+}) {
+  const dim = size === "md" ? "w-7 h-7" : "w-5 h-5";
+  const inner = size === "md" ? "w-5 h-5" : "w-3.5 h-3.5";
+  const ring = ringColor ?? "hsl(var(--border))";
+  const logo = day ? getTeamLogo(day.opponent) : null;
+  return (
+    <div
+      className={`${dim} rounded-full flex items-center justify-center bg-background/60 backdrop-blur-sm transition-transform hover:scale-110`}
+      style={{ border: `2px solid ${ring}`, boxShadow: day ? `0 0 0 1px hsl(var(--background))` : undefined }}
+      title={title}
+    >
+      {day ? (
+        logo ? (
+          <img src={logo} alt={day.opponent} className={`${inner} object-contain`} />
+        ) : (
+          <span className="text-[7px] font-bold text-foreground">{day.opponent}</span>
+        )
+      ) : (
+        <span className="text-[7px] text-muted-foreground/40">—</span>
+      )}
+    </div>
   );
 }
 
 export default function PlayerCard({
   player, isCaptain, onClick, onSetCaptain, onSwap, draggable,
-  onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming,
+  onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming, difficultyMap,
 }: PlayerCardProps) {
   const { core } = player;
   const isFc = core.fc_bc === "FC";
@@ -53,10 +81,17 @@ export default function PlayerCard({
   const teamLogo = getTeamLogo(core.team);
   const v5 = (player.computed as any)?.value5;
 
-  // Max 6 slots, left-to-right chronological
-  const allUpcoming = upcoming ?? [];
-  const nextGame = allUpcoming[0] ?? null;
-  const upcomingDays = allUpcoming.slice(0, 6);
+  // Slots = one per gameday in the current GW (already pre-bucketed by parent).
+  const slots = upcoming ?? [];
+
+  const slotFor = (day: UpcomingGame | null) => {
+    if (!day) return { ringColor: "hsl(var(--border))", title: undefined as string | undefined };
+    const diff = difficultyMap?.[day.opponent];
+    return {
+      ringColor: difficultyRingColor(diff?.label),
+      title: `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}${diff?.label ? ` · ${diff.label}` : ""}`,
+    };
+  };
 
   const resolvedVariant = variant ?? "court";
 
@@ -123,44 +158,12 @@ export default function PlayerCard({
                 </span>
               )}
 
-              {upcoming && (
+              {upcoming && slots.length > 0 && (
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-[6px] font-heading font-bold text-muted-foreground uppercase">Next</span>
-                  {nextGame ? (
-                    <span
-                      className="inline-flex items-center gap-0.5"
-                      title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
-                    >
-                      <span className="text-[9px] font-heading font-bold text-foreground">
-                        {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
-                      </span>
-                      <OpponentBadge
-                        tricode={nextGame.opponent}
-                        size="sm"
-                        title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
-                      />
-                    </span>
-                  ) : <span className="text-[7px] text-muted-foreground">—</span>}
-                </div>
-              )}
-
-              {upcoming && upcomingDays.length > 0 && (
-                <div className="flex items-center gap-0.5 shrink-0">
-                  {upcomingDays.map((day, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-center w-5 h-5"
-                      title={day ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}` : undefined}
-                    >
-                      {day ? (
-                        <OpponentBadge
-                          tricode={day.opponent}
-                          size="md"
-                          title={`${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`}
-                        />
-                      ) : <span className="text-[5px] text-muted-foreground/40">—</span>}
-                    </div>
-                  ))}
+                  {slots.map((day, i) => {
+                    const meta = slotFor(day);
+                    return <OpponentSlot key={i} day={day} ringColor={meta.ringColor} title={meta.title} size="sm" />;
+                  })}
                 </div>
               )}
             </div>
@@ -257,42 +260,13 @@ export default function PlayerCard({
         )}
       </div>
 
-      {/* Upcoming games — 6 slots */}
-      {upcoming && upcomingDays.length > 0 && (
-        <div className="flex flex-col items-center gap-0.5 mt-1.5 z-10">
-          {nextGame && (
-            <div
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm"
-              title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
-            >
-              <span className="text-[8px] font-heading font-bold uppercase tracking-wider text-white/70">Next</span>
-              <span className="text-[10px] font-heading font-bold text-white">
-                {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
-              </span>
-              <OpponentBadge
-                tricode={nextGame.opponent}
-                size="sm"
-                title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
-              />
-            </div>
-          )}
-          <div className="flex items-center gap-0.5">
-            {Array.from({ length: 6 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-center w-6 h-6 bg-black/30 rounded"
-                title={day ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}` : undefined}
-              >
-                {day ? (
-                  <OpponentBadge
-                    tricode={day.opponent}
-                    size="md"
-                    title={`${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`}
-                  />
-                ) : <span className="text-[6px] text-white/30">—</span>}
-              </div>
-            ))}
-          </div>
+      {/* Gameweek opponent slots — one per gameday */}
+      {upcoming && slots.length > 0 && (
+        <div className="flex items-center justify-center gap-1 mt-2 z-10">
+          {slots.map((day, i) => {
+            const meta = slotFor(day);
+            return <OpponentSlot key={i} day={day} ringColor={meta.ringColor} title={meta.title} size="md" />;
+          })}
         </div>
       )}
     </div>
