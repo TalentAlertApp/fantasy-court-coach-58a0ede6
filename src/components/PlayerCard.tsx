@@ -4,6 +4,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
+import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -32,13 +33,13 @@ function formatShortName(fullName: string): string {
   return `${firstInitial}.${lastName}`.toUpperCase();
 }
 
-function OpponentBadge({ tricode, size = "sm" }: { tricode: string; size?: "sm" | "md" }) {
+function OpponentBadge({ tricode, size = "sm", title }: { tricode: string; size?: "sm" | "md"; title?: string }) {
   const logo = getTeamLogo(tricode);
   const cls = size === "md" ? "w-7 h-7" : "w-4 h-4";
   return logo ? (
-    <img src={logo} alt={tricode} className={`${cls} object-contain transition-transform hover:scale-110`} title={tricode} />
+    <img src={logo} alt={tricode} className={`${cls} object-contain transition-transform hover:scale-110`} title={title ?? tricode} />
   ) : (
-    <span className="text-[6px] font-bold text-muted-foreground">{tricode}</span>
+    <span className="text-[6px] font-bold text-muted-foreground" title={title ?? tricode}>{tricode}</span>
   );
 }
 
