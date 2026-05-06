@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 
 export default function TeamSwitcher() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
@@ -107,9 +108,7 @@ export default function TeamSwitcher() {
               <SelectItem key={t.id} value={t.id}>
                 <span className="flex items-center gap-1.5">
                   {t.name}
-                  <span className="text-[9px] font-heading uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/20 text-accent">
-                    {(t.league_code ?? "nba").toUpperCase()}
-                  </span>
+                  <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
                 </span>
               </SelectItem>
             ))}
@@ -120,15 +119,7 @@ export default function TeamSwitcher() {
         </Select>
         {selectedTeamId && (() => {
           const t = teams.find((x: any) => x.id === selectedTeamId) as any;
-          const code = (t?.league_code ?? "nba").toUpperCase();
-          return (
-            <span
-              className="text-[9px] font-heading uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/20 text-accent"
-              title={`League: ${code}`}
-            >
-              {code}
-            </span>
-          );
+          return <LeagueLogoBadge league={t?.league_code ?? "nba"} size="sm" />;
         })()}
 
         {selectedTeamId && (
@@ -173,8 +164,12 @@ export default function TeamSwitcher() {
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-muted text-muted-foreground border-border hover:border-primary"
                 }`}
+                aria-label={`Select ${c.toUpperCase()} league`}
               >
-                {c.toUpperCase()}
+                <span className="inline-flex items-center gap-1.5">
+                  <LeagueLogoBadge league={c} size="sm" />
+                  {c.toUpperCase()}
+                </span>
               </button>
             ))}
           </div>
