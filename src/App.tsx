@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TeamProvider } from "@/contexts/TeamContext";
+import { LeagueProvider } from "@/contexts/LeagueContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import RequireAuth from "@/components/auth/RequireAuth";
 import AuthPage from "@/pages/AuthPage";
@@ -37,6 +38,7 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
+          <LeagueProvider>
           <TeamProvider>
             <Toaster />
             <Sonner />
@@ -59,6 +61,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </TeamProvider>
+          </LeagueProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
