@@ -37,12 +37,12 @@ export default function BallersIQShareCardModal({ open, onOpenChange, ctx }: Pro
         return;
       }
 
-      // Wait until the embedded player photo (data URL) is ready — the share card
-      // sets a data attribute when the async fetch + FileReader settle.
-      for (let i = 0; i < 25; i++) {
+      // Wait until the proxied player photo is ready — the share card flips
+      // data-photo-ready once the image loads or definitively fails.
+      for (let i = 0; i < 20; i++) {
         const el = cardRef.current?.querySelector("[data-photo-ready]") as HTMLElement | null;
         if (!el || el.getAttribute("data-photo-ready") === "1") break;
-        await new Promise((r) => setTimeout(r, 120));
+        await new Promise((r) => setTimeout(r, 100));
       }
 
       // Pre-decode every <img> inside the card so html-to-image doesn't snapshot
