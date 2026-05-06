@@ -836,6 +836,41 @@ export default function CommissionerPage() {
         </TabsList>
 
         <TabsContent value="players" className="space-y-6 mt-0">
+          {leagueCode === "wnba" && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3">
+              <div className="flex-1">
+                <div className="text-sm font-semibold text-amber-300">WNBA Salary Generation</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Recalculate every WNBA player's salary from their <strong>EXP</strong>.
+                  Rookies (R) get $4.5M, the most experienced gets $25M (linear).
+                  This becomes the only source of truth for WNBA salaries.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const res = await apiFetch(
+                      "wnba-salary-recalc",
+                      z.object({ ok: z.literal(true), data: z.object({
+                        updated: z.number(), failed: z.number().optional(),
+                        min: z.number(), max: z.number(), max_exp: z.number(),
+                        distribution: z.record(z.number()),
+                        errors: z.array(z.string()).optional(),
+                      })}),
+                      { method: "POST", body: JSON.stringify({}) },
+                    );
+                    const d = (res as any).data;
+                    toast.success(`Updated ${d.updated} WNBA salaries (${d.min}–${d.max}M, max EXP=${d.max_exp})`);
+                  } catch (e: any) {
+                    toast.error(`Salary recalc failed: ${e?.message ?? e}`);
+                  }
+                }}
+              >
+                Recalculate WNBA Salaries
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Upload Card */}
         <div className="bg-card border rounded-lg overflow-hidden">
