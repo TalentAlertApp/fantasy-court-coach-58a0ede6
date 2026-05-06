@@ -13,8 +13,8 @@ export default function LeagueSwitcher({ collapsed = false }: { collapsed?: bool
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="nba">NBA</SelectItem>
-          <SelectItem value="wnba">WNBA</SelectItem>
+          <SelectItem value="nba">NBA 2025-26</SelectItem>
+          <SelectItem value="wnba">WNBA 2026</SelectItem>
         </SelectContent>
       </Select>
     </div>
