@@ -898,6 +898,36 @@ export default function CommissionerPage() {
             Preview — Verify Names Before Import
           </div>
           <div className="p-4 space-y-3">
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
+              <strong>Replace scope:</strong> this will replace only <strong>{leagueCode.toUpperCase()}</strong> players. The other league's data will not be touched.
+            </div>
+            {playerValidation && (
+              <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+                <div className="font-heading uppercase text-muted-foreground">Validation</div>
+                <div>Rows parsed: <strong>{playerValidation.rowCount}</strong>{playerValidation.expectedRows ? <span className="text-muted-foreground"> (expected ~{playerValidation.expectedRows})</span> : null}</div>
+                <div>Detected teams ({playerValidation.detectedTeams.length}): <span className="font-mono">{playerValidation.detectedTeams.join(", ") || "—"}</span></div>
+                {playerValidation.unknownTeams.length > 0 && (
+                  <div className="text-destructive">Unknown teams: <span className="font-mono">{playerValidation.unknownTeams.join(", ")}</span></div>
+                )}
+                {playerValidation.duplicateIds.length > 0 && (
+                  <div className="text-destructive">Duplicate IDs: {playerValidation.duplicateIds.join(", ")}</div>
+                )}
+                {playerValidation.invalidFcBc.length > 0 && (
+                  <div className="text-destructive">Invalid FC_BC ({playerValidation.invalidFcBc.length}): {playerValidation.invalidFcBc.join(", ")}</div>
+                )}
+                {playerValidation.blankName.length > 0 && (
+                  <div className="text-destructive">Blank NAME for IDs: {playerValidation.blankName.join(", ")}</div>
+                )}
+                {playerValidation.badDob.length > 0 && (
+                  <div className="text-amber-300">Unparseable DOB for IDs: {playerValidation.badDob.join(", ")}</div>
+                )}
+                {playerValidation.blockers.length > 0 ? (
+                  <div className="mt-1 text-destructive font-bold">⛔ Import blocked: {playerValidation.blockers.join(" · ")}</div>
+                ) : (
+                  <div className="mt-1 text-emerald-400 font-bold">✅ Validation passed</div>
+                )}
+              </div>
+            )}
             {corruptCount > 0 && (
               <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
