@@ -33,6 +33,8 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
 }) {
   const [nbaExpanded, setNbaExpanded] = useState(false);
   const [nbaBlocked, setNbaBlocked] = useState(false);
+  const { league } = useLeague();
+  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
 
   // Case 1: YouTube embed available — best inline experience
   if (youtubeRecapId) {
@@ -52,9 +54,9 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 text-[10px] font-heading uppercase tracking-wider text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20 transition-colors"
-            title="Open on NBA.com"
+            title={`Open on ${recapHost}`}
           >
-            NBA.com <ExternalLink className="h-3 w-3" />
+            {recapHost} <ExternalLink className="h-3 w-3" />
           </a>
         )}
       </div>
@@ -67,7 +69,7 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
       <div className="relative w-full h-full rounded-xl overflow-hidden bg-black">
         <iframe
           src={url}
-          title="NBA.com Recap"
+          title={`${recapHost} Recap`}
           referrerPolicy="no-referrer-when-downgrade"
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
