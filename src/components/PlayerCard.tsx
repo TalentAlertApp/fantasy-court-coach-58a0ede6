@@ -5,7 +5,7 @@ import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
-import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
+import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
 import React from "react";
 
@@ -85,11 +85,13 @@ export default function PlayerCard({
   const slots = upcoming ?? [];
 
   const slotFor = (day: UpcomingGame | null) => {
-    if (!day) return { ringColor: "hsl(var(--border))", title: undefined as string | undefined };
+    if (!day) {
+      return { ringColor: "hsl(var(--border))", title: slotTooltip(null, false) };
+    }
     const diff = difficultyMap?.[day.opponent];
     return {
       ringColor: difficultyRingColor(diff?.label),
-      title: `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}${diff?.label ? ` · ${diff.label}` : ""}`,
+      title: slotTooltip(day.opponent, day.isHome, formatTipoffLabel(day.tipoffUtc), diff?.label, diff?.score),
     };
   };
 
