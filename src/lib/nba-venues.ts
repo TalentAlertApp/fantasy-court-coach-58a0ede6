@@ -40,5 +40,18 @@ export const NBA_VENUES: Record<string, VenueMeta> = {
 
 export function getVenue(tricode: string): VenueMeta | null {
   if (!tricode) return null;
-  return NBA_VENUES[tricode.toUpperCase()] ?? null;
+  const t = tricode.toUpperCase();
+  if (NBA_VENUES[t]) return NBA_VENUES[t];
+  // League-aware fallback: when the active league is WNBA, resolve venue from
+  // the WNBA team catalog so /schedule cards still get the right backdrop.
+  try {
+    // Lazy require to avoid a hard cycle if anything imports this in NBA-only paths.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { WNBA_TEAMS } = require("@/lib/wnba-teams") as typeof import("@/lib/wnba-teams");
+    const w = WNBA_TEAMS.find((x) => x.tricode === t);
+    if (w?.venueImage || w?.venueName) {
+      return { name: w.venueName ?? "", image: w.venueImage ?? "" };
+    }
+  } catch { /* ignore */ }
+  return null;
 }
