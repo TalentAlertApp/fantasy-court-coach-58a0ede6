@@ -2,6 +2,10 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAMS, getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,13 +37,20 @@ export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("teams");
   const [standingsView, setStandingsView] = useState<StandingsView>("division");
+  const { league } = useLeague();
+  const { teams: leagueTeams } = useLeagueTeams();
+  const { data: leagueId } = useLeagueId();
+  const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const headerTitle = league === "wnba" ? "WNBA Teams" : "NBA Teams";
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
-    queryKey: ["nba-teams-schedule-stats"],
+    queryKey: ["teams-schedule-stats", leagueId],
+    enabled: !!leagueId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("home_team, away_team, home_pts, away_pts, status");
+        .select("home_team, away_team, home_pts, away_pts, status")
+        .eq("league_id", leagueId!);
       if (error) throw error;
       return data;
     },
@@ -47,16 +58,19 @@ export default function TeamsPage() {
   });
 
   const { data: playerCounts, isLoading: playersLoading } = useQuery({
-    queryKey: ["nba-teams-active-players"],
+    queryKey: ["teams-active-players", leagueId],
+    enabled: !!leagueId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("player_game_logs")
         .select("player_id, mp")
+        .eq("league_id", leagueId!)
         .gt("mp", 0);
       if (error) throw error;
       const { data: players, error: pErr } = await supabase
         .from("players")
-        .select("id, team");
+        .select("id, team")
+        .eq("league_id", leagueId!);
       if (pErr) throw pErr;
       const teamMap = new Map<number, string>();
       for (const p of players ?? []) teamMap.set(p.id, p.team);
@@ -92,7 +106,7 @@ export default function TeamsPage() {
       }
     }
 
-    return NBA_TEAMS.map((t) => ({
+    return leagueTeams.map((t) => ({
       tricode: t.tricode,
       name: t.name,
       logo: t.logo,
@@ -106,7 +120,7 @@ export default function TeamsPage() {
       const wpB = b.wins + b.losses > 0 ? b.wins / (b.wins + b.losses) : 0;
       return wpB - wpA;
     });
-  }, [scheduleData, playerCounts]);
+  }, [scheduleData, playerCounts, leagueTeams]);
 
   const isLoading = schedLoading || playersLoading;
 
@@ -118,7 +132,7 @@ export default function TeamsPage() {
   return (
     <div className="flex flex-col h-full min-h-0 space-y-4">
       <div className="flex items-center gap-4 shrink-0">
-        <h1 className="text-xl font-heading font-bold uppercase tracking-wider">NBA Teams</h1>
+        <h1 className="text-xl font-heading font-bold uppercase tracking-wider">{headerTitle}</h1>
         <div className="inline-flex bg-muted rounded-xl p-0.5 gap-0.5">
           {TABS.map((t) => (
             <button
@@ -167,9 +181,9 @@ export default function TeamsPage() {
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                       <img src={t.logo} alt="" className="w-24 h-24 opacity-10 group-hover:scale-125 group-hover:opacity-25 transition-all duration-500" />
                     </div>
-                    {/* NBA league logo — small color watermark, top-right */}
+                    {/* League logo — small color watermark, top-right */}
                     <img
-                      src={nbaLogo}
+                      src={leagueLogo}
                       alt=""
                       aria-hidden
                       className="pointer-events-none absolute top-1.5 right-1.5 h-5 w-auto opacity-80 select-none z-[1]"
@@ -199,7 +213,7 @@ export default function TeamsPage() {
           <div className="flex-1 min-h-0 flex flex-col gap-3">
             <div className="relative flex-1 min-h-0">
               <img
-                src={nbaLogo}
+                src={leagueLogo}
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute inset-0 m-auto h-[60%] max-h-[420px] w-auto opacity-[0.05] dark:opacity-[0.06] select-none z-0"
