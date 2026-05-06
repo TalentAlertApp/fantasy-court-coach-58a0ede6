@@ -3,7 +3,10 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
 import React, { useState } from "react";
-import { useUpcomingByTeam, getTeamUpcoming } from "@/hooks/useUpcomingByTeam";
+import { useUpcomingByTeam, getTeamGameweekSlots } from "@/hooks/useUpcomingByTeam";
+import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
+import { getCurrentGameday } from "@/lib/deadlines";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -18,6 +21,8 @@ interface RosterListViewProps {
 export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap }: RosterListViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: upcomingByTeam } = useUpcomingByTeam();
+  const { data: difficultyMap } = useTeamDifficultyMap();
+  const currentGw = getCurrentGameday().gw;
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -70,12 +75,20 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       onDragOver={(e) => handleDragOver(e, p.core.id)}
       onDrop={(e) => handleDrop(e, p.core.id)}
       onDragEnd={handleDragEnd}
-      nextGame={getTeamUpcoming(upcomingByTeam, p.core.team)[0] ?? null}
+      weekSlots={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
+      difficultyMap={difficultyMap}
     />
   );
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
+      {/* Fixed centered NBA watermark — stays put while inner content scrolls */}
+      <img
+        src={nbaLogo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30vw] max-w-[480px] opacity-[0.04] z-0 select-none"
+      />
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">STARTING 5</div>
         <Table>{header}

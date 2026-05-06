@@ -117,6 +117,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+          <img
+            src={nbaLogo}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 h-44 w-auto opacity-[0.05] select-none z-0"
+          />
           {/* Premium Header — full-bleed gradient, oversized rotated logo watermark, KPI pills */}
           <DialogHeader className="relative overflow-hidden border-b border-border/50 px-5 pt-5 pb-4 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent shrink-0">
             {team && (
@@ -179,11 +185,16 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         <button
                           key={t.tricode}
                           onClick={() => { setCompareOpp(t.tricode); setComparePickerOpen(false); }}
-                          className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-accent text-left"
+                          className="relative overflow-hidden flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent text-left"
                         >
-                          <img src={t.logo} alt="" className="w-5 h-5 object-contain" />
                           <span className="text-xs font-heading uppercase">{t.tricode}</span>
                           <span className="text-[10px] text-muted-foreground truncate">{t.name}</span>
+                          <img
+                            src={t.logo}
+                            alt=""
+                            aria-hidden
+                            className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-12 w-12 object-contain opacity-[0.22] rotate-12 blur-[0.5px] select-none"
+                          />
                         </button>
                       ))}
                     </div>
@@ -193,7 +204,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
             </div>
           </DialogHeader>
 
-          <Tabs defaultValue="played" className="flex-1 min-h-0 flex flex-col px-4 pb-4 pt-3">
+          <Tabs defaultValue="played" className="relative z-10 flex-1 min-h-0 flex flex-col px-4 pb-4 pt-3">
             <TabsList className="rounded-lg shrink-0 grid grid-cols-4">
               <TabsTrigger value="played" className="font-heading text-xs uppercase rounded-lg">Played ({played.length})</TabsTrigger>
               <TabsTrigger value="upcoming" className="font-heading text-xs uppercase rounded-lg">Upcoming ({upcoming.length})</TabsTrigger>
@@ -430,12 +441,6 @@ function TeamBallersIQ({ tricode, played, upcoming, roster, onPlayerClick }: {
   return (
     <ScrollArea className="h-[50vh]">
       <div className="relative p-3 space-y-3">
-        <img
-          src={nbaLogo}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute top-2 right-2 h-16 w-auto opacity-10 select-none"
-        />
         <div className="rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card p-3">
           <p className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90 mb-1">Team Read</p>
           <p className="text-sm leading-snug">{assessment.summary}</p>
