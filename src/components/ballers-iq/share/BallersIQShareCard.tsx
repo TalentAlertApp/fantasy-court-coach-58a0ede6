@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SUPABASE_URL } from "@/lib/supabase-config";
 import BallersIQBrand from "../BallersIQBrand";
 import { templateLabel, type ShareCardContext } from "./formatBallersIQShareText";
 
@@ -24,44 +25,17 @@ const SIZE: Record<ShareCardFormat, { w: number; h: number }> = {
 const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "square", className }, ref) => {
   const size = SIZE[format];
   const { insight } = ctx;
-  // Pre-fetch the player image and convert to a same-origin data URL so html-to-image
-  // can rasterise it (NBA CDN images are CORS-tainted otherwise).
-  const [embeddedImage, setEmbeddedImage] = useState<string | null>(null);
+  // Route the photo through our same-origin Supabase image-proxy so the
+  // exported PNG is never canvas-tainted by NBA CDN's restrictive CORS.
+  const proxiedSrc =
+    ctx.imageUrl && SUPABASE_URL
+      ? `${SUPABASE_URL}/functions/v1/image-proxy?url=${encodeURIComponent(ctx.imageUrl)}`
+      : ctx.imageUrl ?? null;
+  const [photoLoaded, setPhotoLoaded] = useState(false);
+  const [photoFailed, setPhotoFailed] = useState(false);
   useEffect(() => {
-    let cancelled = false;
-    setEmbeddedImage(null);
-    if (!ctx.imageUrl) return;
-    const direct = ctx.imageUrl;
-    const stripped = direct.replace(/^https?:\/\//, "");
-    // Multiple permissive-CORS proxies so we can inline NBA CDN photos as data URLs.
-    const candidates = [
-      direct,
-      `https://images.weserv.nl/?url=${encodeURIComponent(stripped)}`,
-      `https://wsrv.nl/?url=${encodeURIComponent(stripped)}`,
-      `https://corsproxy.io/?${encodeURIComponent(direct)}`,
-    ];
-    const tryFetch = async (url: string): Promise<string | null> => {
-      try {
-        const r = await fetch(url, { mode: "cors" });
-        if (!r.ok) return null;
-        const blob = await r.blob();
-        return await new Promise<string>((resolve, reject) => {
-          const fr = new FileReader();
-          fr.onload = () => resolve(String(fr.result));
-          fr.onerror = reject;
-          fr.readAsDataURL(blob);
-        });
-      } catch { return null; }
-    };
-    (async () => {
-      for (const u of candidates) {
-        const dataUrl = await tryFetch(u);
-        if (cancelled) return;
-        if (dataUrl) { setEmbeddedImage(dataUrl); return; }
-      }
-      if (!cancelled) setEmbeddedImage(null);
-    })();
-    return () => { cancelled = true; };
+    setPhotoLoaded(false);
+    setPhotoFailed(false);
   }, [ctx.imageUrl]);
 
   const nameParts = ctx.subject.trim().split(/\s+/);
@@ -69,11 +43,10 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
   const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : ctx.subject;
   const headlineSize = format === "wide" ? "text-[28px]" : "text-[34px]";
   const nameSize = format === "wide" ? "text-[48px]" : "text-[60px]";
-  // Mark when the embedded image is fully decoded so the modal export can await it.
-  const photoReady = !ctx.imageUrl || embeddedImage !== null;
-  const [directLoaded, setDirectLoaded] = useState(false);
-  const photoSrc = embeddedImage ?? ctx.imageUrl ?? null;
-  const readyMarker = !ctx.imageUrl || embeddedImage !== null || directLoaded;
+  // Marker the modal awaits before rasterising — once the image either
+  // loaded or definitively failed, the snapshot is safe to take.
+  const readyMarker = !ctx.imageUrl || photoLoaded || photoFailed;
+  const showPhoto = !!proxiedSrc && !photoFailed;
 
   return (
     <div
@@ -104,14 +77,14 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
       {/* Subject block */}
       <div className={cn("absolute inset-x-0 px-12", format === "wide" ? "top-28" : "top-36")}>
         <div className="flex items-center gap-6">
-          {photoSrc ? (
+          {showPhoto ? (
             <img
-              src={photoSrc}
+              src={proxiedSrc!}
               alt=""
               referrerPolicy="no-referrer"
               crossOrigin="anonymous"
-              onLoad={() => setDirectLoaded(true)}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+              onLoad={() => setPhotoLoaded(true)}
+              onError={() => setPhotoFailed(true)}
               className={cn("rounded-2xl object-cover ring-2 ring-amber-300/40 shadow-2xl bg-white/5",
                 format === "wide" ? "h-32 w-32" : "h-44 w-44")}
             />
