@@ -334,8 +334,8 @@ export async function importSchedule(rows: Array<{
   game_id: string; nba_game_url: string | null; game_recap_url: string | null;
   game_boxscore_url: string | null; game_charts_url: string | null;
   game_playbyplay_url: string | null;
-}>, replace = false) {
+}>, replace = false, league_code: "nba" | "wnba" = "nba") {
   return unwrap(await apiFetch("import-schedule", ImportScheduleResponseSchema, {
-    method: "POST", body: JSON.stringify({ rows, replace }),
+    method: "POST", body: JSON.stringify({ rows, replace, league_code }),
   }));
 }
