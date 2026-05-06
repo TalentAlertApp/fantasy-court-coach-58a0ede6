@@ -818,8 +818,18 @@ export default function CommissionerPage() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="nba">NBA</SelectItem>
-            <SelectItem value="wnba">WNBA</SelectItem>
+            <SelectItem value="nba">
+              <span className="inline-flex items-center gap-2">
+                <img src={require("@/assets/nba-logo.svg")} alt="NBA" className="h-4 w-4 object-contain" />
+                NBA
+              </span>
+            </SelectItem>
+            <SelectItem value="wnba">
+              <span className="inline-flex items-center gap-2">
+                <img src={new URL("@/assets/wnba-logo.png", import.meta.url).toString()} alt="WNBA" className="h-4 w-4 object-contain" />
+                WNBA
+              </span>
+            </SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">
