@@ -27,6 +27,7 @@ interface RosterCourtViewProps {
   onDnDSwap?: (fromId: number, toId: number) => void;
   upcomingByTeam?: UpcomingByTeam;
   onSlotClick?: (g: UpcomingGame) => void;
+  gameLogsByPlayer?: Record<number, Record<string, { fp: number; mp: number; pts: number }>>;
   sidebarProps?: {
     gw: number;
     day: number;
@@ -66,7 +67,7 @@ function getFormationPositions(starters: PlayerListItem[]) {
   return positioned;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, onSlotClick, sidebarProps }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, onSlotClick, gameLogsByPlayer, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: difficultyMap } = useTeamDifficultyMap();
   const { deadlines } = useLeagueDeadlines();
@@ -116,6 +117,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw, deadlines)}
         difficultyMap={difficultyMap}
         onSlotClick={onSlotClick}
+        gameLogs={gameLogsByPlayer?.[p.core.id]}
       />
     </div>
   );
@@ -140,6 +142,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw, deadlines)}
         difficultyMap={difficultyMap}
         onSlotClick={onSlotClick}
+        gameLogs={gameLogsByPlayer?.[p.core.id]}
       />
     </div>
   );
