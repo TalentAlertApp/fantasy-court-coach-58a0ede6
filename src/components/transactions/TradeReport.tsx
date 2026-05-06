@@ -152,11 +152,7 @@ export default function TradeReport(props: TradeReportProps) {
 
   // Team distribution count
   const beforeTeams = new Set(rosterPlayers.map((p) => p.core.team)).size;
-  const postRoster = [
-    ...rosterPlayers.filter((p) => !outPlayers.some((o) => o.core.id === p.core.id)),
-    ...inPlayers,
-  ];
-  const afterTeams = new Set(postRoster.map((p) => p.core.team)).size;
+  const afterTeams = new Set(postRosterPre.map((p) => p.core.team)).size;
 
   // AI verdict
   const [verdict, setVerdict] = useState<{ verdict: string; summary: string; pros: string[]; cons: string[]; confidence: number } | null>(null);
