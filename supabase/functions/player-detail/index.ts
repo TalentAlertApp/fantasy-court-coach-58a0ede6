@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
+import { readLeagueCodeFromUrl, resolveLeagueId } from "../_shared/league.ts";
 
 function calcAgeFromDob(dobStr: string | null): number {
   if (!dobStr) return 0;
@@ -21,6 +22,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
+    const leagueCode = readLeagueCodeFromUrl(url);
     const playerId = Number(url.searchParams.get("id"));
     if (!playerId) {
       return errorResponse("MISSING_PARAM", "id query param required");
@@ -30,12 +32,14 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    const league_id = await resolveLeagueId(sb, leagueCode);
 
     // Get player core data
     const { data: playerRow, error: playerErr } = await sb
       .from("players")
       .select("*")
       .eq("id", playerId)
+      .eq("league_id", league_id)
       .single();
 
     if (playerErr || !playerRow) {
@@ -47,6 +51,7 @@ Deno.serve(async (req: Request) => {
       .from("player_last_game")
       .select("*")
       .eq("player_id", playerId)
+      .eq("league_id", league_id)
       .single();
 
     // Get ALL player game logs (for computing averages + history)
@@ -54,6 +59,7 @@ Deno.serve(async (req: Request) => {
       .from("player_game_logs")
       .select("*")
       .eq("player_id", playerId)
+      .eq("league_id", league_id)
       .order("game_date", { ascending: false });
 
     const logs = allLogs || [];
@@ -81,9 +87,10 @@ Deno.serve(async (req: Request) => {
     const blk5 = sum(last5, "blk") / l5Count;
     const mpg5 = sum(last5, "mp") / l5Count;
 
-    const salary = Number(playerRow.salary) || 1;
-    const valueT = seasonFp / salary;
-    const value5 = fp5 / salary;
+    const salaryRaw = Number(playerRow.salary) || 0;
+    const salaryForValue = salaryRaw > 0 ? salaryRaw : 0;
+    const valueT = salaryForValue > 0 ? seasonFp / salaryForValue : 0;
+    const value5 = salaryForValue > 0 ? fp5 / salaryForValue : 0;
     const stocks5 = stl5 + blk5;
     const stocks = seasonStl + seasonBlk;
     const deltaFp = fp5 - seasonFp;
@@ -93,6 +100,7 @@ Deno.serve(async (req: Request) => {
     const { data: schedRows } = await sb
       .from("schedule_games")
       .select("*")
+      .eq("league_id", league_id)
       .or(`home_team.eq.${playerRow.team},away_team.eq.${playerRow.team}`)
       .order("tipoff_utc", { ascending: true });
 
@@ -119,11 +127,11 @@ Deno.serve(async (req: Request) => {
         team: playerRow.team,
         fc_bc: playerRow.fc_bc,
         photo: playerRow.photo,
-        salary: playerRow.salary,
-        jersey: playerRow.jersey,
+        salary: salaryRaw > 0 ? salaryRaw : null,
+        jersey: playerRow.jersey || null,
         pos: playerRow.pos,
-        height: playerRow.height,
-        weight: playerRow.weight,
+        height: playerRow.height || null,
+        weight: playerRow.weight || null,
         age: calcAgeFromDob(playerRow.dob) || playerRow.age,
         dob: playerRow.dob,
         exp: playerRow.exp,
