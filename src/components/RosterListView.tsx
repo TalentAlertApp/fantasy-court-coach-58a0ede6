@@ -7,6 +7,8 @@ import { useUpcomingByTeam, getTeamGameweekSlots, type UpcomingGame } from "@/ho
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getCurrentGameday } from "@/lib/deadlines";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
+import { useLeague } from "@/contexts/LeagueContext";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -24,6 +26,8 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   const { data: upcomingByTeam } = useUpcomingByTeam();
   const { data: difficultyMap } = useTeamDifficultyMap();
   const currentGw = getCurrentGameday().gw;
+  const { league } = useLeague();
+  const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -86,7 +90,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
     <div className="relative space-y-4">
       {/* Fixed centered NBA watermark — stays put while inner content scrolls */}
       <img
-        src={nbaLogo}
+        src={leagueLogo}
         alt=""
         aria-hidden
         className="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[14vw] max-w-[220px] opacity-[0.05] z-0 select-none"
