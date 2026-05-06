@@ -26,6 +26,7 @@ interface PlayerCardProps {
   compact?: boolean;
   upcoming?: (UpcomingGame | null)[];
   difficultyMap?: Record<string, BIQTeamDifficulty>;
+  onSlotClick?: (g: UpcomingGame) => void;
 }
 
 function formatShortName(fullName: string): string {
@@ -41,26 +42,30 @@ function formatShortName(fullName: string): string {
  * of the opponent (red = elite, orange = tough, blue = neutral, green = easy).
  */
 function OpponentSlot({
-  day, ringColor, title, size = "md",
+  day, ringColor, title, size = "md", onSlotClick,
 }: {
   day: UpcomingGame | null;
   ringColor?: string;
   title?: string;
   size?: "sm" | "md";
+  onSlotClick?: (g: UpcomingGame) => void;
 }) {
   const dim = size === "md" ? "w-7 h-7" : "w-5 h-5";
   const inner = size === "md" ? "w-5 h-5" : "w-3.5 h-3.5";
   const ring = ringColor ?? "hsl(var(--border))";
   const logo = day ? getTeamLogo(day.opponent) : null;
+  const clickable = !!day && !!onSlotClick;
   return (
     <div
-      className={`${dim} rounded-full flex items-center justify-center bg-background/60 backdrop-blur-sm transition-transform hover:scale-110`}
+      role={clickable ? "button" : undefined}
+      onClick={clickable ? (e) => { e.stopPropagation(); onSlotClick!(day!); } : undefined}
+      className={`${dim} relative z-10 group/slot rounded-full flex items-center justify-center bg-background/60 backdrop-blur-sm overflow-visible ${clickable ? "cursor-pointer hover:z-30" : ""}`}
       style={{ border: `2px solid ${ring}`, boxShadow: day ? `0 0 0 1px hsl(var(--background))` : undefined }}
       title={title}
     >
       {day ? (
         logo ? (
-          <img src={logo} alt={day.opponent} className={`${inner} object-contain`} />
+          <img src={logo} alt={day.opponent} className={`${inner} object-contain transition-transform duration-200 origin-center group-hover/slot:scale-[1.9] group-hover/slot:-translate-y-0.5 group-hover/slot:drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]`} />
         ) : (
           <span className="text-[7px] font-bold text-foreground">{day.opponent}</span>
         )
@@ -73,7 +78,7 @@ function OpponentSlot({
 
 export default function PlayerCard({
   player, isCaptain, onClick, onSetCaptain, onSwap, draggable,
-  onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming, difficultyMap,
+  onDragStart, onDragOver, onDrop, onDragEnd, variant, compact, upcoming, difficultyMap, onSlotClick,
 }: PlayerCardProps) {
   const { core } = player;
   const isFc = core.fc_bc === "FC";
@@ -164,7 +169,7 @@ export default function PlayerCard({
                 <div className="flex items-center gap-1 shrink-0">
                   {slots.map((day, i) => {
                     const meta = slotFor(day);
-                    return <OpponentSlot key={i} day={day} ringColor={meta.ringColor} title={meta.title} size="sm" />;
+                    return <OpponentSlot key={i} day={day} ringColor={meta.ringColor} title={meta.title} size="sm" onSlotClick={onSlotClick} />;
                   })}
                 </div>
               )}
@@ -267,7 +272,7 @@ export default function PlayerCard({
         <div className="flex items-center justify-center gap-1 mt-2 z-10">
           {slots.map((day, i) => {
             const meta = slotFor(day);
-            return <OpponentSlot key={i} day={day} ringColor={meta.ringColor} title={meta.title} size="md" />;
+            return <OpponentSlot key={i} day={day} ringColor={meta.ringColor} title={meta.title} size="md" onSlotClick={onSlotClick} />;
           })}
         </div>
       )}

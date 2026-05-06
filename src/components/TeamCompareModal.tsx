@@ -9,6 +9,7 @@ import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import nbaLogo from "@/assets/nba-logo.svg";
+import TeamModal from "@/components/TeamModal";
 
 interface TeamCompareModalProps {
   teamA: string | null;
@@ -44,15 +45,20 @@ function MetricRow({
   );
 }
 
-function TeamHeader({ tricode, side, rank, conf }: { tricode: string; side: "L" | "R"; rank?: number; conf?: string }) {
+function TeamHeader({ tricode, side, rank, conf, onOpen }: { tricode: string; side: "L" | "R"; rank?: number; conf?: string; onOpen?: (t: string) => void }) {
   const team = getTeamByTricode(tricode);
   return (
-    <div className={`flex items-center gap-3 ${side === "R" ? "flex-row-reverse text-right" : ""}`}>
-      <div className="shrink-0 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 p-2 shadow-[0_4px_16px_-6px_hsl(var(--primary)/0.4)]">
-        <img src={team?.logo} alt={team?.name ?? tricode} className="w-14 h-14 object-contain" />
+    <button
+      type="button"
+      onClick={() => onOpen?.(tricode)}
+      className={`flex items-center gap-3 group ${side === "R" ? "flex-row-reverse text-right" : ""} transition-opacity hover:opacity-90 cursor-pointer`}
+      title={`Open ${team?.name ?? tricode}`}
+    >
+      <div className="shrink-0 rounded-xl bg-background/60 backdrop-blur-sm border border-border/50 p-2 shadow-[0_4px_16px_-6px_hsl(var(--primary)/0.4)] group-hover:border-primary/50 transition-colors">
+        <img src={team?.logo} alt={team?.name ?? tricode} className="w-14 h-14 object-contain transition-transform group-hover:scale-105" />
       </div>
       <div className="min-w-0">
-        <div className="font-heading font-black text-lg uppercase tracking-tight leading-tight truncate">
+        <div className="font-heading font-black text-lg uppercase tracking-tight leading-tight truncate group-hover:text-primary transition-colors">
           {team?.name ?? tricode}
         </div>
         <div className={`mt-1 flex items-center gap-1.5 ${side === "R" ? "justify-end" : ""}`}>
@@ -65,13 +71,14 @@ function TeamHeader({ tricode, side, rank, conf }: { tricode: string; side: "L" 
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
 export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: TeamCompareModalProps) {
   const { standingsByTeam, isLoading: standingsLoading } = useStandingsContext();
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
+  const [openTricode, setOpenTricode] = useState<string | null>(null);
 
   const { data: h2h, isLoading: h2hLoading } = useQuery({
     queryKey: ["team-compare-h2h", teamA, teamB],
@@ -148,7 +155,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
               {teamAObj?.name ?? teamA} vs {teamBObj?.name ?? teamB}
             </DialogTitle>
             <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-              <TeamHeader tricode={teamA} side="L" rank={confRank[teamA]} conf={aRow?.conference} />
+              <TeamHeader tricode={teamA} side="L" rank={confRank[teamA]} conf={aRow?.conference} onOpen={setOpenTricode} />
               <div className="flex flex-col items-center gap-1">
                 <Swords className="h-6 w-6 text-[hsl(var(--nba-yellow))]" />
                 <div className="text-[10px] font-heading uppercase tracking-[0.25em] text-muted-foreground">Compare</div>
@@ -160,7 +167,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                   </div>
                 )}
               </div>
-              <TeamHeader tricode={teamB} side="R" rank={confRank[teamB]} conf={bRow?.conference} />
+              <TeamHeader tricode={teamB} side="R" rank={confRank[teamB]} conf={bRow?.conference} onOpen={setOpenTricode} />
             </div>
           </DialogHeader>
 
@@ -279,6 +286,11 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
         game={selectedGame}
         open={selectedGame !== null}
         onOpenChange={(o) => { if (!o) setSelectedGame(null); }}
+      />
+      <TeamModal
+        tricode={openTricode}
+        open={openTricode !== null}
+        onOpenChange={(o) => { if (!o) setOpenTricode(null); }}
       />
     </>
   );

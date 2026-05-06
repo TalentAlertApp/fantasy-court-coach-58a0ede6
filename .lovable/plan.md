@@ -1,50 +1,63 @@
-# Polish: Roster slots, FP picker, Compare modal & watermarks
+## 1) GameDetailModal — shorter header
 
-## 1) My Roster
+`src/components/GameDetailModal.tsx`
+- Outer wrapper `p-4` → `px-4 pt-3 pb-2`.
+- Drop the title row entirely (keep `DialogTitle` as `sr-only` for a11y) — the matchup line below is enough.
+- Team rows `h-16` → `h-12`; team-name text `text-base` → `text-sm`; watermark `h-20 w-20` → `h-16 w-16`.
+- Score `text-2xl` → `text-xl`; outer matchup `py-3` → `py-1.5`.
+- Action chips: `py-1` → `py-0.5`, gap `gap-2` → `gap-1.5`. Recap link `py-1.5` → `py-1`, `pt-1` wrapper → `pt-0.5`.
 
-### a) Court — bench width (no clipped slots)
-`RosterCourtView.tsx`: widen bench column from `w-72` to `w-80` (or `w-[22rem]`) so the 7 opponent slots in `PlayerCard` bench variant fit on one line. The court area uses `flex-1`, so it auto-shrinks.
+## 2) TeamCompareModal — wire team name + badge → TeamModal
 
-### b) List — opponent strip placement & team badge order
-`PlayerRow.tsx` (player cell):
-- Reorder team line to: **logo → tricode → opponent slots**, where the slots get a left margin (`ml-3`) so they sit visibly apart from the team details (currently `ml-1`, too tight).
-- Move `{teamLogo}` to render **before** `{core.team}` text.
+`src/components/TeamCompareModal.tsx`
+- Add internal state `const [openTricode, setOpenTricode] = useState<string | null>(null)`.
+- In `TeamHeader`, wrap the badge container and team-name in a single `<button>` that calls `onOpen(tricode)` (new prop). Add hover styling (cursor-pointer, hover:opacity-90).
+- At the bottom, render `<TeamModal tricode={openTricode} open={!!openTricode} onOpenChange={(o)=>!o && setOpenTricode(null)} />` (lazy import to avoid cycles if needed).
+- Keep the existing GameDetailModal mount.
 
-### c) Opponent badges — tooltip polish (Court + List)
-Both `PlayerCard.tsx` (`slotFor`) and `PlayerRow.tsx` (inline tooltip):
-- Empty day: title = `"No game scheduled"` (currently `undefined`).
-- Home label: drop the `"vs"` prefix → just `OPP` (e.g. `UTA · Sun 12 Apr · 21:30 · Easy`). Away keeps `@OPP`.
-- Append difficulty score when known: `"… · Easy (62)"` using the same `difficultyMap[opp].label` + `score`.
-- Centralize via the existing `difficultyTooltip` helper in `lib/ballers-iq/difficultyColor.ts` (extend it: `difficultyTooltip(opp, isHome, label, score, tipoffLabel)` and have it return `"OPP · …"` when home, `"@OPP · …"` when away; for null day return `"No game scheduled"`).
+## 3) Roster opponent slots
 
-### d) List view watermark too big
-`RosterListView.tsx`: shrink the fixed NBA logo from `w-[30vw] max-w-[480px] opacity-[0.04]` → `w-[14vw] max-w-[220px] opacity-[0.05]`.
+### 3a) Pop-out hover effect
 
-## 2) ScoringPage — FP Timeline picker
+`src/components/PlayerCard.tsx` (`OpponentSlot`) and the inline slot in `src/components/PlayerRow.tsx`:
+- Outer round container: add `overflow-visible relative group/slot` and remove the existing `hover:scale-110` on the wrapper.
+- Inner `<img>` logo: `transition-transform duration-200 group-hover/slot:scale-[1.9] group-hover/slot:-translate-y-0.5 group-hover/slot:drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] group-hover/slot:z-30 origin-center`.
+- Add `relative z-10` on the slot so the popped logo floats above sibling slots.
 
-`ScoringPage.tsx` (lines 628-684):
-- **Compact card**: reduce photo from `w-12 h-12` → `w-9 h-9`, ring padding `p-[2px]` → `p-[1.5px]`, vertical padding `py-2` → `py-1.5`, name `text-sm` → `text-xs`. Watermark shrink `h-16 w-16` → `h-12 w-12`.
-- **Scrollable list**: wrap the `space-y-1.5` block in a `max-h-[480px] overflow-y-auto pr-1` container so all 10 fit and scroll cleanly inside the popover.
-- **FC/BC chip color**: replace the plain `{p.team} · {p.fc_bc}` text with a real `Badge` using `variant={p.fc_bc==='FC'?'destructive':'default'}` (same red/blue scheme used in `PlayerCard`/`PlayerRow`).
+### 3b) Click slot → open GameDetailModal
 
-## 3) Team modal — Compare dropdown not scrolling
+Plumb a `gameId` (and a few schedule fields) down so the roster can render `GameDetailModal`.
 
-`TeamModal.tsx` line 181: the popover uses `max-h-[60vh] overflow-y-auto` directly on `PopoverContent`, but Radix Popover content inside Dialog can swallow wheel events. Fix:
-- Replace inline overflow with a nested wrapper: `<PopoverContent align="end" className="w-56 p-2"><div className="max-h-[60vh] overflow-y-auto pr-1">…</div></PopoverContent>`.
-- Add `onWheel={(e)=>e.stopPropagation()}` on the scroll wrapper to prevent the underlying Dialog ScrollArea from intercepting the wheel.
+`src/hooks/useUpcomingByTeam.ts`
+- Extend select to: `game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url`.
+- Add those fields onto `UpcomingGame` (all optional except `game_id`). Both `getTeamUpcoming` and `getTeamGameweekSlots` already pass through whole `UpcomingGame`s — no signature change needed.
 
-## 4) Team Compare modal — watermark on Standings card
+`src/pages/RosterPage.tsx`
+- Add `const [gameDetail, setGameDetail] = useState<GameDetailGame | null>(null);`
+- Pass `onSlotClick={(g) => setGameDetail({...})}` to both `RosterCourtView` and `RosterListView`.
+- Mount `<GameDetailModal game={gameDetail} open={!!gameDetail} onOpenChange={(o)=>!o && setGameDetail(null)} />`.
 
-`TeamCompareModal.tsx` (Standings & Form section): wrap the metrics card with `relative overflow-hidden` and add an absolutely-positioned, centered NBA logo `<img src={nbaLogo} … className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.05] select-none" />` behind the rows (`relative z-10` on the rows wrapper).
+`src/components/RosterCourtView.tsx` and `RosterListView.tsx`
+- Add `onSlotClick?: (g: UpcomingGame) => void` prop and forward to `PlayerCard` / `PlayerRow`.
 
-## Files touched
-- `src/components/RosterCourtView.tsx`
-- `src/components/RosterListView.tsx`
-- `src/components/PlayerCard.tsx`
-- `src/components/PlayerRow.tsx`
-- `src/lib/ballers-iq/difficultyColor.ts` (extend `difficultyTooltip`)
-- `src/pages/ScoringPage.tsx`
-- `src/components/TeamModal.tsx`
-- `src/components/TeamCompareModal.tsx`
+`src/components/PlayerCard.tsx` and `PlayerRow.tsx`
+- Add `onSlotClick` prop. In each populated `OpponentSlot`/inline slot, wrap with `<button onClick={(e) => { e.stopPropagation(); day && onSlotClick?.(day); }}>` so the row click handler is not triggered. Empty slots stay non-interactive.
 
-No new deps, no schema changes.
+## 4) ScoringPage — picker fits 10 with no scroll
+
+`src/pages/ScoringPage.tsx` (lines ~628–690)
+- Make rows leaner: photo `w-9 h-9` → `w-7 h-7`, ring padding `p-[1.5px]` → `p-[1px]`, row padding `px-2.5 py-1.5` → `px-2 py-1`, gap `gap-2.5` → `gap-2`, watermark `h-12 w-12` → `h-10 w-10`.
+- Replace `max-h-[480px] overflow-y-auto` with `space-y-1`. Remove `overflow-y-auto` so popover sizes to content.
+- Cap visible players to 10 deterministically: `allPlayersInRoster.slice(0, 10)` only when not selected; or simpler, leave full list since roster is ≤10.
+
+## Files
+
+- `src/components/GameDetailModal.tsx` (header trim)
+- `src/components/TeamCompareModal.tsx` (team-name → TeamModal)
+- `src/hooks/useUpcomingByTeam.ts` (carry game_id + scoring/url fields)
+- `src/pages/RosterPage.tsx` (mount GameDetailModal + pass `onSlotClick`)
+- `src/components/RosterCourtView.tsx`, `src/components/RosterListView.tsx` (forward `onSlotClick`)
+- `src/components/PlayerCard.tsx`, `src/components/PlayerRow.tsx` (slot pop-out + click handler)
+- `src/pages/ScoringPage.tsx` (compact picker)
+
+No DB or schema changes; no new dependencies.
