@@ -326,6 +326,46 @@ export default function CommissionerPage() {
         salary: parseSalary(p.salary),
       }));
       setPendingPayload(payload);
+
+      // ---- League-aware validation ----
+      const validTricodes = new Set(
+        (leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS).map(t => t.tricode.toUpperCase())
+      );
+      const idSeen = new Map<string, number>();
+      const duplicateIds: string[] = [];
+      const invalidFcBc: string[] = [];
+      const badDob: string[] = [];
+      const blankName: string[] = [];
+      const unknownTeams = new Set<string>();
+      const detected = new Set<string>();
+      for (const p of players) {
+        idSeen.set(p.id, (idSeen.get(p.id) ?? 0) + 1);
+        const tri = (p.team || "").toUpperCase();
+        if (tri) {
+          detected.add(tri);
+          if (!validTricodes.has(tri)) unknownTeams.add(tri);
+        }
+        if (!p.name || !p.name.trim()) blankName.push(p.id);
+        if (!["FC", "BC"].includes((p.fc_bc || "").toUpperCase())) invalidFcBc.push(p.id);
+        if (p.dob && isNaN(Date.parse(p.dob))) badDob.push(p.id);
+      }
+      for (const [id, n] of idSeen) if (n > 1) duplicateIds.push(id);
+      const blockers: string[] = [];
+      if (duplicateIds.length) blockers.push(`${duplicateIds.length} duplicate ID(s)`);
+      if (blankName.length) blockers.push(`${blankName.length} blank NAME`);
+      if (invalidFcBc.length) blockers.push(`${invalidFcBc.length} invalid FC_BC (must be FC or BC)`);
+      if (unknownTeams.size) blockers.push(`${unknownTeams.size} unknown TEAM code(s) for ${leagueCode.toUpperCase()}`);
+      setPlayerValidation({
+        rowCount: players.length,
+        duplicateIds: duplicateIds.slice(0, 10),
+        invalidFcBc: invalidFcBc.slice(0, 10),
+        badDob: badDob.slice(0, 10),
+        blankName: blankName.slice(0, 10),
+        unknownTeams: Array.from(unknownTeams),
+        detectedTeams: Array.from(detected).sort(),
+        expectedRows: leagueCode === "wnba" ? 255 : undefined,
+        blockers,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Parse failed: ${msg}`);
@@ -335,6 +375,10 @@ export default function CommissionerPage() {
 
   const handleConfirmImport = async () => {
     if (!pendingPayload) return;
+    if (playerValidation && playerValidation.blockers.length > 0) {
+      toast.error(`Import blocked: ${playerValidation.blockers.join(", ")}`);
+      return;
+    }
     setIsUploading(true);
     setLastResult(null);
     try {
