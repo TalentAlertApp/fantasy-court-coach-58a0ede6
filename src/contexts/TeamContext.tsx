@@ -3,11 +3,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 
+export type TeamRecord = {
+  id: string;
+  name: string;
+  description: string | null;
+  league_code?: "nba" | "wnba";
+  sport_league_id?: string | null;
+  owner_id?: string | null;
+};
+
 interface TeamContextValue {
-  teams: { id: string; name: string; description: string | null }[];
+  teams: TeamRecord[];
   selectedTeamId: string | null;
   setSelectedTeamId: (id: string) => void;
   defaultTeamId: string | null;
+  selectedTeam: TeamRecord | null;
   isLoading: boolean;
   isReady: boolean;
   isError: boolean;
@@ -18,6 +28,7 @@ const TeamContext = createContext<TeamContextValue>({
   selectedTeamId: null,
   setSelectedTeamId: () => {},
   defaultTeamId: null,
+  selectedTeam: null,
   isLoading: true,
   isReady: false,
   isError: false,
@@ -141,8 +152,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     queryClient.invalidateQueries({ queryKey: ["transactions"] });
   }, [queryClient]);
 
+  const selectedTeam: TeamRecord | null =
+    (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
+
   return (
-    <TeamContext.Provider value={{ teams, selectedTeamId, setSelectedTeamId, defaultTeamId, isLoading, isReady, isError }}>
+    <TeamContext.Provider value={{ teams, selectedTeamId, setSelectedTeamId, defaultTeamId, selectedTeam, isLoading, isReady, isError }}>
       {children}
     </TeamContext.Provider>
   );
