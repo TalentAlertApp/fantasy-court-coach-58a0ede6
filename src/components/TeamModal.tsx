@@ -7,8 +7,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Table2, BarChart3, Mic, ExternalLink, Tv2 } from "lucide-react";
-import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
+import { Table2, BarChart3, Mic, ExternalLink, Tv2, Swords } from "lucide-react";
+import { getTeamByTricode, getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import TeamCompareModal from "@/components/TeamCompareModal";
 import PlayerModal from "@/components/PlayerModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
@@ -27,6 +29,8 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
+  const [compareOpp, setCompareOpp] = useState<string | null>(null);
+  const [comparePickerOpen, setComparePickerOpen] = useState(false);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
     queryKey: ["team-games", tricode],
@@ -157,6 +161,35 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                   </span>
                 </div>
               </div>
+              {tricode && (
+                <Popover open={comparePickerOpen} onOpenChange={setComparePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <button
+                      className="shrink-0 ml-auto inline-flex items-center gap-1 rounded-lg border border-border/60 bg-background/60 backdrop-blur-sm px-2 py-1 text-[10px] font-heading uppercase tracking-wider text-muted-foreground hover:text-foreground hover:border-primary/60 transition-colors"
+                      title="Compare with another team"
+                    >
+                      <Swords className="h-3.5 w-3.5" />
+                      Compare
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-56 p-2 max-h-[60vh] overflow-y-auto">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 pb-1">vs…</div>
+                    <div className="grid grid-cols-1 gap-0.5">
+                      {NBA_TEAMS.filter(t => t.tricode !== tricode).map(t => (
+                        <button
+                          key={t.tricode}
+                          onClick={() => { setCompareOpp(t.tricode); setComparePickerOpen(false); }}
+                          className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-accent text-left"
+                        >
+                          <img src={t.logo} alt="" className="w-5 h-5 object-contain" />
+                          <span className="text-xs font-heading uppercase">{t.tricode}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{t.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </DialogHeader>
 
