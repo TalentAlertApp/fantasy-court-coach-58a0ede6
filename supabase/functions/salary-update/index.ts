@@ -24,13 +24,18 @@ serve(async (req: Request) => {
 
     const playerIds = updates.map(u => u.player_id);
 
-    // Get current fp values for recalc
+    // Get current fp values for recalc + league guard.
     const { data: players } = await sb
       .from("players")
-      .select("id, fp_pg_t, fp_pg5")
+      .select("id, fp_pg_t, fp_pg5, league_id")
       .in("id", playerIds);
 
-    const fpMap = new Map((players ?? []).map(p => [p.id, { fp: p.fp_pg_t, fp5: p.fp_pg5 }]));
+    // WNBA salaries are owned by the wnba-salary-recalc function (derived
+    // from EXP). Block writes here so this endpoint can never overwrite them.
+    const { data: wnbaRow } = await sb.from("leagues").select("id").eq("code", "wnba").maybeSingle();
+    const wnbaId = wnbaRow?.id ?? null;
+
+    const fpMap = new Map((players ?? []).map((p: any) => [p.id, { fp: p.fp_pg_t, fp5: p.fp_pg5, league_id: p.league_id }]));
 
     let updated = 0, recalculated = 0, skipped = 0;
     const notes: string[] = [];
@@ -39,6 +44,10 @@ serve(async (req: Request) => {
       const salary = (u.salary != null && u.salary > 0) ? u.salary : null;
       const fp = fpMap.get(u.player_id);
       if (!fp) { skipped++; notes.push(`Player ${u.player_id} not found`); continue; }
+      if (wnbaId && (fp as any).league_id === wnbaId) {
+        skipped++; notes.push(`Player ${u.player_id} is WNBA — managed by wnba-salary-recalc`);
+        continue;
+      }
 
       const value_t = salary ? round2(fp.fp / salary) : 0;
       const value5 = salary ? round2(fp.fp5 / salary) : 0;
