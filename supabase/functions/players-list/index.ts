@@ -147,14 +147,14 @@ serve(async (req: Request) => {
       const blk5 = s ? avg(s.last5_blk) : Number(p.blk5);
       const fp5 = s ? avg(s.last5_fp) : Number(p.fp_pg5);
 
-      // TBD-safe salary: stored as 0 in DB → expose as null when 0
-      const rawSalary = Number(p.salary);
-      const salary = rawSalary > 0 ? rawSalary : null;
-      const value  = salary && salary > 0 ? fp  / salary : 0;
-      const value5 = salary && salary > 0 ? fp5 / salary : 0;
+      // TBD-safe salary: 0 in DB means "TBD" — emit 0 on the wire (schema is
+      // strict number) and let the UI render "TBD". value/value5 are 0 too.
+      const salary = Number(p.salary) || 0;
+      const value  = salary > 0 ? fp  / salary : 0;
+      const value5 = salary > 0 ? fp5 / salary : 0;
 
       return {
-        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null, weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0, dob: p.dob || null, exp: p.exp || 0, college: p.college || null, league_code: leagueCode },
+        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null, weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0, dob: p.dob || null, exp: p.exp || 0, college: p.college || null },
         season: { gp, mpg, pts, reb, ast, stl, blk, fp,
           total_mp: s ? s.total_mp : 0, total_pts: s ? s.total_pts : 0,
           total_reb: s ? s.total_reb : 0, total_ast: s ? s.total_ast : 0,
@@ -190,7 +190,7 @@ serve(async (req: Request) => {
 
     const count = items.length;
     const sortKeyMap: Record<string, (p: any) => number> = {
-      salary: (p) => p.core.salary ?? -Infinity,
+      salary: (p) => p.core.salary,
       fp: (p) => p.season.fp, fp5: (p) => p.last5.fp5,
       value: (p) => p.computed.value, value5: (p) => p.computed.value5,
       stocks5: (p) => p.computed.stocks5, delta_fp: (p) => p.computed.delta_fp,
@@ -199,11 +199,11 @@ serve(async (req: Request) => {
     const sortFn = sortKeyMap[sort] || sortKeyMap.salary;
     items.sort((a: any, b: any) => {
       const av = sortFn(a), bv = sortFn(b);
-      // Push TBD/null salaries to the bottom regardless of order
+      // Push TBD salaries (0) to the bottom regardless of asc/desc
       if (sort === "salary") {
-        const aNull = a.core.salary == null, bNull = b.core.salary == null;
-        if (aNull && !bNull) return 1;
-        if (!aNull && bNull) return -1;
+        const aTbd = a.core.salary === 0, bTbd = b.core.salary === 0;
+        if (aTbd && !bTbd) return 1;
+        if (!aTbd && bTbd) return -1;
       }
       return order === "asc" ? av - bv : bv - av;
     });
