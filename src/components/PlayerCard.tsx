@@ -261,18 +261,35 @@ export default function PlayerCard({
       {upcoming && upcomingDays.length > 0 && (
         <div className="flex flex-col items-center gap-0.5 mt-1.5 z-10">
           {nextGame && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm">
+            <div
+              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/50 backdrop-blur-sm"
+              title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+            >
               <span className="text-[8px] font-heading font-bold uppercase tracking-wider text-white/70">Next</span>
               <span className="text-[10px] font-heading font-bold text-white">
                 {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
               </span>
-              <OpponentBadge tricode={nextGame.opponent} size="sm" />
+              <OpponentBadge
+                tricode={nextGame.opponent}
+                size="sm"
+                title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+              />
             </div>
           )}
           <div className="flex items-center gap-0.5">
             {Array.from({ length: 6 }, (_, i) => upcomingDays[i] ?? null).map((day, i) => (
-              <div key={i} className="flex items-center justify-center w-6 h-6 bg-black/30 rounded" title={day ? `${day.isHome ? "vs" : "@"}${day.opponent}` : undefined}>
-                {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[6px] text-white/30">—</span>}
+              <div
+                key={i}
+                className="flex items-center justify-center w-6 h-6 bg-black/30 rounded"
+                title={day ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}` : undefined}
+              >
+                {day ? (
+                  <OpponentBadge
+                    tricode={day.opponent}
+                    size="md"
+                    title={`${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`}
+                  />
+                ) : <span className="text-[6px] text-white/30">—</span>}
               </div>
             ))}
           </div>
