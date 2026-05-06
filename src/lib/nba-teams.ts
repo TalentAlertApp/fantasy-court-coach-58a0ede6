@@ -52,18 +52,43 @@ const NAME_TO_TRICODE: Record<string, string> = {
   "toronto": "TOR", "utah": "UTA", "washington": "WAS",
 };
 
-/** Look up a team by tricode (e.g. "LAL") — case-insensitive */
-export function getTeamByTricode(tricode: string): NbaTeam | undefined {
+import { getWnbaTeamByTricode, getWnbaTeamLogo, WNBA_TEAMS } from "@/lib/wnba-teams";
+import { getCurrentLeague, type LeagueCode } from "@/contexts/LeagueContext";
+
+/** Look up a team by tricode (e.g. "LAL") — case-insensitive. League-aware. */
+export function getTeamByTricode(tricode: string, league?: LeagueCode): NbaTeam | undefined {
+  const lg = league ?? getCurrentLeague();
+  if (lg === "wnba") {
+    const w = getWnbaTeamByTricode(tricode);
+    if (w) return { id: w.id, name: w.name, tricode: w.tricode, logo: w.logo, primaryColor: w.primaryColor };
+    return undefined;
+  }
   return NBA_TEAMS.find((t) => t.tricode.toUpperCase() === tricode.toUpperCase());
 }
 
-/** Get team logo URL by tricode or city/short name (e.g. "LAL", "Dallas", "LA Lakers") */
-export function getTeamLogo(teamStr: string): string | undefined {
-  const byTricode = getTeamByTricode(teamStr);
+/** Get team logo URL — league-aware. Falls back across leagues if not found. */
+export function getTeamLogo(teamStr: string, league?: LeagueCode): string | undefined {
+  if (!teamStr) return undefined;
+  const lg = league ?? getCurrentLeague();
+  if (lg === "wnba") {
+    const w = getWnbaTeamLogo(teamStr);
+    if (w) return w;
+    const lower = teamStr.toLowerCase();
+    const m = WNBA_TEAMS.find((t) => t.name.toLowerCase().includes(lower));
+    if (m) return m.logo;
+    // fall through to NBA in case data is mislabelled
+  }
+  const byTricode = NBA_TEAMS.find((t) => t.tricode.toUpperCase() === teamStr.toUpperCase());
   if (byTricode) return byTricode.logo;
   const tricode = NAME_TO_TRICODE[teamStr.toLowerCase()];
-  if (tricode) return getTeamByTricode(tricode)?.logo;
+  if (tricode) return NBA_TEAMS.find((t) => t.tricode === tricode)?.logo;
   const lower = teamStr.toLowerCase();
   const match = NBA_TEAMS.find((t) => t.name.toLowerCase().includes(lower));
   return match?.logo;
+}
+
+/** Display name (full) — league-aware. */
+export function getTeamDisplayName(teamStr: string, league?: LeagueCode): string {
+  const t = getTeamByTricode(teamStr, league);
+  return t?.name ?? teamStr;
 }
