@@ -19,6 +19,8 @@ import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
 import PlayerPickerDialog from "@/components/PlayerPickerDialog";
+import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -77,6 +79,24 @@ export default function RosterPage() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [gameDetail, setGameDetail] = useState<GameDetailGame | null>(null);
+
+  const openGameFromSlot = useCallback((g: UpcomingGame) => {
+    if (!g.gameId || !g.homeTeam || !g.awayTeam) return;
+    setGameDetail({
+      game_id: g.gameId,
+      home_team: g.homeTeam,
+      away_team: g.awayTeam,
+      home_pts: g.homePts ?? 0,
+      away_pts: g.awayPts ?? 0,
+      status: g.status ?? null,
+      game_boxscore_url: g.boxscoreUrl ?? null,
+      game_charts_url: g.chartsUrl ?? null,
+      game_playbyplay_url: g.pbpUrl ?? null,
+      game_recap_url: g.recapUrl ?? null,
+      nba_game_url: g.nbaGameUrl ?? null,
+    });
+  }, []);
 
   const roster = rosterData?.roster;
   const allPlayers = playersData?.items ?? [];
@@ -674,6 +694,7 @@ export default function RosterPage() {
                 onSetCaptain={handleSetCaptain}
                 onDnDSwap={handleDnDSwap}
                 upcomingByTeam={upcomingByTeam}
+                onSlotClick={openGameFromSlot}
                 sidebarProps={{
                   gw: currentGameday.gw,
                   day: currentGameday.day,
@@ -687,7 +708,7 @@ export default function RosterPage() {
               />
             ) : (
               <>
-                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} />
+                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} />
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <RosterSidebar
                     gw={currentGameday.gw}
@@ -723,6 +744,11 @@ export default function RosterPage() {
             swapPlayerPosition={swapPlayerId && totalPlayers >= 10 ? swapPlayerPosition : null}
           />
           <WishlistModal open={wishlistOpen} onOpenChange={setWishlistOpen} onPlayerClick={setSelectedPlayerId} />
+          <GameDetailModal
+            game={gameDetail}
+            open={gameDetail !== null}
+            onOpenChange={(o) => !o && setGameDetail(null)}
+          />
         </>
       )}
     </div>

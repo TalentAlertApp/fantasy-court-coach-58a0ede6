@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { Users, Star } from "lucide-react";
 import courtBg from "@/assets/court-bg.png";
 import type { UpcomingByTeam } from "@/hooks/useUpcomingByTeam";
-import { getTeamGameweekSlots } from "@/hooks/useUpcomingByTeam";
+import { getTeamGameweekSlots, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { getRowPositions } from "@/lib/court-layout";
@@ -22,6 +22,7 @@ interface RosterCourtViewProps {
   onSetCaptain?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
   upcomingByTeam?: UpcomingByTeam;
+  onSlotClick?: (g: UpcomingGame) => void;
   sidebarProps?: {
     gw: number;
     day: number;
@@ -61,7 +62,7 @@ function getFormationPositions(starters: PlayerListItem[]) {
   return positioned;
 }
 
-export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
+export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, onSlotClick, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: difficultyMap } = useTeamDifficultyMap();
   const currentGw = getCurrentGameday().gw;
@@ -107,6 +108,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         variant="court"
         upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
         difficultyMap={difficultyMap}
+        onSlotClick={onSlotClick}
       />
     </div>
   );
@@ -130,6 +132,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         variant="bench"
         upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
         difficultyMap={difficultyMap}
+        onSlotClick={onSlotClick}
       />
     </div>
   );

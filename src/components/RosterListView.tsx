@@ -3,7 +3,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
 import React, { useState } from "react";
-import { useUpcomingByTeam, getTeamGameweekSlots } from "@/hooks/useUpcomingByTeam";
+import { useUpcomingByTeam, getTeamGameweekSlots, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getCurrentGameday } from "@/lib/deadlines";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -16,9 +16,10 @@ interface RosterListViewProps {
   onPlayerClick: (id: number) => void;
   onSwap?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
+  onSlotClick?: (g: UpcomingGame) => void;
 }
 
-export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap }: RosterListViewProps) {
+export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap, onSlotClick }: RosterListViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: upcomingByTeam } = useUpcomingByTeam();
   const { data: difficultyMap } = useTeamDifficultyMap();
@@ -77,6 +78,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       onDragEnd={handleDragEnd}
       weekSlots={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
       difficultyMap={difficultyMap}
+      onSlotClick={onSlotClick}
     />
   );
 
