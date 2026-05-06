@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Loader2, Shuffle } from "lucide-react";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 
 const SUGGESTIONS = [
   "Court Kings", "Splash Lab", "Triple Threat", "Glass Cleaners",
@@ -82,8 +83,12 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
                     ? "bg-accent text-accent-foreground border-accent"
                     : "bg-foreground/5 text-foreground/70 border-foreground/15 hover:border-accent"
                 }`}
+                aria-label={`Select ${c.toUpperCase()}`}
               >
-                {c.toUpperCase()}
+                <span className="inline-flex items-center gap-1.5">
+                  <LeagueLogoBadge league={c} size="sm" />
+                  {c.toUpperCase()}
+                </span>
               </button>
             );
           })}
