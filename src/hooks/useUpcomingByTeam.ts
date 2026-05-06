@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentGameday, DEADLINES } from "@/lib/deadlines";
+import { getCurrentGameday, DEADLINES, type Deadline } from "@/lib/deadlines";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 
 export interface UpcomingGame {
   date: string;    // YYYY-MM-DD
@@ -25,8 +26,9 @@ export type UpcomingByTeam = Record<string, UpcomingGame[]>;
 
 export function useUpcomingByTeam() {
   const { data: leagueId } = useLeagueId();
+  const { deadlines } = useLeagueDeadlines();
   return useQuery({
-    queryKey: ["upcoming-by-team", leagueId],
+    queryKey: ["upcoming-by-team", leagueId, deadlines.length],
     enabled: !!leagueId,
     queryFn: async () => {
       // Anchor "today" on the current gameday deadline rather than wall-clock.
@@ -34,7 +36,7 @@ export function useUpcomingByTeam() {
       // so we fall back to the current gameday's deadline date so upcoming
       // opponents still surface for the active GW.
       const realNow = new Date();
-      const gd = getCurrentGameday();
+      const gd = (deadlines.length > 0 ? getCurrentGamedayFrom(deadlines) : null) ?? getCurrentGameday();
       const gdDate = new Date(gd.deadline_utc);
       // Use the EARLIER of (real now, current gameday deadline) so we always
       // include the next gameday's games — even if dataset hasn't been bumped.
@@ -93,7 +95,11 @@ export function useUpcomingByTeam() {
 }
 
 /** Get upcoming games for a specific team, starting from today, max 7 entries */
-export function getTeamUpcoming(map: UpcomingByTeam | undefined, teamTricode: string): (UpcomingGame | null)[] {
+export function getTeamUpcoming(
+  map: UpcomingByTeam | undefined,
+  teamTricode: string,
+  deadlines?: Deadline[],
+): (UpcomingGame | null)[] {
   if (!map) return Array(7).fill(null);
 
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -103,7 +109,7 @@ export function getTeamUpcoming(map: UpcomingByTeam | undefined, teamTricode: st
   // Anchor on the current gameday rather than wall-clock so we keep showing
   // upcoming opponents during off-season / dataset gaps.
   const realNow = new Date();
-  const gd = getCurrentGameday();
+  const gd = (deadlines && deadlines.length > 0 ? getCurrentGamedayFrom(deadlines) : null) ?? getCurrentGameday();
   const gdDate = new Date(gd.deadline_utc);
   const today = gdDate < realNow ? gdDate : realNow;
   const days: (UpcomingGame | null)[] = [];
@@ -146,8 +152,9 @@ export function getTeamGameweekSlots(
   map: UpcomingByTeam | undefined,
   teamTricode: string,
   gw: number,
+  deadlines: Deadline[] = DEADLINES,
 ): (UpcomingGame | null)[] {
-  const days = DEADLINES.filter((d) => d.gw === gw);
+  const days = deadlines.filter((d) => d.gw === gw);
   if (!map) return days.map(() => null);
 
   const fmt = new Intl.DateTimeFormat("en-CA", {

@@ -117,11 +117,6 @@ export default function TeamSwitcher() {
             </SelectItem>
           </SelectContent>
         </Select>
-        {selectedTeamId && (() => {
-          const t = teams.find((x: any) => x.id === selectedTeamId) as any;
-          return <LeagueLogoBadge league={t?.league_code ?? "nba"} size="sm" />;
-        })()}
-
         {selectedTeamId && (
           <div className="flex items-center gap-0.5">
             <Button

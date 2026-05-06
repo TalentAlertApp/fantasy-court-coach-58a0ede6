@@ -9,6 +9,10 @@ import type { UpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 import { getTeamGameweekSlots, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getCurrentGameday } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
+import { useLeague } from "@/contexts/LeagueContext";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import { getRowPositions } from "@/lib/court-layout";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -65,7 +69,10 @@ function getFormationPositions(starters: PlayerListItem[]) {
 export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, onSlotClick, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: difficultyMap } = useTeamDifficultyMap();
-  const currentGw = getCurrentGameday().gw;
+  const { deadlines } = useLeagueDeadlines();
+  const currentGw = (deadlines.length > 0 ? getCurrentGamedayFrom(deadlines)?.gw : undefined) ?? getCurrentGameday().gw;
+  const { league } = useLeague();
+  const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -106,7 +113,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         onDrop={(e) => handleDrop(e, p.core.id)}
         onDragEnd={handleDragEnd}
         variant="court"
-        upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
+        upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw, deadlines)}
         difficultyMap={difficultyMap}
         onSlotClick={onSlotClick}
       />
@@ -130,7 +137,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         onDrop={(e) => handleDrop(e, p.core.id)}
         onDragEnd={handleDragEnd}
         variant="bench"
-        upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
+        upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw, deadlines)}
         difficultyMap={difficultyMap}
         onSlotClick={onSlotClick}
       />
@@ -170,6 +177,13 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
               Starting 5
             </span>
           </div>
+
+          {/* League logo — top-right corner of the court */}
+          <img
+            src={leagueLogo}
+            alt={league === "wnba" ? "WNBA" : "NBA"}
+            className="absolute top-3 right-3 h-10 w-10 object-contain z-10 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] pointer-events-none select-none"
+          />
 
           {formation.map(({ player, style }) => (
             <div
