@@ -409,6 +409,7 @@ export default function CommissionerPage() {
     setPreview(null);
     setPendingPayload(null);
     setCorruptCount(0);
+    setPlayerValidation(null);
   };
 
   const handleDownload = async () => {
