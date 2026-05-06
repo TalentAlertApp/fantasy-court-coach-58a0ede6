@@ -681,6 +681,24 @@ export default function CommissionerPage() {
         </span>
       </div>
 
+      {/* League Selector — scopes Players & Schedule imports to this league */}
+      <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <Label className="text-sm font-semibold whitespace-nowrap">Import league:</Label>
+        <Select value={leagueCode} onValueChange={(v) => handleLeagueChange(v as "nba" | "wnba")}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="nba">NBA</SelectItem>
+            <SelectItem value="wnba">WNBA</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground">
+          Player & Schedule imports below apply <strong className="text-foreground">only</strong> to the selected league.
+          Replace = true will not affect the other league's data.
+        </span>
+      </div>
+
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 max-w-md">
           <TabsTrigger value="players">Players</TabsTrigger>
