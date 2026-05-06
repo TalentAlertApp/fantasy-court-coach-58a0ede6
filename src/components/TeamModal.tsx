@@ -441,12 +441,6 @@ function TeamBallersIQ({ tricode, played, upcoming, roster, onPlayerClick }: {
   return (
     <ScrollArea className="h-[50vh]">
       <div className="relative p-3 space-y-3">
-        <img
-          src={nbaLogo}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute top-2 right-2 h-16 w-auto opacity-10 select-none"
-        />
         <div className="rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.06] via-card to-card p-3">
           <p className="text-[10px] font-heading font-bold uppercase tracking-[0.18em] text-amber-400/90 mb-1">Team Read</p>
           <p className="text-sm leading-snug">{assessment.summary}</p>
