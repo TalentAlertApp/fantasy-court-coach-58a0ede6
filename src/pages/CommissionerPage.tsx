@@ -258,6 +258,30 @@ export default function CommissionerPage() {
   const [preview, setPreview] = useState<TsvPlayer[] | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any[] | null>(null);
   const [corruptCount, setCorruptCount] = useState(0);
+  const [playerValidation, setPlayerValidation] = useState<{
+    rowCount: number;
+    duplicateIds: string[];
+    invalidFcBc: string[];
+    badDob: string[];
+    blankName: string[];
+    unknownTeams: string[];
+    detectedTeams: string[];
+    expectedRows?: number;
+    blockers: string[];
+  } | null>(null);
+  const [scheduleValidation, setScheduleValidation] = useState<{
+    rowCount: number;
+    duplicateGameIds: string[];
+    unknownTeams: string[];
+    detectedTeams: string[];
+    perTeamCounts: Record<string, number>;
+    expectedRows?: number;
+    expectedTeams?: number;
+    expectedPerTeam?: number;
+    blockers: string[];
+  } | null>(null);
+  const [schedulePreview, setSchedulePreview] = useState<any[] | null>(null);
+  const [schedulePendingPayload, setSchedulePendingPayload] = useState<any[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const gameFileRef = useRef<HTMLInputElement>(null);
   const scheduleFileRef = useRef<HTMLInputElement>(null);
