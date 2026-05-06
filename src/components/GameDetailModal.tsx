@@ -5,9 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
-import { getTeamLogo } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { getVenue } from "@/lib/nba-venues";
 import PlayerModal from "@/components/PlayerModal";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 export interface GameDetailGame {
   game_id: string;
@@ -52,9 +55,12 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
   const [filterFcBc, setFilterFcBc] = useState<string | null>(null);
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
-
-  const awayLogo = getTeamLogo(game.away_team);
-  const homeLogo = getTeamLogo(game.home_team);
+  const { teams: leagueTeams } = useLeagueTeams();
+  const { league } = useLeague();
+  const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const awayLogo = logoFor(game.away_team);
+  const homeLogo = logoFor(game.home_team);
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   if (isLoading) {
     return (
@@ -90,7 +96,7 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
   return (
     <div className="relative border-t bg-muted/20">
       <img
-        src={nbaLogo}
+        src={watermarkLogo}
         alt=""
         aria-hidden
         className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
