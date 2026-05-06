@@ -520,6 +520,24 @@ Deno.serve(async (req) => {
       aiData.player_id = targetPlayerId;
     }
 
+    // Defense in depth: for explain-trade, splice the server-computed deltas
+    // into the response so the UI always shows authoritative numbers (the
+    // model has been observed claiming "0 FP delta" while metrics differ).
+    if (action === "explain-trade" && biqDeltas?.deltas) {
+      const d = biqDeltas.deltas;
+      aiData.fp_delta = d.fp_delta;
+      aiData.biq_delta = d.biq_delta;
+      aiData.salary_delta = d.salary_delta;
+      // If the AI summary contradicts the deltas, replace with deterministic line.
+      const sumStr = String(aiData.summary ?? "");
+      const claimsZero = /\b0\s*FP\s*delta\b/i.test(sumStr) || /\b0\s*BIQ\s*delta\b/i.test(sumStr);
+      const realDelta = Math.abs(d.fp_delta) > 0.05 || Math.abs(d.biq_delta) > 0.5;
+      if (claimsZero && realDelta) {
+        const sign = (n: number) => (n >= 0 ? "+" : "");
+        aiData.summary = `FP ${sign(d.fp_delta)}${d.fp_delta.toFixed(1)} · BIQ ${sign(d.biq_delta)}${d.biq_delta.toFixed(0)} · Salary ${sign(d.salary_delta)}$${d.salary_delta.toFixed(1)}M.`;
+      }
+    }
+
     // Defense in depth: for suggest-transfers, drop any move that violates HARD CONSTRAINTS.
     if (action === "suggest-transfers" && Array.isArray(aiData.moves)) {
       const playerById = new Map<number, any>();
