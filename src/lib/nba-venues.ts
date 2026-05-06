@@ -3,6 +3,8 @@ export interface VenueMeta {
   image: string;
 }
 
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
+
 // Home arena name + Wikimedia-hosted exterior/interior photo for each NBA team.
 // Images use Wikimedia Commons URLs (CC-licensed, hot-link friendly).
 export const NBA_VENUES: Record<string, VenueMeta> = {
@@ -42,16 +44,11 @@ export function getVenue(tricode: string): VenueMeta | null {
   if (!tricode) return null;
   const t = tricode.toUpperCase();
   if (NBA_VENUES[t]) return NBA_VENUES[t];
-  // League-aware fallback: when the active league is WNBA, resolve venue from
-  // the WNBA team catalog so /schedule cards still get the right backdrop.
-  try {
-    // Lazy require to avoid a hard cycle if anything imports this in NBA-only paths.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { WNBA_TEAMS } = require("@/lib/wnba-teams") as typeof import("@/lib/wnba-teams");
-    const w = WNBA_TEAMS.find((x) => x.tricode === t);
-    if (w?.venueImage || w?.venueName) {
-      return { name: w.venueName ?? "", image: w.venueImage ?? "" };
-    }
-  } catch { /* ignore */ }
+  // WNBA fallback: resolve venue from the WNBA team catalog so /schedule
+  // cards get the right backdrop in WNBA mode.
+  const w = WNBA_TEAMS.find((x) => x.tricode === t);
+  if (w?.venueImage || w?.venueName) {
+    return { name: w.venueName ?? "", image: w.venueImage ?? "" };
+  }
   return null;
 }
