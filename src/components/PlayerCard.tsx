@@ -125,7 +125,14 @@ export default function PlayerCard({
               {upcoming && (
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-[6px] font-heading font-bold text-muted-foreground uppercase">Next</span>
-                  {nextGame ? <OpponentBadge tricode={nextGame.opponent} size="md" /> : <span className="text-[7px] text-muted-foreground">—</span>}
+                  {nextGame ? (
+                    <span className="inline-flex items-center gap-0.5">
+                      <span className="text-[9px] font-heading font-bold text-foreground">
+                        {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
+                      </span>
+                      <OpponentBadge tricode={nextGame.opponent} size="sm" />
+                    </span>
+                  ) : <span className="text-[7px] text-muted-foreground">—</span>}
                 </div>
               )}
 
