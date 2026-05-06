@@ -6,7 +6,9 @@ import React, { useState } from "react";
 import { Users, Star } from "lucide-react";
 import courtBg from "@/assets/court-bg.png";
 import type { UpcomingByTeam } from "@/hooks/useUpcomingByTeam";
-import { getTeamUpcoming } from "@/hooks/useUpcomingByTeam";
+import { getTeamGameweekSlots } from "@/hooks/useUpcomingByTeam";
+import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
+import { getCurrentGameday } from "@/lib/deadlines";
 import { getRowPositions } from "@/lib/court-layout";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -61,6 +63,8 @@ function getFormationPositions(starters: PlayerListItem[]) {
 
 export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, sidebarProps }: RosterCourtViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const { data: difficultyMap } = useTeamDifficultyMap();
+  const currentGw = getCurrentGameday().gw;
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -101,7 +105,8 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         onDrop={(e) => handleDrop(e, p.core.id)}
         onDragEnd={handleDragEnd}
         variant="court"
-        upcoming={getTeamUpcoming(upcomingByTeam, p.core.team)}
+        upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
+        difficultyMap={difficultyMap}
       />
     </div>
   );
@@ -123,7 +128,8 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
         onDrop={(e) => handleDrop(e, p.core.id)}
         onDragEnd={handleDragEnd}
         variant="bench"
-        upcoming={getTeamUpcoming(upcomingByTeam, p.core.team)}
+        upcoming={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw)}
+        difficultyMap={difficultyMap}
       />
     </div>
   );
