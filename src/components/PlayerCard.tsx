@@ -127,11 +127,18 @@ export default function PlayerCard({
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-[6px] font-heading font-bold text-muted-foreground uppercase">Next</span>
                   {nextGame ? (
-                    <span className="inline-flex items-center gap-0.5">
+                    <span
+                      className="inline-flex items-center gap-0.5"
+                      title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+                    >
                       <span className="text-[9px] font-heading font-bold text-foreground">
                         {nextGame.isHome ? "vs" : "@"}{nextGame.opponent}
                       </span>
-                      <OpponentBadge tricode={nextGame.opponent} size="sm" />
+                      <OpponentBadge
+                        tricode={nextGame.opponent}
+                        size="sm"
+                        title={`${nextGame.isHome ? "vs" : "@"}${nextGame.opponent} · ${formatTipoffLabel(nextGame.tipoffUtc)}`}
+                      />
                     </span>
                   ) : <span className="text-[7px] text-muted-foreground">—</span>}
                 </div>
@@ -140,8 +147,18 @@ export default function PlayerCard({
               {upcoming && upcomingDays.length > 0 && (
                 <div className="flex items-center gap-0.5 shrink-0">
                   {upcomingDays.map((day, i) => (
-                    <div key={i} className="flex items-center justify-center w-5 h-5">
-                      {day ? <OpponentBadge tricode={day.opponent} size="md" /> : <span className="text-[5px] text-muted-foreground/40">—</span>}
+                    <div
+                      key={i}
+                      className="flex items-center justify-center w-5 h-5"
+                      title={day ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}` : undefined}
+                    >
+                      {day ? (
+                        <OpponentBadge
+                          tricode={day.opponent}
+                          size="md"
+                          title={`${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`}
+                        />
+                      ) : <span className="text-[5px] text-muted-foreground/40">—</span>}
                     </div>
                   ))}
                 </div>
