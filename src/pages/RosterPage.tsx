@@ -17,6 +17,7 @@ import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
 import RosterSidebar from "@/components/RosterSidebar";
 import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
+import { useRosterPlayerLogs } from "@/hooks/useRosterPlayerLogs";
 
 import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
