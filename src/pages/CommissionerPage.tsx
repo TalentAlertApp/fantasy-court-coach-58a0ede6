@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { apiFetch, importGameData, importSchedule } from "@/lib/api";
+import { apiFetch, importGameData, importGameDataLeague, importSchedule } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import {
@@ -516,7 +516,7 @@ export default function CommissionerPage() {
         const isFirst = b === 0;
         setGameProgress(`Importing batch ${b + 1}/${totalBatches} (${batch.length} rows)…`);
 
-        const result = await importGameData(batch, replaceGames && isFirst);
+        const result = await importGameDataLeague(batch, replaceGames && isFirst, leagueCode);
         totalGames += result.games_imported;
         totalLogs += result.player_logs_imported;
         if (result.errors?.length) totalErrors.push(...result.errors);

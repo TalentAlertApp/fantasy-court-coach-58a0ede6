@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { requireAdmin } from "../_shared/admin-guard.ts";
+import { readLeagueCodeFromBody, resolveLeagueId, type LeagueCode } from "../_shared/league.ts";
 
 interface CSVRow {
   week: number;
@@ -70,6 +71,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { rows, replace } = body;
+    const leagueCode: LeagueCode = readLeagueCodeFromBody(body);
     if (!rows || !Array.isArray(rows)) {
       return errorResponse("INVALID_INPUT", "rows array is required");
     }
@@ -79,16 +81,24 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Full replace mode: wipe player game tables (schedule is managed separately)
+    const leagueId = await resolveLeagueId(sb, leagueCode);
+
+    // Full replace mode: wipe player game tables for THIS LEAGUE only.
+    // Cross-league data is never touched.
     if (replace) {
-      await sb.from("player_last_game").delete().neq("player_id", -1);
-      await sb.from("player_game_logs").delete().neq("player_id", -1);
+      await sb.from("player_last_game").delete().eq("league_id", leagueId);
+      await sb.from("player_game_logs").delete().eq("league_id", leagueId);
     }
 
     const errors: string[] = [];
+    const skippedPlayers: Array<{ id: number; name: string }> = [];
 
-    // Get all players to validate player_ids
-    const { data: players } = await sb.from("players").select("id, team");
+    // Get league-scoped players to validate player_ids.
+    // Never import logs for a player that does not belong to the active league.
+    const { data: players } = await sb
+      .from("players")
+      .select("id, team")
+      .eq("league_id", leagueId);
     const playerMap = new Map((players || []).map((p: any) => [p.id, p.team]));
 
     // Group by games for schedule_games upsert
@@ -121,13 +131,15 @@ Deno.serve(async (req) => {
             away_pts: row.awayScore,
             status,
             nba_game_url: `https://www.nba.com/game/${row.gameId}`,
+            league_id: leagueId,
           });
         }
 
         // Validate player exists
         const playerTeam = playerMap.get(row.playerId);
         if (!playerTeam) {
-          errors.push(`Row #${idx + 1}: Player ID ${row.playerId} (${row.playerName}) not found in database`);
+          errors.push(`Row #${idx + 1}: Player ID ${row.playerId} (${row.playerName}) not found in ${leagueCode.toUpperCase()} players — skipped`);
+          skippedPlayers.push({ id: row.playerId, name: row.playerName });
           continue;
         }
 
@@ -150,6 +162,7 @@ Deno.serve(async (req) => {
           opp,
           matchup: home_away === "H" ? `vs ${opp}` : `@ ${opp}`,
           nba_game_url: `https://www.nba.com/game/${row.gameId}`,
+          league_id: leagueId,
         });
       } catch (rowErr) {
         const msg = rowErr instanceof Error ? rowErr.message : String(rowErr);
@@ -195,6 +208,7 @@ Deno.serve(async (req) => {
         .from("player_game_logs")
         .select("*")
         .eq("player_id", pid)
+        .eq("league_id", leagueId)
         .order("game_date", { ascending: false })
         .limit(1)
         .single();
@@ -206,6 +220,7 @@ Deno.serve(async (req) => {
         .from("schedule_games")
         .select("home_team, away_team, home_pts, away_pts")
         .eq("game_id", latestLog.game_id)
+        .eq("league_id", leagueId)
         .single();
 
       let result: string | null = null;
@@ -240,15 +255,60 @@ Deno.serve(async (req) => {
           blk: latestLog.blk,
           fp: latestLog.fp,
           nba_game_url: latestLog.nba_game_url,
+          league_id: leagueId,
         }, { onConflict: "player_id" });
 
       if (!lastGameErr) lastGameUpdated++;
     }
 
+    // Aggregate season + last5 fields per player (league-scoped only)
+    let aggregatesUpdated = 0;
+    for (const pid of playerIds) {
+      const { data: logs } = await sb
+        .from("player_game_logs")
+        .select("mp,pts,reb,ast,stl,blk,fp,game_date")
+        .eq("player_id", pid)
+        .eq("league_id", leagueId)
+        .order("game_date", { ascending: false });
+      if (!logs || logs.length === 0) continue;
+
+      const avg = (arr: any[], k: string) =>
+        arr.length ? arr.reduce((s, r) => s + Number(r[k] || 0), 0) / arr.length : 0;
+
+      const last5 = logs.slice(0, 5);
+      const update: Record<string, number> = {
+        gp: logs.length,
+        mpg: avg(logs, "mp"),
+        pts: avg(logs, "pts"),
+        reb: avg(logs, "reb"),
+        ast: avg(logs, "ast"),
+        stl: avg(logs, "stl"),
+        blk: avg(logs, "blk"),
+        fp_pg_t: avg(logs, "fp"),
+        mpg5: avg(last5, "mp"),
+        pts5: avg(last5, "pts"),
+        reb5: avg(last5, "reb"),
+        ast5: avg(last5, "ast"),
+        stl5: avg(last5, "stl"),
+        blk5: avg(last5, "blk"),
+        fp_pg5: avg(last5, "fp"),
+      };
+      const { error: aggErr } = await sb
+        .from("players")
+        .update(update)
+        .eq("id", pid)
+        .eq("league_id", leagueId);
+      if (!aggErr) aggregatesUpdated++;
+    }
+
     return okResponse({
+      league_code: leagueCode,
+      league_id: leagueId,
       games_imported: games.length,
       player_logs_imported: logsUpserted,
       player_last_game_updated: lastGameUpdated,
+      players_aggregated: aggregatesUpdated,
+      skipped_players: skippedPlayers.length > 0 ? skippedPlayers : undefined,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (e) {

@@ -364,6 +364,17 @@ export async function importGameData(rows: Array<{
   }));
 }
 
+/** POST /import-game-data (league-aware) */
+export async function importGameDataLeague(
+  rows: Parameters<typeof importGameData>[0],
+  replace = false,
+  league_code: "nba" | "wnba" = "nba",
+) {
+  return unwrap(await apiFetch("import-game-data", ImportGameDataResponseSchema, {
+    method: "POST", body: JSON.stringify({ rows, replace, league_code }),
+  }));
+}
+
 /** POST /import-schedule */
 export async function importSchedule(rows: Array<{
   gw: number; day: number; date: string; dayName: string; time: string;
