@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
 import { fetchScoringRules, formulaString } from "../_shared/scoring.ts";
 import { buildPlayerPack, buildRosterPack, buildMarketPack } from "../_shared/biq.ts";
+import { readLeagueCodeFromBody, resolveLeagueId, type LeagueCode } from "../_shared/league.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY_NBA")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -11,10 +12,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Scoring formula is injected at request time from the DB rules so this prompt
 // does NOT hardcode any per-stat weights. {{SCORING_FORMULA}} is replaced before send.
-const SYSTEM_PROMPT_TEMPLATE = `# NBA Fantasy Manager AI Coach (OpenAI)
+const SYSTEM_PROMPT_TEMPLATE = `# {{LEAGUE_NAME}} Fantasy Manager AI Coach (OpenAI)
 
 ## ROLE
-You are NBA Fantasy Manager AI Coach for a single private user.
+You are coaching a Fantasy {{LEAGUE_NAME}} team using the same scoring rules as Fantasy NBA.
+You are the {{LEAGUE_NAME}} Fantasy Manager AI Coach for a single private user.
 Produce actionable fantasy decisions: lineup optimization, captain choice, waiver pickups, trade ideas, category optimization, injury monitoring.
 
 ## SCORING RULE (GLOBAL CONSTANT)
@@ -35,14 +37,14 @@ These rules are immutable. Any move suggestion that violates ANY of them MUST be
 - Salary cap (in $M) = team_settings.salary_cap (default 100). After ANY proposed swap:
   total_salary_after = roster_salary_total - drop_salary + add_salary
   total_salary_after MUST be <= salary_cap.
-- Maximum 2 players from the same NBA team across the full 10-man roster. After each swap:
+- Maximum 2 players from the same {{LEAGUE_NAME}} team across the full 10-man roster. After each swap:
   team_distribution[add.team] (after applying the corresponding drop) MUST be <= 2.
 - 1 captain per gameweek = 2x FP.
 The internal payload includes: salary_cap, roster_salary_total, bank_remaining, team_distribution. USE them.
 
 ## DATA TRUTH HIERARCHY
 1) Internal app data (provided in developer message)
-2) Web search tool (real-time NBA news)
+2) Web search tool (real-time {{LEAGUE_NAME}} news)
 3) If unavailable, say so and use best-effort reasoning.
 NEVER present a number unless from internal payload or web search.
 
@@ -70,7 +72,11 @@ Use short tags: injury_questionable, minutes_volatility_high, role_uncertain, sc
 Keep content short, direct, decision-focused. No vague adjectives without data.
 
 ## SAFETY
-Do not fabricate stats, injuries, or schedules. If unsure, say so via notes or risk_flags.`;
+Do not fabricate stats, injuries, or schedules. If unsure, say so via notes or risk_flags.
+
+## LEAGUE STATE
+Active league: {{LEAGUE_NAME}}.
+{{PRESEASON_NOTE}}`;
 
 // Ballers.IQ index guidance — appended to every system prompt so OpenAI
 // reasons over the precomputed indexes instead of inventing generic advice.
@@ -103,13 +109,13 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "explain-trade": `Return JSON: { "verdict": "favorable"|"neutral"|"unfavorable", "summary": string, "pros": string[](1-5), "cons": string[](1-5), "risk_flags": string[], "confidence": number(0-1), "fp_delta": number, "value_delta": number, "schedule_impact": string }. Cite biq.deltas.fp_delta and biq.deltas.biq_delta in summary. Each pro/con <=14 words, anchored in a specific BIQ index. Use ONLY trade_outs/trade_ins.`,
 };
 
-async function fetchContext(sb: any, teamId?: string) {
+async function fetchContext(sb: any, teamId: string | undefined, leagueId: string) {
   const [playersRes, rosterRes, scheduleRes, settingsRes] = await Promise.all([
-    sb.from("players").select("*").order("fp_pg5", { ascending: false }).limit(200),
+    sb.from("players").select("*").eq("league_id", leagueId).order("fp_pg5", { ascending: false }).limit(200),
     teamId
       ? sb.from("roster").select("*").eq("team_id", teamId)
       : sb.from("roster").select("*"),
-    sb.from("schedule_games").select("*").order("gw").order("day").limit(50),
+    sb.from("schedule_games").select("*").eq("league_id", leagueId).order("gw").order("day").limit(50),
     teamId
       ? sb.from("team_settings").select("*").eq("team_id", teamId).maybeSingle()
       : Promise.resolve({ data: null }),
@@ -164,7 +170,9 @@ async function callOpenAI(
   action: string,
   contextPayload: string,
   extraInput?: string,
-  retryAttempt = false
+  retryAttempt = false,
+  leagueCode: LeagueCode = "nba",
+  preseason = false,
 ): Promise<any> {
   const schemaDesc = SCHEMA_DESCRIPTIONS[action];
   const devMessage = `ACTION: ${action}\n\nRESPONSE SCHEMA:\n${schemaDesc}\n\nINTERNAL DATA:\n${contextPayload}${extraInput ? `\n\nUSER INPUT:\n${extraInput}` : ""}${retryAttempt ? "\n\nPREVIOUS ATTEMPT FAILED VALIDATION. Return JSON only matching the schema above. No markdown. No extra keys. No wrapping in code blocks." : ""}`;
@@ -176,7 +184,14 @@ async function callOpenAI(
     const rules = await fetchScoringRules(sb);
     scoringFormula = formulaString(rules);
   } catch (_) { /* fall back to default */ }
-  const systemPrompt = SYSTEM_PROMPT_TEMPLATE.replace("{{SCORING_FORMULA}}", scoringFormula) + BIQ_GUIDANCE;
+  const leagueName = leagueCode === "wnba" ? "WNBA" : "NBA";
+  const preseasonNote = preseason
+    ? `${leagueName} season has not started yet. Many players have NO game logs, last-5 stats, or fp_pg5 yet — these will be 0 or null. Reason ONLY from salary, position (FC/BC), team, and schedule. Do NOT pretend last-5 stats exist. Acknowledge "pre-season" in notes.`
+    : "";
+  const systemPrompt = SYSTEM_PROMPT_TEMPLATE
+    .replaceAll("{{LEAGUE_NAME}}", leagueName)
+    .replace("{{SCORING_FORMULA}}", scoringFormula)
+    .replace("{{PRESEASON_NOTE}}", preseasonNote) + BIQ_GUIDANCE;
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -287,8 +302,13 @@ Deno.serve(async (req) => {
     console.log(`[ai-coach] action=${action} timestamp=${new Date().toISOString()}`);
 
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const leagueCode = readLeagueCodeFromBody(body);
+    const leagueId = await resolveLeagueId(sb, leagueCode);
     const { team_id, team_name } = await resolveTeam(req, sb);
-    const ctx = await fetchContext(sb, team_id);
+    const ctx = await fetchContext(sb, team_id, leagueId);
+    const preseason = (ctx.players ?? []).every((p: any) =>
+      Number(p.fp_pg5 ?? 0) === 0 && Number(p.fp_pg_t ?? 0) === 0 && Number(p.gp ?? 0) === 0
+    );
 
     const rosterPlayerIds = new Set<number>(ctx.roster.map((r: any) => r.player_id));
     const rosterSlots = ctx.roster.map((r: any) => ({
@@ -462,7 +482,7 @@ Deno.serve(async (req) => {
     // First attempt
     let aiData: any;
     try {
-      aiData = await callOpenAI(action, contextPayload, params.extraInput);
+      aiData = await callOpenAI(action, contextPayload, params.extraInput, false, leagueCode, preseason);
     } catch (e) {
       console.error("[ai-coach] OpenAI call failed:", e);
       return errorResponse("AI_CALL_FAILED", e instanceof Error ? e.message : "AI call failed");
@@ -475,7 +495,7 @@ Deno.serve(async (req) => {
     if (validationErrors.length > 0) {
       console.log(`[ai-coach] Retry: validation errors: ${validationErrors.join(", ")}`);
       try {
-        aiData = await callOpenAI(action, contextPayload, params.extraInput, true);
+        aiData = await callOpenAI(action, contextPayload, params.extraInput, true, leagueCode, preseason);
         validationErrors = validateShape(action, aiData);
       } catch (e) {
         console.error("[ai-coach] Retry failed:", e);
@@ -557,7 +577,7 @@ Deno.serve(async (req) => {
       if (validMoves.length === 0) {
         aiData.notes = Array.isArray(aiData.notes) ? aiData.notes : [];
         aiData.notes.unshift(
-          `No legal moves found within constraints (cap $${salary_cap}M, max 2 per NBA team, FC↔FC / BC↔BC). Bank remaining: $${bank_remaining.toFixed(1)}M.`
+          `No legal moves found within constraints (cap $${salary_cap}M, max 2 per ${leagueCode === "wnba" ? "WNBA" : "NBA"} team, FC↔FC / BC↔BC). Bank remaining: $${bank_remaining.toFixed(1)}M.`
         );
         if (violations.length) aiData.notes.push(`Rejected: ${violations.slice(0, 3).join("; ")}`);
       }
