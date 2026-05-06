@@ -14,6 +14,9 @@ import TeamModal from "@/components/TeamModal";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 import TeamCompareModal from "@/components/TeamCompareModal";
@@ -392,12 +395,15 @@ interface TeamFormData {
 }
 
 function useAllTeamsForm(enabled: boolean) {
+  const { data: leagueId } = useLeagueId();
   return useQuery({
-    queryKey: ["all-teams-form"],
+    queryKey: ["all-teams-form", leagueId],
+    enabled: enabled && !!leagueId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
+        .eq("league_id", leagueId!)
         .ilike("status", "%FINAL%")
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
@@ -438,7 +444,7 @@ function useAllTeamsForm(enabled: boolean) {
         if (diff > bestDiff) bestDiff = diff;
       }
 
-      // Build results for ALL 30 NBA teams so conference standings have full data
+      // Include every team in the active league so conference standings are full.
       const allTricodes = new Set<string>([...Object.keys(NBA_TEAM_META), ...Object.keys(acc)]);
       for (const tricode of allTricodes) {
         const t = acc[tricode];
@@ -465,7 +471,6 @@ function useAllTeamsForm(enabled: boolean) {
 
       return result;
     },
-    enabled,
     staleTime: 60_000,
   });
 }
