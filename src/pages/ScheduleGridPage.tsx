@@ -301,21 +301,19 @@ export default function ScheduleGridPage() {
                           >
                             {matchups ? (
                               matchups.map((m, i) => (
-                                <div
+                                <button
+                                  type="button"
                                   key={i}
-                                  className="font-mono text-xs font-semibold whitespace-nowrap"
+                                  onClick={(e) => { e.stopPropagation(); setComparePair({ a: team.tricode, b: m.opp }); }}
+                                  title={`Compare ${team.tricode} vs ${m.opp}`}
+                                  className="font-mono text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-[hsl(var(--nba-yellow))]/15 transition-colors group"
                                 >
-                                  <span
-                                    className={
-                                      m.isHome
-                                        ? "text-foreground"
-                                        : "text-muted-foreground"
-                                    }
-                                  >
+                                  <span className={m.isHome ? "text-foreground" : "text-muted-foreground"}>
                                     {m.isHome ? "" : "@"}
                                     {m.opp}
                                   </span>
-                                </div>
+                                  <Swords className="h-2.5 w-2.5 text-muted-foreground/50 group-hover:text-[hsl(var(--nba-yellow))] transition-colors" />
+                                </button>
                               ))
                             ) : (
                               <span className="text-muted-foreground/20">—</span>
