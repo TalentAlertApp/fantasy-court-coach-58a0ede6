@@ -481,6 +481,9 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   if (!game) return null;
   const awayLogo = getTeamLogo(game.away_team);
   const homeLogo = getTeamLogo(game.home_team);
+  const { league } = useLeague();
+  const leagueName = league === "wnba" ? "WNBA" : "NBA";
+  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm rounded-xl p-4">
@@ -517,8 +520,8 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
             </a>
           )}
           {game.nba_game_url && (
-            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="NBA.com">
-              <ExternalLink className="h-3.5 w-3.5" /> NBA
+            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title={recapHost}>
+              <ExternalLink className="h-3.5 w-3.5" /> {leagueName}
             </a>
           )}
         </div>
@@ -530,7 +533,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded-xl border border-green-500/40"
             >
-              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on NBA.com <ExternalLink className="h-3 w-3" />
+              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
             </a>
           </div>
         )}
