@@ -30,6 +30,7 @@ import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValid
 import { commitTransaction } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
+import { useLeague } from "@/contexts/LeagueContext";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -63,6 +64,7 @@ export default function PlayersPage() {
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
   const { selectedTeamId } = useTeam();
+  const { league } = useLeague();
   const queryClient = useQueryClient();
   const { data: playersData, isLoading } = usePlayersQuery({ sort: "fp5", order: "desc", limit: 500 });
   // Full pool used ONLY for hydration of roster / IN / OUT / validation lookups.
@@ -346,7 +348,9 @@ export default function PlayersPage() {
   useEffect(() => { setCurrentPage(1); }, [fcBc, sort, search, maxSalary, team]);
 
   const filtered = useMemo(() => {
-    let items = allPlayers.filter((p) => p.season.gp > 0);
+    // In NBA we hide players with 0 GP (off-roster / not playing). In WNBA
+    // preseason no game logs exist yet, so keep every player visible.
+    let items = league === "wnba" ? [...allPlayers] : allPlayers.filter((p) => p.season.gp > 0);
     items = items.filter((p) => !rosterPlayerIds.has(p.core.id));
     if (fcBc !== "ALL") items = items.filter((p) => p.core.fc_bc === fcBc);
     if (search.trim()) {
@@ -369,7 +373,12 @@ export default function PlayersPage() {
       return sortDir === "desc" ? getVal(b) - getVal(a) : getVal(a) - getVal(b);
     });
     return items;
-  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode]);
+  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league]);
+
+  // When the league changes, drop a stale team filter (e.g. "ATL" carried
+  // from NBA into WNBA where "ATL" exists but pointing back into NBA-only
+  // codepaths is confusing). Just reset to ALL on league change.
+  useEffect(() => { setTeam("ALL"); }, [league]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
