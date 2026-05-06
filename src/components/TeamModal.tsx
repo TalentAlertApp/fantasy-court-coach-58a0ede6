@@ -374,6 +374,15 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
         onOpenChange={(o) => !o && setSelectedGame(null)}
       />
 
+      {tricode && compareOpp && (
+        <TeamCompareModal
+          teamA={tricode}
+          teamB={compareOpp}
+          open={!!compareOpp}
+          onOpenChange={(o) => { if (!o) setCompareOpp(null); }}
+        />
+      )}
+
     </>
   );
 }
