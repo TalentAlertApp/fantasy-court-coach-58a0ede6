@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentLeague } from "@/contexts/LeagueContext";
 import {
   HealthResponseSchema,
   PlayersListResponseSchema,
@@ -40,7 +41,43 @@ export async function apiFetch<T extends z.ZodTypeAny>(
   if (!SUPABASE_URL) {
     throw new Error(`API config missing: SUPABASE_URL is empty (path=${path})`);
   }
-  const url = `${SUPABASE_URL}/functions/v1/${path}`;
+  // ── Auto-attach the active league_code to every API call ───────────────
+  // Endpoints listed in the multi-league spec receive league_code as a query
+  // string param (GET) or merged into the JSON body (POST). Edge functions
+  // that don't read it simply ignore the extra param.
+  const LEAGUE_AWARE_PREFIXES = [
+    "players-list", "player-detail", "last-game",
+    "roster-current", "roster-save", "roster-auto-pick",
+    "transactions-simulate", "transactions-commit",
+    "schedule", "schedule-impact", "game-boxscore",
+    "ai-coach", "ai-",
+  ];
+  const pathBase = path.split("?")[0];
+  const isLeagueAware = LEAGUE_AWARE_PREFIXES.some((p) => pathBase === p || pathBase.startsWith(p));
+  const league = getCurrentLeague();
+
+  let finalPath = path;
+  let finalInit = init;
+  if (isLeagueAware) {
+    // Query string for GETs (and as a safe default for any non-POST)
+    const sep = path.includes("?") ? "&" : "?";
+    if (!/[?&]league_code=/.test(path)) finalPath = `${path}${sep}league_code=${league}`;
+    // Body merge for POSTs that send JSON
+    const method = (init?.method ?? "GET").toUpperCase();
+    if (method === "POST" && typeof init?.body === "string") {
+      try {
+        const parsed = JSON.parse(init.body);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.league_code === undefined) {
+          finalInit = { ...init, body: JSON.stringify({ ...parsed, league_code: league }) };
+        }
+      } catch {
+        /* non-JSON body — leave as-is */
+      }
+    }
+  }
+
+  const url = `${SUPABASE_URL}/functions/v1/${finalPath}`;
+  init = finalInit;
   // Attach the current user's JWT when available, so edge functions can
   // identify the caller (e.g. teams stamping owner_id).
   let authHeader: Record<string, string> = {};
