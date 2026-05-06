@@ -8,13 +8,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Table2, BarChart3, Mic, ExternalLink, Tv2, Swords } from "lucide-react";
-import { getTeamByTricode, getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import TeamCompareModal from "@/components/TeamCompareModal";
 import PlayerModal from "@/components/PlayerModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -25,7 +28,12 @@ interface TeamModalProps {
 type RosterSort = "mpg" | "ppg" | "fpg" | "salary";
 
 export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProps) {
-  const team = tricode ? getTeamByTricode(tricode) : null;
+  const { teams: leagueTeams } = useLeagueTeams();
+  const { league } = useLeague();
+  const { data: leagueId } = useLeagueId();
+  const team = tricode ? (leagueTeams.find((t) => t.tricode === tricode) ?? null) : null;
+  const getOppLogo = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
@@ -33,27 +41,31 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const [comparePickerOpen, setComparePickerOpen] = useState(false);
 
   const { data: gamesData, isLoading: gamesLoading } = useQuery({
-    queryKey: ["team-games", tricode],
+    queryKey: ["team-games", tricode, leagueId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("schedule_games")
         .select("*")
         .or(`home_team.eq.${tricode},away_team.eq.${tricode}`)
         .order("tipoff_utc", { ascending: false });
+      if (leagueId) q = q.eq("league_id", leagueId);
+      const { data, error } = await q;
       if (error) throw error;
       return data ?? [];
     },
-    enabled: open && !!tricode,
+    enabled: open && !!tricode && !!leagueId,
     staleTime: 60_000,
   });
 
   const { data: rosterData, isLoading: rosterLoading } = useQuery({
-    queryKey: ["team-roster-agg", tricode],
+    queryKey: ["team-roster-agg", tricode, leagueId],
     queryFn: async () => {
-      const { data: teamPlayers, error: pErr } = await supabase
+      let pq = supabase
         .from("players")
         .select("id, name, photo, fc_bc, salary")
         .eq("team", tricode!);
+      if (leagueId) pq = pq.eq("league_id", leagueId);
+      const { data: teamPlayers, error: pErr } = await pq;
       if (pErr) throw pErr;
 
       const playerIds = (teamPlayers ?? []).map(p => p.id);
@@ -87,7 +99,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
         };
       }).filter(p => p.gp > 0);
     },
-    enabled: open && !!tricode,
+    enabled: open && !!tricode && !!leagueId,
     staleTime: 60_000,
   });
 
@@ -118,7 +130,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
           <img
-            src={nbaLogo}
+            src={watermarkLogo}
             alt=""
             aria-hidden
             className="pointer-events-none absolute left-1/2 top-[58%] -translate-x-1/2 -translate-y-1/2 h-44 w-auto opacity-[0.05] select-none z-0"
@@ -184,7 +196,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       className="grid grid-cols-1 gap-0.5 max-h-[60vh] overflow-y-auto pr-1"
                       onWheel={(e) => e.stopPropagation()}
                     >
-                      {NBA_TEAMS.filter(t => t.tricode !== tricode).map(t => (
+                      {leagueTeams.filter(t => t.tricode !== tricode).map(t => (
                         <button
                           key={t.tricode}
                           onClick={() => { setCompareOpp(t.tricode); setComparePickerOpen(false); }}
@@ -225,7 +237,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                     {played.map((g) => {
                       const isHome = g.home_team === tricode;
                       const opp = isHome ? g.away_team : g.home_team;
-                      const oppLogo = getTeamLogo(opp);
+                      const oppLogo = getOppLogo(opp);
                       const won = isHome ? g.home_pts > g.away_pts : g.away_pts > g.home_pts;
                       const myScore = isHome ? g.home_pts : g.away_pts;
                       const oppScore = isHome ? g.away_pts : g.home_pts;
