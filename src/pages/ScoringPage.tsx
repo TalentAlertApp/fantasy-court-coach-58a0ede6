@@ -631,7 +631,7 @@ function YourTeamView({
                   <div className="text-[10px] font-mono text-muted-foreground">{selectedPlayerIds.length}/10</div>
                 </div>
                 <div
-                  className="space-y-1.5 max-h-[480px] overflow-y-auto pr-1"
+                  className="space-y-1"
                   onWheel={(e) => e.stopPropagation()}
                 >
                   {allPlayersInRoster.map((p) => {
@@ -645,20 +645,20 @@ function YourTeamView({
                         type="button"
                         disabled={disabled}
                         onClick={() => togglePlayer(p.id)}
-                        className={`relative w-full overflow-hidden flex items-center gap-2.5 rounded-xl border bg-card/70 px-2.5 py-1.5 text-left transition-all ${
+                        className={`relative w-full overflow-hidden flex items-center gap-2 rounded-lg border bg-card/70 px-2 py-1 text-left transition-all ${
                           checked
                             ? "border-emerald-500/60 bg-emerald-500/[0.06] shadow-[0_4px_16px_-8px_hsl(142_76%_45%/0.5)]"
                             : "border-border/50 hover:border-primary/40 hover:bg-accent/30"
                         } ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         <div
-                          className="shrink-0 rounded-full p-[1.5px] transition-all"
+                          className="shrink-0 rounded-full p-[1px] transition-all"
                           style={{ background: ringColor }}
                         >
                           {p.photo ? (
-                            <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover object-top bg-background" />
+                            <img src={p.photo} alt={p.name} className="w-7 h-7 rounded-full object-cover object-top bg-background" />
                           ) : (
-                            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+                            <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
                               {p.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -677,7 +677,7 @@ function YourTeamView({
                             src={teamLogo}
                             alt=""
                             aria-hidden
-                            className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-12 w-12 object-contain opacity-[0.22] rotate-12 blur-[0.5px] select-none"
+                            className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-[0.22] rotate-12 blur-[0.5px] select-none"
                           />
                         )}
                       </button>
