@@ -625,12 +625,15 @@ function YourTeamView({
                   Players ({selectedPlayerIds.length}/10)
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-[420px] p-3 max-h-[640px]" align="end">
+              <PopoverContent className="w-[420px] p-3" align="end">
                 <div className="flex items-center justify-between mb-2 px-1">
                   <div className="text-[10px] font-heading uppercase tracking-[0.2em] text-muted-foreground">FP Timeline · Players</div>
                   <div className="text-[10px] font-mono text-muted-foreground">{selectedPlayerIds.length}/10</div>
                 </div>
-                <div className="space-y-1.5">
+                <div
+                  className="space-y-1.5 max-h-[480px] overflow-y-auto pr-1"
+                  onWheel={(e) => e.stopPropagation()}
+                >
                   {allPlayersInRoster.map((p) => {
                     const checked = selectedPlayerIds.includes(p.id);
                     const disabled = !checked && selectedPlayerIds.length >= 10;
@@ -642,28 +645,31 @@ function YourTeamView({
                         type="button"
                         disabled={disabled}
                         onClick={() => togglePlayer(p.id)}
-                        className={`relative w-full overflow-hidden flex items-center gap-3 rounded-xl border bg-card/70 px-3 py-2 text-left transition-all ${
+                        className={`relative w-full overflow-hidden flex items-center gap-2.5 rounded-xl border bg-card/70 px-2.5 py-1.5 text-left transition-all ${
                           checked
                             ? "border-emerald-500/60 bg-emerald-500/[0.06] shadow-[0_4px_16px_-8px_hsl(142_76%_45%/0.5)]"
                             : "border-border/50 hover:border-primary/40 hover:bg-accent/30"
                         } ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}`}
                       >
                         <div
-                          className="shrink-0 rounded-full p-[2px] transition-all"
+                          className="shrink-0 rounded-full p-[1.5px] transition-all"
                           style={{ background: ringColor }}
                         >
                           {p.photo ? (
-                            <img src={p.photo} alt={p.name} className="w-12 h-12 rounded-full object-cover object-top bg-background" />
+                            <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover object-top bg-background" />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
+                            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold">
                               {p.name.substring(0, 2).toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0 z-10">
-                          <div className="text-sm font-heading font-bold uppercase truncate">{p.name}</div>
-                          <div className="text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
-                            {p.team} · {p.fc_bc}
+                          <div className="text-xs font-heading font-bold uppercase truncate">{p.name}</div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground font-heading uppercase tracking-wider">{p.team}</span>
+                            <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[8px] px-1 py-0 rounded h-3.5">
+                              {p.fc_bc}
+                            </Badge>
                           </div>
                         </div>
                         {teamLogo && (
@@ -671,7 +677,7 @@ function YourTeamView({
                             src={teamLogo}
                             alt=""
                             aria-hidden
-                            className="pointer-events-none absolute -right-3 top-1/2 -translate-y-1/2 h-16 w-16 object-contain opacity-[0.22] rotate-12 blur-[0.5px] select-none"
+                            className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-12 w-12 object-contain opacity-[0.22] rotate-12 blur-[0.5px] select-none"
                           />
                         )}
                       </button>
