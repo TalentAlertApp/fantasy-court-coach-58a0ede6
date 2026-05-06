@@ -60,6 +60,13 @@ async function fetchSheetRows(range = "A:AV"): Promise<string[][]> {
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    const url = new URL(req.url);
+    const leagueCode = (url.searchParams.get("league_code") ?? "nba").toLowerCase();
+    // The Google Sheet is NBA-only; WNBA last-game is sourced from the
+    // player_last_game table (already returned by players-list).
+    if (leagueCode === "wnba") {
+      return ok({ items: [] });
+    }
     const rows = await fetchSheetRows();
     const dataRows = rows.slice(1).filter((r) => r[0] && r[0].trim() !== "");
     const items = dataRows.map((row) => {
