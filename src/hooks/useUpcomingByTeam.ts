@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface UpcomingGame {
   date: string;    // YYYY-MM-DD
   opponent: string; // tricode
+  isHome: boolean;
 }
 
 export type UpcomingByTeam = Record<string, UpcomingGame[]>;
@@ -30,14 +31,19 @@ export function useUpcomingByTeam() {
       const map: UpcomingByTeam = {};
       for (const g of data ?? []) {
         if (!g.tipoff_utc) continue;
-        const date = g.tipoff_utc.slice(0, 10);
+        // Use Europe/Lisbon local date to match how gamedays are bucketed in the UI.
+        const lisbonDate = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Europe/Lisbon",
+          year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(new Date(g.tipoff_utc));
+        const date = lisbonDate; // YYYY-MM-DD
         const home = g.home_team;
         const away = g.away_team;
 
         if (!map[home]) map[home] = [];
         if (!map[away]) map[away] = [];
-        map[home].push({ date, opponent: away });
-        map[away].push({ date, opponent: home });
+        map[home].push({ date, opponent: away, isHome: true });
+        map[away].push({ date, opponent: home, isHome: false });
       }
       return map;
     },
@@ -49,6 +55,10 @@ export function useUpcomingByTeam() {
 export function getTeamUpcoming(map: UpcomingByTeam | undefined, teamTricode: string): (UpcomingGame | null)[] {
   if (!map) return Array(7).fill(null);
 
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  });
   const today = new Date();
   const days: (UpcomingGame | null)[] = [];
 
@@ -57,7 +67,7 @@ export function getTeamUpcoming(map: UpcomingByTeam | undefined, teamTricode: st
   for (let i = 0; i < 7; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
-    const ds = d.toISOString().slice(0, 10);
+    const ds = fmt.format(d);
     const game = teamGames.find((g) => g.date === ds);
     days.push(game ?? null);
   }
