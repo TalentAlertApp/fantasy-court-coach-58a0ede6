@@ -685,3 +685,42 @@ function CourtSlot({
   );
 }
 
+function PremiumChip({
+  icon: Icon, label, value, suffix, tone, active, danger,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  suffix?: string;
+  tone: "amber" | "emerald" | "destructive" | "primary";
+  active?: boolean;
+  danger?: boolean;
+}) {
+  const toneMap = {
+    amber: { tile: "bg-amber-400/15 text-amber-400", glow: "shadow-[0_0_22px_-10px_hsl(45_90%_55%)] border-amber-400/60", value: "text-foreground" },
+    emerald: { tile: "bg-emerald-500/15 text-emerald-500", glow: "shadow-[0_0_22px_-10px_hsl(142_70%_45%)] border-emerald-500/60", value: "text-emerald-500" },
+    destructive: { tile: "bg-destructive/15 text-destructive", glow: "shadow-[0_0_22px_-10px_hsl(var(--destructive))] border-destructive/60", value: "text-foreground" },
+    primary: { tile: "bg-primary/15 text-primary", glow: "shadow-[0_0_22px_-10px_hsl(var(--primary))] border-primary/60", value: "text-foreground" },
+  } as const;
+  const t = toneMap[tone];
+  const valueCls = danger ? "text-destructive" : t.value;
+  return (
+    <div
+      className={`group relative h-12 px-2.5 rounded-xl flex items-center gap-2.5 border transition-all bg-foreground/[0.03] ${
+        active ? `${t.glow} animate-[pulse_2.4s_ease-in-out_infinite]` : "border-foreground/10"
+      } ${danger ? "bg-destructive/10" : ""}`}
+    >
+      <span className={`h-8 w-8 shrink-0 rounded-lg inline-flex items-center justify-center ${t.tile}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="flex flex-col leading-none min-w-0">
+        <span className="text-[8.5px] uppercase tracking-[0.3em] font-heading text-foreground/55">{label}</span>
+        <span className={`mt-1 font-mono font-black text-sm tabular-nums truncate ${valueCls}`}>
+          {value}
+          {suffix && <span className="opacity-50 text-[10px]">{suffix}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
