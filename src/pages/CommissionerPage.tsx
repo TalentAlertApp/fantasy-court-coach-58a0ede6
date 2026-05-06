@@ -552,7 +552,6 @@ export default function CommissionerPage() {
   const handleScheduleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsImportingSchedule(true);
     setLastScheduleResult(null);
     try {
       const buffer = await file.arrayBuffer();
@@ -590,17 +589,76 @@ export default function CommissionerPage() {
       }
 
       if (rows.length === 0) { toast.error("No valid schedule rows found"); return; }
-      console.log(`[Commissioner] Importing ${rows.length} schedule games (replace=${replaceSchedule})`);
-      const result = await importSchedule(rows, replaceSchedule, leagueCode);
+
+      // ---- League-aware validation ----
+      const validTricodes = new Set(
+        (leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS).map(t => t.tricode.toUpperCase())
+      );
+      const idSeen = new Map<string, number>();
+      const duplicateGameIds: string[] = [];
+      const unknownTeams = new Set<string>();
+      const detected = new Set<string>();
+      const perTeamCounts: Record<string, number> = {};
+      for (const r of rows) {
+        idSeen.set(r.game_id, (idSeen.get(r.game_id) ?? 0) + 1);
+        for (const tri of [String(r.home_team).toUpperCase(), String(r.away_team).toUpperCase()]) {
+          if (!tri) continue;
+          detected.add(tri);
+          if (!validTricodes.has(tri)) unknownTeams.add(tri);
+          perTeamCounts[tri] = (perTeamCounts[tri] ?? 0) + 1;
+        }
+      }
+      for (const [id, n] of idSeen) if (n > 1) duplicateGameIds.push(id);
+      const blockers: string[] = [];
+      if (duplicateGameIds.length) blockers.push(`${duplicateGameIds.length} duplicate Game ID(s)`);
+      if (unknownTeams.size) blockers.push(`${unknownTeams.size} unknown team code(s) for ${leagueCode.toUpperCase()}`);
+
+      setSchedulePendingPayload(rows);
+      setSchedulePreview(rows.slice(0, 10));
+      setScheduleValidation({
+        rowCount: rows.length,
+        duplicateGameIds: duplicateGameIds.slice(0, 10),
+        unknownTeams: Array.from(unknownTeams),
+        detectedTeams: Array.from(detected).sort(),
+        perTeamCounts,
+        expectedRows: leagueCode === "wnba" ? 330 : undefined,
+        expectedTeams: leagueCode === "wnba" ? 15 : undefined,
+        expectedPerTeam: leagueCode === "wnba" ? 44 : undefined,
+        blockers,
+      });
+    } catch (err: unknown) {
+      toast.error(`Schedule import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      if (scheduleFileRef.current) scheduleFileRef.current.value = "";
+    }
+  };
+
+  const handleConfirmScheduleImport = async () => {
+    if (!schedulePendingPayload) return;
+    if (scheduleValidation && scheduleValidation.blockers.length > 0) {
+      toast.error(`Import blocked: ${scheduleValidation.blockers.join(", ")}`);
+      return;
+    }
+    setIsImportingSchedule(true);
+    try {
+      const result = await importSchedule(schedulePendingPayload, replaceSchedule, leagueCode);
       setLastScheduleResult({ games: result.games_imported });
       toast.success(`Imported ${result.games_imported} schedule games`);
       if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
+      setSchedulePreview(null);
+      setSchedulePendingPayload(null);
+      setScheduleValidation(null);
     } catch (err: unknown) {
       toast.error(`Schedule import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setIsImportingSchedule(false);
-      if (scheduleFileRef.current) scheduleFileRef.current.value = "";
     }
+  };
+
+  const handleCancelSchedulePreview = () => {
+    setSchedulePreview(null);
+    setSchedulePendingPayload(null);
+    setScheduleValidation(null);
   };
 
   // ---------- Advanced Stats CSV import (end-of-Regular-Season totals) ----------
