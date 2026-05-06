@@ -187,7 +187,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                         </span>
                       </button>
                       <p className="text-xs text-muted-foreground">
-                        · #{data.player.core.jersey} · {data.player.core.pos}
+                        {data.player.core.jersey ? `· #${data.player.core.jersey} ` : ""}
+                        {data.player.core.pos ? `· ${data.player.core.pos}` : ""}
                       </p>
                     </div>
                     <p className="text-[10px] text-muted-foreground/80 truncate">

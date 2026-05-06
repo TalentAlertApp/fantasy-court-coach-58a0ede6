@@ -822,6 +822,11 @@ export const SyncStatusResponseSchema = EnvelopeSchema(SyncStatusPayloadSchema);
 export const ImportGameDataPayloadSchema = z.object({
   games_imported: z.number(),
   player_logs_imported: z.number(),
+  player_last_game_updated: z.number().optional(),
+  players_aggregated: z.number().optional(),
+  league_code: z.string().optional(),
+  league_id: z.string().optional(),
+  skipped_players: z.array(z.object({ id: z.number(), name: z.string() })).optional(),
   errors: z.array(z.string()).optional(),
 });
 
