@@ -22,8 +22,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import InjuryReportModal from "@/components/InjuryReportModal";
 import { getCurrentGameday } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
+import { useLeague } from "@/contexts/LeagueContext";
 import { useQueryClient } from "@tanstack/react-query";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 interface AICoachModalProps {
   open: boolean;
@@ -43,6 +46,10 @@ function getTeamFullName(tricode: string): string {
 export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) {
   const { toast } = useToast();
   const { selectedTeamId, teams } = useTeam();
+  const { isWnba } = useLeague();
+  const { deadlines } = useLeagueDeadlines();
+  const leagueLogo = isWnba ? wnbaLogo : nbaLogo;
+  const resolveGameday = () => getCurrentGamedayFrom(deadlines) ?? getCurrentGameday();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
@@ -89,7 +96,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     if (!selectedTeamId) return;
     setDraftingFromEmpty(true);
     try {
-      const { gw: cgw, day: cday } = getCurrentGameday();
+      const { gw: cgw, day: cday } = resolveGameday();
       await autoPickRoster({ gw: cgw, day: cday, strategy: "value5" }, selectedTeamId);
       // Pick captain on the freshly drafted roster (best-effort).
       try {
