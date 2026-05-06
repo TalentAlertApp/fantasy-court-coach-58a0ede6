@@ -1,50 +1,49 @@
-## 1. Fix WNBA Auto-Draft / AI Coach draft (root cause)
+## 1. Auto-Draft toast shows GW25 for WNBA — use league-aware gameday
 
-`supabase/functions/roster-auto-pick/index.ts` ranks candidates by **salary descending** in preseason (no game logs). For WNBA, top salaries are $25M / $23.7M / $21.2M against a $100M cap, so the greedy locks in 4 expensive players (≈$91M) and can't afford the remaining 6 — error: *"Could not assemble valid roster (picked 4: 3 FC, 1 BC, $91.1M)"*.
+`DraftPicker.tsx` (line 66) and `AICoachModal.tsx` (line 92) both call `getCurrentGameday()` from `src/lib/deadlines.ts`, which only knows the **NBA static schedule** — that's why a freshly drafted WNBA squad ends up "Saved under GW25 · Day 6". The WNBA already has a league-aware version: `useLeagueDeadlines()` + `getCurrentGamedayFrom()`.
 
-DB confirms WNBA pool is healthy: 121 FC + 134 BC across 15 teams, all with salaries (avg $8.7M, min $4.5M, max $25M).
+Fix:
+- In `DraftPicker.tsx`: use `useLeagueDeadlines()` + `getCurrentGamedayFrom(deadlines)` (with NBA fallback to the static `getCurrentGameday()` when no deadlines yet). Pass the resolved `{ gw, day }` to both `autoPickRoster` and `saveRoster`, and into the toast string.
+- In `AICoachModal.tsx` `handleDraftFromEmpty`: same swap — use the league deadlines so the toast says e.g. "Saved under GW3 · Day 2" for a WNBA team.
+- No backend changes needed (edge functions already accept any `gw/day`).
 
-**Fix** — make the picker budget-aware so it always assembles 10 valid players, regardless of league:
+## 2. AI Coach modal — dynamic league logo, single watermark
 
-- Compute `targetAvg = salaryCap / 10` (= $10M).
-- In preseason (no game logs), score candidates by **distance to budget target**: `score = -Math.abs(salary - targetAvg)`. This naturally picks balanced mid-tier players, leaving headroom for all 10 slots.
-- Add a **fallback retry**: if the first greedy pass produces fewer than 10 valid picks (or violates 5 FC / 5 BC), automatically rerun with a cheapest-first ordering (`score = -salary`) so we always return a feasible roster.
-- Keep in-season behavior unchanged (FP / value-per-dollar) when game logs exist.
-- Apply the same starter selection guard so starters never exceed cap and always have ≥2 FC / ≥2 BC.
+`AICoachModal.tsx` currently hard-codes `nbaLogo` in two spots:
+- A big watermark behind the whole modal (lines 251–256, inside `DialogContent`).
+- A second watermark inside the "No roster yet" banner (lines 281–286).
 
-After fix: WNBA Auto-Draft and AI Coach "Draft my squad with AI" both succeed; NBA preseason behavior also improves (no longer cap-locks on superstars).
+Result: a WNBA user sees two NBA logos, including one inside the Ballers.IQ header band.
 
-## 2. Redesign league selector — Create New Team modal
+Fix:
+- Import both `nbaLogo` and `wnbaLogo` and `useLeague()` from `@/contexts/LeagueContext`.
+- Pick `const leagueLogo = isWnba ? wnbaLogo : nbaLogo;`.
+- Remove the watermark inside the Ballers.IQ header banner entirely (the one rendered above `DialogHeader` at lines 251–256). Keep only ONE watermark — the one inside the "No roster yet" banner — and switch its src to `leagueLogo`. (Per user: "remove the one from the Ballers.IQ header".)
+- That single remaining watermark uses the active league logo, so a WNBA team gets the WNBA logo.
 
-In `src/components/TeamSwitcher.tsx`, replace the small pill row with a **two-card visual picker** (matches the look of an app store league chooser):
+## 3. Manual Roster picker — premium chip strip
 
-- Two large square-ish cards side-by-side under the "League" label.
-- Each card: big league logo (~64px) centered on a soft gradient background tinted with the league color, league name in heading font below the logo.
-- Active card: accent border + glow shadow + subtle scale (`scale-[1.02]`), inactive: muted border, hover lifts and brightens.
-- Add a faint radial-gradient backdrop and a watermark of the same logo at low opacity behind the card for depth (same treatment as the team-modal header watermark).
-- Keep keyboard-accessible (`button` with `aria-pressed`).
+`PlayerPickerDialog.tsx` lines 449–510 render the four glassmorphic chips (`PICKED`, `BANK`, `FC`, `BC`) plus the mute button. Per the screenshot they look washed-out and the labels/values cramp together at narrow widths.
 
-## 3. Redesign league step in Onboarding (`NameStep`)
+Redesign (no behaviour change, just visuals):
+- Lift the strip into a single dark gradient panel: `bg-gradient-to-r from-background/80 via-background/60 to-background/80`, `border border-foreground/10`, `rounded-2xl`, `p-1.5`, `shadow-lg`.
+- Each chip becomes a vertical stack inside its own pill: `h-12`, rounded-xl, `flex items-center gap-2.5 px-3.5`, with:
+  - Left: a small square icon tile (`h-8 w-8 rounded-lg`) tinted with the chip's accent (amber for Picked, emerald for Bank, red for FC, blue for BC), icon centred.
+  - Middle: stacked label + value — `LABEL` in `text-[9px] uppercase tracking-[0.3em] font-heading text-foreground/55`, value beneath in `font-mono font-black text-base tabular-nums text-foreground` (colour-shifted when constraints hit: emerald when bank>0, destructive when bank<0, amber when picked=10, etc.).
+- Active states (full / over-budget) keep the existing pulse + glow but use a subtler shadow (`shadow-[0_0_22px_-10px_<hue>]`) so it reads as premium rather than neon.
+- Provide visible high-contrast value text in both light and dark themes by using `text-foreground` rather than the muted `text-destructive/text-primary` currently used for FC/BC values — instead colour the icon tile and the small label, leave the number white/foreground for legibility.
+- Mute button: same square chip aesthetic (`h-12 w-12 rounded-xl`) so it visually aligns with the new row.
 
-In `src/components/onboarding/NameStep.tsx`, the current league row is small pills. Replace with the **same large two-card picker** used in the Create-Team modal, scaled up for the onboarding canvas:
-
-- Logos rendered larger (~96px), with a soft glow and a slow `animate-pulse`-style halo on the active card.
-- Card label "NBA" / "WNBA" in the heading font under the logo, plus a one-line subtitle ("National Basketball Association" / "Women's National Basketball Association").
-- Keep the existing step layout (between the franchise-name input and the suggestions row) so the page still fits one screen.
-
-To avoid duplicating markup, extract a small shared component `src/components/LeaguePickerCards.tsx` that takes `value`, `onChange`, and a `size` prop (`"md"` for the modal, `"lg"` for onboarding). Both call sites import it.
+The grid stays `grid-cols-4` on desktop; on narrow widths it already wraps via the parent container.
 
 ## Technical Details
 
 **Files to edit**
-- `supabase/functions/roster-auto-pick/index.ts` — budget-aware preseason scoring + fallback retry.
-- `src/components/TeamSwitcher.tsx` — replace pill row with `<LeaguePickerCards size="md" />`.
-- `src/components/onboarding/NameStep.tsx` — replace pill row with `<LeaguePickerCards size="lg" />`.
-
-**File to create**
-- `src/components/LeaguePickerCards.tsx` — shared visual league picker (uses existing `nbaLogo` / `wnbaLogo` assets, no new dependencies).
+- `src/components/onboarding/DraftPicker.tsx` — switch to `useLeagueDeadlines` for the auto + manual save paths.
+- `src/components/AICoachModal.tsx` — remove header watermark, swap remaining watermark to active league logo, switch `handleDraftFromEmpty` to league-aware gameday.
+- `src/components/PlayerPickerDialog.tsx` — restyle the chip strip (lines 447–510) per spec above.
 
 **Verification**
-- Create a new WNBA team → Auto-Draft succeeds with 10 players, 5 FC / 5 BC, ≤$100M.
-- Open AI Coach → "Draft my squad with AI" → succeeds for both NBA and WNBA teams.
-- Create-Team modal and onboarding Step 2 both show large league logo cards with the active state highlighted.
+- Create a new WNBA team → Auto-Draft → toast reads e.g. "Saved under GW3 · Day 2" (WNBA-correct), not "GW25".
+- Open AI Coach for a WNBA team → modal shows the WNBA logo as the only watermark (no NBA logo behind the Ballers.IQ header).
+- Open Manual roster picker → top chip strip is dark, premium, with high-contrast counts and tinted icon tiles; states for FC=5/5, BC=5/5, picked=10/10, and over-budget all remain visually distinct.

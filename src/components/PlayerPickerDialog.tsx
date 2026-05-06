@@ -446,64 +446,52 @@ function CourtPreviewPanel({
 
   return (
     <div className="flex flex-col min-h-0 p-3 bg-muted/40">
-      {/* Premium glassmorphic chips */}
-      <div className="flex items-center gap-1.5 mb-2 shrink-0">
+      {/* Premium chip strip */}
+      <div className="flex items-center gap-1.5 mb-2 shrink-0 rounded-2xl border border-foreground/10 bg-gradient-to-r from-background/85 via-background/60 to-background/85 p-1.5 shadow-lg backdrop-blur-md">
         <div className="grid grid-cols-4 gap-1.5 flex-1">
           {/* Picked */}
-          <div
-            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
-              isFull
-                ? "bg-accent/25 border-accent text-accent shadow-[0_0_28px_-6px_hsl(var(--accent))] animate-[pulse_2.4s_ease-in-out_infinite]"
-                : "bg-black/40 border-white/10 text-foreground/90"
-            }`}
-          >
-            <Users className="h-3.5 w-3.5 opacity-80" />
-            <span className="text-[9px] uppercase tracking-[0.25em] font-heading opacity-70">Picked</span>
-            <span className="font-mono font-black text-sm tabular-nums ml-auto">{picks.length}<span className="opacity-50 text-[10px]">/10</span></span>
-          </div>
-          {/* Budget */}
-          <div
-            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
-              budgetOk
-                ? "bg-black/40 border-emerald-500/40"
-                : "bg-destructive/15 border-destructive/60 animate-[pulse_1.6s_ease-in-out_infinite]"
-            }`}
-          >
-            <Wallet className={`h-3.5 w-3.5 ${budgetOk ? "text-emerald-500" : "text-destructive"}`} />
-            <span className="text-[9px] uppercase tracking-[0.25em] font-heading opacity-70">Bank</span>
-            <span className={`font-mono font-black text-sm tabular-nums ml-auto ${budgetClass}`}>${bankRemaining.toFixed(1)}M</span>
-          </div>
+          <PremiumChip
+            icon={Users}
+            label="Picked"
+            value={`${picks.length}`}
+            suffix="/10"
+            tone="amber"
+            active={isFull}
+          />
+          {/* Bank */}
+          <PremiumChip
+            icon={Wallet}
+            label="Bank"
+            value={`$${bankRemaining.toFixed(1)}M`}
+            tone="emerald"
+            active={!budgetOk}
+            danger={!budgetOk}
+          />
           {/* FC */}
-          <div
-            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
-              fcMaxed
-                ? "bg-destructive/25 border-destructive shadow-[0_0_24px_-8px_hsl(var(--destructive))]"
-                : "bg-destructive/10 border-destructive/40 text-destructive"
-            }`}
-          >
-            <ShieldHalf className="h-3.5 w-3.5 text-destructive" />
-            <span className="text-[9px] uppercase tracking-[0.25em] font-heading text-destructive/80">FC</span>
-            <span className="font-mono font-black text-sm tabular-nums ml-auto text-destructive">{fcs.length}<span className="opacity-50 text-[10px]">/5</span></span>
-          </div>
+          <PremiumChip
+            icon={ShieldHalf}
+            label="FC"
+            value={`${fcs.length}`}
+            suffix="/5"
+            tone="destructive"
+            active={fcMaxed}
+          />
           {/* BC */}
-          <div
-            className={`group relative h-10 px-3 rounded-xl flex items-center justify-between gap-2 backdrop-blur-md border transition-all ${
-              bcMaxed
-                ? "bg-primary/25 border-primary shadow-[0_0_24px_-8px_hsl(var(--primary))]"
-                : "bg-primary/10 border-primary/40 text-primary"
-            }`}
-          >
-            <Target className="h-3.5 w-3.5 text-primary" />
-            <span className="text-[9px] uppercase tracking-[0.25em] font-heading text-primary/80">BC</span>
-            <span className="font-mono font-black text-sm tabular-nums ml-auto text-primary">{bcs.length}<span className="opacity-50 text-[10px]">/5</span></span>
-          </div>
+          <PremiumChip
+            icon={Target}
+            label="BC"
+            value={`${bcs.length}`}
+            suffix="/5"
+            tone="primary"
+            active={bcMaxed}
+          />
         </div>
         <button
           type="button"
           onClick={onToggleMute}
           aria-label={muted ? "Unmute crowd cheer" : "Mute crowd cheer"}
           title={muted ? "Sound off" : "Sound on"}
-          className="h-10 w-10 inline-flex items-center justify-center rounded-xl backdrop-blur-md bg-black/40 border border-white/10 text-foreground/70 hover:text-foreground hover:bg-black/60 transition-colors shrink-0"
+          className="h-12 w-12 inline-flex items-center justify-center rounded-xl bg-foreground/5 border border-foreground/10 text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors shrink-0"
         >
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
@@ -693,6 +681,45 @@ function CourtSlot({
           </div>
         </motion.div>
       )}
+    </div>
+  );
+}
+
+function PremiumChip({
+  icon: Icon, label, value, suffix, tone, active, danger,
+}: {
+  icon: any;
+  label: string;
+  value: string;
+  suffix?: string;
+  tone: "amber" | "emerald" | "destructive" | "primary";
+  active?: boolean;
+  danger?: boolean;
+}) {
+  const toneMap = {
+    amber: { tile: "bg-amber-400/15 text-amber-400", glow: "shadow-[0_0_22px_-10px_hsl(45_90%_55%)] border-amber-400/60", value: "text-foreground" },
+    emerald: { tile: "bg-emerald-500/15 text-emerald-500", glow: "shadow-[0_0_22px_-10px_hsl(142_70%_45%)] border-emerald-500/60", value: "text-emerald-500" },
+    destructive: { tile: "bg-destructive/15 text-destructive", glow: "shadow-[0_0_22px_-10px_hsl(var(--destructive))] border-destructive/60", value: "text-foreground" },
+    primary: { tile: "bg-primary/15 text-primary", glow: "shadow-[0_0_22px_-10px_hsl(var(--primary))] border-primary/60", value: "text-foreground" },
+  } as const;
+  const t = toneMap[tone];
+  const valueCls = danger ? "text-destructive" : t.value;
+  return (
+    <div
+      className={`group relative h-12 px-2.5 rounded-xl flex items-center gap-2.5 border transition-all bg-foreground/[0.03] ${
+        active ? `${t.glow} animate-[pulse_2.4s_ease-in-out_infinite]` : "border-foreground/10"
+      } ${danger ? "bg-destructive/10" : ""}`}
+    >
+      <span className={`h-8 w-8 shrink-0 rounded-lg inline-flex items-center justify-center ${t.tile}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="flex flex-col leading-none min-w-0">
+        <span className="text-[8.5px] uppercase tracking-[0.3em] font-heading text-foreground/55">{label}</span>
+        <span className={`mt-1 font-mono font-black text-sm tabular-nums truncate ${valueCls}`}>
+          {value}
+          {suffix && <span className="opacity-50 text-[10px]">{suffix}</span>}
+        </span>
+      </div>
     </div>
   );
 }
