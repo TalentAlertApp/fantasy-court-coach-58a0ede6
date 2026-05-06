@@ -14,6 +14,12 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { team_id, team_name } = await resolveTeam(req, sb);
 
+    // Resolve team's sport league
+    const { data: teamRow } = await sb
+      .from("teams").select("sport_league_id").eq("id", team_id).maybeSingle();
+    const teamLeagueId = teamRow?.sport_league_id;
+    if (!teamLeagueId) return errorResponse("TEAM_LEAGUE_MISSING", "Team has no sport league assigned", null, 400);
+
     // Parse body { gw, day, strategy }
     let body: any = {};
     try { body = await req.json(); } catch { /* noop */ }
@@ -31,7 +37,8 @@ Deno.serve(async (req) => {
     // Load players
     const { data: players, error: pErr } = await sb
       .from("players")
-      .select("id, name, team, fc_bc, salary, fp_pg5");
+      .select("id, name, team, fc_bc, salary, fp_pg5")
+      .eq("league_id", teamLeagueId);
     if (pErr) throw pErr;
     if (!players || players.length === 0) throw new Error("No players available");
 
@@ -42,6 +49,7 @@ Deno.serve(async (req) => {
       const { data: batch, error: gErr } = await sb
         .from("player_game_logs")
         .select("player_id, fp, game_date")
+        .eq("league_id", teamLeagueId)
         .gt("mp", 0)
         .order("game_date", { ascending: false })
         .range(off, off + 999);
@@ -120,8 +128,8 @@ Deno.serve(async (req) => {
     // Persist: wipe and insert
     await sb.from("roster").delete().eq("team_id", team_id);
     const rows = [
-      ...starters.map((s) => ({ player_id: s.id, slot: "STARTER", is_captain: s.id === captain.id, gw, day, team_id })),
-      ...bench.map((b) => ({ player_id: b.id, slot: "BENCH", is_captain: false, gw, day, team_id })),
+      ...starters.map((s) => ({ player_id: s.id, slot: "STARTER", is_captain: s.id === captain.id, gw, day, team_id, league_id: teamLeagueId })),
+      ...bench.map((b) => ({ player_id: b.id, slot: "BENCH", is_captain: false, gw, day, team_id, league_id: teamLeagueId })),
     ];
     const { error: insErr } = await sb.from("roster").insert(rows);
     if (insErr) throw insErr;
