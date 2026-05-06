@@ -19,3 +19,19 @@ export function difficultyTooltip(opp: string, isHome: boolean, label?: Difficul
   const tag = label ? ` · ${label}${score != null ? ` (${Math.round(score)})` : ""}` : "";
   return `Next: ${venue} ${opp}${tag}`;
 }
+
+/** Tooltip for an opponent slot (one gameday). isHome → "OPP", away → "@OPP". */
+export function slotTooltip(
+  opp: string | null,
+  isHome: boolean,
+  tipoffLabel?: string,
+  label?: DifficultyLabel,
+  score?: number,
+): string {
+  if (!opp) return "No game scheduled";
+  const venue = isHome ? "" : "@";
+  const head = `${venue}${opp}`;
+  const when = tipoffLabel ? ` · ${tipoffLabel}` : "";
+  const diff = label ? ` · ${label}${score != null ? ` (${Math.round(score)})` : ""}` : "";
+  return `${head}${when}${diff}`;
+}
