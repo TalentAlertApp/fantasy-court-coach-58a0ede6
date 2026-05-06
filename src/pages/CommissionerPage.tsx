@@ -24,6 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
+import { NBA_TEAMS } from "@/lib/nba-teams";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
@@ -256,6 +258,30 @@ export default function CommissionerPage() {
   const [preview, setPreview] = useState<TsvPlayer[] | null>(null);
   const [pendingPayload, setPendingPayload] = useState<any[] | null>(null);
   const [corruptCount, setCorruptCount] = useState(0);
+  const [playerValidation, setPlayerValidation] = useState<{
+    rowCount: number;
+    duplicateIds: string[];
+    invalidFcBc: string[];
+    badDob: string[];
+    blankName: string[];
+    unknownTeams: string[];
+    detectedTeams: string[];
+    expectedRows?: number;
+    blockers: string[];
+  } | null>(null);
+  const [scheduleValidation, setScheduleValidation] = useState<{
+    rowCount: number;
+    duplicateGameIds: string[];
+    unknownTeams: string[];
+    detectedTeams: string[];
+    perTeamCounts: Record<string, number>;
+    expectedRows?: number;
+    expectedTeams?: number;
+    expectedPerTeam?: number;
+    blockers: string[];
+  } | null>(null);
+  const [schedulePreview, setSchedulePreview] = useState<any[] | null>(null);
+  const [schedulePendingPayload, setSchedulePendingPayload] = useState<any[] | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const gameFileRef = useRef<HTMLInputElement>(null);
   const scheduleFileRef = useRef<HTMLInputElement>(null);
@@ -300,6 +326,46 @@ export default function CommissionerPage() {
         salary: parseSalary(p.salary),
       }));
       setPendingPayload(payload);
+
+      // ---- League-aware validation ----
+      const validTricodes = new Set(
+        (leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS).map(t => t.tricode.toUpperCase())
+      );
+      const idSeen = new Map<string, number>();
+      const duplicateIds: string[] = [];
+      const invalidFcBc: string[] = [];
+      const badDob: string[] = [];
+      const blankName: string[] = [];
+      const unknownTeams = new Set<string>();
+      const detected = new Set<string>();
+      for (const p of players) {
+        idSeen.set(p.id, (idSeen.get(p.id) ?? 0) + 1);
+        const tri = (p.team || "").toUpperCase();
+        if (tri) {
+          detected.add(tri);
+          if (!validTricodes.has(tri)) unknownTeams.add(tri);
+        }
+        if (!p.name || !p.name.trim()) blankName.push(p.id);
+        if (!["FC", "BC"].includes((p.fc_bc || "").toUpperCase())) invalidFcBc.push(p.id);
+        if (p.dob && isNaN(Date.parse(p.dob))) badDob.push(p.id);
+      }
+      for (const [id, n] of idSeen) if (n > 1) duplicateIds.push(id);
+      const blockers: string[] = [];
+      if (duplicateIds.length) blockers.push(`${duplicateIds.length} duplicate ID(s)`);
+      if (blankName.length) blockers.push(`${blankName.length} blank NAME`);
+      if (invalidFcBc.length) blockers.push(`${invalidFcBc.length} invalid FC_BC (must be FC or BC)`);
+      if (unknownTeams.size) blockers.push(`${unknownTeams.size} unknown TEAM code(s) for ${leagueCode.toUpperCase()}`);
+      setPlayerValidation({
+        rowCount: players.length,
+        duplicateIds: duplicateIds.slice(0, 10),
+        invalidFcBc: invalidFcBc.slice(0, 10),
+        badDob: badDob.slice(0, 10),
+        blankName: blankName.slice(0, 10),
+        unknownTeams: Array.from(unknownTeams),
+        detectedTeams: Array.from(detected).sort(),
+        expectedRows: leagueCode === "wnba" ? 255 : undefined,
+        blockers,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error(`Parse failed: ${msg}`);
@@ -309,6 +375,10 @@ export default function CommissionerPage() {
 
   const handleConfirmImport = async () => {
     if (!pendingPayload) return;
+    if (playerValidation && playerValidation.blockers.length > 0) {
+      toast.error(`Import blocked: ${playerValidation.blockers.join(", ")}`);
+      return;
+    }
     setIsUploading(true);
     setLastResult(null);
     try {
@@ -339,6 +409,7 @@ export default function CommissionerPage() {
     setPreview(null);
     setPendingPayload(null);
     setCorruptCount(0);
+    setPlayerValidation(null);
   };
 
   const handleDownload = async () => {
@@ -481,7 +552,6 @@ export default function CommissionerPage() {
   const handleScheduleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setIsImportingSchedule(true);
     setLastScheduleResult(null);
     try {
       const buffer = await file.arrayBuffer();
@@ -519,17 +589,76 @@ export default function CommissionerPage() {
       }
 
       if (rows.length === 0) { toast.error("No valid schedule rows found"); return; }
-      console.log(`[Commissioner] Importing ${rows.length} schedule games (replace=${replaceSchedule})`);
-      const result = await importSchedule(rows, replaceSchedule, leagueCode);
+
+      // ---- League-aware validation ----
+      const validTricodes = new Set(
+        (leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS).map(t => t.tricode.toUpperCase())
+      );
+      const idSeen = new Map<string, number>();
+      const duplicateGameIds: string[] = [];
+      const unknownTeams = new Set<string>();
+      const detected = new Set<string>();
+      const perTeamCounts: Record<string, number> = {};
+      for (const r of rows) {
+        idSeen.set(r.game_id, (idSeen.get(r.game_id) ?? 0) + 1);
+        for (const tri of [String(r.home_team).toUpperCase(), String(r.away_team).toUpperCase()]) {
+          if (!tri) continue;
+          detected.add(tri);
+          if (!validTricodes.has(tri)) unknownTeams.add(tri);
+          perTeamCounts[tri] = (perTeamCounts[tri] ?? 0) + 1;
+        }
+      }
+      for (const [id, n] of idSeen) if (n > 1) duplicateGameIds.push(id);
+      const blockers: string[] = [];
+      if (duplicateGameIds.length) blockers.push(`${duplicateGameIds.length} duplicate Game ID(s)`);
+      if (unknownTeams.size) blockers.push(`${unknownTeams.size} unknown team code(s) for ${leagueCode.toUpperCase()}`);
+
+      setSchedulePendingPayload(rows);
+      setSchedulePreview(rows.slice(0, 10));
+      setScheduleValidation({
+        rowCount: rows.length,
+        duplicateGameIds: duplicateGameIds.slice(0, 10),
+        unknownTeams: Array.from(unknownTeams),
+        detectedTeams: Array.from(detected).sort(),
+        perTeamCounts,
+        expectedRows: leagueCode === "wnba" ? 330 : undefined,
+        expectedTeams: leagueCode === "wnba" ? 15 : undefined,
+        expectedPerTeam: leagueCode === "wnba" ? 44 : undefined,
+        blockers,
+      });
+    } catch (err: unknown) {
+      toast.error(`Schedule import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      if (scheduleFileRef.current) scheduleFileRef.current.value = "";
+    }
+  };
+
+  const handleConfirmScheduleImport = async () => {
+    if (!schedulePendingPayload) return;
+    if (scheduleValidation && scheduleValidation.blockers.length > 0) {
+      toast.error(`Import blocked: ${scheduleValidation.blockers.join(", ")}`);
+      return;
+    }
+    setIsImportingSchedule(true);
+    try {
+      const result = await importSchedule(schedulePendingPayload, replaceSchedule, leagueCode);
       setLastScheduleResult({ games: result.games_imported });
       toast.success(`Imported ${result.games_imported} schedule games`);
       if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
+      setSchedulePreview(null);
+      setSchedulePendingPayload(null);
+      setScheduleValidation(null);
     } catch (err: unknown) {
       toast.error(`Schedule import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setIsImportingSchedule(false);
-      if (scheduleFileRef.current) scheduleFileRef.current.value = "";
     }
+  };
+
+  const handleCancelSchedulePreview = () => {
+    setSchedulePreview(null);
+    setSchedulePendingPayload(null);
+    setScheduleValidation(null);
   };
 
   // ---------- Advanced Stats CSV import (end-of-Regular-Season totals) ----------
@@ -769,6 +898,36 @@ export default function CommissionerPage() {
             Preview — Verify Names Before Import
           </div>
           <div className="p-4 space-y-3">
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-200">
+              <strong>Replace scope:</strong> this will replace only <strong>{leagueCode.toUpperCase()}</strong> players. The other league's data will not be touched.
+            </div>
+            {playerValidation && (
+              <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-1">
+                <div className="font-heading uppercase text-muted-foreground">Validation</div>
+                <div>Rows parsed: <strong>{playerValidation.rowCount}</strong>{playerValidation.expectedRows ? <span className="text-muted-foreground"> (expected ~{playerValidation.expectedRows})</span> : null}</div>
+                <div>Detected teams ({playerValidation.detectedTeams.length}): <span className="font-mono">{playerValidation.detectedTeams.join(", ") || "—"}</span></div>
+                {playerValidation.unknownTeams.length > 0 && (
+                  <div className="text-destructive">Unknown teams: <span className="font-mono">{playerValidation.unknownTeams.join(", ")}</span></div>
+                )}
+                {playerValidation.duplicateIds.length > 0 && (
+                  <div className="text-destructive">Duplicate IDs: {playerValidation.duplicateIds.join(", ")}</div>
+                )}
+                {playerValidation.invalidFcBc.length > 0 && (
+                  <div className="text-destructive">Invalid FC_BC ({playerValidation.invalidFcBc.length}): {playerValidation.invalidFcBc.join(", ")}</div>
+                )}
+                {playerValidation.blankName.length > 0 && (
+                  <div className="text-destructive">Blank NAME for IDs: {playerValidation.blankName.join(", ")}</div>
+                )}
+                {playerValidation.badDob.length > 0 && (
+                  <div className="text-amber-300">Unparseable DOB for IDs: {playerValidation.badDob.join(", ")}</div>
+                )}
+                {playerValidation.blockers.length > 0 ? (
+                  <div className="mt-1 text-destructive font-bold">⛔ Import blocked: {playerValidation.blockers.join(" · ")}</div>
+                ) : (
+                  <div className="mt-1 text-emerald-400 font-bold">✅ Validation passed</div>
+                )}
+              </div>
+            )}
             {corruptCount > 0 && (
               <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
@@ -814,7 +973,7 @@ export default function CommissionerPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleConfirmImport}
-                disabled={isUploading}
+                disabled={isUploading || (playerValidation?.blockers.length ?? 0) > 0}
                 className="flex-1"
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -1001,6 +1160,82 @@ export default function CommissionerPage() {
           )}
         </div>
       </div>
+
+      {schedulePreview && scheduleValidation && (
+        <div className="bg-card border rounded-lg overflow-hidden">
+          <div className="section-bar flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Schedule Preview — Validate Before Import
+          </div>
+          <div className="p-4 space-y-3 text-xs">
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-amber-200">
+              <strong>Replace scope:</strong> this will replace only <strong>{leagueCode.toUpperCase()}</strong> schedule. The other league's data will not be touched.
+            </div>
+            <div className="rounded-md border bg-muted/30 p-3 space-y-1">
+              <div className="font-heading uppercase text-muted-foreground">Validation</div>
+              <div>Rows: <strong>{scheduleValidation.rowCount}</strong>{scheduleValidation.expectedRows ? <span className="text-muted-foreground"> (expected {scheduleValidation.expectedRows})</span> : null}</div>
+              <div>Detected teams ({scheduleValidation.detectedTeams.length}{scheduleValidation.expectedTeams ? `/${scheduleValidation.expectedTeams}` : ""}): <span className="font-mono">{scheduleValidation.detectedTeams.join(", ") || "—"}</span></div>
+              {scheduleValidation.expectedPerTeam && (() => {
+                const offenders = Object.entries(scheduleValidation.perTeamCounts)
+                  .filter(([, n]) => n !== scheduleValidation.expectedPerTeam)
+                  .map(([t, n]) => `${t}:${n}`);
+                return offenders.length > 0 ? (
+                  <div className="text-amber-300">Teams not at expected {scheduleValidation.expectedPerTeam} games: {offenders.join(", ")}</div>
+                ) : (
+                  <div className="text-emerald-400">All teams at exactly {scheduleValidation.expectedPerTeam} games ✓</div>
+                );
+              })()}
+              {scheduleValidation.unknownTeams.length > 0 && (
+                <div className="text-destructive">Unknown team codes: <span className="font-mono">{scheduleValidation.unknownTeams.join(", ")}</span></div>
+              )}
+              {scheduleValidation.duplicateGameIds.length > 0 && (
+                <div className="text-destructive">Duplicate Game IDs: {scheduleValidation.duplicateGameIds.join(", ")}</div>
+              )}
+              {scheduleValidation.blockers.length > 0 ? (
+                <div className="mt-1 text-destructive font-bold">⛔ Import blocked: {scheduleValidation.blockers.join(" · ")}</div>
+              ) : (
+                <div className="mt-1 text-emerald-400 font-bold">✅ Validation passed</div>
+              )}
+            </div>
+            <div className="overflow-auto max-h-[240px]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>GW</TableHead><TableHead>Day</TableHead>
+                    <TableHead>Date</TableHead><TableHead>Time</TableHead>
+                    <TableHead>Home</TableHead><TableHead>Away</TableHead>
+                    <TableHead>Game ID</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedulePreview.map((r, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{r.gw}</TableCell>
+                      <TableCell>{r.day}</TableCell>
+                      <TableCell>{r.date}</TableCell>
+                      <TableCell>{r.time}</TableCell>
+                      <TableCell className="font-mono">{r.home_team}</TableCell>
+                      <TableCell className="font-mono">{r.away_team}</TableCell>
+                      <TableCell className="font-mono text-[10px]">{r.game_id}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleConfirmScheduleImport}
+                disabled={isImportingSchedule || scheduleValidation.blockers.length > 0}
+                className="flex-1"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {isImportingSchedule ? "Importing…" : `Confirm Import (${schedulePendingPayload?.length ?? 0} games)`}
+              </Button>
+              <Button onClick={handleCancelSchedulePreview} variant="outline">Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
         </TabsContent>
 
         <TabsContent value="sync" className="space-y-6 mt-0">
