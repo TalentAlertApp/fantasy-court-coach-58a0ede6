@@ -26,6 +26,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { NBA_TEAMS } from "@/lib/nba-teams";
+import nbaLogoSrc from "@/assets/nba-logo.svg";
+import wnbaLogoSrc from "@/assets/wnba-logo.png";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
