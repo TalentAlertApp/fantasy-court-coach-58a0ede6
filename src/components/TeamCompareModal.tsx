@@ -8,6 +8,7 @@ import { Trophy, Swords, ExternalLink } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import nbaLogo from "@/assets/nba-logo.svg";
 
 interface TeamCompareModalProps {
   teamA: string | null;
@@ -173,7 +174,14 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                 {standingsLoading || !aRow || !bRow ? (
                   <Skeleton className="h-40" />
                 ) : (
-                  <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+                  <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/60 px-4 py-3">
+                    <img
+                      src={nbaLogo}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.05] select-none"
+                    />
+                    <div className="relative z-10">
                     <MetricRow label="League Rank" a={leagueRank[teamA] ?? null} b={leagueRank[teamB] ?? null} higherBetter={false} dec={0} />
                     <MetricRow label={`${aRow.conference === bRow.conference ? aRow.conference : "Conf"} Rank`} a={confRank[teamA] ?? null} b={confRank[teamB] ?? null} higherBetter={false} dec={0} />
                     <MetricRow label="Wins" a={aRow.w} b={bRow.w} dec={0} />
@@ -187,6 +195,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                       <div className="text-right text-sm font-mono tabular-nums">{aRow.strk}</div>
                       <div className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground text-center px-2">Streak</div>
                       <div className="text-left text-sm font-mono tabular-nums">{bRow.strk}</div>
+                    </div>
                     </div>
                   </div>
                 )}
