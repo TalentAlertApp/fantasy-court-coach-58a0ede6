@@ -120,7 +120,7 @@ Premium polish: gradient bg `radial-gradient(circle at 20% 10%, hsl(45 90% 45% /
 A small icon button (lucide `Swords` or `GitCompare`) with a tooltip "Compare teams". Variants: `ghost-icon` (24×24) and `inline` (with label).
 
 ### Insertion points
-- **TeamModal header (`TeamModal.tsx`)** — far right of the title row. Pre-fills team A = current; opens a quick "vs ?" picker (small popover listing all 30 NBA teams).
+- **TeamModal header (`TeamModal.tsx`)** — ✅ Compare button + popover picker added (right side of title row).
 - **/schedule list view (`ScheduleList.tsx`)** — game card, far right, immediately after Venue. `teamA = away`, `teamB = home`.
 - **/schedule grid view (`ScheduleGridPage.tsx`)** — inline, **before** the Game Recap icon (played) or Box Score icon (scheduled).
 
