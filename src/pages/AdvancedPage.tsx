@@ -32,10 +32,10 @@ const PUBLIC_ORIGIN = "https://hoopsfantasy.app";
 /** Build a clean canonical share URL on hoopsfantasy.app — never the lovable preview host. */
 function getShareOrigin(): string {
   if (typeof window === "undefined") return PUBLIC_ORIGIN;
-  const host = window.location.hostname;
-  // Use current origin only if user is on a hoopsfantasy.app domain; otherwise canonical.
-  if (host.endsWith("hoopsfantasy.app")) return window.location.origin;
-  return PUBLIC_ORIGIN;
+  // Always honour the current origin so shared links open on whatever
+  // domain the user is testing (preview, custom domain, prod). The canonical
+  // PUBLIC_ORIGIN remains the SSR fallback only.
+  return window.location.origin;
 }
 
 const TEAM_NAME: Record<string, string> = Object.fromEntries(
@@ -49,9 +49,17 @@ function normalize(s: string) {
 /** Decode an `nbaps=...` hash payload into search state. Returns null if missing/invalid. */
 function readSearchFromUrl(): { actionPlayer: string; actionTypes: string[]; subFilters: SubFilterState } | null {
   if (typeof window === "undefined") return null;
-  const hash = window.location.hash.replace(/^#/, "");
-  const params = new URLSearchParams(hash);
-  const enc = params.get("nbaps");
+  // Strip leading "#" and any "/" that some routers prepend before parsing.
+  const hash = window.location.hash.replace(/^#\/?/, "");
+  let enc: string | null = null;
+  try {
+    enc = new URLSearchParams(hash).get("nbaps");
+  } catch { enc = null; }
+  if (!enc) {
+    // Fallback: manual extraction in case URLSearchParams chokes on the payload.
+    const m = hash.match(/(?:^|&)nbaps=([^&]+)/);
+    if (m) enc = decodeURIComponent(m[1]);
+  }
   if (!enc) return null;
   try {
     const json = decodeURIComponent(escape(atob(enc)));

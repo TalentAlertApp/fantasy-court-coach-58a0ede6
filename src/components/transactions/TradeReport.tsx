@@ -3,7 +3,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight, Sparkles, X } from "lucide-react";
+import { ArrowRight, Sparkles, X, Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { aiExplainTrade } from "@/lib/api";
 import type { z } from "zod";
@@ -71,9 +72,9 @@ function PlayerCard({ p, variant }: { p: PlayerListItem; variant: "out" | "in" }
   );
 }
 
-function MetricRow({ label, before, after, format = (n: number) => n.toFixed(1), invert = false }: {
+function MetricRow({ label, before, after, format = (n: number) => n.toFixed(1), invert = false, hint }: {
   label: string; before: number; after: number;
-  format?: (n: number) => string; invert?: boolean;
+  format?: (n: number) => string; invert?: boolean; hint?: string;
 }) {
   const delta = after - before;
   const isGood = invert ? delta < 0 : delta > 0;
@@ -81,7 +82,19 @@ function MetricRow({ label, before, after, format = (n: number) => n.toFixed(1),
   const cls = Math.abs(delta) < 0.01 ? "text-muted-foreground" : isGood ? "text-emerald-500" : isBad ? "text-destructive" : "text-muted-foreground";
   return (
     <div className="grid grid-cols-4 items-center gap-2 px-3 py-2 border-b border-border/40 last:border-0 text-xs font-mono">
-      <span className="font-heading uppercase text-[10px] text-muted-foreground tracking-wider">{label}</span>
+      <span className="font-heading uppercase text-[10px] text-muted-foreground tracking-wider inline-flex items-center gap-1">
+        {label}
+        {hint && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="h-3 w-3 opacity-60 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[240px] text-[11px] leading-snug">
+              {hint}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </span>
       <span className="text-right">{format(before)}</span>
       <span className="text-right font-bold">{format(after)}</span>
       <span className={`text-right font-bold ${cls}`}>{delta >= 0 ? "+" : ""}{format(delta)}</span>
@@ -95,32 +108,51 @@ export default function TradeReport(props: TradeReportProps) {
   // Compute before/after metrics
   const beforeSalary = rosterPlayers.reduce((s, p) => s + p.core.salary, 0);
   const afterSalary = beforeSalary - outPlayers.reduce((s, p) => s + p.core.salary, 0) + inPlayers.reduce((s, p) => s + p.core.salary, 0);
-  const beforeFp5 = rosterPlayers.reduce((s, p) => s + ((p.last5 as any)?.fp5 ?? 0), 0);
-  const afterFp5 = beforeFp5 - outPlayers.reduce((s, p) => s + ((p.last5 as any)?.fp5 ?? 0), 0) + inPlayers.reduce((s, p) => s + ((p.last5 as any)?.fp5 ?? 0), 0);
-  const beforeStocks5 = rosterPlayers.reduce((s, p) => s + ((p.computed as any)?.stocks5 ?? 0), 0);
-  const afterStocks5 = beforeStocks5 - outPlayers.reduce((s, p) => s + ((p.computed as any)?.stocks5 ?? 0), 0) + inPlayers.reduce((s, p) => s + ((p.computed as any)?.stocks5 ?? 0), 0);
   const beforeBank = bankRemaining;
   const afterBank = salaryCap - afterSalary;
 
-  // Extra last-5 aggregates
-  const sumLast5 = (rows: PlayerListItem[], key: "pts5" | "reb5" | "ast5" | "mpg5") =>
-    rows.reduce((s, p) => s + ((p.last5 as any)?.[key] ?? 0), 0);
-  const beforePts5 = sumLast5(rosterPlayers, "pts5");
-  const afterPts5 = beforePts5 - sumLast5(outPlayers, "pts5") + sumLast5(inPlayers, "pts5");
-  const beforeReb5 = sumLast5(rosterPlayers, "reb5");
-  const afterReb5 = beforeReb5 - sumLast5(outPlayers, "reb5") + sumLast5(inPlayers, "reb5");
-  const beforeAst5 = sumLast5(rosterPlayers, "ast5");
-  const afterAst5 = beforeAst5 - sumLast5(outPlayers, "ast5") + sumLast5(inPlayers, "ast5");
-  const beforeMpg5 = sumLast5(rosterPlayers, "mpg5");
-  const afterMpg5 = beforeMpg5 - sumLast5(outPlayers, "mpg5") + sumLast5(inPlayers, "mpg5");
-
-  // Team distribution count
-  const beforeTeams = new Set(rosterPlayers.map((p) => p.core.team)).size;
-  const postRoster = [
+  // Per-game (per-player) roster averages, computed from each player's
+  // L5 per-game stats. Sum across the roster, then divide by roster size.
+  const sumKey = (rows: PlayerListItem[], group: "last5" | "computed", key: string) =>
+    rows.reduce((s, p) => s + (((p as any)[group])?.[key] ?? 0), 0);
+  const beforeN = Math.max(rosterPlayers.length, 1);
+  const postRosterPre = [
     ...rosterPlayers.filter((p) => !outPlayers.some((o) => o.core.id === p.core.id)),
     ...inPlayers,
   ];
-  const afterTeams = new Set(postRoster.map((p) => p.core.team)).size;
+  const afterN = Math.max(postRosterPre.length, 1);
+  const avgBefore = (group: "last5" | "computed", key: string) =>
+    sumKey(rosterPlayers, group, key) / beforeN;
+  const avgAfter = (group: "last5" | "computed", key: string) =>
+    sumKey(postRosterPre, group, key) / afterN;
+
+  const beforeFp = avgBefore("last5", "fp5");
+  const afterFp = avgAfter("last5", "fp5");
+  const beforeStocks = avgBefore("computed", "stocks5");
+  const afterStocks = avgAfter("computed", "stocks5");
+  const beforePts = avgBefore("last5", "pts5");
+  const afterPts = avgAfter("last5", "pts5");
+  const beforeReb = avgBefore("last5", "reb5");
+  const afterReb = avgAfter("last5", "reb5");
+  const beforeAst = avgBefore("last5", "ast5");
+  const afterAst = avgAfter("last5", "ast5");
+  const beforeMpg = avgBefore("last5", "mpg5");
+  const afterMpg = avgAfter("last5", "mpg5");
+
+  // Roster BIQ proxy: rough composite from FP5 + stocks5 + value5, scaled 0–100.
+  const biq = (p: PlayerListItem) => {
+    const fp = ((p.last5 as any)?.fp5 ?? 0);
+    const st = ((p.computed as any)?.stocks5 ?? 0);
+    const val = ((p.computed as any)?.value5 ?? 0);
+    return Math.max(0, Math.min(100, fp * 1.4 + st * 6 + val * 18));
+  };
+  const avgBiq = (rows: PlayerListItem[]) => rows.length ? rows.reduce((s, p) => s + biq(p), 0) / rows.length : 0;
+  const beforeBiq = avgBiq(rosterPlayers);
+  const afterBiq = avgBiq(postRosterPre);
+
+  // Team distribution count
+  const beforeTeams = new Set(rosterPlayers.map((p) => p.core.team)).size;
+  const afterTeams = new Set(postRosterPre.map((p) => p.core.team)).size;
 
   // AI verdict
   const [verdict, setVerdict] = useState<{ verdict: string; summary: string; pros: string[]; cons: string[]; confidence: number } | null>(null);
@@ -154,6 +186,7 @@ export default function TradeReport(props: TradeReportProps) {
     : "text-amber-600 dark:text-amber-400 border-amber-500/40 bg-amber-500/10";
 
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="rounded-xl border-2 border-accent/40 bg-gradient-to-br from-background via-background to-accent/[0.03] shadow-[0_20px_60px_-15px_hsl(var(--accent)/0.35)] ring-1 ring-accent/10">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-gradient-to-r from-card/60 via-card/40 to-accent/[0.06] rounded-t-xl">
@@ -197,13 +230,14 @@ export default function TradeReport(props: TradeReportProps) {
               </div>
               <MetricRow label="Salary used" before={beforeSalary} after={afterSalary} format={(n) => `$${n.toFixed(1)}M`} invert />
               <MetricRow label="Bank" before={beforeBank} after={afterBank} format={(n) => `$${n.toFixed(1)}M`} />
-              <MetricRow label="Sum FP5" before={beforeFp5} after={afterFp5} />
-              <MetricRow label="Sum Stocks5" before={beforeStocks5} after={afterStocks5} />
-              <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} />
-              <MetricRow label="Sum PTS5" before={beforePts5} after={afterPts5} />
-              <MetricRow label="Sum REB5" before={beforeReb5} after={afterReb5} />
-              <MetricRow label="Sum AST5" before={beforeAst5} after={afterAst5} />
-              <MetricRow label="Sum MPG5" before={beforeMpg5} after={afterMpg5} />
+              <MetricRow label="Avg FP / Game" before={beforeFp} after={afterFp} hint="Fantasy Points per game per player, averaged across the roster (last 5 games). FP = PS + R + 2·A + 3·S + 3·B." />
+              <MetricRow label="Avg BIQ" before={beforeBiq} after={afterBiq} hint="Ballers.IQ — proprietary 0–100 player rating combining FP form, stocks (steals + blocks), and salary value. Higher is better." />
+              <MetricRow label="Avg Stocks / Game" before={beforeStocks} after={afterStocks} hint="Steals + blocks per game (last 5)." />
+              <MetricRow label="Teams used" before={beforeTeams} after={afterTeams} format={(n) => n.toFixed(0)} hint="Distinct NBA teams represented in the roster (max 2 per team allowed)." />
+              <MetricRow label="Avg PTS / Game" before={beforePts} after={afterPts} />
+              <MetricRow label="Avg REB / Game" before={beforeReb} after={afterReb} />
+              <MetricRow label="Avg AST / Game" before={beforeAst} after={afterAst} />
+              <MetricRow label="Avg MPG" before={beforeMpg} after={afterMpg} hint="Minutes per game (last 5)." />
             </div>
           </div>
 
@@ -263,5 +297,6 @@ export default function TradeReport(props: TradeReportProps) {
         </Button>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
