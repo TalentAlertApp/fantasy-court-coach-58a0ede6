@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
+import type { LeagueTeam } from "@/hooks/useLeagueTeams";
 import type { StandingRow } from "@/types/standings";
 
 interface ScheduleGame {
@@ -26,9 +27,29 @@ function emptyAcc(): TeamAcc {
   return { w: 0, l: 0, homeW: 0, homeL: 0, awayW: 0, awayL: 0, confW: 0, confL: 0, divW: 0, divL: 0, pf: 0, pa: 0, last10: [], streak: 0 };
 }
 
-export function useNBAStandings(scheduleData: ScheduleGame[] | undefined) {
+export function useNBAStandings(
+  scheduleData: ScheduleGame[] | undefined,
+  leagueTeams?: LeagueTeam[],
+) {
   return useMemo<StandingRow[]>(() => {
     if (!scheduleData) return [];
+
+    const teamList = leagueTeams && leagueTeams.length > 0
+      ? leagueTeams
+      : NBA_TEAMS.map((t) => ({
+          id: t.id, name: t.name, tricode: t.tricode, logo: t.logo,
+          primaryColor: t.primaryColor,
+          conference: NBA_TEAM_META[t.tricode]?.conference ?? null,
+          division: NBA_TEAM_META[t.tricode]?.division ?? null,
+        } as LeagueTeam));
+
+    const metaFor = (tri: string) => {
+      const t = teamList.find((x) => x.tricode === tri);
+      return {
+        conference: (t?.conference as string | null) ?? null,
+        division: (t?.division as string | null) ?? null,
+      };
+    };
 
     const acc: Record<string, TeamAcc> = {};
     const ensure = (t: string) => { if (!acc[t]) acc[t] = emptyAcc(); };
@@ -43,10 +64,10 @@ export function useNBAStandings(scheduleData: ScheduleGame[] | undefined) {
       ensure(ht); ensure(at);
 
       const homeWon = g.home_pts > g.away_pts;
-      const hMeta = NBA_TEAM_META[ht];
-      const aMeta = NBA_TEAM_META[at];
+      const hMeta = metaFor(ht);
+      const aMeta = metaFor(at);
       const sameConf = hMeta && aMeta && hMeta.conference === aMeta.conference;
-      const sameDiv = sameConf && hMeta.division === aMeta.division;
+      const sameDiv = sameConf && !!hMeta.division && hMeta.division === aMeta.division;
 
       // Home team
       if (homeWon) {
@@ -80,7 +101,7 @@ export function useNBAStandings(scheduleData: ScheduleGame[] | undefined) {
       }
     }
 
-    return NBA_TEAMS.map((t) => {
+    return teamList.map((t) => {
       const a = acc[t.tricode] || emptyAcc();
       const gp = a.w + a.l;
       const pct = gp > 0 ? a.w / gp : 0;
@@ -89,7 +110,11 @@ export function useNBAStandings(scheduleData: ScheduleGame[] | undefined) {
       const l10W = a.last10.filter(Boolean).length;
       const l10L = a.last10.length - l10W;
       const strk = a.streak > 0 ? `W${a.streak}` : a.streak < 0 ? `L${Math.abs(a.streak)}` : "-";
-      const meta = NBA_TEAM_META[t.tricode] || { conference: "East" as const, division: "Atlantic" };
+      // Normalise conference to short codes used downstream (East/West).
+      const rawConf = (t.conference || NBA_TEAM_META[t.tricode]?.conference || "East") as string;
+      const confShort: "East" | "West" =
+        /^w/i.test(rawConf) ? "West" : "East";
+      const division = (t.division || NBA_TEAM_META[t.tricode]?.division || "") as string;
 
       return {
         tricode: t.tricode,
@@ -109,13 +134,13 @@ export function useNBAStandings(scheduleData: ScheduleGame[] | undefined) {
         diff: ppg - oppPpg,
         l10W, l10L,
         strk,
-        conference: meta.conference,
-        division: meta.division,
+        conference: confShort,
+        division,
       };
     }).sort((a, b) => b.pct - a.pct || b.w - a.w).map((row, i, arr) => {
       const leader = arr[0];
       row.gb = leader ? ((leader.w - leader.l) - (row.w - row.l)) / 2 : 0;
       return row;
     });
-  }, [scheduleData]);
+  }, [scheduleData, leagueTeams]);
 }

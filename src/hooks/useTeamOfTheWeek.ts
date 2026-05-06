@@ -1,6 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DEADLINES } from "@/lib/deadlines";
+import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
+import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeague } from "@/contexts/LeagueContext";
+import type { Deadline } from "@/lib/deadlines";
 
 export interface TOTWPlayer {
   id: number;
@@ -13,8 +16,8 @@ export interface TOTWPlayer {
   salary: number;
 }
 
-function getGwDateRange(gw: number): { start: string; end: string } | null {
-  const gwDeadlines = DEADLINES.filter((d) => d.gw === gw);
+function getGwDateRange(gw: number, deadlines: Deadline[]): { start: string; end: string } | null {
+  const gwDeadlines = deadlines.filter((d) => d.gw === gw);
   if (gwDeadlines.length === 0) return null;
   const firstDt = new Date(gwDeadlines[0].deadline_utc);
   const lastDt = new Date(gwDeadlines[gwDeadlines.length - 1].deadline_utc);
@@ -61,16 +64,21 @@ function pickTop5WithPositionConstraint(candidates: TOTWPlayer[]): TOTWPlayer[] 
 }
 
 export function useTeamOfTheWeek(gw: number) {
+  const { deadlines } = useLeagueDeadlines();
+  const { data: leagueId } = useLeagueId();
+  const { league } = useLeague();
   return useQuery({
-    queryKey: ["team-of-the-week", gw],
+    queryKey: ["team-of-the-week", league, leagueId, gw, deadlines.length],
+    enabled: !!leagueId && deadlines.length > 0,
     queryFn: async () => {
-      const range = getGwDateRange(gw);
+      const range = getGwDateRange(gw, deadlines);
       if (!range) return { players: [], gw };
 
       // Get game logs for this GW date range
       const { data: logs, error: logsErr } = await supabase
         .from("player_game_logs")
         .select("player_id, fp, game_date")
+        .eq("league_id", leagueId!)
         .gte("game_date", range.start)
         .lte("game_date", range.end)
         .gt("fp", 0);
@@ -96,6 +104,7 @@ export function useTeamOfTheWeek(gw: number) {
         const { data, error } = await supabase
           .from("players")
           .select("id, name, team, photo, fc_bc, salary")
+          .eq("league_id", leagueId!)
           .in("id", batch);
         if (error) throw error;
         if (data) players.push(...data);
