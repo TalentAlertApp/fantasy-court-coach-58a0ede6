@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Trophy, LogOut } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
+import LeagueSwitcher from "@/components/LeagueSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -119,6 +120,12 @@ export default function AppLayout() {
         {!collapsed && (
           <>
             <div className="sidebar-divider" />
+            <div className="px-3 pt-3 pb-1">
+              <span className="sidebar-section-label">League</span>
+            </div>
+            <div className="px-3 pb-3 pt-1.5">
+              <LeagueSwitcher />
+            </div>
             <div className="px-3 pt-3 pb-1">
               <span className="sidebar-section-label">Your Team</span>
             </div>
