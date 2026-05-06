@@ -329,7 +329,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                     {upcoming.map((g) => {
                       const isHome = g.home_team === tricode;
                       const opp = isHome ? g.away_team : g.home_team;
-                      const oppLogo = getTeamLogo(opp);
+                      const oppLogo = getOppLogo(opp);
                       const tipoff = g.tipoff_utc ? new Date(g.tipoff_utc).toLocaleDateString("en-GB", { month: "short", day: "numeric" }) : "TBD";
                       return (
                         <div key={g.game_id} className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm">
