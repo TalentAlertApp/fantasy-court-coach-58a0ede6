@@ -10,6 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NBA_TEAMS } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
@@ -37,10 +41,6 @@ function getShareOrigin(): string {
   // PUBLIC_ORIGIN remains the SSR fallback only.
   return window.location.origin;
 }
-
-const TEAM_NAME: Record<string, string> = Object.fromEntries(
-  NBA_TEAMS.map((t) => [t.tricode, t.name]),
-);
 
 function normalize(s: string) {
   return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -193,6 +193,15 @@ function PlayerCombobox({
 }
 
 function NBAPlaySearchSection() {
+  const { league } = useLeague();
+  const { data: leagueId } = useLeagueId();
+  const { teams: leagueTeams } = useLeagueTeams();
+  const TEAM_NAME = useMemo<Record<string, string>>(
+    () => Object.fromEntries(leagueTeams.map((t) => [t.tricode, t.name])),
+    [leagueTeams],
+  );
+  const { deadlines: leagueDeadlinesRaw } = useLeagueDeadlines();
+  const activeDeadlines = league === "wnba" ? leagueDeadlinesRaw : DEADLINES;
   // Hydrate from URL hash (?nbaps=...) so shared "Copy link" URLs reopen the same search.
   const initialFromUrl = useMemo(() => readSearchFromUrl(), []);
   const [actionPlayer, setActionPlayer] = useState(initialFromUrl?.actionPlayer ?? "");
@@ -214,15 +223,25 @@ function NBAPlaySearchSection() {
     { value: "ejection", label: "Ejection" },
   ];
 
-  const initial = useMemo(() => getCurrentGameday(), []);
+  const initial = useMemo(
+    () => (league === "wnba" ? (getCurrentGamedayFrom(activeDeadlines) ?? activeDeadlines[0] ?? getCurrentGameday()) : getCurrentGameday()),
+    [league, activeDeadlines],
+  );
   const [gw, setGw] = useState<number>(initial.gw);
   const [day, setDay] = useState<number>(initial.day);
   const [gameId, setGameId] = useState("");
+  // Re-anchor when league switches and deadlines change.
+  useEffect(() => {
+    setGw(initial.gw);
+    setDay(initial.day);
+    setGameId("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [league]);
 
   // Lisbon-day label + yyyymmdd derived from the matched deadline
   const currentDeadline = useMemo(
-    () => DEADLINES.find((d) => d.gw === gw && d.day === day) ?? initial,
-    [gw, day, initial],
+    () => activeDeadlines.find((d) => d.gw === gw && d.day === day) ?? initial,
+    [gw, day, initial, activeDeadlines],
   );
   const lisbonDateLabel = useMemo(() => {
     return new Intl.DateTimeFormat("en-GB", {
@@ -248,20 +267,20 @@ function NBAPlaySearchSection() {
 
   // Step through DEADLINES chronologically
   const currentIndex = useMemo(
-    () => DEADLINES.findIndex((d) => d.gw === gw && d.day === day),
-    [gw, day],
+    () => activeDeadlines.findIndex((d) => d.gw === gw && d.day === day),
+    [gw, day, activeDeadlines],
   );
   const canPrev = currentIndex > 0;
-  const canNext = currentIndex >= 0 && currentIndex < DEADLINES.length - 1;
+  const canNext = currentIndex >= 0 && currentIndex < activeDeadlines.length - 1;
   const shiftDay = (delta: number) => {
-    const next = DEADLINES[currentIndex + delta];
+    const next = activeDeadlines[currentIndex + delta];
     if (!next) return;
     setGw(next.gw);
     setDay(next.day);
   };
 
-  const daysInGw = useMemo(() => DEADLINES.filter((d) => d.gw === gw).map((d) => d.day), [gw]);
-  const allGws = useMemo(() => Array.from(new Set(DEADLINES.map((d) => d.gw))), []);
+  const daysInGw = useMemo(() => activeDeadlines.filter((d) => d.gw === gw).map((d) => d.day), [gw, activeDeadlines]);
+  const allGws = useMemo(() => Array.from(new Set(activeDeadlines.map((d) => d.gw))), [activeDeadlines]);
 
   // Reset selected game when (gw, day) changes — proper effect, not useMemo
   useEffect(() => {
@@ -269,11 +288,13 @@ function NBAPlaySearchSection() {
   }, [gw, day]);
 
   const { data: gamesByDate, isLoading: gamesLoading } = useQuery({
-    queryKey: ["games-by-gw-day", gw, day],
+    queryKey: ["games-by-gw-day", gw, day, leagueId],
+    enabled: !!leagueId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, away_team, home_team, tipoff_utc, status")
+        .eq("league_id", leagueId!)
         .eq("gw", gw)
         .eq("day", day)
         .order("tipoff_utc", { ascending: true });
