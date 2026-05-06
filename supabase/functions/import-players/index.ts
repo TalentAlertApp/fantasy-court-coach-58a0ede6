@@ -51,9 +51,18 @@ function normDob(v: string | null | undefined): string | null {
   return null;
 }
 
-/** Check if a name looks corrupted — contains literal ? where diacritics should be */
 function looksCorrupted(name: string): boolean {
   return /\?/.test(name);
+}
+
+/** Salary parser: numbers pass through; "TBD"/empty → 0; "1,5"/"1.5" parsed. */
+function parseSalarySafe(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  const s = String(raw ?? "").trim().replace(/^"|"$/g, "");
+  if (!s) return 0;
+  if (/^tbd$/i.test(s)) return 0;
+  const v = parseFloat(s.replace(",", "."));
+  return Number.isFinite(v) ? v : 0;
 }
 
 serve(async (req: Request) => {
@@ -65,43 +74,54 @@ serve(async (req: Request) => {
   try {
     if (req.method !== "POST") return err("METHOD_NOT_ALLOWED", "POST only", null, 405);
 
-    const { players, replace } = await req.json();
+    const { players, replace, league_code } = await req.json();
     if (!Array.isArray(players) || players.length === 0) {
       return err("INVALID_INPUT", "players array required");
+    }
+    const leagueCode = String(league_code ?? "nba").toLowerCase();
+    if (!["nba", "wnba"].includes(leagueCode)) {
+      return err("INVALID_INPUT", `league_code must be 'nba' or 'wnba' (got '${leagueCode}')`);
     }
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Load existing names for corruption protection
-    let existingNames: Record<number, string> = {};
+    // Resolve league_id from league_code
+    const { data: leagueRow, error: leagueErr } = await supabase
+      .from("leagues").select("id").eq("code", leagueCode).maybeSingle();
+    if (leagueErr || !leagueRow?.id) {
+      return err("LEAGUE_NOT_FOUND", `Sport league '${leagueCode}' not found`, leagueErr?.message ?? null, 404);
+    }
+    const league_id = leagueRow.id as string;
+
+    // Backup clean names — SCOPED to this league
+    const existingNames: Record<number, string> = {};
     if (replace) {
-      // Before deleting, grab existing clean names as backup
       const { data: existing } = await supabase
         .from("players")
         .select("id, name")
+        .eq("league_id", league_id)
         .limit(2000);
       if (existing) {
         for (const p of existing) {
-          if (!looksCorrupted(p.name)) {
-            existingNames[p.id] = p.name;
-          }
+          if (!looksCorrupted(p.name)) existingNames[p.id] = p.name;
         }
       }
-      console.log(`Loaded ${Object.keys(existingNames).length} clean existing names as backup`);
+      console.log(`[${leagueCode}] Loaded ${Object.keys(existingNames).length} clean existing names`);
     }
 
     let deleted = 0;
     if (replace) {
+      // CRITICAL: only delete players belonging to THIS league. Never global delete.
       const { data: delData, error: delErr } = await supabase
         .from("players")
         .delete()
-        .neq("id", 0)
+        .eq("league_id", league_id)
         .select("id");
       if (delErr) {
-        console.error("Delete all error:", delErr);
+        console.error("Delete error:", delErr);
       } else {
         deleted = delData?.length || 0;
-        console.log(`Deleted ${deleted} existing players`);
+        console.log(`[${leagueCode}] Deleted ${deleted} existing players`);
       }
     }
 
@@ -114,24 +134,28 @@ serve(async (req: Request) => {
       const batch = players.slice(i, i + 50);
       const rows = batch.map((p: any) => {
         const dob = normDob(p.dob);
-        const age = calcAge(dob) || (parseInt(p.age) || 0);
+        const age = calcAge(dob); // always derived from DOB
         const college = (p.college === "None" || !p.college) ? null : p.college;
-        const salRaw = String(p.salary ?? "0").replace(/^"|"$/g, "").replace(",", ".");
-        const salary = typeof p.salary === "number" ? p.salary : (parseFloat(salRaw) || 0);
+        const salary = parseSalarySafe(p.salary);
 
         let name = p.name;
         const playerId = parseInt(p.id);
 
-        // If incoming name looks corrupted but we have a clean backup, use the backup
         if (looksCorrupted(name) && existingNames[playerId]) {
           console.log(`Protected name for ID ${playerId}: "${name}" → "${existingNames[playerId]}"`);
           name = existingNames[playerId];
           nameProtected++;
         }
 
+        const sourceUrl = p.nba_url || p.source_url || null;
+
         return {
           id: playerId,
-          nba_url: p.nba_url || null,
+          league_id,
+          source_league: leagueCode,
+          source_player_id: String(playerId),
+          source_url: sourceUrl,
+          nba_url: sourceUrl,
           name,
           team: p.team ?? "",
           fc_bc: (p.fc_bc || "FC").toUpperCase(),
@@ -152,7 +176,6 @@ serve(async (req: Request) => {
       if (rows.length === 0) { skipped += batch.length; continue; }
 
       const { error } = await supabase.from("players").upsert(rows, { onConflict: "id" });
-
       if (error) {
         errors.push(`Batch ${i}: ${error.message}`);
         console.error("Import error:", error);
@@ -161,11 +184,11 @@ serve(async (req: Request) => {
       }
     }
 
-    if (nameProtected > 0) {
-      console.log(`Protected ${nameProtected} names from corruption`);
-    }
+    if (nameProtected > 0) console.log(`Protected ${nameProtected} names from corruption`);
 
     return ok({
+      league_code: leagueCode,
+      league_id,
       upserted,
       skipped,
       deleted,
