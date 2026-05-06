@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
+import { readLeagueCodeFromUrl, resolveLeagueId } from "../_shared/league.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,13 +15,17 @@ serve(async (req: Request) => {
     const url = new URL(req.url);
     const gwParam = url.searchParams.get("gw");
     const dayParam = url.searchParams.get("day");
+    const leagueCode = readLeagueCodeFromUrl(url);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const leagueId = await resolveLeagueId(supabase, leagueCode);
 
-    let query = supabase.from("schedule_games").select("*").order("tipoff_utc", { ascending: true, nullsFirst: false });
+    let query = supabase.from("schedule_games").select("*")
+      .eq("league_id", leagueId)
+      .order("tipoff_utc", { ascending: true, nullsFirst: false });
     
     if (gwParam) query = query.eq("gw", parseInt(gwParam));
     if (dayParam) query = query.eq("day", parseInt(dayParam));
