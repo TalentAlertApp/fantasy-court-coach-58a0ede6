@@ -36,10 +36,10 @@ type Tab = "teams" | "standings";
 export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("teams");
+  const { league } = useLeague();
   const [standingsView, setStandingsView] = useState<StandingsView>(
     league === "wnba" ? "league" : "division"
   );
-  const { league } = useLeague();
   const { teams: leagueTeams } = useLeagueTeams();
 
   // Reset the default standings view when switching leagues so WNBA always
