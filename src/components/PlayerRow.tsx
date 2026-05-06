@@ -8,6 +8,7 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import { formatTipoffLabel, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
+import { formatSalary } from "@/lib/format-salary";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
