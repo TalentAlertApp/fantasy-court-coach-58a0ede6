@@ -11,6 +11,7 @@ import PlayerPickerDialog from "@/components/PlayerPickerDialog";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { getCurrentGameday } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { PlayerListItemSchema } from "@/lib/contracts";
 
 type Strategy = "auto" | "manual" | "ai";
@@ -29,6 +30,11 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
   const { refetch: refetchRoster } = useRosterQuery();
+  const { deadlines } = useLeagueDeadlines();
+  const resolveGameday = () => {
+    const fromLeague = getCurrentGamedayFrom(deadlines);
+    return fromLeague ?? getCurrentGameday();
+  };
 
   const [strategy, setStrategy] = useState<Strategy>("auto");
   const [drafting, setDrafting] = useState(false);
@@ -63,7 +69,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
     if (!selectedTeamId) return;
     setDrafting(true);
     try {
-      const { gw, day } = getCurrentGameday();
+      const { gw, day } = resolveGameday();
       await autoPickRoster({ gw, day, strategy: "value5" }, selectedTeamId);
       toast({ title: "Squad drafted!", description: `Saved under GW${gw} · Day ${day}.` });
       await handoff();
@@ -95,7 +101,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
     if (!selectedTeamId || !isManualValid) return;
     setDrafting(true);
     try {
-      const { gw, day } = getCurrentGameday();
+      const { gw, day } = resolveGameday();
       const sorted = [...picks].sort((a, b) => (b.last5?.fp5 ?? 0) - (a.last5?.fp5 ?? 0));
       const starters: PlayerListItem[] = [];
       const bench: PlayerListItem[] = [];
