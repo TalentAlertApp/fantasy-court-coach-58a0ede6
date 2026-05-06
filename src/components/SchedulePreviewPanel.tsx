@@ -69,11 +69,12 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
   const rosterTeamSet = useMemo(() => new Set(rosterTeams), [rosterTeams]);
 
   const { standingsByTeam, last5ByTeam, last5DetailByTeam, divisionRankByTeam } = useStandingsContext();
+  const { teams: leagueTeams } = useLeagueTeams();
   const primaryByTeam = useMemo(() => {
     const m: Record<string, string> = {};
-    for (const t of NBA_TEAMS) m[t.tricode] = t.primaryColor;
+    for (const t of leagueTeams) m[t.tricode] = t.primaryColor;
     return m;
-  }, []);
+  }, [leagueTeams]);
 
   const fmtTime = (iso: string | null) => {
     if (!iso) return "—";
