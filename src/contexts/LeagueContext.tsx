@@ -1,19 +1,16 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useTeam } from "@/contexts/TeamContext";
 
 export type LeagueCode = "nba" | "wnba";
 
 interface LeagueContextValue {
   league: LeagueCode;
-  setLeague: (code: LeagueCode) => void;
   isWnba: boolean;
 }
 
-const LS_KEY = "selected_league_code";
-
 const LeagueContext = createContext<LeagueContextValue>({
   league: "nba",
-  setLeague: () => {},
   isWnba: false,
 });
 
@@ -23,37 +20,29 @@ export function getCurrentLeague(): LeagueCode {
   return currentLeague;
 }
 
-function readInitial(): LeagueCode {
-  if (typeof window === "undefined") return "nba";
-  const v = localStorage.getItem(LS_KEY);
-  return v === "wnba" ? "wnba" : "nba";
-}
-
 export function LeagueProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const [league, setLeagueState] = useState<LeagueCode>(() => {
-    const v = readInitial();
-    currentLeague = v;
-    return v;
-  });
+  const { selectedTeam } = useTeam();
+  // League is a property of the selected fantasy team. Legacy teams without
+  // an explicit league_code default to NBA.
+  const league: LeagueCode = (selectedTeam?.league_code === "wnba") ? "wnba" : "nba";
 
-  const setLeague = useCallback(
-    (code: LeagueCode) => {
-      currentLeague = code;
-      setLeagueState(code);
-      try {
-        localStorage.setItem(LS_KEY, code);
-      } catch {
-        /* ignore */
-      }
-      // Wipe all server-data caches so no NBA-data flashes through after a switch.
+  // Keep the module-level mirror in sync for non-React callers (apiFetch).
+  // When the resolved league changes, wipe all server-data caches so no
+  // stale league data flashes through.
+  useEffect(() => {
+    if (currentLeague !== league) {
+      currentLeague = league;
       queryClient.invalidateQueries();
-    },
-    [queryClient],
-  );
+    } else {
+      currentLeague = league;
+    }
+  }, [league, queryClient]);
+
+  const value = useMemo(() => ({ league, isWnba: league === "wnba" }), [league]);
 
   return (
-    <LeagueContext.Provider value={{ league, setLeague, isWnba: league === "wnba" }}>
+    <LeagueContext.Provider value={value}>
       {children}
     </LeagueContext.Provider>
   );
