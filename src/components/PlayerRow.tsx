@@ -8,7 +8,8 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import { formatTipoffLabel, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
-import { formatSalary } from "@/lib/format-salary";
+import { formatSalary, formatStat } from "@/lib/format-salary";
+import { useLeague } from "@/contexts/LeagueContext";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -31,8 +32,12 @@ interface PlayerRowProps {
 
 export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
+  const { isWnba } = useLeague();
   const teamLogo = getTeamLogo(core.team);
   const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
+  // Pre-season heuristic: no games played anywhere → dash out perf stats.
+  const preseason = isWnba && Number((player.season as any)?.gp ?? 0) === 0
+    && Number(last5?.fp5 ?? 0) === 0;
 
   const dobLabel = (() => {
     if (!core.dob) return "—";
@@ -133,10 +138,10 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
         </Badge>
       </TableCell>
       <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatSalary(core.salary)}</TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{last5.fp5.toFixed(1)}</TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{computed.value5.toFixed(2)}</TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{lastGame.fp.toFixed(1)}</TableCell>
-      <TableCell className="text-right text-xs text-foreground font-bold w-24 tabular-nums">{Number(totalFp).toFixed(0)}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(computed?.value5, 2, preseason)}</TableCell>
+      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(lastGame?.fp, 1, preseason)}</TableCell>
+      <TableCell className="text-right text-xs text-foreground font-bold w-24 tabular-nums">{formatStat(totalFp, 0, preseason)}</TableCell>
       <TableCell className="text-right">
         {onSwap && (
           <Button
