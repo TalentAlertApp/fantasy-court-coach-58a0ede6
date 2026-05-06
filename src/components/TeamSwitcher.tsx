@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
+import LeaguePickerCards from "@/components/LeaguePickerCards";
 
 export default function TeamSwitcher() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
@@ -147,26 +148,9 @@ export default function TeamSwitcher() {
         <DialogContent className="rounded-lg">
           <DialogHeader><DialogTitle className="font-heading">Create New Team</DialogTitle></DialogHeader>
           <Input placeholder="Team name..." value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} className="rounded-lg" />
-          <div className="flex items-center gap-2 pt-1">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">League</span>
-            {(["nba", "wnba"] as const).map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setNewLeague(c)}
-                className={`px-3 py-1.5 rounded-full text-[11px] font-heading uppercase tracking-wider border transition-colors ${
-                  newLeague === c
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted text-muted-foreground border-border hover:border-primary"
-                }`}
-                aria-label={`Select ${c.toUpperCase()} league`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <LeagueLogoBadge league={c} size="sm" />
-                  {c.toUpperCase()}
-                </span>
-              </button>
-            ))}
+          <div className="pt-2">
+            <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">League</div>
+            <LeaguePickerCards value={newLeague} onChange={setNewLeague} size="md" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>

@@ -84,40 +84,62 @@ Deno.serve(async (req) => {
     // we cannot rank by FP/value. Rank by salary as a proxy for talent.
     const hasGameLogs = logs.length > 0;
 
-    type Cand = { id: number; name: string; team: string; fc_bc: string; salary: number; fp5: number; score: number };
-    const cands: Cand[] = (players as any[])
+    type Cand = { id: number; name: string; team: string; fc_bc: string; salary: number; fp5: number };
+    const baseCands: Cand[] = (players as any[])
       .map((p) => {
         const fp5 = last5Map.has(p.id) ? avg(last5Map.get(p.id)!) : Number(p.fp_pg5) || 0;
         const salary = Number(p.salary) || 0;
-        // Pre-season: rank by salary (talent proxy). Otherwise honor strategy.
-        const score = !hasGameLogs
-          ? salary
-          : strategy === "fp5"
-            ? fp5
-            : (salary > 0 ? fp5 / salary : 0);
-        return { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, salary, fp5, score };
+        return { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, salary, fp5 };
       })
-      .filter((c) => c.salary > 0 && (c.fc_bc === "FC" || c.fc_bc === "BC"))
-      .sort((a, b) => b.score - a.score);
+      .filter((c) => c.salary > 0 && (c.fc_bc === "FC" || c.fc_bc === "BC"));
 
-    // Greedy: pick 5 FC + 5 BC, cap $100M, max 2 per NBA team
-    const picks: Cand[] = [];
-    const teamCounts: Record<string, number> = {};
-    let fc = 0, bc = 0, spend = 0;
-    for (const c of cands) {
-      if (picks.length >= 10) break;
-      if (c.fc_bc === "FC" && fc >= 5) continue;
-      if (c.fc_bc === "BC" && bc >= 5) continue;
-      if ((teamCounts[c.team] ?? 0) >= 2) continue;
-      if (spend + c.salary > salaryCap) continue;
-      // Ensure we can still afford remaining slots — simple guard: reserve $1 per remaining slot
-      const remaining = 10 - picks.length - 1;
-      if (spend + c.salary + remaining > salaryCap) continue;
-      picks.push(c);
-      teamCounts[c.team] = (teamCounts[c.team] ?? 0) + 1;
-      spend += c.salary;
-      if (c.fc_bc === "FC") fc++; else bc++;
+    // Find min salary per position to compute realistic minimum spend for remaining slots.
+    const minFc = Math.min(...baseCands.filter((c) => c.fc_bc === "FC").map((c) => c.salary));
+    const minBc = Math.min(...baseCands.filter((c) => c.fc_bc === "BC").map((c) => c.salary));
+    const targetAvg = salaryCap / 10;
+
+    function scoreFor(c: Cand, mode: "value" | "fp" | "balanced" | "cheap"): number {
+      if (mode === "fp") return c.fp5;
+      if (mode === "value") return c.salary > 0 ? c.fp5 / c.salary : 0;
+      if (mode === "cheap") return -c.salary;
+      // balanced: prefer salaries near targetAvg (preseason default)
+      return -Math.abs(c.salary - targetAvg);
     }
+
+    function tryGreedy(mode: "value" | "fp" | "balanced" | "cheap"): { picks: Cand[]; fc: number; bc: number; spend: number } {
+      const sorted = [...baseCands].sort((a, b) => scoreFor(b, mode) - scoreFor(a, mode));
+      const picks: Cand[] = [];
+      const teamCounts: Record<string, number> = {};
+      let fc = 0, bc = 0, spend = 0;
+      for (const c of sorted) {
+        if (picks.length >= 10) break;
+        if (c.fc_bc === "FC" && fc >= 5) continue;
+        if (c.fc_bc === "BC" && bc >= 5) continue;
+        if ((teamCounts[c.team] ?? 0) >= 2) continue;
+        // Reserve cheapest remaining slots so we can still complete the roster.
+        const remainingFc = 5 - fc - (c.fc_bc === "FC" ? 1 : 0);
+        const remainingBc = 5 - bc - (c.fc_bc === "BC" ? 1 : 0);
+        const reserved = remainingFc * minFc + remainingBc * minBc;
+        if (spend + c.salary + reserved > salaryCap) continue;
+        picks.push(c);
+        teamCounts[c.team] = (teamCounts[c.team] ?? 0) + 1;
+        spend += c.salary;
+        if (c.fc_bc === "FC") fc++; else bc++;
+      }
+      return { picks, fc, bc, spend };
+    }
+
+    // Mode order: in-season honors strategy; preseason starts balanced. Always retry cheap as fallback.
+    const modes: Array<"value" | "fp" | "balanced" | "cheap"> = hasGameLogs
+      ? (strategy === "fp5" ? ["fp", "value", "balanced", "cheap"] : ["value", "fp", "balanced", "cheap"])
+      : ["balanced", "cheap"];
+
+    let result = tryGreedy(modes[0]);
+    for (let i = 1; i < modes.length && (result.picks.length < 10 || result.fc !== 5 || result.bc !== 5); i++) {
+      result = tryGreedy(modes[i]);
+    }
+    const picks = result.picks;
+    const fc = result.fc, bc = result.bc, spend = result.spend;
 
     if (picks.length < 10 || fc !== 5 || bc !== 5) {
       const totalFc = (players as any[]).filter((p) => p.fc_bc === "FC" && Number(p.salary) > 0).length;
@@ -180,7 +202,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
         team_id, team_name,
       },
-      debug: { strategy, candidates_considered: cands.length, spend, fc, bc },
+      debug: { strategy, candidates_considered: baseCands.length, spend, fc, bc },
     });
   } catch (e) {
     return errorResponse("AUTO_PICK_ERROR", e instanceof Error ? e.message : "Unknown", null, 500);
