@@ -255,12 +255,6 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl rounded-lg max-h-[92vh] h-[92vh] flex flex-col overflow-hidden">
-        <img
-          src={nbaLogo}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute inset-0 m-auto h-[55%] w-auto opacity-[0.05] dark:opacity-[0.06] select-none z-0"
-        />
         <DialogHeader className="shrink-0 relative z-[1]">
           <DialogTitle className="sr-only">Ballers.IQ</DialogTitle>
           {/* Premium full-width wordmark banner — transparent so it blends in any theme */}
@@ -286,7 +280,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           {isRosterEmpty && (
             <div className="relative overflow-hidden shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
               <img
-                src={nbaLogo}
+                src={leagueLogo}
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.08] select-none"
