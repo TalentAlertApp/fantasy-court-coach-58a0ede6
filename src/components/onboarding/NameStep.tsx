@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Loader2, Shuffle } from "lucide-react";
-import LeagueLogoBadge from "@/components/LeagueLogoBadge";
+import LeaguePickerCards from "@/components/LeaguePickerCards";
 
 const SUGGESTIONS = [
   "Court Kings", "Splash Lab", "Triple Threat", "Glass Cleaners",
@@ -66,32 +66,17 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
           </button>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-3">
-          <span className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mr-2">
-            League
-          </span>
-          {(["nba", "wnba"] as const).map((c) => {
-            const active = leagueCode === c;
-            return (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setLeagueCode(c)}
-                disabled={submitting}
-                className={`px-4 py-2 rounded-full text-[11px] uppercase tracking-[0.2em] border transition-colors ${
-                  active
-                    ? "bg-accent text-accent-foreground border-accent"
-                    : "bg-foreground/5 text-foreground/70 border-foreground/15 hover:border-accent"
-                }`}
-                aria-label={`Select ${c.toUpperCase()}`}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <LeagueLogoBadge league={c} size="sm" />
-                  {c.toUpperCase()}
-                </span>
-              </button>
-            );
-          })}
+        <div className="mt-6 mx-auto max-w-md">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mb-3 text-center">
+            Choose your league
+          </div>
+          <LeaguePickerCards
+            value={leagueCode}
+            onChange={setLeagueCode}
+            size="lg"
+            disabled={submitting}
+            showSubtitle
+          />
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
