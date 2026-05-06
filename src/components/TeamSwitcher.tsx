@@ -15,6 +15,7 @@ export default function TeamSwitcher() {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newLeague, setNewLeague] = useState<"nba" | "wnba">("nba");
   const [creating, setCreating] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -28,11 +29,12 @@ export default function TeamSwitcher() {
     if (!newName.trim()) return;
     setCreating(true);
     try {
-      const res = await createTeam({ name: newName.trim() });
+      const res = await createTeam({ name: newName.trim(), league_code: newLeague });
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
       setSelectedTeamId(res.team.id);
       setCreateOpen(false);
       setNewName("");
+      setNewLeague("nba");
       toast({ title: `Team "${res.team.name}" created!` });
     } catch (e: any) {
       toast({ title: "Error creating team", description: e.message, variant: "destructive" });
@@ -102,7 +104,14 @@ export default function TeamSwitcher() {
           </SelectTrigger>
           <SelectContent>
             {teams.map((t: any) => (
-              <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              <SelectItem key={t.id} value={t.id}>
+                <span className="flex items-center gap-1.5">
+                  {t.name}
+                  <span className="text-[9px] font-heading uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/20 text-accent">
+                    {(t.league_code ?? "nba").toUpperCase()}
+                  </span>
+                </span>
+              </SelectItem>
             ))}
             <SelectItem value="__new__">
               <span className="flex items-center gap-1"><Plus className="h-3 w-3" /> New Team</span>
@@ -140,6 +149,23 @@ export default function TeamSwitcher() {
         <DialogContent className="rounded-lg">
           <DialogHeader><DialogTitle className="font-heading">Create New Team</DialogTitle></DialogHeader>
           <Input placeholder="Team name..." value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} className="rounded-lg" />
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground mr-1">League</span>
+            {(["nba", "wnba"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setNewLeague(c)}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-heading uppercase tracking-wider border transition-colors ${
+                  newLeague === c
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground border-border hover:border-primary"
+                }`}
+              >
+                {c.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button onClick={handleCreate} disabled={creating || !newName.trim()}>{creating ? "Creating..." : "Create"}</Button>
