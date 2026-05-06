@@ -20,9 +20,10 @@ interface RosterListViewProps {
   onSwap?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
   onSlotClick?: (g: UpcomingGame) => void;
+  gameLogsByPlayer?: Record<number, Record<string, { fp: number; mp: number; pts: number }>>;
 }
 
-export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap, onSlotClick }: RosterListViewProps) {
+export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap, onSlotClick, gameLogsByPlayer }: RosterListViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: upcomingByTeam } = useUpcomingByTeam();
   const { data: difficultyMap } = useTeamDifficultyMap();
@@ -85,6 +86,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       weekSlots={getTeamGameweekSlots(upcomingByTeam, p.core.team, currentGw, deadlines)}
       difficultyMap={difficultyMap}
       onSlotClick={onSlotClick}
+      gameLogs={gameLogsByPlayer?.[p.core.id]}
     />
   );
 
