@@ -334,6 +334,12 @@ export default function ScheduleGridPage() {
         open={selectedTeam !== null}
         onOpenChange={(open) => { if (!open) setSelectedTeam(null); }}
       />
+      <TeamCompareModal
+        teamA={comparePair?.a ?? null}
+        teamB={comparePair?.b ?? null}
+        open={comparePair !== null}
+        onOpenChange={(open) => { if (!open) setComparePair(null); }}
+      />
     </div>
   );
 }
