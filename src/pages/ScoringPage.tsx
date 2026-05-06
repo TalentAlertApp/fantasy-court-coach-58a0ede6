@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -15,6 +15,8 @@ import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
 import { LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer } from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
@@ -503,6 +505,53 @@ function YourTeamView({
   };
 
   const [recapOpen, setRecapOpen] = useState(false);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Build a roster-of-the-season (unique players who appeared on any game day) for the picker.
+  const allPlayersInRoster = useMemo(() => {
+    const map = new Map<number, { id: number; name: string; team: string; photo: string | null; fc_bc: "FC" | "BC" }>();
+    for (const gd of game_days as ScoringGameDay[]) {
+      for (const p of gd.players ?? []) {
+        if (!map.has(p.player_id)) {
+          map.set(p.player_id, { id: p.player_id, name: p.name, team: p.team, photo: p.photo, fc_bc: p.fc_bc });
+        }
+      }
+    }
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [game_days]);
+
+  // Per-day FP map keyed by `playerKey_<id>` so we can layer extra Lines on the chart.
+  const enrichedTimeline = useMemo(() => {
+    return (game_days as ScoringGameDay[]).map((gd, i) => {
+      const row: any = {
+        label: `W${gd.gw}D${gd.day}`,
+        fp: gd.total_fp,
+        index: i,
+        hasTxn: txnDates.has(gd.game_date),
+      };
+      for (const pid of selectedPlayerIds) {
+        const p = (gd.players ?? []).find((pl) => pl.player_id === pid);
+        row[`p_${pid}`] = p ? p.fp : null;
+      }
+      return row;
+    });
+  }, [game_days, selectedPlayerIds, txnDates]);
+
+  // Stable color palette (HSL) for player overlays.
+  const PLAYER_COLORS = [
+    "hsl(0 84% 60%)", "hsl(142 76% 45%)", "hsl(220 90% 60%)", "hsl(280 75% 60%)",
+    "hsl(25 95% 55%)", "hsl(180 70% 45%)", "hsl(330 80% 60%)", "hsl(50 95% 50%)",
+    "hsl(160 70% 45%)", "hsl(200 85% 55%)",
+  ];
+
+  const togglePlayer = (id: number) => {
+    setSelectedPlayerIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 10) return prev;
+      return [...prev, id];
+    });
+  };
 
   const toggleSort = (col: SortCol) => {
     if (sortCol === col) setSortDir((d: SortDir) => d === "asc" ? "desc" : "asc");
@@ -538,8 +587,81 @@ function YourTeamView({
       {/* Ballers.IQ Recap Story — compact, inline, above the timeline */}
       {/* Timeline */}
       <div className="relative bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-border bg-muted/50 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground">FP Timeline</h2>
+
+          {/* Roster picker (multi-select, max 10) */}
+          <div className="flex items-center gap-2 flex-1 justify-end flex-wrap">
+            {selectedPlayerIds.map((pid, i) => {
+              const p = allPlayersInRoster.find((pp) => pp.id === pid);
+              if (!p) return null;
+              return (
+                <span
+                  key={pid}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/70 pl-1 pr-1.5 py-0.5 text-[10px] font-heading uppercase"
+                  style={{ borderColor: PLAYER_COLORS[i % PLAYER_COLORS.length] }}
+                >
+                  <PlayerPhoto photo={p.photo} name={p.name} />
+                  <span className="font-bold">{p.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => togglePlayer(pid)}
+                    className="text-muted-foreground hover:text-destructive ml-0.5"
+                    aria-label={`Remove ${p.name}`}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              );
+            })}
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  disabled={selectedPlayerIds.length >= 10}
+                  className="inline-flex items-center gap-1 h-7 px-2 rounded-lg border border-dashed border-border/60 hover:border-primary/60 text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+                  title={selectedPlayerIds.length >= 10 ? "Maximum 10 players" : "Add player to chart"}
+                >
+                  <UserPlus className="h-3 w-3" />
+                  Players ({selectedPlayerIds.length}/10)
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0" align="end">
+                <Command>
+                  <CommandInput placeholder="Search player…" className="h-9" />
+                  <CommandList className="max-h-[260px]">
+                    <CommandEmpty>No players</CommandEmpty>
+                    <CommandGroup>
+                      {allPlayersInRoster.map((p) => {
+                        const checked = selectedPlayerIds.includes(p.id);
+                        return (
+                          <CommandItem
+                            key={p.id}
+                            value={`${p.name} ${p.team}`}
+                            onSelect={() => togglePlayer(p.id)}
+                            className="flex items-center gap-2 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              readOnly
+                              className="accent-primary"
+                            />
+                            <PlayerPhoto photo={p.photo} name={p.name} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-heading font-bold uppercase truncate">{p.name}</div>
+                              <div className="text-[9px] text-muted-foreground">{p.team} · {p.fc_bc}</div>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+
           <button
             type="button"
             onClick={() => setRecapOpen((v) => !v)}
@@ -569,7 +691,7 @@ function YourTeamView({
             </div>
           )}
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={timelineData}>
+            <LineChart data={enrichedTimeline}>
               <XAxis dataKey="label" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} width={35} />
               <RTooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
@@ -591,6 +713,24 @@ function YourTeamView({
                 }}
                 activeDot={false}
               />
+              {selectedPlayerIds.map((pid, i) => {
+                const p = allPlayersInRoster.find((pp) => pp.id === pid);
+                const color = PLAYER_COLORS[i % PLAYER_COLORS.length];
+                return (
+                  <Line
+                    key={pid}
+                    type="monotone"
+                    dataKey={`p_${pid}`}
+                    name={p?.name ?? `#${pid}`}
+                    stroke={color}
+                    strokeWidth={1.5}
+                    dot={{ r: 2, fill: color }}
+                    activeDot={{ r: 4 }}
+                    connectNulls
+                    isAnimationActive={false}
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>

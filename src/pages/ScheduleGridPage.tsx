@@ -5,9 +5,10 @@ import { DEADLINES } from "@/lib/deadlines";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Swords } from "lucide-react";
 import { format } from "date-fns";
 import TeamModal from "@/components/TeamModal";
+import TeamCompareModal from "@/components/TeamCompareModal";
 
 function buildWeekDayToDate(): Record<string, string> {
   const map: Record<string, string> = {};
@@ -26,6 +27,7 @@ export default function ScheduleGridPage() {
   const { data: games, isLoading } = useScheduleWeekGames(gw);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
 
   const weekDays = useMemo(() => {
     return DEADLINES
@@ -299,21 +301,19 @@ export default function ScheduleGridPage() {
                           >
                             {matchups ? (
                               matchups.map((m, i) => (
-                                <div
+                                <button
+                                  type="button"
                                   key={i}
-                                  className="font-mono text-xs font-semibold whitespace-nowrap"
+                                  onClick={(e) => { e.stopPropagation(); setComparePair({ a: team.tricode, b: m.opp }); }}
+                                  title={`Compare ${team.tricode} vs ${m.opp}`}
+                                  className="font-mono text-xs font-semibold whitespace-nowrap inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-[hsl(var(--nba-yellow))]/15 transition-colors group"
                                 >
-                                  <span
-                                    className={
-                                      m.isHome
-                                        ? "text-foreground"
-                                        : "text-muted-foreground"
-                                    }
-                                  >
+                                  <span className={m.isHome ? "text-foreground" : "text-muted-foreground"}>
                                     {m.isHome ? "" : "@"}
                                     {m.opp}
                                   </span>
-                                </div>
+                                  <Swords className="h-2.5 w-2.5 text-muted-foreground/50 group-hover:text-[hsl(var(--nba-yellow))] transition-colors" />
+                                </button>
                               ))
                             ) : (
                               <span className="text-muted-foreground/20">—</span>
@@ -333,6 +333,12 @@ export default function ScheduleGridPage() {
         tricode={selectedTeam}
         open={selectedTeam !== null}
         onOpenChange={(open) => { if (!open) setSelectedTeam(null); }}
+      />
+      <TeamCompareModal
+        teamA={comparePair?.a ?? null}
+        teamB={comparePair?.b ?? null}
+        open={comparePair !== null}
+        onOpenChange={(open) => { if (!open) setComparePair(null); }}
       />
     </div>
   );

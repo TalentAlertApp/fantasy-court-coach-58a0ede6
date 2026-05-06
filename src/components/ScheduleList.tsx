@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
 import { useQuery, useQueries } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
+import TeamCompareModal from "@/components/TeamCompareModal";
 import { fetchGameBoxscore, fetchPlayers } from "@/lib/api";
 import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 import { pickGameLeader, pickWatchLeader } from "@/lib/game-blurbs";
@@ -738,6 +739,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
+  const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
   const colsPerRow = useColsPerRow();
 
   // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
@@ -901,6 +903,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                 <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
                 <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
                 <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setComparePair({ a: g.away_team, b: g.home_team }); }}
+                  className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors"
+                  title={`Compare ${g.away_team} vs ${g.home_team}`}
+                >
+                  <Swords className="h-3.5 w-3.5" />
+                </button>
                 {g.nba_game_url && (
                   <a
                     href={g.nba_game_url}
@@ -990,6 +1000,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
               <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
               <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setComparePair({ a: g.away_team, b: g.home_team }); }}
+                className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors"
+                title={`Compare ${g.away_team} vs ${g.home_team}`}
+              >
+                <Swords className="h-4 w-4" />
+              </button>
               {g.nba_game_url && (
                 <a
                   href={g.nba_game_url}
@@ -1045,6 +1063,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           game={selectedLast5Game}
           open={selectedLast5Game !== null}
           onOpenChange={(open) => !open && setSelectedLast5Game(null)}
+        />
+        <TeamCompareModal
+          teamA={comparePair?.a ?? null}
+          teamB={comparePair?.b ?? null}
+          open={comparePair !== null}
+          onOpenChange={(open) => !open && setComparePair(null)}
         />
       </div>
     );
@@ -1246,6 +1270,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         game={selectedLast5Game}
         open={selectedLast5Game !== null}
         onOpenChange={(open) => !open && setSelectedLast5Game(null)}
+      />
+      <TeamCompareModal
+        teamA={comparePair?.a ?? null}
+        teamB={comparePair?.b ?? null}
+        open={comparePair !== null}
+        onOpenChange={(open) => !open && setComparePair(null)}
       />
     </div>
   );
