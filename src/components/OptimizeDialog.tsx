@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { OptimizerResult } from "@/lib/optimizer";
+import { useLeague } from "@/contexts/LeagueContext";
 
 interface OptimizeDialogProps {
   open: boolean;
@@ -11,12 +12,20 @@ interface OptimizeDialogProps {
 }
 
 export default function OptimizeDialog({ open, onOpenChange, result, onApply, applying }: OptimizeDialogProps) {
+  const { isWnba } = useLeague();
+  const noProjections = !!result && result.swaps.length === 0 &&
+    Math.abs(result.totalDeltaFp5 ?? 0) < 0.001;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="rounded-lg">
         <DialogHeader>
           <DialogTitle className="font-heading">Lineup Optimizer</DialogTitle>
         </DialogHeader>
+        {isWnba && noProjections && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+            <strong>Pre-season mode:</strong> projections unavailable until WNBA game data is imported.
+          </div>
+        )}
         {result ? (
           <div className="space-y-4">
             {result.swaps.length === 0 ? (
