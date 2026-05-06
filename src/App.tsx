@@ -38,8 +38,8 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
-          <LeagueProvider>
           <TeamProvider>
+          <LeagueProvider>
             <Toaster />
             <Sonner />
             <Routes>
@@ -60,8 +60,8 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </TeamProvider>
           </LeagueProvider>
+          </TeamProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
