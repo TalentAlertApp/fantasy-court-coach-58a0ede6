@@ -190,6 +190,16 @@ export default function CommissionerPage() {
     try { localStorage.setItem("commissioner_active_tab", v); } catch { /* noop */ }
   };
 
+  // League selector — drives league_code sent with every import
+  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">(() => {
+    if (typeof window === "undefined") return "nba";
+    return ((localStorage.getItem("commissioner_league") as "nba" | "wnba") ?? "nba");
+  });
+  const handleLeagueChange = (v: "nba" | "wnba") => {
+    setLeagueCode(v);
+    try { localStorage.setItem("commissioner_league", v); } catch { /* noop */ }
+  };
+
   // Admin secret persisted in localStorage so admin edge functions accept calls.
   const [adminSecret, setAdminSecret] = useState<string>(() => {
     if (typeof window === "undefined") return "";
@@ -304,7 +314,7 @@ export default function CommissionerPage() {
     try {
       const result = await apiFetch("import-players", ImportResponseSchema, {
         method: "POST",
-        body: JSON.stringify({ players: pendingPayload, replace: true }),
+        body: JSON.stringify({ players: pendingPayload, replace: true, league_code: leagueCode }),
       });
 
       if (result.ok) {
@@ -510,7 +520,7 @@ export default function CommissionerPage() {
 
       if (rows.length === 0) { toast.error("No valid schedule rows found"); return; }
       console.log(`[Commissioner] Importing ${rows.length} schedule games (replace=${replaceSchedule})`);
-      const result = await importSchedule(rows, replaceSchedule);
+      const result = await importSchedule(rows, replaceSchedule, leagueCode);
       setLastScheduleResult({ games: result.games_imported });
       toast.success(`Imported ${result.games_imported} schedule games`);
       if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
