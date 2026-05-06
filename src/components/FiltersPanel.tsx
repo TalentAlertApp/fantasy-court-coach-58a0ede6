@@ -3,9 +3,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { NBA_TEAMS, getTeamLogo } from "@/lib/nba-teams";
+import { getTeamLogo } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useMemo } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 interface FiltersPanelProps {
   fcBc: string;
   onFcBcChange: (v: string) => void;
@@ -25,9 +27,10 @@ export default function FiltersPanel({
   maxSalaryLimit = 50, team, onTeamChange,
   perfMode, onPerfModeChange,
 }: FiltersPanelProps) {
+  const { league, teams } = useLeagueTeams();
   const sortedTeams = useMemo(
-    () => [...NBA_TEAMS].sort((a, b) => a.name.localeCompare(b.name)),
-    []
+    () => [...teams].sort((a, b) => a.name.localeCompare(b.name)),
+    [teams]
   );
 
   return (
@@ -113,7 +116,7 @@ export default function FiltersPanel({
 
       {/* NBA FANTASY branding at bottom */}
       <div className="mt-auto pt-4 flex items-center justify-center gap-2 opacity-30">
-        <img src={nbaLogo} alt="NBA" className="h-6 w-auto" />
+        <img src={league === "wnba" ? wnbaLogo : nbaLogo} alt={league.toUpperCase()} className="h-6 w-auto" />
         <span className="text-[10px] font-heading font-bold uppercase tracking-[0.2em]">Fantasy</span>
       </div>
     </div>

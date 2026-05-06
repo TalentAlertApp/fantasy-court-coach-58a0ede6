@@ -3,6 +3,8 @@ export interface VenueMeta {
   image: string;
 }
 
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
+
 // Home arena name + Wikimedia-hosted exterior/interior photo for each NBA team.
 // Images use Wikimedia Commons URLs (CC-licensed, hot-link friendly).
 export const NBA_VENUES: Record<string, VenueMeta> = {
@@ -40,5 +42,13 @@ export const NBA_VENUES: Record<string, VenueMeta> = {
 
 export function getVenue(tricode: string): VenueMeta | null {
   if (!tricode) return null;
-  return NBA_VENUES[tricode.toUpperCase()] ?? null;
+  const t = tricode.toUpperCase();
+  if (NBA_VENUES[t]) return NBA_VENUES[t];
+  // WNBA fallback: resolve venue from the WNBA team catalog so /schedule
+  // cards get the right backdrop in WNBA mode.
+  const w = WNBA_TEAMS.find((x) => x.tricode === t);
+  if (w?.venueImage || w?.venueName) {
+    return { name: w.venueName ?? "", image: w.venueImage ?? "" };
+  }
+  return null;
 }

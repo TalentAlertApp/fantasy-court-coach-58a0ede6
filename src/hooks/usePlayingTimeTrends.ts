@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeague } from "@/contexts/LeagueContext";
 
 export interface TrendRow {
   id: number;
@@ -12,7 +14,7 @@ export interface TrendRow {
   delta: number;
 }
 
-async function fetchAllGameLogs() {
+async function fetchAllGameLogs(leagueId: string) {
   const PAGE_SIZE = 1000;
   let offset = 0;
   const allLogs: { player_id: number; mp: number; game_date: string | null }[] = [];
@@ -21,6 +23,7 @@ async function fetchAllGameLogs() {
     const { data, error } = await supabase
       .from("player_game_logs")
       .select("player_id, mp, game_date")
+      .eq("league_id", leagueId)
       .gt("mp", 0)
       .range(offset, offset + PAGE_SIZE - 1);
 
@@ -34,10 +37,13 @@ async function fetchAllGameLogs() {
 }
 
 export function usePlayingTimeTrends() {
+  const { league } = useLeague();
+  const { data: leagueId } = useLeagueId();
   return useQuery({
-    queryKey: ["playing-time-trends"],
+    queryKey: ["playing-time-trends", league, leagueId],
+    enabled: !!leagueId,
     queryFn: async () => {
-      const allLogs = await fetchAllGameLogs();
+      const allLogs = await fetchAllGameLogs(leagueId!);
 
       // Anchor the 7-day window to the LATEST game_date in the dataset, not
       // the wall clock — the dataset can lag behind real-world dates.
@@ -83,6 +89,7 @@ export function usePlayingTimeTrends() {
         const { data, error } = await supabase
           .from("players")
           .select("id, name, team, photo")
+          .eq("league_id", leagueId!)
           .in("id", batch);
         if (error) throw error;
         if (data) players.push(...data);

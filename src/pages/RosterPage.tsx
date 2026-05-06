@@ -11,6 +11,8 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { getCurrentGameday, getGamedaysRemaining, formatDeadline } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
+import { useLeague } from "@/contexts/LeagueContext";
 import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
 import RosterSidebar from "@/components/RosterSidebar";
@@ -60,6 +62,8 @@ export default function RosterPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { selectedTeamId, teams, isReady: teamReady, isError: teamError } = useTeam();
+  const { league } = useLeague();
+  const { deadlines: leagueDeadlines } = useLeagueDeadlines();
   const { data: rosterData, isLoading: rosterLoading, isError: rosterIsError, isSuccess: rosterSuccess, refetch: refetchRoster } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
@@ -144,7 +148,13 @@ export default function RosterPage() {
     return [...allPlayers, ...extras] as any;
   }, [allPlayers, missingPlayersData]);
 
-  const currentGameday = useMemo(() => getCurrentGameday(), []);
+  const currentGameday = useMemo(() => {
+    if (league === "wnba") {
+      const gd = getCurrentGamedayFrom(leagueDeadlines);
+      if (gd) return gd;
+    }
+    return getCurrentGameday();
+  }, [league, leagueDeadlines]);
   const gamedaysRemaining = useMemo(() => getGamedaysRemaining(), []);
   const deadlineFormatted = useMemo(() => formatDeadline(currentGameday.deadline_utc), [currentGameday]);
   const countdown = useCountdown(currentGameday.deadline_utc);
