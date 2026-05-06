@@ -708,6 +708,7 @@ export default function RosterPage() {
                 onDnDSwap={handleDnDSwap}
                 upcomingByTeam={upcomingByTeam}
                 onSlotClick={openGameFromSlot}
+                gameLogsByPlayer={gameLogsByPlayer}
                 sidebarProps={{
                   gw: currentGameday.gw,
                   day: currentGameday.day,
@@ -721,7 +722,7 @@ export default function RosterPage() {
               />
             ) : (
               <>
-                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} />
+                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} gameLogsByPlayer={gameLogsByPlayer} />
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <RosterSidebar
                     gw={currentGameday.gw}
