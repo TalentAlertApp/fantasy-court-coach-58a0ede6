@@ -23,6 +23,16 @@ Deno.serve(async (req) => {
     // Parse body { gw, day, strategy }
     let body: any = {};
     try { body = await req.json(); } catch { /* noop */ }
+    // Cross-league guard: caller's league_code must match the team's league.
+    const reqLeagueCode = String(body?.league_code ?? "").toLowerCase();
+    if (reqLeagueCode === "nba" || reqLeagueCode === "wnba") {
+      const { data: leagueRow } = await sb
+        .from("leagues").select("id").eq("code", reqLeagueCode).maybeSingle();
+      if (leagueRow?.id && leagueRow.id !== teamLeagueId) {
+        return errorResponse("LEAGUE_MISMATCH",
+          `This team belongs to a different league than the request (${reqLeagueCode}).`, null, 400);
+      }
+    }
     const gw = Number(body.gw) || 1;
     const day = Number(body.day) || 1;
     const strategy: "value5" | "fp5" = body.strategy === "fp5" ? "fp5" : "value5";
