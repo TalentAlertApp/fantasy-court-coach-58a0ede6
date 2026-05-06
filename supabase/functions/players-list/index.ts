@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
+import { readLeagueCodeFromUrl, resolveLeagueId } from "../_shared/league.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +42,7 @@ serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
+    const leagueCode = readLeagueCodeFromUrl(url);
     const sort = url.searchParams.get("sort") || "salary";
     const order = url.searchParams.get("order") || "desc";
     const limit = Math.min(Number(url.searchParams.get("limit")) || 200, 2000);
@@ -52,13 +54,14 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const league_id = await resolveLeagueId(supabase, leagueCode);
 
     // Fetch players bio data
-    const { data: players, error } = await supabase.from("players").select("*");
+    const { data: players, error } = await supabase.from("players").select("*").eq("league_id", league_id);
     if (error) throw new Error(error.message);
 
     // Fetch last game data
-    const { data: lastGames } = await supabase.from("player_last_game").select("*");
+    const { data: lastGames } = await supabase.from("player_last_game").select("*").eq("league_id", league_id);
     const lgMap = new Map((lastGames || []).map((lg: any) => [lg.player_id, lg]));
 
     // Fetch ALL game logs (paginated to bypass 1000-row limit)
@@ -69,6 +72,7 @@ serve(async (req: Request) => {
       const { data: batch, error: glErr } = await supabase
         .from("player_game_logs")
         .select("player_id, mp, pts, reb, ast, stl, blk, fp, game_date")
+        .eq("league_id", league_id)
         .gt("mp", 0)
         .order("game_date", { ascending: false })
         .range(glOffset, glOffset + GL_BATCH - 1);
@@ -143,12 +147,14 @@ serve(async (req: Request) => {
       const blk5 = s ? avg(s.last5_blk) : Number(p.blk5);
       const fp5 = s ? avg(s.last5_fp) : Number(p.fp_pg5);
 
-      const salary = Number(p.salary);
-      const value = salary > 0 ? fp / salary : 0;
-      const value5 = salary > 0 ? fp5 / salary : 0;
+      // TBD-safe salary: stored as 0 in DB → expose as null when 0
+      const rawSalary = Number(p.salary);
+      const salary = rawSalary > 0 ? rawSalary : null;
+      const value  = salary && salary > 0 ? fp  / salary : 0;
+      const value5 = salary && salary > 0 ? fp5 / salary : 0;
 
       return {
-        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey, pos: p.pos || null, height: p.height || null, weight: p.weight, age: calcAgeFromDob(p.dob) || p.age, dob: p.dob || null, exp: p.exp, college: p.college || null },
+        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null, weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0, dob: p.dob || null, exp: p.exp || 0, college: p.college || null, league_code: leagueCode },
         season: { gp, mpg, pts, reb, ast, stl, blk, fp,
           total_mp: s ? s.total_mp : 0, total_pts: s ? s.total_pts : 0,
           total_reb: s ? s.total_reb : 0, total_ast: s ? s.total_ast : 0,
@@ -184,13 +190,23 @@ serve(async (req: Request) => {
 
     const count = items.length;
     const sortKeyMap: Record<string, (p: any) => number> = {
-      salary: (p) => p.core.salary, fp: (p) => p.season.fp, fp5: (p) => p.last5.fp5,
+      salary: (p) => p.core.salary ?? -Infinity,
+      fp: (p) => p.season.fp, fp5: (p) => p.last5.fp5,
       value: (p) => p.computed.value, value5: (p) => p.computed.value5,
       stocks5: (p) => p.computed.stocks5, delta_fp: (p) => p.computed.delta_fp,
       delta_mpg: (p) => p.computed.delta_mpg,
     };
     const sortFn = sortKeyMap[sort] || sortKeyMap.salary;
-    items.sort((a: any, b: any) => order === "asc" ? sortFn(a) - sortFn(b) : sortFn(b) - sortFn(a));
+    items.sort((a: any, b: any) => {
+      const av = sortFn(a), bv = sortFn(b);
+      // Push TBD/null salaries to the bottom regardless of order
+      if (sort === "salary") {
+        const aNull = a.core.salary == null, bNull = b.core.salary == null;
+        if (aNull && !bNull) return 1;
+        if (!aNull && bNull) return -1;
+      }
+      return order === "asc" ? av - bv : bv - av;
+    });
     const paged = items.slice(offset, offset + limit);
 
     return ok({ meta: { count, limit, offset, sort, order }, items: paged });
