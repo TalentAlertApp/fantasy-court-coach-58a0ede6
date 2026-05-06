@@ -115,6 +115,8 @@ export default function RosterPage() {
     ...(roster?.bench ?? []),
   ].filter((id) => id > 0), [roster?.starters, roster?.bench]);
 
+  const { data: gameLogsByPlayer } = useRosterPlayerLogs(rosterPlayerIds);
+
   const missingIds = useMemo(() => {
     const known = new Set(allPlayers.map((p) => p.core.id));
     return rosterPlayerIds.filter((id) => !known.has(id));
