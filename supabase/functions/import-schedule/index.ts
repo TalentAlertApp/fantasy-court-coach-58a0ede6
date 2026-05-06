@@ -48,6 +48,32 @@ function normalizeTime(raw: string): string | null {
   return null;
 }
 
+/**
+ * Convert a wall-clock Lisbon date+time (YYYY-MM-DD, HH:MM) into a true UTC
+ * ISO timestamp. Lisbon is UTC+0 (winter) or UTC+1 (summer / WEST). We use
+ * the standard JS approach: build "T+00:00", then ask Intl what time that
+ * UTC instant looks like in Lisbon, and back-solve the offset.
+ */
+function lisbonWallClockToUtcIso(date: string, hhmm: string): string {
+  // Build the naive wall-clock as if it were UTC, then determine actual offset.
+  const naiveUtc = new Date(`${date}T${hhmm}:00Z`);
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Lisbon", hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric", month: "2-digit", day: "2-digit",
+  });
+  const parts = Object.fromEntries(
+    fmt.formatToParts(naiveUtc).filter((p) => p.type !== "literal").map((p) => [p.type, p.value]),
+  );
+  // What Lisbon thinks the naive UTC is — diff from the wall clock = offset minutes.
+  const lisbonAsMs = Date.UTC(
+    Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+    Number(parts.hour), Number(parts.minute),
+  );
+  const offsetMin = (lisbonAsMs - naiveUtc.getTime()) / 60000; // +60 in summer, 0 in winter
+  const realUtcMs = naiveUtc.getTime() - offsetMin * 60000;
+  return new Date(realUtcMs).toISOString();
+}
+
 Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
@@ -102,8 +128,12 @@ Deno.serve(async (req) => {
         const normTime = normalizeTime(row.time);
         const status = normalizeStatus(row.status);
 
+        // WNBA TSV times are already Europe/Lisbon wall-clock — convert to UTC.
+        // NBA times historically arrive as UTC and stay as-is.
         const tipoff_utc = isoDate && normTime
-          ? `${isoDate}T${normTime}:00+00:00`
+          ? (leagueCode === "wnba"
+              ? lisbonWallClockToUtcIso(isoDate, normTime)
+              : `${isoDate}T${normTime}:00+00:00`)
           : isoDate
             ? `${isoDate}T00:00:00+00:00`
             : null;

@@ -13,7 +13,8 @@ import InjuryReportModal from "@/components/InjuryReportModal";
 import CourtShowModal from "@/components/court-show/CourtShowModal";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
-import { DEADLINES, getCurrentGameday, formatDeadline } from "@/lib/deadlines";
+import { DEADLINES, getCurrentGameday, formatDeadline, type Deadline } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import AICoachModal from "@/components/AICoachModal";
 import type { GameBadge } from "@/components/ballers-iq/GameCardBadges";
@@ -22,11 +23,10 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 
 const MIN_WEEK = 1;
-const MAX_WEEK = 25;
 
-function buildWeekDayToDate(): Record<string, string> {
+function buildWeekDayToDate(deadlines: Deadline[]): Record<string, string> {
   const map: Record<string, string> = {};
-  for (const d of DEADLINES) {
+  for (const d of deadlines) {
     const dt = new Date(d.deadline_utc);
     const dateStr = dt.toISOString().slice(0, 10);
     map[`${d.gw}-${d.day}`] = dateStr;
@@ -34,29 +34,33 @@ function buildWeekDayToDate(): Record<string, string> {
   return map;
 }
 
-const WEEK_DAY_TO_DATE = buildWeekDayToDate();
-
-function getDaysForWeek(gw: number): { day: number; date: string; dateObj: Date }[] {
-  return DEADLINES
-    .filter((d) => d.gw === gw)
-    .map((d) => {
-      const dateStr = WEEK_DAY_TO_DATE[`${d.gw}-${d.day}`] ?? "";
-      return { day: d.day, date: dateStr, dateObj: new Date(dateStr) };
-    });
-}
-
-function getWeekDateRange(gw: number): string {
-  const days = getDaysForWeek(gw);
-  if (days.length === 0) return "";
-  const first = days[0].dateObj;
-  const last = days[days.length - 1].dateObj;
-  return `${format(first, "MMM d")} – ${format(last, "MMM d")}`;
+function makeGetDaysForWeek(deadlines: Deadline[], wdt: Record<string, string>) {
+  return (gw: number) =>
+    deadlines
+      .filter((d) => d.gw === gw)
+      .map((d) => {
+        const dateStr = wdt[`${d.gw}-${d.day}`] ?? "";
+        return { day: d.day, date: dateStr, dateObj: new Date(dateStr) };
+      });
 }
 
 export default function SchedulePage() {
-  const current = useMemo(() => getCurrentGameday(), []);
+  const { deadlines } = useLeagueDeadlines();
+  const WEEK_DAY_TO_DATE = useMemo(() => buildWeekDayToDate(deadlines), [deadlines]);
+  const getDaysForWeek = useMemo(() => makeGetDaysForWeek(deadlines, WEEK_DAY_TO_DATE), [deadlines, WEEK_DAY_TO_DATE]);
+  const MAX_WEEK = useMemo(() => deadlines.reduce((m, d) => Math.max(m, d.gw), 1), [deadlines]);
+  const current = useMemo<Deadline>(
+    () => getCurrentGamedayFrom(deadlines) ?? deadlines[0] ?? getCurrentGameday(),
+    [deadlines],
+  );
   const [gw, setGw] = useState(current.gw);
   const [day, setDay] = useState(current.day);
+  // Re-anchor when league switches and deadlines change.
+  useEffect(() => {
+    setGw(current.gw);
+    setDay(current.day);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deadlines]);
   const [totwOpen, setTotwOpen] = useState(false);
   const [potdOpen, setPotdOpen] = useState(false);
   const [injuryOpen, setInjuryOpen] = useState(false);
@@ -217,7 +221,12 @@ export default function SchedulePage() {
 
 
   const weekDays = useMemo(() => getDaysForWeek(gw), [gw]);
-  const dateRange = useMemo(() => getWeekDateRange(gw), [gw]);
+  const dateRange = useMemo(() => {
+    const days = getDaysForWeek(gw);
+    if (days.length === 0) return "";
+    const first = days[0].dateObj, last = days[days.length - 1].dateObj;
+    return `${format(first, "MMM d")} – ${format(last, "MMM d")}`;
+  }, [gw, getDaysForWeek]);
   const todayStr = new Date().toISOString().slice(0, 10);
   const selectedDateStr = WEEK_DAY_TO_DATE[`${gw}-${day}`] ?? "";
   const isToday = selectedDateStr === todayStr;
@@ -226,7 +235,7 @@ export default function SchedulePage() {
     ? format(parse(selectedDateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
     : "";
 
-  const deadline = DEADLINES.find((d) => d.gw === gw && d.day === day);
+  const deadline = deadlines.find((d) => d.gw === gw && d.day === day);
 
   const weekScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
