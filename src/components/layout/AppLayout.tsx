@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Trophy, LogOut } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import LeagueSwitcher from "@/components/LeagueSwitcher";
+import PreseasonBanner from "@/components/PreseasonBanner";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -208,6 +209,7 @@ export default function AppLayout() {
       {/* ── MAIN CONTENT ─────────────────────────────── */}
       <div className="main-content">
         <main className="page-scroll">
+          <PreseasonBanner />
           <div className="animate-fade-in w-full h-full">
             <Outlet />
           </div>
