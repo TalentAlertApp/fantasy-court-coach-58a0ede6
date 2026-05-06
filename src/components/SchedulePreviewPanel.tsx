@@ -5,10 +5,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { getVenue } from "@/lib/nba-venues";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import type { Last5Detail } from "@/hooks/useStandingsContext";
-import { NBA_TEAMS } from "@/lib/nba-teams";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 
 interface BodyProps {
