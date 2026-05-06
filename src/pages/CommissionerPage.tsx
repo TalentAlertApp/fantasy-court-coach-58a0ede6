@@ -973,7 +973,7 @@ export default function CommissionerPage() {
             <div className="flex gap-2">
               <Button
                 onClick={handleConfirmImport}
-                disabled={isUploading}
+                disabled={isUploading || (playerValidation?.blockers.length ?? 0) > 0}
                 className="flex-1"
               >
                 <Upload className="h-4 w-4 mr-2" />
