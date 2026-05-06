@@ -118,6 +118,18 @@ export default function TeamSwitcher() {
             </SelectItem>
           </SelectContent>
         </Select>
+        {selectedTeamId && (() => {
+          const t = teams.find((x: any) => x.id === selectedTeamId) as any;
+          const code = (t?.league_code ?? "nba").toUpperCase();
+          return (
+            <span
+              className="text-[9px] font-heading uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/20 text-accent"
+              title={`League: ${code}`}
+            >
+              {code}
+            </span>
+          );
+        })()}
 
         {selectedTeamId && (
           <div className="flex items-center gap-0.5">
