@@ -14,6 +14,8 @@ import TeamModal from "@/components/TeamModal";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 import TeamCompareModal from "@/components/TeamCompareModal";
@@ -30,6 +32,8 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
 }) {
   const [nbaExpanded, setNbaExpanded] = useState(false);
   const [nbaBlocked, setNbaBlocked] = useState(false);
+  const { league } = useLeague();
+  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
 
   // Case 1: YouTube embed available — best inline experience
   if (youtubeRecapId) {
@@ -49,9 +53,9 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
             className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 text-[10px] font-heading uppercase tracking-wider text-white bg-black/60 hover:bg-black/80 backdrop-blur-sm rounded-lg px-2 py-1 border border-white/20 transition-colors"
-            title="Open on NBA.com"
+            title={`Open on ${recapHost}`}
           >
-            NBA.com <ExternalLink className="h-3 w-3" />
+            {recapHost} <ExternalLink className="h-3 w-3" />
           </a>
         )}
       </div>
@@ -64,7 +68,7 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
       <div className="relative w-full h-full rounded-xl overflow-hidden bg-black">
         <iframe
           src={url}
-          title="NBA.com Recap"
+          title={`${recapHost} Recap`}
           referrerPolicy="no-referrer-when-downgrade"
           allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
@@ -392,12 +396,15 @@ interface TeamFormData {
 }
 
 function useAllTeamsForm(enabled: boolean) {
+  const { data: leagueId } = useLeagueId();
   return useQuery({
-    queryKey: ["all-teams-form"],
+    queryKey: ["all-teams-form", leagueId],
+    enabled: enabled && !!leagueId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
+        .eq("league_id", leagueId!)
         .ilike("status", "%FINAL%")
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
@@ -438,7 +445,7 @@ function useAllTeamsForm(enabled: boolean) {
         if (diff > bestDiff) bestDiff = diff;
       }
 
-      // Build results for ALL 30 NBA teams so conference standings have full data
+      // Include every team in the active league so conference standings are full.
       const allTricodes = new Set<string>([...Object.keys(NBA_TEAM_META), ...Object.keys(acc)]);
       for (const tricode of allTricodes) {
         const t = acc[tricode];
@@ -465,7 +472,6 @@ function useAllTeamsForm(enabled: boolean) {
 
       return result;
     },
-    enabled,
     staleTime: 60_000,
   });
 }
@@ -474,6 +480,9 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   if (!game) return null;
   const awayLogo = getTeamLogo(game.away_team);
   const homeLogo = getTeamLogo(game.home_team);
+  const { league } = useLeague();
+  const leagueName = league === "wnba" ? "WNBA" : "NBA";
+  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm rounded-xl p-4">
@@ -510,8 +519,8 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
             </a>
           )}
           {game.nba_game_url && (
-            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="NBA.com">
-              <ExternalLink className="h-3.5 w-3.5" /> NBA
+            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title={recapHost}>
+              <ExternalLink className="h-3.5 w-3.5" /> {leagueName}
             </a>
           )}
         </div>
@@ -523,7 +532,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded-xl border border-green-500/40"
             >
-              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on NBA.com <ExternalLink className="h-3 w-3" />
+              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
             </a>
           </div>
         )}

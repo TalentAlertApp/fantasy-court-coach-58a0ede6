@@ -61,28 +61,15 @@ export default function TeamsPage() {
     queryKey: ["teams-active-players", leagueId],
     enabled: !!leagueId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("player_game_logs")
-        .select("player_id, mp")
-        .eq("league_id", leagueId!)
-        .gt("mp", 0);
-      if (error) throw error;
+      // Count rostered players per team from the league-scoped players table.
+      // Using player_game_logs would zero-out preseason leagues (e.g. WNBA).
       const { data: players, error: pErr } = await supabase
         .from("players")
         .select("id, team")
         .eq("league_id", leagueId!);
       if (pErr) throw pErr;
-      const teamMap = new Map<number, string>();
-      for (const p of players ?? []) teamMap.set(p.id, p.team);
-      const activeByTeam = new Map<string, Set<number>>();
-      for (const log of data ?? []) {
-        const team = teamMap.get(log.player_id);
-        if (!team) continue;
-        if (!activeByTeam.has(team)) activeByTeam.set(team, new Set());
-        activeByTeam.get(team)!.add(log.player_id);
-      }
       const counts: Record<string, number> = {};
-      for (const [team, ids] of activeByTeam) counts[team] = ids.size;
+      for (const p of players ?? []) counts[p.team] = (counts[p.team] ?? 0) + 1;
       return counts;
     },
     staleTime: 120_000,

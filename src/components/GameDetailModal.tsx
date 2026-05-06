@@ -5,9 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
-import { getTeamLogo } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { getVenue } from "@/lib/nba-venues";
 import PlayerModal from "@/components/PlayerModal";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 export interface GameDetailGame {
   game_id: string;
@@ -52,9 +55,12 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
   const [filterFcBc, setFilterFcBc] = useState<string | null>(null);
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
-
-  const awayLogo = getTeamLogo(game.away_team);
-  const homeLogo = getTeamLogo(game.home_team);
+  const { teams: leagueTeams } = useLeagueTeams();
+  const { league } = useLeague();
+  const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const awayLogo = logoFor(game.away_team);
+  const homeLogo = logoFor(game.home_team);
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   if (isLoading) {
     return (
@@ -90,7 +96,7 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
   return (
     <div className="relative border-t bg-muted/20">
       <img
-        src={nbaLogo}
+        src={watermarkLogo}
         alt=""
         aria-hidden
         className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
@@ -192,14 +198,34 @@ interface GameDetailModalProps {
 
 export default function GameDetailModal({ game, open, onOpenChange }: GameDetailModalProps) {
   if (!game) return null;
-  const awayLogo = getTeamLogo(game.away_team);
-  const homeLogo = getTeamLogo(game.home_team);
+  return <GameDetailModalInner game={game} open={open} onOpenChange={onOpenChange} />;
+}
+
+function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGame; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { teams: leagueTeams } = useLeagueTeams();
+  const { league } = useLeague();
+  const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const awayLogo = logoFor(game.away_team);
+  const homeLogo = logoFor(game.home_team);
   const played = isPlayed(game);
+  const venue = getVenue(game.home_team);
+  const leagueName = league === "wnba" ? "WNBA" : "NBA";
+  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-sm"} rounded-xl p-0 overflow-hidden`}>
         <div className="relative px-4 pt-3 pb-2 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
+          {venue?.image && (
+            <img
+              src={venue.image}
+              alt=""
+              aria-hidden
+              loading="lazy"
+              className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.18] dark:opacity-[0.28] select-none"
+            />
+          )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-card/60 via-card/30 to-card/60" />
           <DialogHeader>
             <DialogTitle className="sr-only">Game Detail</DialogTitle>
           </DialogHeader>
@@ -250,7 +276,7 @@ export default function GameDetailModal({ game, open, onOpenChange }: GameDetail
             )}
             {game.nba_game_url && (
               <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-0.5 rounded-xl border">
-                <ExternalLink className="h-3.5 w-3.5" /> NBA
+                <ExternalLink className="h-3.5 w-3.5" /> {leagueName}
               </a>
             )}
           </div>
@@ -262,7 +288,7 @@ export default function GameDetailModal({ game, open, onOpenChange }: GameDetail
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1 rounded-xl border border-green-500/40"
               >
-                <Tv2 className="h-3.5 w-3.5" /> Watch Recap on NBA.com <ExternalLink className="h-3 w-3" />
+                <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           )}

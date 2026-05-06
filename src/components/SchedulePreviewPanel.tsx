@@ -5,10 +5,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { getVenue } from "@/lib/nba-venues";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import type { Last5Detail } from "@/hooks/useStandingsContext";
-import { NBA_TEAMS } from "@/lib/nba-teams";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 
 interface BodyProps {
@@ -69,11 +69,12 @@ export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" 
   const rosterTeamSet = useMemo(() => new Set(rosterTeams), [rosterTeams]);
 
   const { standingsByTeam, last5ByTeam, last5DetailByTeam, divisionRankByTeam } = useStandingsContext();
+  const { teams: leagueTeams } = useLeagueTeams();
   const primaryByTeam = useMemo(() => {
     const m: Record<string, string> = {};
-    for (const t of NBA_TEAMS) m[t.tricode] = t.primaryColor;
+    for (const t of leagueTeams) m[t.tricode] = t.primaryColor;
     return m;
-  }, []);
+  }, [leagueTeams]);
 
   const fmtTime = (iso: string | null) => {
     if (!iso) return "—";
