@@ -30,8 +30,11 @@ export interface LeagueStandingsData {
   };
 }
 
-async function fetchLeagueStandings(leagueId?: string): Promise<LeagueStandingsData> {
-  const qs = leagueId ? `?league_id=${leagueId}` : "";
+async function fetchLeagueStandings(leagueId?: string, sportLeagueId?: string | null): Promise<LeagueStandingsData> {
+  const params = new URLSearchParams();
+  if (leagueId) params.set("league_id", leagueId);
+  if (sportLeagueId) params.set("sport_league_id", sportLeagueId);
+  const qs = params.toString() ? `?${params.toString()}` : "";
   const res = await fetch(`${SUPABASE_URL}/functions/v1/league-standings${qs}`, {
     headers: { "Content-Type": "application/json", apikey: SUPABASE_PUBLISHABLE_KEY },
   });
@@ -41,11 +44,11 @@ async function fetchLeagueStandings(leagueId?: string): Promise<LeagueStandingsD
   return json.data;
 }
 
-export function useLeagueStandings(leagueId?: string) {
+export function useLeagueStandings(leagueId?: string, sportLeagueId?: string | null) {
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["league-standings", leagueId ?? "main"],
-    queryFn: () => fetchLeagueStandings(leagueId),
+    queryKey: ["league-standings", leagueId ?? "main", sportLeagueId ?? "all"],
+    queryFn: () => fetchLeagueStandings(leagueId, sportLeagueId),
     staleTime: 60_000,
   });
 

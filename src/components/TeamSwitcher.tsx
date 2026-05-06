@@ -107,8 +107,8 @@ export default function TeamSwitcher() {
             {teams.map((t: any) => (
               <SelectItem key={t.id} value={t.id}>
                 <span className="flex items-center gap-1.5">
-                  {t.name}
                   <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
+                  {t.name}
                 </span>
               </SelectItem>
             ))}

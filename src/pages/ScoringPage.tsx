@@ -21,6 +21,9 @@ import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import AICoachModal from "@/components/AICoachModal";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
@@ -32,6 +35,10 @@ export default function ScoringPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { teams: userTeams, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
+  const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
+  const activeLeagueCode: "nba" | "wnba" = (selectedTeam as any)?.league_code === "wnba" ? "wnba" : "nba";
+  const activeSportLeagueId = (selectedTeam as any)?.sport_league_id ?? null;
+  const headerLogo = activeLeagueCode === "wnba" ? wnbaLogo : nbaLogo;
 
   const [tab, setTab] = useState<TabValue>(() => {
     if (typeof window === "undefined") return "league";
@@ -39,7 +46,7 @@ export default function ScoringPage() {
   });
   useEffect(() => { try { localStorage.setItem(TAB_LS_KEY, tab); } catch {} }, [tab]);
 
-  const standingsQuery = useLeagueStandings();
+  const standingsQuery = useLeagueStandings(undefined, activeSportLeagueId);
   const historyQuery = useScoringHistory();
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
@@ -58,6 +65,12 @@ export default function ScoringPage() {
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
       {/* Header — premium NBA bar with court-line gradient */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
+        <img
+          src={headerLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 h-28 w-auto opacity-[0.10] rotate-12 select-none blur-[0.5px]"
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 opacity-30"
@@ -110,9 +123,23 @@ export default function ScoringPage() {
                   <SelectValue placeholder="Pick a team…" />
                 </SelectTrigger>
                 <SelectContent>
-                  {myTeams.map(t => (
-                    <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">{t.name}</SelectItem>
-                  ))}
+                  {myTeams.map((t: any) => {
+                    const code = t.league_code === "wnba" ? "wnba" : "nba";
+                    const lgLogo = code === "wnba" ? wnbaLogo : nbaLogo;
+                    return (
+                      <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
+                        <span className="relative flex items-center pr-7 min-w-[180px]">
+                          <span className="truncate">{t.name}</span>
+                          <img
+                            src={lgLogo}
+                            alt=""
+                            aria-hidden
+                            className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-7 w-7 object-contain opacity-25 rotate-12 select-none"
+                          />
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>

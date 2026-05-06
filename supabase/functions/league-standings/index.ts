@@ -20,6 +20,7 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const leagueId = url.searchParams.get("league_id") ?? DEFAULT_LEAGUE_ID;
+    const sportLeagueId = url.searchParams.get("sport_league_id");
 
     // 1. League + scoring rules
     const systemId = await fetchLeagueScoringSystemId(sb, leagueId);
@@ -28,7 +29,25 @@ Deno.serve(async (req) => {
     // 2. Teams in the league (via SECURITY DEFINER fn so we get owner_label)
     const { data: teamsRaw, error: tErr } = await sb.rpc("get_league_teams", { _league_id: leagueId });
     if (tErr) throw tErr;
-    const teams = (teamsRaw ?? []) as Array<{ id: string; name: string; owner_id: string; owner_label: string; created_at: string }>;
+    let teams = (teamsRaw ?? []) as Array<{ id: string; name: string; owner_id: string; owner_label: string; created_at: string }>;
+    // If a sport_league_id is provided, restrict standings to teams attached
+    // to that sport (NBA vs WNBA) — the fantasy league_id is shared across
+    // sports so we filter via the teams.sport_league_id column.
+    if (sportLeagueId) {
+      const teamIds = teams.map((t) => t.id);
+      if (teamIds.length > 0) {
+        const { data: tRows } = await sb
+          .from("teams")
+          .select("id, sport_league_id")
+          .in("id", teamIds);
+        const allowed = new Set(
+          (tRows ?? [])
+            .filter((r: any) => r.sport_league_id === sportLeagueId)
+            .map((r: any) => r.id),
+        );
+        teams = teams.filter((t) => allowed.has(t.id));
+      }
+    }
     if (teams.length === 0) {
       return okResponse({ league_id: leagueId, teams: [], summary: { total_teams: 0 } });
     }
@@ -36,10 +55,12 @@ Deno.serve(async (req) => {
     // 3. Pull schedule_games map (gw,day per game_id) — paginated
     let allSched: any[] = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
-      const { data, error } = await sb
+      let q = sb
         .from("schedule_games")
         .select("game_id, gw, day, status")
         .range(offset, offset + PAGE_SIZE - 1);
+      if (sportLeagueId) q = q.eq("league_id", sportLeagueId);
+      const { data, error } = await q;
       if (error) throw error;
       if (!data || data.length === 0) break;
       allSched = allSched.concat(data);
@@ -91,11 +112,13 @@ Deno.serve(async (req) => {
     const playerIdArr = Array.from(allPlayerIds);
     let allLogs: any[] = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
-      const { data, error } = await sb
+      let q = sb
         .from("player_game_logs")
         .select("player_id, game_id, pts, reb, ast, stl, blk, updated_at")
         .in("player_id", playerIdArr)
         .range(offset, offset + PAGE_SIZE - 1);
+      if (sportLeagueId) q = q.eq("league_id", sportLeagueId);
+      const { data, error } = await q;
       if (error) throw error;
       if (!data || data.length === 0) break;
       allLogs = allLogs.concat(data);
