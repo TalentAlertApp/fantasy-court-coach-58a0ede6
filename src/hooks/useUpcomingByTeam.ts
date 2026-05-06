@@ -7,6 +7,17 @@ export interface UpcomingGame {
   opponent: string; // tricode
   isHome: boolean;
   tipoffUtc: string; // ISO
+  gameId?: string;
+  homeTeam?: string;
+  awayTeam?: string;
+  homePts?: number | null;
+  awayPts?: number | null;
+  status?: string | null;
+  boxscoreUrl?: string | null;
+  chartsUrl?: string | null;
+  pbpUrl?: string | null;
+  recapUrl?: string | null;
+  nbaGameUrl?: string | null;
 }
 
 export type UpcomingByTeam = Record<string, UpcomingGame[]>;
@@ -35,7 +46,7 @@ export function useUpcomingByTeam() {
 
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("home_team, away_team, tipoff_utc, status")
+        .select("game_id, home_team, away_team, home_pts, away_pts, tipoff_utc, status, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url")
         .gte("tipoff_utc", startStr)
         .lte("tipoff_utc", endStr + "T23:59:59Z")
         .order("tipoff_utc", { ascending: true });
@@ -53,11 +64,23 @@ export function useUpcomingByTeam() {
         const date = lisbonDate; // YYYY-MM-DD
         const home = g.home_team;
         const away = g.away_team;
-
+        const common = {
+          gameId: (g as any).game_id,
+          homeTeam: home,
+          awayTeam: away,
+          homePts: (g as any).home_pts,
+          awayPts: (g as any).away_pts,
+          status: g.status,
+          boxscoreUrl: (g as any).game_boxscore_url,
+          chartsUrl: (g as any).game_charts_url,
+          pbpUrl: (g as any).game_playbyplay_url,
+          recapUrl: (g as any).game_recap_url,
+          nbaGameUrl: (g as any).nba_game_url,
+        };
         if (!map[home]) map[home] = [];
         if (!map[away]) map[away] = [];
-        map[home].push({ date, opponent: away, isHome: true, tipoffUtc: g.tipoff_utc });
-        map[away].push({ date, opponent: home, isHome: false, tipoffUtc: g.tipoff_utc });
+        map[home].push({ date, opponent: away, isHome: true, tipoffUtc: g.tipoff_utc, ...common });
+        map[away].push({ date, opponent: home, isHome: false, tipoffUtc: g.tipoff_utc, ...common });
       }
       return map;
     },
