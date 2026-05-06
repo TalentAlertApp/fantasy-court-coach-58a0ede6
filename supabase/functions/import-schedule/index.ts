@@ -61,9 +61,13 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { rows, replace } = body;
+    const { rows, replace, league_code } = body;
     if (!rows || !Array.isArray(rows)) {
       return errorResponse("INVALID_INPUT", "rows array is required");
+    }
+    const leagueCode = String(league_code ?? "nba").toLowerCase();
+    if (!["nba", "wnba"].includes(leagueCode)) {
+      return errorResponse("INVALID_INPUT", `league_code must be 'nba' or 'wnba' (got '${leagueCode}')`);
     }
 
     const sb = createClient(
@@ -71,8 +75,16 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    const { data: leagueRow, error: leagueErr } = await sb
+      .from("leagues").select("id").eq("code", leagueCode).maybeSingle();
+    if (leagueErr || !leagueRow?.id) {
+      return errorResponse("LEAGUE_NOT_FOUND", `Sport league '${leagueCode}' not found`, leagueErr?.message ?? null, 404);
+    }
+    const league_id = leagueRow.id as string;
+
     if (replace) {
-      await sb.from("schedule_games").delete().neq("game_id", "___none___");
+      // CRITICAL: only delete schedule rows for THIS league.
+      await sb.from("schedule_games").delete().eq("league_id", league_id);
     }
 
     const games: any[] = [];
@@ -98,6 +110,7 @@ Deno.serve(async (req) => {
 
         games.push({
           game_id: row.game_id,
+          league_id,
           gw: row.gw || 1,
           day: row.day || 1,
           tipoff_utc,
@@ -134,6 +147,8 @@ Deno.serve(async (req) => {
     }
 
     return okResponse({
+      league_code: leagueCode,
+      league_id,
       games_imported: imported,
       errors: errors.length > 0 ? errors : undefined,
     });
