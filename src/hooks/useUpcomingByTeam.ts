@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getCurrentGameday } from "@/lib/deadlines";
+import { getCurrentGameday, DEADLINES } from "@/lib/deadlines";
 
 export interface UpcomingGame {
   date: string;    // YYYY-MM-DD
@@ -108,4 +108,29 @@ export function formatTipoffLabel(iso: string): string {
     }).format(d);
     return `${date} · ${time}`;
   } catch { return iso; }
+}
+
+/**
+ * Returns one slot per day of the given gameweek (1..N).
+ * Each slot is the upcoming game that team plays on that gameday's Lisbon date,
+ * or null if the team is not playing.
+ */
+export function getTeamGameweekSlots(
+  map: UpcomingByTeam | undefined,
+  teamTricode: string,
+  gw: number,
+): (UpcomingGame | null)[] {
+  const days = DEADLINES.filter((d) => d.gw === gw);
+  if (!map) return days.map(() => null);
+
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric", month: "2-digit", day: "2-digit",
+  });
+
+  const teamGames = map[teamTricode] ?? [];
+  return days.map((dl) => {
+    const ds = fmt.format(new Date(dl.deadline_utc));
+    return teamGames.find((g) => g.date === ds) ?? null;
+  });
 }
