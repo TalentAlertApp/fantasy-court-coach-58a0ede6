@@ -59,6 +59,24 @@ Deno.serve(async (req) => {
     const { data: teamRow } = await sb
       .from("teams").select("sport_league_id").eq("id", team_id).maybeSingle();
     const teamLeagueId: string | null = teamRow?.sport_league_id ?? null;
+    if (!teamLeagueId) {
+      return errorResponse("TEAM_LEAGUE_MISSING", "Team has no sport league assigned", null, 400);
+    }
+
+    // Reject cross-league requests up front so the UI never previews wrong-league data.
+    const reqLeagueCode = String(body?.league_code ?? "").toLowerCase();
+    if (reqLeagueCode === "nba" || reqLeagueCode === "wnba") {
+      const { data: leagueRow } = await sb
+        .from("leagues").select("id").eq("code", reqLeagueCode).maybeSingle();
+      if (leagueRow?.id && leagueRow.id !== teamLeagueId) {
+        return errorResponse(
+          "LEAGUE_MISMATCH",
+          `This team belongs to a different league than the request (${reqLeagueCode}).`,
+          null,
+          400,
+        );
+      }
+    }
 
     // Load roster + linked player aggregates.
     const { data: rosterRows, error: rosterErr } = await sb
@@ -70,6 +88,7 @@ Deno.serve(async (req) => {
 
     let beforePlayers: any[] = [];
     let inPlayers: any[] = [];
+    let staleRosterIds: number[] = [];
     if (allIds.length > 0) {
       const { data: pRows, error: pErr } = await sb
         .from("players")
@@ -78,12 +97,26 @@ Deno.serve(async (req) => {
       if (pErr) return errorResponse("PLAYERS_LOAD_FAILED", pErr.message, null, 500);
       const byId = new Map<number, any>();
       for (const p of pRows ?? []) byId.set(Number((p as any).id), p);
-      beforePlayers = rosterIds.map((id) => byId.get(id)).filter(Boolean);
+      // Drop any roster row whose linked player belongs to another league.
+      // These are stale rows and must NOT count toward salary/projection math.
+      beforePlayers = rosterIds
+        .map((id) => byId.get(id))
+        .filter((p) => p && p.league_id === teamLeagueId);
+      staleRosterIds = rosterIds.filter((id) => {
+        const p = byId.get(id);
+        return !p || p.league_id !== teamLeagueId;
+      });
       inPlayers = ins.map((id) => byId.get(id)).filter(Boolean);
     }
 
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    if (staleRosterIds.length > 0) {
+      warnings.push(
+        `Ignoring ${staleRosterIds.length} roster entr${staleRosterIds.length === 1 ? "y" : "ies"} from a different league`,
+      );
+    }
 
     // Validate ins exist and are same-league.
     for (const id of ins) {
