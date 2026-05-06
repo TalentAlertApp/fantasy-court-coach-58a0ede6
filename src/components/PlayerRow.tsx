@@ -25,9 +25,10 @@ interface PlayerRowProps {
   /** One slot per gameday in the current gameweek. */
   weekSlots?: (UpcomingGame | null)[];
   difficultyMap?: Record<string, BIQTeamDifficulty>;
+  onSlotClick?: (g: UpcomingGame) => void;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const teamLogo = getTeamLogo(core.team);
   const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
@@ -90,16 +91,19 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
                       diff?.label,
                       diff?.score,
                     );
+                    const clickable = !!day && !!onSlotClick;
                     return (
                       <div
                         key={i}
-                        className="w-5 h-5 rounded-full flex items-center justify-center bg-background/60"
+                        role={clickable ? "button" : undefined}
+                        onClick={clickable ? (e) => { e.stopPropagation(); onSlotClick!(day!); } : undefined}
+                        className={`w-5 h-5 relative z-10 group/slot rounded-full flex items-center justify-center bg-background/60 overflow-visible ${clickable ? "cursor-pointer hover:z-30" : ""}`}
                         style={{ border: `2px solid ${ring}` }}
                         title={tip}
                       >
                         {day ? (
                           oppLogo ? (
-                            <img src={oppLogo} alt={day.opponent} className="w-3 h-3 object-contain" />
+                            <img src={oppLogo} alt={day.opponent} className="w-3 h-3 object-contain transition-transform duration-200 origin-center group-hover/slot:scale-[2.2] group-hover/slot:-translate-y-0.5 group-hover/slot:drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" />
                           ) : (
                             <span className="text-[6px] font-bold">{day.opponent}</span>
                           )
