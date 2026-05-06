@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentGameday, DEADLINES } from "@/lib/deadlines";
+import { useLeagueId } from "@/hooks/useLeagueId";
 
 export interface UpcomingGame {
   date: string;    // YYYY-MM-DD
@@ -23,8 +24,10 @@ export interface UpcomingGame {
 export type UpcomingByTeam = Record<string, UpcomingGame[]>;
 
 export function useUpcomingByTeam() {
+  const { data: leagueId } = useLeagueId();
   return useQuery({
-    queryKey: ["upcoming-by-team"],
+    queryKey: ["upcoming-by-team", leagueId],
+    enabled: !!leagueId,
     queryFn: async () => {
       // Anchor "today" on the current gameday deadline rather than wall-clock.
       // The schedule may end before real-world now (off-season / dataset cutoff),
@@ -47,6 +50,7 @@ export function useUpcomingByTeam() {
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, home_team, away_team, home_pts, away_pts, tipoff_utc, status, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url")
+        .eq("league_id", leagueId!)
         .gte("tipoff_utc", startStr)
         .lte("tipoff_utc", endStr + "T23:59:59Z")
         .order("tipoff_utc", { ascending: true });
