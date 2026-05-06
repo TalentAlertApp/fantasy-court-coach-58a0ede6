@@ -87,7 +87,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
         src={nbaLogo}
         alt=""
         aria-hidden
-        className="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[30vw] max-w-[480px] opacity-[0.04] z-0 select-none"
+        className="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[14vw] max-w-[220px] opacity-[0.05] z-0 select-none"
       />
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">STARTING 5</div>

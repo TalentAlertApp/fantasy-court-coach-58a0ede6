@@ -6,7 +6,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { ArrowLeftRight, GripVertical } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { formatTipoffLabel, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
-import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
+import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
 import React from "react";
 
@@ -73,18 +73,23 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           <div className="min-w-0">
             <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors">{core.name}</p>
             <div className="text-[10px] text-muted-foreground inline-flex items-center gap-1.5 flex-wrap mt-0.5">
-              <span>{core.team}</span>
               {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
+              <span>{core.team}</span>
               {weekSlots && weekSlots.length > 0 && (
-                <div className="flex items-center gap-1 ml-1">
+                <div className="flex items-center gap-1 ml-3">
                   {weekSlots.map((day, i) => {
+                    const diff = day ? difficultyMap?.[day.opponent] : undefined;
                     const ring = day
-                      ? difficultyRingColor(difficultyMap?.[day.opponent]?.label)
+                      ? difficultyRingColor(diff?.label)
                       : "hsl(var(--border))";
                     const oppLogo = day ? getTeamLogo(day.opponent) : null;
-                    const tip = day
-                      ? `${day.isHome ? "vs" : "@"}${day.opponent} · ${formatTipoffLabel(day.tipoffUtc)}`
-                      : undefined;
+                    const tip = slotTooltip(
+                      day?.opponent ?? null,
+                      !!day?.isHome,
+                      day ? formatTipoffLabel(day.tipoffUtc) : undefined,
+                      diff?.label,
+                      diff?.score,
+                    );
                     return (
                       <div
                         key={i}

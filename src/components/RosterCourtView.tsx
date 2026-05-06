@@ -200,7 +200,7 @@ export default function RosterCourtView({ starters, bench, captainId, onPlayerCl
       </div>
 
       {/* Bench + ROSTER INFO — vertical column on the right */}
-      <div className="w-72 shrink-0 flex flex-col">
+      <div className="w-[22rem] shrink-0 flex flex-col">
         <div className="flex items-center justify-between bg-muted border border-border px-3 py-2 mb-2 rounded-xl">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />

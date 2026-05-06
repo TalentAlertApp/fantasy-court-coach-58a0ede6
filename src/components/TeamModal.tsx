@@ -178,9 +178,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       Compare
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-56 p-2 max-h-[60vh] overflow-y-auto">
+                  <PopoverContent align="end" className="w-56 p-2">
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 pb-1">vs…</div>
-                    <div className="grid grid-cols-1 gap-0.5">
+                    <div
+                      className="grid grid-cols-1 gap-0.5 max-h-[60vh] overflow-y-auto pr-1"
+                      onWheel={(e) => e.stopPropagation()}
+                    >
                       {NBA_TEAMS.filter(t => t.tricode !== tricode).map(t => (
                         <button
                           key={t.tricode}
