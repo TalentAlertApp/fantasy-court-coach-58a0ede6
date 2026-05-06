@@ -77,10 +77,10 @@ export default function OnboardingPage() {
     }
   }, [ready, shouldOnboard, navigate]);
 
-  const handleCreateTeam = async (name: string) => {
+  const handleCreateTeam = async (name: string, leagueCode: "nba" | "wnba" = "nba") => {
     setCreating(true);
     try {
-      const res = await createTeam({ name });
+      const res = await createTeam({ name, league_code: leagueCode });
       const teamId = res.team.id;
       setSelectedTeamId(teamId);
       setCreatedTeamId(teamId);
