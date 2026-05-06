@@ -822,13 +822,13 @@ export default function CommissionerPage() {
           <SelectContent>
             <SelectItem value="nba">
               <span className="inline-flex items-center gap-2">
-                <img src={require("@/assets/nba-logo.svg")} alt="NBA" className="h-4 w-4 object-contain" />
+                <img src={nbaLogoSrc} alt="NBA" className="h-4 w-4 object-contain" />
                 NBA
               </span>
             </SelectItem>
             <SelectItem value="wnba">
               <span className="inline-flex items-center gap-2">
-                <img src={new URL("@/assets/wnba-logo.png", import.meta.url).toString()} alt="WNBA" className="h-4 w-4 object-contain" />
+                <img src={wnbaLogoSrc} alt="WNBA" className="h-4 w-4 object-contain" />
                 WNBA
               </span>
             </SelectItem>
