@@ -121,12 +121,6 @@ export default function AppLayout() {
           <>
             <div className="sidebar-divider" />
             <div className="px-3 pt-3 pb-1">
-              <span className="sidebar-section-label">League</span>
-            </div>
-            <div className="px-3 pb-3 pt-1.5">
-              <LeagueSwitcher />
-            </div>
-            <div className="px-3 pt-3 pb-1">
               <span className="sidebar-section-label">Your Team</span>
             </div>
             <div className="px-3 pb-3 pt-1.5">
