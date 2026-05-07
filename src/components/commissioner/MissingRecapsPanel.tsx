@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { NBA_TEAMS } from "@/lib/nba-teams";
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCcw, Youtube, ScanSearch } from "lucide-react";
@@ -20,12 +21,12 @@ const LEAGUE_ID: Record<"nba" | "wnba", string> = {
 };
 
 export default function MissingRecapsPanel({ league }: { league: "nba" | "wnba" }) {
-  const { teams } = useLeagueTeams();
   const logoByTri = useMemo(() => {
     const m = new Map<string, string>();
-    for (const t of teams) m.set(t.tricode, t.logo);
+    const src = league === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
+    for (const t of src) m.set(t.tricode, t.logo);
     return m;
-  }, [teams]);
+  }, [league]);
 
   const [rows, setRows] = useState<MissingRow[]>([]);
   const [loading, setLoading] = useState(false);

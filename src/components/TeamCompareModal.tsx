@@ -8,6 +8,7 @@ import { Trophy, Swords, ExternalLink } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useIsPreseason } from "@/hooks/useIsPreseason";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import nbaLogo from "@/assets/nba-logo.svg";
 import TeamModal from "@/components/TeamModal";
@@ -79,6 +80,7 @@ function TeamHeader({ tricode, side, rank, conf, onOpen }: { tricode: string; si
 export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: TeamCompareModalProps) {
   const { standingsByTeam, isLoading: standingsLoading } = useStandingsContext();
   const { data: leagueId } = useLeagueId();
+  const { data: isPreseason } = useIsPreseason();
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const [openTricode, setOpenTricode] = useState<string | null>(null);
 
@@ -181,7 +183,11 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                 <h3 className="text-[10px] font-heading uppercase tracking-[0.25em] text-muted-foreground mb-2">
                   Standings & Form
                 </h3>
-                {standingsLoading || !aRow || !bRow ? (
+                {isPreseason ? (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-card/40 px-4 py-6 text-center text-xs text-muted-foreground font-heading uppercase tracking-wider">
+                    Season hasn't started yet
+                  </div>
+                ) : standingsLoading || !aRow || !bRow ? (
                   <Skeleton className="h-40" />
                 ) : (
                   <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/60 px-4 py-3">
