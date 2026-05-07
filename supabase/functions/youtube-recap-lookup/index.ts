@@ -55,6 +55,10 @@ serve(async (req: Request) => {
     const idsParam = url.searchParams.get("ids");
     const idsList = idsParam ? idsParam.split(",").map(s => s.trim()).filter(Boolean).slice(0, 100) : null;
     const limit = Math.min(parseInt(limitParam || "50"), 100); // max 100 per invocation
+    // Relaxed mode = explicit user-driven refresh (single game_id OR ids list).
+    // Widens the YouTube date window and lowers the minScore so manual retries
+    // can pick up recaps that were posted late or with non-standard titles.
+    const relaxed = !!targetGameId || (idsList !== null && idsList.length > 0);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -112,12 +116,14 @@ serve(async (req: Request) => {
           ? `${MONTH_NAMES[tipoff.getUTCMonth()]} ${tipoff.getUTCDate()}, ${tipoff.getUTCFullYear()}`.toLowerCase()
           : "";
 
-        // Time window: tipoff − 6h … tipoff + 72h (recaps post within hours after final).
+        // Time window: bulk = tipoff − 6h … +72h. Relaxed = tipoff − 12h … +14d.
+        const beforeMs = relaxed ? 12 * 3600_000 : 6 * 3600_000;
+        const afterMs = relaxed ? 14 * 24 * 3600_000 : 72 * 3600_000;
         const publishedAfter = tipoff
-          ? new Date(tipoff.getTime() - 6 * 3600_000).toISOString()
+          ? new Date(tipoff.getTime() - beforeMs).toISOString()
           : undefined;
         const publishedBefore = tipoff
-          ? new Date(tipoff.getTime() + 72 * 3600_000).toISOString()
+          ? new Date(tipoff.getTime() + afterMs).toISOString()
           : undefined;
 
         const query = isWnba
@@ -171,7 +177,9 @@ serve(async (req: Request) => {
 
         // Primary: channel-scoped — both teams + highlights + date strongly preferred.
         // WNBA titles often omit "Full Game", so accept a slightly lower minScore.
-        let { id: videoId } = scoreItems(items, isWnba ? 4 : 5);
+        // Relaxed mode lowers thresholds further so manual refreshes catch late posts.
+        const primaryMin = relaxed ? (isWnba ? 2 : 3) : (isWnba ? 4 : 5);
+        let { id: videoId } = scoreItems(items, primaryMin);
 
         // Fallback: open YouTube search if channel-scoped lookup found no confident match.
         if (!videoId) {
@@ -183,7 +191,7 @@ serve(async (req: Request) => {
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
-            videoId = scoreItems(fbItems, isWnba ? 4 : 5).id;
+            videoId = scoreItems(fbItems, relaxed ? (isWnba ? 2 : 3) : (isWnba ? 4 : 5)).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             break;
