@@ -9,6 +9,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { getVenue } from "@/lib/nba-venues";
 import PlayerModal from "@/components/PlayerModal";
+import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 
@@ -25,6 +26,9 @@ export interface GameDetailGame {
   game_recap_url?: string | null;
   nba_game_url?: string | null;
   played?: boolean;
+  gw?: number | null;
+  day?: number | null;
+  tipoff_utc?: string | null;
 }
 
 function isPlayed(g: GameDetailGame): boolean {
@@ -211,6 +215,8 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const venue = getVenue(game.home_team);
   const leagueName = league === "wnba" ? "WNBA" : "NBA";
   const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
+  const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
+  const hasGwDay = game.gw != null && game.day != null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -229,6 +235,20 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           <DialogHeader>
             <DialogTitle className="sr-only">Game Detail</DialogTitle>
           </DialogHeader>
+          {(hasGwDay || tipoffLabel) && (
+            <div className="relative flex items-center justify-center gap-2 pb-1.5">
+              {hasGwDay && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-heading uppercase tracking-[0.18em] font-bold text-foreground/90">
+                  GW {game.gw} · D {game.day}
+                </span>
+              )}
+              {tipoffLabel && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-mono tabular-nums text-foreground/80">
+                  {tipoffLabel}
+                </span>
+              )}
+            </div>
+          )}
           <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-1.5">
             {/* Away — name on right of watermark */}
             <div className="relative h-12 flex items-center justify-end pr-2 overflow-hidden">
@@ -243,7 +263,17 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm">{game.away_team}</span>
             </div>
             <div className="text-center">
-              <span className="font-mono font-black text-xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
+              {played ? (
+                <span className="font-mono font-black text-xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/40 bg-primary/10 backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(var(--primary)/0.5)]">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-60 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  <span className="font-heading uppercase tracking-[0.22em] text-[10px] font-bold text-foreground">Scheduled</span>
+                </span>
+              )}
             </div>
             {/* Home — name on left of watermark */}
             <div className="relative h-12 flex items-center justify-start pl-2 overflow-hidden">

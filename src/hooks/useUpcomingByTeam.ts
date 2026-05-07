@@ -10,6 +10,8 @@ export interface UpcomingGame {
   isHome: boolean;
   tipoffUtc: string; // ISO
   gameId?: string;
+  gw?: number;
+  day?: number;
   homeTeam?: string;
   awayTeam?: string;
   homePts?: number | null;
@@ -53,7 +55,7 @@ export function useUpcomingByTeam() {
 
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("game_id, home_team, away_team, home_pts, away_pts, tipoff_utc, status, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url")
+        .select("game_id, gw, day, home_team, away_team, home_pts, away_pts, tipoff_utc, status, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url")
         .eq("league_id", leagueId!)
         .gte("tipoff_utc", startStr)
         .lte("tipoff_utc", endStr + "T23:59:59Z")
@@ -74,6 +76,8 @@ export function useUpcomingByTeam() {
         const away = g.away_team;
         const common = {
           gameId: (g as any).game_id,
+          gw: (g as any).gw,
+          day: (g as any).day,
           homeTeam: home,
           awayTeam: away,
           homePts: (g as any).home_pts,
@@ -166,7 +170,12 @@ export function getTeamGameweekSlots(
 
   const teamGames = map[teamTricode] ?? [];
   return days.map((dl) => {
+    // Prefer authoritative gw/day from schedule_games (handles after-midnight
+    // tipoffs that fall on the next Lisbon date but belong to the previous GW).
+    const byGwDay = teamGames.find((g) => g.gw === dl.gw && g.day === dl.day);
+    if (byGwDay) return byGwDay;
+    // Fallback for legacy rows without gw/day populated.
     const ds = fmt.format(new Date(dl.deadline_utc));
-    return teamGames.find((g) => g.date === ds) ?? null;
+    return teamGames.find((g) => g.date === ds && g.gw == null) ?? null;
   });
 }

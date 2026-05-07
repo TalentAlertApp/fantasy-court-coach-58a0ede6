@@ -27,10 +27,13 @@ interface CSVRow {
   s: number;
 }
 
-/** Map any variant of "Final", "Final/OT", "FINAL/OT" → "FINAL". Everything else → "SCHEDULED". */
-function normalizeStatus(raw: string): "FINAL" | "SCHEDULED" {
+/** Map any variant of "Final", "Final/OT", "FINAL/OT" → "FINAL". Everything else → "SCHEDULED".
+ *  If scores are present (>0), force FINAL regardless of incoming status text. */
+function normalizeStatus(raw: string, homeScore?: number, awayScore?: number): "FINAL" | "SCHEDULED" {
   const s = (raw || "").trim().toUpperCase();
-  return s.startsWith("FINAL") ? "FINAL" : "SCHEDULED";
+  if (s.startsWith("FINAL")) return "FINAL";
+  if (Number(homeScore ?? 0) > 0 || Number(awayScore ?? 0) > 0) return "FINAL";
+  return "SCHEDULED";
 }
 
 /** Accept DD/MM/YYYY or YYYY-MM-DD → YYYY-MM-DD, or null */
@@ -110,7 +113,7 @@ Deno.serve(async (req) => {
       try {
         const isoDate = normalizeDate(row.date);
         const normTime = normalizeTime(row.time);
-        const status = normalizeStatus(row.status);
+        const status = normalizeStatus(row.status, row.homeScore, row.awayScore);
 
         // Build game entry
         if (row.gameId && !gamesMap.has(row.gameId)) {
