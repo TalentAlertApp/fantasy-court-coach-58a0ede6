@@ -176,6 +176,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Best-effort: kick off recap auto-lookup for any newly-imported FINAL games.
+    if (imported > 0) {
+      // do NOT await — let it run in the background
+      triggerRecapLookup().catch(() => { /* swallow */ });
+    }
+
     return okResponse({
       league_code: leagueCode,
       league_id,
