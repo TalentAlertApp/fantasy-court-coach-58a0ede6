@@ -218,8 +218,9 @@ function CaptainPreview({
   const tri = captain.core.team;
   const logo = logoByTri.get(tri);
   return (
-    <div className="flex items-center gap-3">
-      <p className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground absolute -mt-9">Captain</p>
+    <div>
+      <p className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground mb-1.5">Captain</p>
+      <div className="flex items-center gap-3">
       {captain.core.photo ? (
         <img
           src={captain.core.photo}
@@ -243,6 +244,7 @@ function CaptainPreview({
             <TooltipContent>{nameByTri.get(tri) ?? tri}</TooltipContent>
           </Tooltip>
         )}
+      </div>
       </div>
     </div>
   );
