@@ -267,7 +267,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isWnba]);
 
   useEffect(() => {
     if (open && !payload && !loading) {
