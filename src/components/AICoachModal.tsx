@@ -313,32 +313,16 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
-          {isRosterEmpty && (
-            <div className="relative overflow-hidden shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
-              <img
-                src={leagueLogo}
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.08] select-none"
+          {isRosterEmpty ? (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <StylePreferencesPanel
+                players={allPlayers as any}
+                busy={draftingFromEmpty}
+                onDraft={handlePersonalisedDraft}
               />
-              <div className="h-10 w-10 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-                <Sparkles className="h-5 w-5 text-accent" />
-              </div>
-              <div className="relative z-[1] flex-1 min-w-0">
-                <p className="font-heading uppercase tracking-wider text-sm font-bold">No roster yet</p>
-                <p className="text-xs text-muted-foreground">Let me build a balanced 10-player squad and pick your captain.</p>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleDraftFromEmpty}
-                disabled={draftingFromEmpty}
-                className="relative z-[1] rounded-lg font-heading uppercase text-xs shrink-0"
-              >
-                {draftingFromEmpty ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Bot className="h-4 w-4 mr-1" />}
-                Draft my squad with AI
-              </Button>
             </div>
-          )}
+          ) : (
+          <>
           <TabsList className="rounded-lg shrink-0 grid grid-cols-5">
             <TabsTrigger value="analyze" className="font-heading text-[10px] uppercase rounded-lg"><Activity className="h-3 w-3 mr-1" />Analyze</TabsTrigger>
             <TabsTrigger value="captain" className="font-heading text-[10px] uppercase rounded-lg"><Star className="h-3 w-3 mr-1" />Captain</TabsTrigger>
@@ -346,6 +330,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <TabsTrigger value="injuries" className="font-heading text-[10px] uppercase rounded-lg"><Shield className="h-3 w-3 mr-1" />Injuries</TabsTrigger>
             <TabsTrigger value="explain" className="font-heading text-[10px] uppercase rounded-lg"><HelpCircle className="h-3 w-3 mr-1" />Explain</TabsTrigger>
           </TabsList>
+          </>
+          )}
 
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 space-y-2.5">
             {/* Analyze */}
