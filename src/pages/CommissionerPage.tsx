@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import nbaLogoSrc from "@/assets/nba-logo.svg";
@@ -183,7 +184,14 @@ function parseCSVLine(line: string): string[] {
 
 export default function CommissionerPage() {
   const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
-  const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+  const [recapProgress, setRecapProgress] = useState<{
+    batches: number;
+    processed: number;
+    found: number;
+    remaining: number;
+    phase: "idle" | "running" | "done";
+    mode: "populate" | "rescan";
+  }>({ batches: 0, processed: 0, found: 0, remaining: 0, phase: "idle", mode: "populate" });
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (typeof window === "undefined") return "players";
@@ -217,24 +225,49 @@ export default function CommissionerPage() {
 
   const handleYoutubeRecapLookup = async (rescanAll = false) => {
     setIsLookingUpRecaps(true);
-    setRecapResult(null);
+    setRecapProgress({
+      batches: 0, processed: 0, found: 0, remaining: 0,
+      phase: "running", mode: rescanAll ? "rescan" : "populate",
+    });
+    let totalProcessed = 0;
+    let totalFound = 0;
+    let remaining = Infinity;
+    let batches = 0;
+    const MAX_BATCHES = 25;
     try {
-      const path = rescanAll ? "youtube-recap-lookup?clear=1&limit=100" : "youtube-recap-lookup";
-      const { data, error } = await supabase.functions.invoke(path, { body: null });
-      if (error) throw error;
-      if (data?.ok && data.data) {
-        setRecapResult(data.data);
-        toast.success(
-          `${rescanAll ? "Re-scanned: " : ""}Found ${data.data.found} recaps (${data.data.remaining} remaining)`,
-        );
+      while (remaining > 0 && batches < MAX_BATCHES) {
+        // Only the very first call carries clear=1 (re-scan wipes existing IDs once).
+        const path = (rescanAll && batches === 0)
+          ? "youtube-recap-lookup?clear=1&limit=100"
+          : "youtube-recap-lookup?limit=100";
+        const { data, error } = await supabase.functions.invoke(path, { body: null });
+        if (error) throw error;
+        if (!data?.ok || !data.data) throw new Error(data?.error?.message || "Unknown error");
+        batches += 1;
+        totalProcessed += data.data.processed ?? 0;
+        totalFound += data.data.found ?? 0;
+        remaining = data.data.remaining ?? 0;
+        setRecapProgress({
+          batches, processed: totalProcessed, found: totalFound, remaining,
+          phase: "running", mode: rescanAll ? "rescan" : "populate",
+        });
         if (data.data.errors?.length) {
-          toast.warning(`${data.data.errors.length} errors`);
           console.warn("Recap lookup errors:", data.data.errors);
+          // Quota error: stop the loop
+          if (data.data.errors.some((e: string) => /quota/i.test(e))) {
+            toast.warning("YouTube API quota reached — try again later.");
+            break;
+          }
         }
-      } else {
-        throw new Error(data?.error?.message || "Unknown error");
+        // Stop when this batch produced zero new finds AND nothing was processed
+        if ((data.data.processed ?? 0) === 0) break;
       }
+      setRecapProgress((p) => ({ ...p, phase: "done" }));
+      toast.success(
+        `${rescanAll ? "Re-scanned" : "Populated"}: ${totalFound} recaps across ${batches} batch${batches === 1 ? "" : "es"} · ${remaining} remaining`,
+      );
     } catch (err: any) {
+      setRecapProgress((p) => ({ ...p, phase: "done" }));
       toast.error(`Recap lookup failed: ${err.message}`);
     } finally {
       setIsLookingUpRecaps(false);
@@ -1292,10 +1325,11 @@ export default function CommissionerPage() {
           <Youtube className="h-5 w-5 text-destructive" />
           <h3 className="font-heading font-bold text-lg uppercase">YouTube Recaps</h3>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Auto-populate YouTube recap video IDs for all finished games missing a recap.
-          Uses the YouTube Data API to search for "Motion Station" recaps.
-        </p>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p><strong className="text-foreground">Populate YouTube Recaps</strong> — fills in recap video IDs for FINAL games that don't have one yet. Existing IDs are preserved. Loops automatically until none remain.</p>
+          <p><strong className="text-foreground">Re-scan All Recaps</strong> — first wipes every existing recap ID, then re-searches all FINAL games using the latest source (GAMETIME HIGHLIGHTS for NBA, official @WNBA for WNBA). Use after switching sources or to refresh stale matches.</p>
+          <p className="text-xs">Each batch processes up to 100 games (YouTube quota cap). The progress bar below loops automatically.</p>
+        </div>
         <div className="grid sm:grid-cols-2 gap-2">
           <Button
             onClick={() => handleYoutubeRecapLookup(false)}
@@ -1313,10 +1347,26 @@ export default function CommissionerPage() {
             Re-scan All Recaps
           </Button>
         </div>
-        {recapResult && (
-          <div className="flex items-center gap-2 text-sm text-primary">
-            <CheckCircle2 className="h-4 w-4" />
-            Found {recapResult.found}/{recapResult.processed} recaps · {recapResult.remaining} remaining
+        {recapProgress.phase !== "idle" && (
+          <div className="space-y-1.5">
+            <Progress
+              value={
+                recapProgress.processed + recapProgress.remaining > 0
+                  ? (recapProgress.processed / (recapProgress.processed + recapProgress.remaining)) * 100
+                  : recapProgress.phase === "done" ? 100 : 0
+              }
+              className="h-2"
+            />
+            <div className="flex items-center gap-2 text-xs">
+              {recapProgress.phase === "running" ? (
+                <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+              )}
+              <span className="text-muted-foreground">
+                {recapProgress.mode === "rescan" ? "Re-scan" : "Populate"} · Batch {recapProgress.batches} · Checked <strong className="text-foreground">{recapProgress.processed}</strong> · Found <strong className="text-foreground">{recapProgress.found}</strong> · Remaining <strong className="text-foreground">{recapProgress.remaining}</strong>
+              </span>
+            </div>
           </div>
         )}
       </div>

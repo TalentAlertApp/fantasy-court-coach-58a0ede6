@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
-import { DEADLINES } from "@/lib/deadlines";
+import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,38 +10,38 @@ import { format } from "date-fns";
 import TeamModal from "@/components/TeamModal";
 import TeamCompareModal from "@/components/TeamCompareModal";
 
-function buildWeekDayToDate(): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const d of DEADLINES) {
-    const dt = new Date(d.deadline_utc);
-    map[`${d.gw}-${d.day}`] = dt.toISOString().slice(0, 10);
-  }
-  return map;
-}
-const WEEK_DAY_TO_DATE = buildWeekDayToDate();
-
 export default function ScheduleGridPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
+  const { deadlines } = useLeagueDeadlines();
   const gw = parseInt(searchParams.get("gw") ?? "1", 10);
   const { data: games, isLoading } = useScheduleWeekGames(gw);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
 
+  const weekDayToDate = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const d of deadlines) {
+      const dt = new Date(d.deadline_utc);
+      map[`${d.gw}-${d.day}`] = dt.toISOString().slice(0, 10);
+    }
+    return map;
+  }, [deadlines]);
+
   const weekDays = useMemo(() => {
-    return DEADLINES
+    return deadlines
       .filter((d) => d.gw === gw)
       .map((d) => {
-        const dateStr = WEEK_DAY_TO_DATE[`${d.gw}-${d.day}`] ?? "";
+        const dateStr = weekDayToDate[`${d.gw}-${d.day}`] ?? "";
         const dateObj = new Date(dateStr);
         const dayOfWeek = format(dateObj, "EEE").toUpperCase();
         const dayNum = dateObj.getDate();
         const monthShort = format(dateObj, "MMM");
         return { day: d.day, dateStr, dayOfWeek, dateObj, dayNum, monthShort };
       });
-  }, [gw]);
+  }, [gw, deadlines, weekDayToDate]);
 
   const dateRange = useMemo(() => {
     if (weekDays.length === 0) return "";

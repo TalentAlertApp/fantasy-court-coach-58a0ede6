@@ -304,6 +304,21 @@ Deno.serve(async (req) => {
       if (!aggErr) aggregatesUpdated++;
     }
 
+    // Best-effort: trigger recap auto-lookup so newly-final games get YouTube
+    // recap IDs without manual /commissioner clicks.
+    if (games.length > 0) {
+      try {
+        const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/youtube-recap-lookup?limit=100`;
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+        }).catch(() => { /* best-effort */ });
+      } catch (_e) { /* swallow */ }
+    }
+
     return okResponse({
       league_code: leagueCode,
       league_id: leagueId,

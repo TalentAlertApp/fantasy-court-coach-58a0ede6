@@ -131,6 +131,22 @@ function statusClasses(status: string): string {
   }
 }
 
+/**
+ * Map any raw status string to one of our canonical chip buckets.
+ * Handles source variations like "DAY-TO-DAY", "Day To Day", "Out (Knee)", "GTD",
+ * "probable - rest", etc. Returns null when no bucket matches.
+ */
+function bucketStatus(raw: string | null | undefined): "Out" | "Day-To-Day" | "Questionable" | "Probable" | null {
+  if (!raw) return null;
+  const s = raw.toString().toLowerCase().replace(/\s+/g, " ").trim();
+  if (!s) return null;
+  if (/\bday[\s-]?to[\s-]?day\b|^dtd\b|\bdtd\b/.test(s)) return "Day-To-Day";
+  if (/\bquestionable\b/.test(s)) return "Questionable";
+  if (/\bprobable\b/.test(s)) return "Probable";
+  if (/\bout\b/.test(s)) return "Out";
+  return null;
+}
+
 interface ReturnInfo {
   label: string;
   isSeasonEnd: boolean;
@@ -334,13 +350,14 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const statusCounts = useMemo(() => {
     const counts = { Out: 0, "Day-To-Day": 0, Questionable: 0, Probable: 0 } as Record<string, number>;
     for (const r of visibleItems) {
-      if (r.status in counts) counts[r.status]++;
+      const b = bucketStatus(r.status);
+      if (b) counts[b]++;
     }
     return counts;
   }, [visibleItems]);
 
   const finalItems = useMemo(
-    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => r.status === statusFilter)),
+    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => bucketStatus(r.status) === statusFilter)),
     [visibleItems, statusFilter],
   );
 
