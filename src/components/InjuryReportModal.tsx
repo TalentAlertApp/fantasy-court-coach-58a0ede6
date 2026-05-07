@@ -147,6 +147,17 @@ function bucketStatus(raw: string | null | undefined): "Out" | "Day-To-Day" | "Q
   return null;
 }
 
+/** Buckets a record by status, falling back to estimated_return / notes when
+ *  the upstream source has columns swapped (e.g. status="May 8", estimated_return="Day-To-Day"). */
+function bucketRecord(r: { status?: string | null; estimated_return?: string | null; notes?: string | null }) {
+  return (
+    bucketStatus(r.status) ??
+    bucketStatus(r.estimated_return) ??
+    bucketStatus(r.notes) ??
+    null
+  );
+}
+
 interface ReturnInfo {
   label: string;
   isSeasonEnd: boolean;
@@ -350,14 +361,14 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const statusCounts = useMemo(() => {
     const counts = { Out: 0, "Day-To-Day": 0, Questionable: 0, Probable: 0 } as Record<string, number>;
     for (const r of visibleItems) {
-      const b = bucketStatus(r.status);
+      const b = bucketRecord(r);
       if (b) counts[b]++;
     }
     return counts;
   }, [visibleItems]);
 
   const finalItems = useMemo(
-    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => bucketStatus(r.status) === statusFilter)),
+    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => bucketRecord(r) === statusFilter)),
     [visibleItems, statusFilter],
   );
 
