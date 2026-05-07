@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Swords, ExternalLink } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import nbaLogo from "@/assets/nba-logo.svg";
 import TeamModal from "@/components/TeamModal";
@@ -77,17 +78,19 @@ function TeamHeader({ tricode, side, rank, conf, onOpen }: { tricode: string; si
 
 export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: TeamCompareModalProps) {
   const { standingsByTeam, isLoading: standingsLoading } = useStandingsContext();
+  const { data: leagueId } = useLeagueId();
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const [openTricode, setOpenTricode] = useState<string | null>(null);
 
   const { data: h2h, isLoading: h2hLoading } = useQuery({
-    queryKey: ["team-compare-h2h", teamA, teamB],
-    enabled: open && !!teamA && !!teamB,
+    queryKey: ["team-compare-h2h", teamA, teamB, leagueId],
+    enabled: open && !!teamA && !!teamB && !!leagueId,
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
         .select("*")
+        .eq("league_id", leagueId!)
         .or(
           `and(home_team.eq.${teamA},away_team.eq.${teamB}),and(home_team.eq.${teamB},away_team.eq.${teamA})`,
         )
