@@ -106,7 +106,7 @@ const SCHEMA_DESCRIPTIONS: Record<string, string> = {
   "explain-player": `Return JSON: { "player_id": number, "summary": string, "verdict": "START"|"BENCH"|"HOLD"|"WATCH"|"DROP", "biq_rating": number, "biq_label": "Elite"|"Strong"|"Playable"|"Watch"|"Risk", "archetype": "Usage Engine"|"Stocks Hunter"|"Glass Cleaner"|"Value Play"|"Form Climber"|"Minutes Monster"|"Safe Floor"|"Ceiling Swing"|"Trap Pick", "form_signal": string, "salary_efficiency": string, "risk_level": "LOW"|"MEDIUM"|"HIGH", "risk_flags": string[], "schedule_context": { "next_game": string|null, "games_count": number, "label": "Schedule Boost"|"Schedule Drag"|"Neutral"|"No Game Risk", "warning": string|null }, "why_it_scores": [{ "factor": "rebounds"|"assists"|"stocks"|"minutes"|"usage", "impact": "low"|"medium"|"high"|"very_high", "note": string }], "trend_flags": [{ "type": "fp_up"|"fp_down"|"minutes_up"|"minutes_down"|"stocks_spike", "detail": string }], "recommendation": { "action": "add"|"hold"|"drop", "rationale": string } }. CRITICAL: Describe ONLY the player whose id matches target_player_id. Echo biq_rating, biq_label, archetype, form_signal, salary_efficiency, risk_level, risk_flags, and schedule_context VERBATIM from biq.player (use biq.player.archetype, biq.player.risk.flags, biq.player.schedule.{next_game,games,label,warning}). Verdict rules: Elite/Strong + risk LOW/MED → START; Playable → HOLD; Watch → WATCH; Risk + HIGH risk OR Salary Trap → DROP; schedule No Game Risk → BENCH.`,
   "analyze-roster": `Return JSON: { "summary_bullets": string[](1-5), "strengths": string[], "weaknesses": string[], "quick_wins": [{ "title": string, "why": string[], "risk_flags": string[], "confidence": number(0-1) }], "recommended_actions": [{ "type": "PICK_CAPTAIN"|"SUGGEST_TRANSFERS"|"OPTIMIZE_LINEUP", "note": string }], "notes": string[], "biq_summary": { "projected_fp": number, "risk_count": number, "value_count": number } }. Ground every strength/weakness in a specific Ballers.IQ index value (e.g., "BIQ 82 Strong", "Salary Trap", "Form Spike").`,
   "injury-monitor": `Return JSON: { "items": [{ "player_id": number, "status": "OUT"|"Q"|"DTD"|"ACTIVE"|"UNKNOWN", "headline": string|null, "impact": "low"|"medium"|"high", "recommended_move": { "action": "hold"|"bench"|"drop"|"swap", "replacement_targets": [{ "player_id": number, "why": string[], "confidence": number(0-1) }] }, "risk_flags": string[] }], "notes": string[] }`,
-  "explain-trade": `Return JSON: { "verdict": "favorable"|"neutral"|"unfavorable", "summary": string, "pros": string[](1-5), "cons": string[](1-5), "risk_flags": string[], "confidence": number(0-1), "fp_delta": number, "value_delta": number, "schedule_impact": string }. Cite biq.deltas.fp_delta and biq.deltas.biq_delta in summary. Each pro/con <=14 words, anchored in a specific BIQ index. Use ONLY trade_outs/trade_ins.`,
+  "explain-trade": `Return JSON: { "verdict": "favorable"|"neutral"|"unfavorable", "summary": string, "pros": string[](1-5), "cons": string[](1-5), "risk_flags": string[], "confidence": number(0-1), "fp_delta": number, "value_delta": number, "schedule_impact": string }. Cite biq.deltas.fp_delta and biq.deltas.biq_delta in summary. Each pro/con <=14 words, anchored in a specific BIQ index or per-game number from trade_outs/trade_ins. STRICT LANGUAGE RULES: (1) Use friendly stat labels — write "FG%" not "fg_pct", "3P%" not "tp_pct", "FT%" not "ft_pct", "OREB/G" not "oreb", "TO/G" not "tov", "+/-" not "plus_minus". (2) Compare counting stats (OREB, TOV) ON A PER-GAME BASIS using the *_pg fields provided in trade_outs/trade_ins — never cite raw season totals. (3) Do NOT make claims about "consistency", "stability", or "form" unless backed by an explicit mpg5 vs mpg gap or fp_pg5 vs fp_pg_t gap from the payload. (4) Do NOT write "fp_delta=0", "biq_delta=0", "zero fp delta", or any equivalent — the server will overwrite the summary if deltas are non-zero. (5) Use ONLY trade_outs/trade_ins for player comparisons.`,
 };
 
 async function fetchContext(sb: any, teamId: string | undefined, leagueId: string) {
@@ -450,6 +450,21 @@ Deno.serve(async (req) => {
           salary_delta: Math.round((sum(iPacks, "salary") - sum(oPacks, "salary")) * 10) / 10,
         },
       };
+      // Enrich the trade payload with per-game derived stats so the model
+      // never reasons about raw season totals (oreb, tov, plus_minus).
+      const enrichPerGame = (rows: any[]) => rows.map((r: any) => {
+        const full = playerById.get(Number(r.id)) ?? {};
+        const gp = Number(full.gp ?? 0) || 1;
+        return {
+          ...r,
+          gp: Number(full.gp ?? 0),
+          oreb_pg: full.oreb != null ? Math.round((Number(full.oreb) / gp) * 10) / 10 : null,
+          tov_pg:  full.tov  != null ? Math.round((Number(full.tov)  / gp) * 10) / 10 : null,
+          plus_minus_pg: full.plus_minus != null ? Math.round((Number(full.plus_minus) / gp) * 10) / 10 : null,
+        };
+      });
+      tradeOutsDetail = enrichPerGame(tradeOutsDetail);
+      tradeInsDetail = enrichPerGame(tradeInsDetail);
     }
     const biq = {
       ...biqRoster,
@@ -528,14 +543,35 @@ Deno.serve(async (req) => {
       aiData.fp_delta = d.fp_delta;
       aiData.biq_delta = d.biq_delta;
       aiData.salary_delta = d.salary_delta;
-      // If the AI summary contradicts the deltas, replace with deterministic line.
-      const sumStr = String(aiData.summary ?? "");
-      const claimsZero = /\b0\s*FP\s*delta\b/i.test(sumStr) || /\b0\s*BIQ\s*delta\b/i.test(sumStr);
-      const realDelta = Math.abs(d.fp_delta) > 0.05 || Math.abs(d.biq_delta) > 0.5;
-      if (claimsZero && realDelta) {
-        const sign = (n: number) => (n >= 0 ? "+" : "");
-        aiData.summary = `FP ${sign(d.fp_delta)}${d.fp_delta.toFixed(1)} · BIQ ${sign(d.biq_delta)}${d.biq_delta.toFixed(0)} · Salary ${sign(d.salary_delta)}$${d.salary_delta.toFixed(1)}M.`;
-      }
+      const sign = (n: number) => (n >= 0 ? "+" : "");
+      const deterministicSummary = `FP ${sign(d.fp_delta)}${d.fp_delta.toFixed(1)} · BIQ ${sign(d.biq_delta)}${d.biq_delta.toFixed(0)} · Salary ${sign(d.salary_delta)}$${d.salary_delta.toFixed(1)}M.`;
+      // Always overwrite the headline with deterministic deltas so the summary
+      // never contradicts the metric table.
+      aiData.summary = deterministicSummary;
+      // Recompute verdict deterministically from deltas.
+      const fpUp = d.fp_delta > 0.1, fpDn = d.fp_delta < -0.1;
+      const biqUp = d.biq_delta > 1, biqDn = d.biq_delta < -1;
+      let verdict: "favorable" | "neutral" | "unfavorable" = "neutral";
+      if ((fpUp && !biqDn) || (biqUp && !fpDn)) verdict = "favorable";
+      else if ((fpDn && !biqUp) || (biqDn && !fpUp)) verdict = "unfavorable";
+      aiData.verdict = verdict;
+      // Sanitize pros/cons: drop "fp_delta=0"/"biq_delta=0" claims, swap raw
+      // stat keys for friendly labels.
+      const friendly = (s: string) => String(s)
+        .replace(/fg_pct/gi, "FG%")
+        .replace(/tp_pct/gi, "3P%")
+        .replace(/ft_pct/gi, "FT%")
+        .replace(/\boreb\b/gi, "OREB/G")
+        .replace(/\btov\b/gi, "TO/G")
+        .replace(/plus[_\s]?minus/gi, "+/-");
+      const dropZero = (s: string) =>
+        /(fp|biq)[_\s-]?delta\s*=?\s*0\b/i.test(s) ||
+        /\bzero\s+(fp|biq)\b/i.test(s) ||
+        /\bno\s+immediate\s+fp\s+gain\b/i.test(s);
+      const cleanList = (arr: any) =>
+        Array.isArray(arr) ? arr.map(String).filter((s) => !dropZero(s)).map(friendly) : arr;
+      aiData.pros = cleanList(aiData.pros);
+      aiData.cons = cleanList(aiData.cons);
     }
 
     // Defense in depth: for suggest-transfers, drop any move that violates HARD CONSTRAINTS.
