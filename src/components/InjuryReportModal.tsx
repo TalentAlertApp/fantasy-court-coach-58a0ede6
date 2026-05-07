@@ -397,9 +397,9 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
         </DialogHeader>
 
         <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
-          {/* NBA logo watermark */}
+          {/* League logo watermark */}
           <img
-            src={nbaLogo}
+            src={isWnba ? wnbaLogo : nbaLogo}
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 m-auto w-1/4 max-w-[140px] opacity-[0.035]"
