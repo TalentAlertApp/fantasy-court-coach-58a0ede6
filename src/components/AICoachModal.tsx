@@ -622,6 +622,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               )}
             </TabsContent>
           </div>
+          </>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
