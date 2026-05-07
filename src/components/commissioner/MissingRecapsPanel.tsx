@@ -36,16 +36,24 @@ export default function MissingRecapsPanel({ league }: { league: "nba" | "wnba" 
   const fetchMissing = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("schedule_games")
-        .select("game_id, tipoff_utc, home_team, away_team, status")
-        .eq("league_id", LEAGUE_ID[league])
-        .eq("status", "FINAL")
-        .is("youtube_recap_id", null)
-        .order("tipoff_utc", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      setRows((data ?? []) as MissingRow[]);
+      // Page through ALL missing games (no 500-row cap).
+      const PAGE = 1000;
+      const all: MissingRow[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("schedule_games")
+          .select("game_id, tipoff_utc, home_team, away_team, status")
+          .eq("league_id", LEAGUE_ID[league])
+          .eq("status", "FINAL")
+          .is("youtube_recap_id", null)
+          .order("tipoff_utc", { ascending: false })
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const chunk = (data ?? []) as MissingRow[];
+        all.push(...chunk);
+        if (chunk.length < PAGE) break;
+      }
+      setRows(all);
     } catch (e: any) {
       toast.error(`Failed to load missing recaps: ${e.message}`);
     } finally {
