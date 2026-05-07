@@ -151,10 +151,16 @@ function bucketStatus(raw: string | null | undefined): "Out" | "Day-To-Day" | "Q
 
 /** Buckets a record by status, falling back to estimated_return / notes when
  *  the upstream source has columns swapped (e.g. status="May 8", estimated_return="Day-To-Day"). */
-function bucketRecord(r: { status?: string | null; estimated_return?: string | null; notes?: string | null }) {
+function bucketRecord(r: {
+  status?: string | null;
+  estimated_return?: string | null;
+  injury_type?: string | null;
+  notes?: string | null;
+}) {
   return (
     bucketStatus(r.status) ??
     bucketStatus(r.estimated_return) ??
+    bucketStatus(r.injury_type) ??
     bucketStatus(r.notes) ??
     null
   );
