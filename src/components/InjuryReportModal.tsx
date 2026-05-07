@@ -274,7 +274,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
       load(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, isWnba]);
 
   const enriched = useMemo<EnrichedRecord[]>(() => {
     if (!payload?.all) return [];
