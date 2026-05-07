@@ -8,9 +8,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords, Bandage } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
+import InjuryReportModal from "@/components/InjuryReportModal";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
@@ -749,6 +750,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
   const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
+  const [injuryPair, setInjuryPair] = useState<{ a: string; b: string } | null>(null);
   const colsPerRow = useColsPerRow();
 
   // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
