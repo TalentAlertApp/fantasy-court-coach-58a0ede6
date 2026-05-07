@@ -4,6 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useScoringSystem, buildFormulaString, captainMultiplier } from "@/hooks/useScoringSystem";
+import { useLeague } from "@/contexts/LeagueContext";
 
 interface HowToPlayModalProps {
   iconClassName?: string;
@@ -14,6 +15,8 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
   const { data: scoringRules } = useScoringSystem();
   const formula = buildFormulaString(scoringRules);
   const captainMult = captainMultiplier(scoringRules);
+  const { isWnba } = useLeague();
+  const LEAGUE = isWnba ? "WNBA" : "NBA";
 
   return (
     <>
@@ -42,7 +45,7 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
                   <p>Your squad consists of <strong>10 players</strong>: 5 Frontcourt (FC) and 5 Backcourt (BC).</p>
                   <p>You have a <strong>$100M salary cap</strong> to build your team. Player salaries are based on their real-life performance and updated throughout the season.</p>
-                  <p><strong>Maximum 2 players from the same NBA team.</strong> This ensures diversity and strategic depth.</p>
+                  <p><strong>Maximum 2 players from the same {LEAGUE} team.</strong> This ensures diversity and strategic depth.</p>
                   <p>Choose wisely — your initial roster sets the foundation for the entire season!</p>
                 </AccordionContent>
               </AccordionItem>
@@ -64,7 +67,7 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                   ⏰ Deadlines
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
-                  <p>Each gameweek has multiple <strong>gamedays</strong>. Each gameday can have 1–15 NBA games.</p>
+                  <p>Each gameweek has multiple <strong>gamedays</strong>. Each gameday can have 1–15 {LEAGUE} games.</p>
                   <p><strong>Deadline: 30 minutes before the first tipoff</strong> of each gameday. After this, your lineup is locked for that day.</p>
                   <p>You can still make changes for future gamedays within the same gameweek.</p>
                   <p>All times shown are in <strong>Lisbon (WET/WEST)</strong> timezone.</p>
@@ -102,6 +105,49 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                   </div>
                   <p>Only <strong>starters</strong> (or auto-subbed bench players) score points for your team each gameday.</p>
                   <p>The Gameday Captain chip multiplies the selected player's FP for that day by <strong>{captainMult}×</strong>.</p>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="indexes">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
+                  🧠 Indexes & Ballers.IQ
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pt-2 text-sm space-y-3 font-body">
+                  <p>
+                    Across the app you'll see a set of <strong>intelligence indexes</strong> that turn raw stats and
+                    schedule data into quick, glanceable reads. They're advisory signals — not predictions — designed to
+                    help you make faster lineup, captain and transfer calls.
+                  </p>
+                  <div>
+                    <p className="font-semibold text-foreground">Ballers.IQ</p>
+                    <p>
+                      A per-player score (0–100) that blends recent form, role stability, opponent difficulty, schedule
+                      density, market value and injury context into a single confidence read for the upcoming gameweek.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Form Index</p>
+                    <p>Momentum signal weighted toward the most recent games — rewards players trending up.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Matchup Index</p>
+                    <p>Adjusts for opponent defensive strength and pace — flags soft and brutal matchups.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Schedule Index</p>
+                    <p>Accounts for back-to-backs, rest days and games per gameweek — more games, more upside.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Market Index</p>
+                    <p>Value-vs-salary read — flags over- and under-priced players relative to recent production.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Role Stability</p>
+                    <p>Minutes and usage consistency over the trailing window — high stability means low risk of a bench surprise.</p>
+                  </div>
+                  <p className="text-muted-foreground text-xs">
+                    Indexes are advisory — always cross-check with the live Injury Report and your own watch.
+                  </p>
                 </AccordionContent>
               </AccordionItem>
 

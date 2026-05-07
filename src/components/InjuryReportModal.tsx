@@ -15,8 +15,10 @@ import {
 import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { format, parseISO, isValid, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { NBA_TEAMS, getTeamByTricode } from "@/lib/nba-teams";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
+import { useLeagueTeams, type LeagueTeam } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
 import { cn } from "@/lib/utils";
 import PlayerModal from "@/components/PlayerModal";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -88,20 +90,20 @@ function normalizeName(s: string): string {
     .trim();
 }
 
-function tricodeFromTeamString(s: string): string {
+function tricodeFromTeamString(s: string, TEAMS: LeagueTeam[]): string {
   if (!s) return "";
   const upper = s.toUpperCase().trim();
-  const exact = NBA_TEAMS.find((t) => t.tricode === upper);
+  const exact = TEAMS.find((t) => t.tricode === upper);
   if (exact) return exact.tricode;
   const lower = s.toLowerCase();
-  const byName = NBA_TEAMS.find(
+  const byName = TEAMS.find(
     (t) => lower.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(lower),
   );
   return byName?.tricode ?? upper.slice(0, 3);
 }
 
-function fullNameFromTricode(tricode: string): string {
-  return NBA_TEAMS.find((t) => t.tricode === tricode)?.name ?? tricode;
+function fullNameFromTricode(tricode: string, TEAMS: LeagueTeam[]): string {
+  return TEAMS.find((t) => t.tricode === tricode)?.name ?? tricode;
 }
 
 function statusClasses(status: string): string {
@@ -183,6 +185,12 @@ function relativeTime(iso: string): string {
 }
 
 export default function InjuryReportModal({ open, onOpenChange }: InjuryReportModalProps) {
+  const { teams: LEAGUE_TEAMS } = useLeagueTeams();
+  const { isWnba } = useLeague();
+  const getTeamByTricode = useCallback(
+    (tc: string) => LEAGUE_TEAMS.find((t) => t.tricode === tc),
+    [LEAGUE_TEAMS]
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<InjuryPayload | null>(null);
@@ -232,8 +240,9 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
 
     setLoading(true);
     try {
+      const fnName = isWnba ? "wnba-injury-report" : "nba-injury-report";
       const [{ data: injuryData, error: fnErr }, { data: playersRows, error: pErr }] = await Promise.all([
-        supabase.functions.invoke("nba-injury-report"),
+        supabase.functions.invoke(fnName),
         supabase.from("players").select("id, name, team, pos, fc_bc, photo"),
       ]);
       if (fnErr) throw new Error(fnErr.message ?? "Failed to fetch injuries");
@@ -258,22 +267,22 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isWnba]);
 
   useEffect(() => {
     if (open && !payload && !loading) {
       load(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, isWnba]);
 
   const enriched = useMemo<EnrichedRecord[]>(() => {
     if (!payload?.all) return [];
     return payload.all.map((r) => {
       const match = rosterMap.get(normalizeName(r.player_name));
       const tricode = match?.team
-        ? tricodeFromTeamString(match.team)
-        : tricodeFromTeamString(r.team_abbr || r.team);
+        ? tricodeFromTeamString(match.team, LEAGUE_TEAMS)
+        : tricodeFromTeamString(r.team_abbr || r.team, LEAGUE_TEAMS);
       return {
         ...r,
         player_id: match?.id ?? null,
@@ -281,11 +290,11 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
         fc_bc: match?.fc_bc ?? null,
         photo: match?.photo ?? null,
         team_tricode: tricode,
-        team_full_name: fullNameFromTricode(tricode),
+        team_full_name: fullNameFromTricode(tricode, LEAGUE_TEAMS),
         on_roster: !!match,
       };
     });
-  }, [payload, rosterMap]);
+  }, [payload, rosterMap, LEAGUE_TEAMS]);
 
   // Apply "My Roster only" filter to whole dataset (affects counts too)
   const filteredAll = useMemo<EnrichedRecord[]>(() => {
@@ -303,12 +312,12 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     }
     const arr = Array.from(m.entries()).map(([tricode, items]) => ({
       tricode,
-      fullName: fullNameFromTricode(tricode),
+      fullName: fullNameFromTricode(tricode, LEAGUE_TEAMS),
       items,
     }));
     arr.sort((a, b) => a.fullName.localeCompare(b.fullName));
     return arr;
-  }, [filteredAll]);
+  }, [filteredAll, LEAGUE_TEAMS]);
 
   // If the currently selected team no longer exists in groups (e.g. filter removed it), reset to all
   useEffect(() => {
@@ -388,9 +397,9 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
         </DialogHeader>
 
         <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
-          {/* NBA logo watermark */}
+          {/* League logo watermark */}
           <img
-            src={nbaLogo}
+            src={isWnba ? wnbaLogo : nbaLogo}
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 m-auto w-1/4 max-w-[140px] opacity-[0.035]"
@@ -555,9 +564,10 @@ function InjuryList({
 }
 
 function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: number) => void }) {
+  const { teams: LEAGUE_TEAMS } = useLeagueTeams();
   const ret = formatReturn(rec.estimated_return);
   const injury = truncate(rec.injury_type || "—", 40);
-  const team = getTeamByTricode(rec.team_tricode);
+  const team = LEAGUE_TEAMS.find((t) => t.tricode === rec.team_tricode);
 
   const clickable = rec.on_roster && rec.player_id != null;
 

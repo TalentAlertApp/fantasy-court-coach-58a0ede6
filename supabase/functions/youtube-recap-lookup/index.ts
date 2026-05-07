@@ -16,6 +16,11 @@ const TEAM_FULL_NAME: Record<string, string> = {
   OKC: "Oklahoma City Thunder", ORL: "Orlando Magic", PHI: "Philadelphia 76ers", PHX: "Phoenix Suns",
   POR: "Portland Trail Blazers", SAC: "Sacramento Kings", SAS: "San Antonio Spurs", TOR: "Toronto Raptors",
   UTA: "Utah Jazz", WAS: "Washington Wizards",
+  // WNBA
+  ATA: "Atlanta Dream", CHS: "Chicago Sky", CON: "Connecticut Sun", DAW: "Dallas Wings",
+  GSV: "Golden State Valkyries", IDF: "Indiana Fever", LVA: "Las Vegas Aces", LAS: "Los Angeles Sparks",
+  MIN_W: "Minnesota Lynx", NYL: "New York Liberty", PHO: "Phoenix Mercury", SEA: "Seattle Storm",
+  WAS_W: "Washington Mystics",
 };
 
 const TEAM_CITY: Record<string, string> = {
@@ -29,6 +34,8 @@ const TEAM_CITY: Record<string, string> = {
 
 // GAMETIME HIGHLIGHTS — posts "{Away} vs {Home} Full Game Highlights – {Month D, YYYY}" for every NBA game.
 const GAMETIME_CHANNEL_ID = "UC0LrZO9wORIqn_aRJtKdgfA";
+// Official WNBA channel — posts "{Away} vs {Home} | Highlights" for every WNBA game.
+const WNBA_CHANNEL_ID = "UCqYwOSqyi0tEPRRwTPL5MXA";
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 serve(async (req: Request) => {
@@ -62,7 +69,7 @@ serve(async (req: Request) => {
     // Find FINAL games without youtube_recap_id
     const { data: games, error: fetchErr } = await supabase
       .from("schedule_games")
-      .select("game_id, away_team, home_team, tipoff_utc")
+      .select("game_id, away_team, home_team, tipoff_utc, league_id")
       .eq("status", "FINAL")
       .is("youtube_recap_id", null)
       .limit(limit);
@@ -74,11 +81,24 @@ serve(async (req: Request) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Resolve league code per league_id (small set, cache).
+    const leagueCodeById = new Map<string, string>();
+    const uniqueLeagueIds = [...new Set(games.map((g: any) => g.league_id).filter(Boolean))];
+    if (uniqueLeagueIds.length > 0) {
+      const { data: lgs } = await supabase
+        .from("leagues")
+        .select("id, code")
+        .in("id", uniqueLeagueIds);
+      for (const l of lgs ?? []) leagueCodeById.set(l.id as string, (l.code as string)?.toLowerCase());
+    }
+
     let found = 0;
     const errors: string[] = [];
 
     for (const game of games) {
       try {
+        const leagueCode = leagueCodeById.get((game as any).league_id) ?? "nba";
+        const isWnba = leagueCode === "wnba";
         const awayFull = TEAM_FULL_NAME[game.away_team] ?? game.away_team;
         const homeFull = TEAM_FULL_NAME[game.home_team] ?? game.home_team;
         const tipoff = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
@@ -95,10 +115,12 @@ serve(async (req: Request) => {
           ? new Date(tipoff.getTime() + 72 * 3600_000).toISOString()
           : undefined;
 
-        const query = `${awayFull} vs ${homeFull} Full Game Highlights`;
+        const query = isWnba
+          ? `${awayFull} vs ${homeFull} Highlights`
+          : `${awayFull} vs ${homeFull} Full Game Highlights`;
         const params = new URLSearchParams({
           part: "snippet",
-          channelId: GAMETIME_CHANNEL_ID,
+          channelId: isWnba ? WNBA_CHANNEL_ID : GAMETIME_CHANNEL_ID,
           q: query,
           type: "video",
           videoEmbeddable: "true",
@@ -142,18 +164,21 @@ serve(async (req: Request) => {
           return { id: bestScore >= minScore ? (best?.id?.videoId ?? null) : null, score: bestScore };
         };
 
-        // Primary: GAMETIME HIGHLIGHTS, both teams + (full game OR highlights) + date strongly preferred.
-        let { id: videoId } = scoreItems(items, 5);
+        // Primary: channel-scoped — both teams + highlights + date strongly preferred.
+        // WNBA titles often omit "Full Game", so accept a slightly lower minScore.
+        let { id: videoId } = scoreItems(items, isWnba ? 4 : 5);
 
         // Fallback: open YouTube search if channel-scoped lookup found no confident match.
         if (!videoId) {
-          const fbQuery = `${awayFull} vs ${homeFull} ${dateStr} full game highlights recap`.trim();
+          const fbQuery = isWnba
+            ? `${awayFull} vs ${homeFull} ${dateStr} wnba highlights`.trim()
+            : `${awayFull} vs ${homeFull} ${dateStr} full game highlights recap`.trim();
           const fbUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(fbQuery)}&type=video&videoEmbeddable=true&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
           const fbRes = await fetch(fbUrl);
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
-            videoId = scoreItems(fbItems, 5).id;
+            videoId = scoreItems(fbItems, isWnba ? 4 : 5).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             break;

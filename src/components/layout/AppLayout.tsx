@@ -4,6 +4,7 @@ import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -69,16 +70,23 @@ export default function AppLayout() {
       <aside className={`sidebar${collapsed ? " collapsed" : ""} animate-slide-in-left`}>
         {/* Brand — NBA Logo + FANTASY + Guide */}
         <div className="relative overflow-hidden flex items-center gap-3 px-4 py-5">
-          {/* Watermark logo escaping the corner */}
+          {/* Watermark logos escaping the corners */}
           {!collapsed && (
-            <img
-              src={nbaLogo}
-              alt=""
-              aria-hidden
-              className="pointer-events-none absolute -top-4 -right-6 h-24 w-24 object-contain opacity-[0.08] rotate-12 select-none"
-            />
+            <>
+              <img
+                src={nbaLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -top-4 -left-6 h-24 w-24 object-contain opacity-[0.08] -rotate-12 select-none"
+              />
+              <img
+                src={wnbaLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -top-4 -right-6 h-24 w-24 object-contain opacity-[0.08] rotate-12 select-none"
+              />
+            </>
           )}
-          <img src={nbaLogo} alt="NBA" className="h-9 w-auto flex-shrink-0 relative z-10" />
           {!collapsed && (
             <>
               <div className="flex flex-col leading-none truncate flex-1 relative z-10">
@@ -93,6 +101,9 @@ export default function AppLayout() {
               </div>
               <HowToPlayModal iconClassName="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 shrink-0 relative z-10" />
             </>
+          )}
+          {collapsed && (
+            <img src={nbaLogo} alt="NBA" className="h-9 w-auto mx-auto flex-shrink-0 relative z-10" />
           )}
         </div>
         <div className="sidebar-divider" />

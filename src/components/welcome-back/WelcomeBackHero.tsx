@@ -4,6 +4,7 @@ import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy, ArrowRightCircle }
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import PlayerMarquee from "@/components/onboarding/PlayerMarquee";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
@@ -111,6 +112,7 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
         {/* Top bar — mirrors OnboardingHero */}
         <header className="relative z-10 flex items-center justify-between px-8 py-4 shrink-0">
           <div className="flex items-center gap-3">
+            <img src={wnbaLogo} alt="WNBA" className="h-9 w-auto object-contain" />
             <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
             <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
               Fantasy
