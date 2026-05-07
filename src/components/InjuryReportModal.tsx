@@ -350,13 +350,14 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const statusCounts = useMemo(() => {
     const counts = { Out: 0, "Day-To-Day": 0, Questionable: 0, Probable: 0 } as Record<string, number>;
     for (const r of visibleItems) {
-      if (r.status in counts) counts[r.status]++;
+      const b = bucketStatus(r.status);
+      if (b) counts[b]++;
     }
     return counts;
   }, [visibleItems]);
 
   const finalItems = useMemo(
-    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => r.status === statusFilter)),
+    () => (statusFilter === "all" ? visibleItems : visibleItems.filter((r) => bucketStatus(r.status) === statusFilter)),
     [visibleItems, statusFilter],
   );
 
