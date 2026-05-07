@@ -184,7 +184,14 @@ function parseCSVLine(line: string): string[] {
 
 export default function CommissionerPage() {
   const [isLookingUpRecaps, setIsLookingUpRecaps] = useState(false);
-  const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+  const [recapProgress, setRecapProgress] = useState<{
+    batches: number;
+    processed: number;
+    found: number;
+    remaining: number;
+    phase: "idle" | "running" | "done";
+    mode: "populate" | "rescan";
+  }>({ batches: 0, processed: 0, found: 0, remaining: 0, phase: "idle", mode: "populate" });
 
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (typeof window === "undefined") return "players";
@@ -218,24 +225,49 @@ export default function CommissionerPage() {
 
   const handleYoutubeRecapLookup = async (rescanAll = false) => {
     setIsLookingUpRecaps(true);
-    setRecapResult(null);
+    setRecapProgress({
+      batches: 0, processed: 0, found: 0, remaining: 0,
+      phase: "running", mode: rescanAll ? "rescan" : "populate",
+    });
+    let totalProcessed = 0;
+    let totalFound = 0;
+    let remaining = Infinity;
+    let batches = 0;
+    const MAX_BATCHES = 25;
     try {
-      const path = rescanAll ? "youtube-recap-lookup?clear=1&limit=100" : "youtube-recap-lookup";
-      const { data, error } = await supabase.functions.invoke(path, { body: null });
-      if (error) throw error;
-      if (data?.ok && data.data) {
-        setRecapResult(data.data);
-        toast.success(
-          `${rescanAll ? "Re-scanned: " : ""}Found ${data.data.found} recaps (${data.data.remaining} remaining)`,
-        );
+      while (remaining > 0 && batches < MAX_BATCHES) {
+        // Only the very first call carries clear=1 (re-scan wipes existing IDs once).
+        const path = (rescanAll && batches === 0)
+          ? "youtube-recap-lookup?clear=1&limit=100"
+          : "youtube-recap-lookup?limit=100";
+        const { data, error } = await supabase.functions.invoke(path, { body: null });
+        if (error) throw error;
+        if (!data?.ok || !data.data) throw new Error(data?.error?.message || "Unknown error");
+        batches += 1;
+        totalProcessed += data.data.processed ?? 0;
+        totalFound += data.data.found ?? 0;
+        remaining = data.data.remaining ?? 0;
+        setRecapProgress({
+          batches, processed: totalProcessed, found: totalFound, remaining,
+          phase: "running", mode: rescanAll ? "rescan" : "populate",
+        });
         if (data.data.errors?.length) {
-          toast.warning(`${data.data.errors.length} errors`);
           console.warn("Recap lookup errors:", data.data.errors);
+          // Quota error: stop the loop
+          if (data.data.errors.some((e: string) => /quota/i.test(e))) {
+            toast.warning("YouTube API quota reached — try again later.");
+            break;
+          }
         }
-      } else {
-        throw new Error(data?.error?.message || "Unknown error");
+        // Stop when this batch produced zero new finds AND nothing was processed
+        if ((data.data.processed ?? 0) === 0) break;
       }
+      setRecapProgress((p) => ({ ...p, phase: "done" }));
+      toast.success(
+        `${rescanAll ? "Re-scanned" : "Populated"}: ${totalFound} recaps across ${batches} batch${batches === 1 ? "" : "es"} · ${remaining} remaining`,
+      );
     } catch (err: any) {
+      setRecapProgress((p) => ({ ...p, phase: "done" }));
       toast.error(`Recap lookup failed: ${err.message}`);
     } finally {
       setIsLookingUpRecaps(false);
