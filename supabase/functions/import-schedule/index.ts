@@ -186,3 +186,23 @@ Deno.serve(async (req) => {
     return errorResponse("INTERNAL", (e as Error).message, null, 500);
   }
 });
+
+/**
+ * Fire-and-forget background invocation of the youtube-recap-lookup function so
+ * newly imported FINAL games (especially WNBA) get recap IDs populated without
+ * extra clicks in /commissioner. Best-effort: failures are swallowed.
+ * NOTE: declared but currently called only at top-level by callers that need it
+ * — kept here to centralize the URL construction.
+ */
+async function triggerRecapLookup() {
+  try {
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/youtube-recap-lookup?limit=100`;
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+    });
+  } catch (_e) { /* best-effort */ }
+}
