@@ -146,15 +146,24 @@ function bucketStatus(raw: string | null | undefined): "Out" | "Day-To-Day" | "Q
   if (/\bquestionable\b/.test(s)) return "Questionable";
   if (/\bprobable\b/.test(s)) return "Probable";
   if (/\bout\b/.test(s)) return "Out";
+  // "Doubtful" is the NBA's between-questionable-and-out tier; treat as Day-To-Day
+  // for bucketing purposes (player is not ruled out but not playing today).
+  if (/\bdoubtful\b/.test(s)) return "Day-To-Day";
   return null;
 }
 
 /** Buckets a record by status, falling back to estimated_return / notes when
  *  the upstream source has columns swapped (e.g. status="May 8", estimated_return="Day-To-Day"). */
-function bucketRecord(r: { status?: string | null; estimated_return?: string | null; notes?: string | null }) {
+function bucketRecord(r: {
+  status?: string | null;
+  estimated_return?: string | null;
+  injury_type?: string | null;
+  notes?: string | null;
+}) {
   return (
     bucketStatus(r.status) ??
     bucketStatus(r.estimated_return) ??
+    bucketStatus(r.injury_type) ??
     bucketStatus(r.notes) ??
     null
   );
