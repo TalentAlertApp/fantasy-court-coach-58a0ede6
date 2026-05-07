@@ -1329,9 +1329,9 @@ export default function CommissionerPage() {
           <h3 className="font-heading font-bold text-lg uppercase">YouTube Recaps</h3>
         </div>
         <div className="text-sm text-muted-foreground space-y-1">
-          <p><strong className="text-foreground">Populate YouTube Recaps</strong> — fills in recap video IDs for FINAL games that don't have one yet. Existing IDs are preserved. Loops automatically until none remain.</p>
-          <p><strong className="text-foreground">Re-scan All Recaps</strong> — first wipes every existing recap ID, then re-searches all FINAL games using the latest source (GAMETIME HIGHLIGHTS for NBA, official @WNBA for WNBA). Use after switching sources or to refresh stale matches.</p>
-          <p className="text-xs">Each batch processes up to 100 games (YouTube quota cap). The progress bar below loops automatically.</p>
+          <p><strong className="text-foreground">Populate YouTube Recaps</strong> — fills in recap video IDs for FINAL games that don't have one yet. Existing IDs are <em>never</em> touched. Run this daily until <code>Remaining</code> reaches 0.</p>
+          <p><strong className="text-foreground">Re-scan All Recaps</strong> — re-searches every FINAL game using the latest source (GAMETIME HIGHLIGHTS for NBA, official @WNBA for WNBA) and overwrites the recap id <em>only when a new match is found</em>. Stale IDs without a replacement stay intact, so you can never lose recaps you already have.</p>
+          <p className="text-xs">YouTube Data API gives ~10,000 quota units/day → ≈100 game lookups per day. With 1,000+ games a full pass takes several days; just run Populate again tomorrow to continue. Request a quota increase in Google Cloud Console if you need it faster.</p>
         </div>
         <div className="grid sm:grid-cols-2 gap-2">
           <Button
@@ -1342,7 +1342,14 @@ export default function CommissionerPage() {
             {isLookingUpRecaps ? "Looking up recaps…" : "Populate YouTube Recaps"}
           </Button>
           <Button
-            onClick={() => handleYoutubeRecapLookup(true)}
+            onClick={() => {
+              const ok = window.prompt(
+                "Re-scan replaces recap IDs in place — never wipes them blindly, but it will burn YouTube quota fast (~100 games/day max).\n\nType RESCAN to continue:",
+              );
+              if (ok && ok.trim().toUpperCase() === "RESCAN") {
+                handleYoutubeRecapLookup(true);
+              }
+            }}
             disabled={isLookingUpRecaps}
             variant="outline"
           >
