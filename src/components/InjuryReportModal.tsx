@@ -185,6 +185,12 @@ function relativeTime(iso: string): string {
 }
 
 export default function InjuryReportModal({ open, onOpenChange }: InjuryReportModalProps) {
+  const { teams: LEAGUE_TEAMS } = useLeagueTeams();
+  const { isWnba } = useLeague();
+  const getTeamByTricode = useCallback(
+    (tc: string) => LEAGUE_TEAMS.find((t) => t.tricode === tc),
+    [LEAGUE_TEAMS]
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<InjuryPayload | null>(null);
@@ -274,8 +280,8 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     return payload.all.map((r) => {
       const match = rosterMap.get(normalizeName(r.player_name));
       const tricode = match?.team
-        ? tricodeFromTeamString(match.team)
-        : tricodeFromTeamString(r.team_abbr || r.team);
+        ? tricodeFromTeamString(match.team, LEAGUE_TEAMS)
+        : tricodeFromTeamString(r.team_abbr || r.team, LEAGUE_TEAMS);
       return {
         ...r,
         player_id: match?.id ?? null,
@@ -283,11 +289,11 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
         fc_bc: match?.fc_bc ?? null,
         photo: match?.photo ?? null,
         team_tricode: tricode,
-        team_full_name: fullNameFromTricode(tricode),
+        team_full_name: fullNameFromTricode(tricode, LEAGUE_TEAMS),
         on_roster: !!match,
       };
     });
-  }, [payload, rosterMap]);
+  }, [payload, rosterMap, LEAGUE_TEAMS]);
 
   // Apply "My Roster only" filter to whole dataset (affects counts too)
   const filteredAll = useMemo<EnrichedRecord[]>(() => {
@@ -305,12 +311,12 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     }
     const arr = Array.from(m.entries()).map(([tricode, items]) => ({
       tricode,
-      fullName: fullNameFromTricode(tricode),
+      fullName: fullNameFromTricode(tricode, LEAGUE_TEAMS),
       items,
     }));
     arr.sort((a, b) => a.fullName.localeCompare(b.fullName));
     return arr;
-  }, [filteredAll]);
+  }, [filteredAll, LEAGUE_TEAMS]);
 
   // If the currently selected team no longer exists in groups (e.g. filter removed it), reset to all
   useEffect(() => {
