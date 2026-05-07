@@ -100,6 +100,9 @@ export default function RosterPage() {
       game_playbyplay_url: g.pbpUrl ?? null,
       game_recap_url: g.recapUrl ?? null,
       nba_game_url: g.nbaGameUrl ?? null,
+      gw: g.gw ?? null,
+      day: g.day ?? null,
+      tipoff_utc: g.tipoffUtc ?? null,
     });
   }, []);
 
