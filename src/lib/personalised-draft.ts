@@ -68,14 +68,15 @@ export function scorePlayer(p: DraftPlayer, prefs: DraftPreferences): number {
   let score = baseFp;
   score += archetypeBonus(salary, prefs.archetype);
   score += prefs.experienceTilt * (exp - 5) * 0.4;          // midpoint 5 yrs
-  score += prefs.sizeTilt * (heightIn - 78) * 0.3;          // midpoint 6'6"
+  // SIZE has a meaningful pull — a 6'2" guard vs 6'10" big = ~12 FP swing at tilt = ±1.
+  score += prefs.sizeTilt * (heightIn - 78) * 3.0;          // midpoint 6'6"
   if (prefs.favouriteTeams.includes(p.core.team)) score += 4;
   score += prefs.riskTilt * variance * 0.5;
 
   return score;
 }
 
-/** Greedy fill respecting cap, 5 FC + 5 BC, max 2 per team. */
+/** Multi-pass fill respecting cap, 5 FC + 5 BC, max 2 per team. */
 export function buildPersonalisedRoster(
   players: DraftPlayer[],
   prefs: DraftPreferences,
@@ -89,17 +90,84 @@ export function buildPersonalisedRoster(
   let salary = 0;
   let fc = 0, bc = 0;
 
-  for (const { p } of ranked) {
-    if (picks.length >= 10) break;
+  // Estimate a floor for remaining slots so greedy doesn't blow the cap.
+  const minSalaryByPos = (pos: "FC" | "BC") => {
+    const arr = ranked.filter(r => r.p.core.fc_bc === pos).map(r => r.p.core.salary ?? 0);
+    if (arr.length === 0) return 1;
+    return Math.min(...arr);
+  };
+  const minFC = minSalaryByPos("FC");
+  const minBC = minSalaryByPos("BC");
+
+  const tryPick = (p: DraftPlayer, capAware: boolean): boolean => {
+    if (picks.length >= 10) return false;
+    if (picks.includes(p)) return false;
     const isFC = p.core.fc_bc === "FC";
-    if (isFC && fc >= 5) continue;
-    if (!isFC && bc >= 5) continue;
-    if ((teamCount.get(p.core.team) ?? 0) >= MAX_PER_TEAM) continue;
-    if (salary + (p.core.salary ?? 0) > SALARY_CAP) continue;
+    if (isFC && fc >= 5) return false;
+    if (!isFC && bc >= 5) return false;
+    if ((teamCount.get(p.core.team) ?? 0) >= MAX_PER_TEAM) return false;
+    const sal = p.core.salary ?? 0;
+    if (salary + sal > SALARY_CAP) return false;
+    if (capAware) {
+      // Reserve enough budget for all remaining slots after this pick.
+      const remainAfter = 10 - picks.length - 1;
+      const remainFC = isFC ? (5 - fc - 1) : (5 - fc);
+      const remainBC = !isFC ? (5 - bc - 1) : (5 - bc);
+      const reserve = remainFC * minFC + remainBC * minBC;
+      if (salary + sal + reserve > SALARY_CAP) return false;
+      void remainAfter;
+    }
     picks.push(p);
-    salary += p.core.salary ?? 0;
+    salary += sal;
     teamCount.set(p.core.team, (teamCount.get(p.core.team) ?? 0) + 1);
     if (isFC) fc++; else bc++;
+    return true;
+  };
+
+  // Pass 1 — greedy by score, cap-aware.
+  for (const { p } of ranked) {
+    if (picks.length >= 10) break;
+    tryPick(p, true);
+  }
+
+  // Pass 2 — backfill missing slots by ascending salary (still cap-aware).
+  if (picks.length < 10) {
+    const cheapest = [...ranked].sort((a, b) => (a.p.core.salary ?? 0) - (b.p.core.salary ?? 0));
+    for (const { p } of cheapest) {
+      if (picks.length >= 10) break;
+      tryPick(p, true);
+    }
+  }
+
+  // Pass 3 — swap-to-fit: if still short, drop the most expensive picked player
+  // whose position-slot still has openings via a cheaper alternative, then retry.
+  let swapAttempts = 0;
+  while (picks.length < 10 && swapAttempts < 20) {
+    swapAttempts++;
+    const needFC = fc < 5;
+    const needBC = bc < 5;
+    // Find the most expensive current pick we could remove without breaking position needs.
+    const removable = [...picks].sort((a, b) => (b.core.salary ?? 0) - (a.core.salary ?? 0));
+    let removed: DraftPlayer | null = null;
+    for (const cand of removable) {
+      const isFC = cand.core.fc_bc === "FC";
+      // Don't remove a player whose position is already short.
+      if (isFC && needFC && fc <= 5 - (10 - picks.length)) continue;
+      removed = cand;
+      break;
+    }
+    if (!removed) break;
+    const idx = picks.indexOf(removed);
+    picks.splice(idx, 1);
+    salary -= removed.core.salary ?? 0;
+    teamCount.set(removed.core.team, (teamCount.get(removed.core.team) ?? 1) - 1);
+    if (removed.core.fc_bc === "FC") fc--; else bc--;
+    // Backfill cheapest legal options.
+    const cheapest = [...ranked].sort((a, b) => (a.p.core.salary ?? 0) - (b.p.core.salary ?? 0));
+    for (const { p } of cheapest) {
+      if (picks.length >= 10) break;
+      tryPick(p, true);
+    }
   }
 
   const warnings: string[] = [];
