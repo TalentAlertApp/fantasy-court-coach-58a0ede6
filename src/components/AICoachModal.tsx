@@ -313,7 +313,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
-          {isRosterEmpty ? (
+          {isRosterEmpty && (
             <div className="flex-1 min-h-0 overflow-y-auto">
               <StylePreferencesPanel
                 players={allPlayers as any}
@@ -321,8 +321,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 onDraft={handlePersonalisedDraft}
               />
             </div>
-          ) : (
-          <>
+          )}
+          {!isRosterEmpty && (
           <TabsList className="rounded-lg shrink-0 grid grid-cols-5">
             <TabsTrigger value="analyze" className="font-heading text-[10px] uppercase rounded-lg"><Activity className="h-3 w-3 mr-1" />Analyze</TabsTrigger>
             <TabsTrigger value="captain" className="font-heading text-[10px] uppercase rounded-lg"><Star className="h-3 w-3 mr-1" />Captain</TabsTrigger>
@@ -330,8 +330,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <TabsTrigger value="injuries" className="font-heading text-[10px] uppercase rounded-lg"><Shield className="h-3 w-3 mr-1" />Injuries</TabsTrigger>
             <TabsTrigger value="explain" className="font-heading text-[10px] uppercase rounded-lg"><HelpCircle className="h-3 w-3 mr-1" />Explain</TabsTrigger>
           </TabsList>
-          </>
           )}
+          {!isRosterEmpty && (
 
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 space-y-2.5">
             {/* Analyze */}
@@ -622,7 +622,6 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               )}
             </TabsContent>
           </div>
-          </>
           )}
         </Tabs>
       </DialogContent>
