@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { DEADLINES } from "@/lib/deadlines";
-import { NBA_TEAMS } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Swords } from "lucide-react";
@@ -23,6 +23,7 @@ const WEEK_DAY_TO_DATE = buildWeekDayToDate();
 export default function ScheduleGridPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { teams: LEAGUE_TEAMS } = useLeagueTeams();
   const gw = parseInt(searchParams.get("gw") ?? "1", 10);
   const { data: games, isLoading } = useScheduleWeekGames(gw);
   const [selectedDays, setSelectedDays] = useState<Set<number>>(new Set());
@@ -65,7 +66,10 @@ export default function ScheduleGridPage() {
     return map;
   }, [games]);
 
-  const sortedTeams = useMemo(() => [...NBA_TEAMS].sort((a, b) => a.tricode.localeCompare(b.tricode)), []);
+  const sortedTeams = useMemo(
+    () => [...LEAGUE_TEAMS].sort((a, b) => a.tricode.localeCompare(b.tricode)),
+    [LEAGUE_TEAMS]
+  );
 
   const dayTotals = useMemo(() => {
     const totals: Record<number, number> = {};
