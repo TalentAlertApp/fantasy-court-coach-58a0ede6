@@ -14,9 +14,13 @@ export async function resolveTeam(
       .from("teams")
       .select("id, name")
       .eq("id", teamId)
-      .single();
-    if (error || !data) throw new Error(`Team not found: ${teamId}`);
-    return { team_id: (data as any).id, team_name: (data as any).name };
+      .maybeSingle();
+    if (!error && data) {
+      return { team_id: (data as any).id, team_name: (data as any).name };
+    }
+    // Stale team_id (e.g. team was deleted but localStorage still references it).
+    // Fall through to default-team resolution rather than 500'ing the caller.
+    console.warn(`[resolveTeam] team_id ${teamId} not found — falling back to default team`);
   }
 
   // Default: earliest created team
