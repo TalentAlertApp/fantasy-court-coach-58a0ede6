@@ -52,6 +52,8 @@ serve(async (req: Request) => {
     // bulk-wipe the table — that footgun has been removed.
     const replaceMode = url.searchParams.get("replace") === "1";
     const targetGameId = url.searchParams.get("game_id");
+    const idsParam = url.searchParams.get("ids");
+    const idsList = idsParam ? idsParam.split(",").map(s => s.trim()).filter(Boolean).slice(0, 100) : null;
     const limit = Math.min(parseInt(limitParam || "50"), 100); // max 100 per invocation
 
     const supabase = createClient(
@@ -69,6 +71,8 @@ serve(async (req: Request) => {
       .eq("status", "FINAL");
     if (targetGameId) {
       q = q.eq("game_id", targetGameId);
+    } else if (idsList && idsList.length > 0) {
+      q = q.in("game_id", idsList);
     } else {
       if (!replaceMode) q = q.is("youtube_recap_id", null);
       q = q.limit(limit);
