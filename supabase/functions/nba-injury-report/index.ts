@@ -122,7 +122,9 @@ async function fetchCBS(): Promise<InjuryRecord[]> {
         status: normalizeStatus(cells[4]?.textContent ?? ""),
         injury_type: cells[3]?.textContent?.trim() ?? "",
         estimated_return: cells[2]?.textContent?.trim() || null,
-        notes: "",
+        // CBS puts a short status blurb in column 5 (e.g. "Expected to be out until at least Oct 1").
+        // Surface it as `notes` so the UI's "i" tooltip works for NBA the same way it does for WNBA.
+        notes: cells[4]?.textContent?.trim() ?? "",
         last_updated: new Date().toISOString(),
         source: "CBS Sports",
       });
