@@ -240,8 +240,9 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
 
     setLoading(true);
     try {
+      const fnName = isWnba ? "wnba-injury-report" : "nba-injury-report";
       const [{ data: injuryData, error: fnErr }, { data: playersRows, error: pErr }] = await Promise.all([
-        supabase.functions.invoke("nba-injury-report"),
+        supabase.functions.invoke(fnName),
         supabase.from("players").select("id, name, team, pos, fc_bc, photo"),
       ]);
       if (fnErr) throw new Error(fnErr.message ?? "Failed to fetch injuries");
