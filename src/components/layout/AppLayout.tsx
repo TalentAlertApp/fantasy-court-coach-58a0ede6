@@ -102,6 +102,9 @@ export default function AppLayout() {
               <HowToPlayModal iconClassName="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 shrink-0 relative z-10" />
             </>
           )}
+          {collapsed && (
+            <img src={nbaLogo} alt="NBA" className="h-9 w-auto mx-auto flex-shrink-0 relative z-10" />
+          )}
         </div>
         <div className="sidebar-divider" />
 
