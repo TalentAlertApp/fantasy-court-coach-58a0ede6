@@ -309,12 +309,18 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
   // When opened with a pre-selected set of teams, install the multi-team filter.
   useEffect(() => {
     if (open && initialTeams && initialTeams.length > 0) {
-      setMultiTeamFilter(initialTeams.map((t) => t.toUpperCase()));
+      const next = initialTeams.map((t) => t.toUpperCase());
+      setMultiTeamFilter((prev) =>
+        prev.length === next.length && prev.every((t, i) => t === next[i]) ? prev : next,
+      );
       setView("all");
     } else if (!open) {
       setMultiTeamFilter([]);
     }
-  }, [open, initialTeams]);
+    // Use a stable key so toggling between games (new array refs with same teams)
+    // doesn't churn state, while different team sets still update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, (initialTeams ?? []).join("|")]);
 
   const enriched = useMemo<EnrichedRecord[]>(() => {
     if (!payload?.all) return [];
@@ -544,11 +550,12 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
                     <button
                       type="button"
                       onClick={() => setMultiTeamFilter([])}
-                      className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border/60 text-[10px] uppercase tracking-wider font-heading text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       aria-label="Clear team filter"
                       title="Clear team filter"
                     >
                       <X className="h-3.5 w-3.5" />
+                      Clear filter
                     </button>
                   </div>
                 )}
