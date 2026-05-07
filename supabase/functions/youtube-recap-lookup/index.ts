@@ -27,6 +27,10 @@ const TEAM_CITY: Record<string, string> = {
   SAC: "sacramento", SAS: "san antonio", TOR: "toronto", UTA: "utah", WAS: "washington",
 };
 
+// GAMETIME HIGHLIGHTS — posts "{Away} vs {Home} Full Game Highlights – {Month D, YYYY}" for every NBA game.
+const GAMETIME_CHANNEL_ID = "UC0LrZO9wORIqn_aRJtKdgfA";
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -77,14 +81,38 @@ serve(async (req: Request) => {
       try {
         const awayFull = TEAM_FULL_NAME[game.away_team] ?? game.away_team;
         const homeFull = TEAM_FULL_NAME[game.home_team] ?? game.home_team;
-        const dateStr = game.tipoff_utc ? new Date(game.tipoff_utc).toISOString().slice(0, 10) : "";
-        const query = `${awayFull} vs ${homeFull} ${dateStr} game recap highlights`.trim();
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoEmbeddable=true&videoDuration=medium&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
+        const tipoff = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
+        const dateStr = tipoff ? tipoff.toISOString().slice(0, 10) : "";
+        const longDate = tipoff
+          ? `${MONTH_NAMES[tipoff.getUTCMonth()]} ${tipoff.getUTCDate()}, ${tipoff.getUTCFullYear()}`.toLowerCase()
+          : "";
 
-        const ytRes = await fetch(searchUrl);
+        // Time window: tipoff − 6h … tipoff + 72h (recaps post within hours after final).
+        const publishedAfter = tipoff
+          ? new Date(tipoff.getTime() - 6 * 3600_000).toISOString()
+          : undefined;
+        const publishedBefore = tipoff
+          ? new Date(tipoff.getTime() + 72 * 3600_000).toISOString()
+          : undefined;
+
+        const query = `${awayFull} vs ${homeFull} Full Game Highlights`;
+        const params = new URLSearchParams({
+          part: "snippet",
+          channelId: GAMETIME_CHANNEL_ID,
+          q: query,
+          type: "video",
+          videoEmbeddable: "true",
+          order: "date",
+          maxResults: "10",
+          key: YOUTUBE_API_KEY,
+        });
+        if (publishedAfter) params.set("publishedAfter", publishedAfter);
+        if (publishedBefore) params.set("publishedBefore", publishedBefore);
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+
+        let ytRes = await fetch(searchUrl);
         if (!ytRes.ok) {
           const errBody = await ytRes.text();
-          // If quota exceeded, stop processing
           if (ytRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             break;
@@ -93,27 +121,44 @@ serve(async (req: Request) => {
           continue;
         }
 
-        const ytData = await ytRes.json();
-        const items: any[] = ytData?.items ?? [];
+        let ytData = await ytRes.json();
+        let items: any[] = ytData?.items ?? [];
         const awayCity = TEAM_CITY[game.away_team] ?? game.away_team.toLowerCase();
         const homeCity = TEAM_CITY[game.home_team] ?? game.home_team.toLowerCase();
+        const scoreItems = (arr: any[], minScore: number): { id: string | null; score: number } => {
+          let best: any = null;
+          let bestScore = -1;
+          for (const item of arr) {
+            const title = (item?.snippet?.title ?? "").toLowerCase();
+            let score = 0;
+            if (title.includes(awayCity)) score += 2;
+            if (title.includes(homeCity)) score += 2;
+            if (title.includes("full game")) score += 2;
+            if (title.includes("highlights")) score += 1;
+            if (longDate && title.includes(longDate)) score += 3;
+            else if (dateStr && title.includes(dateStr.slice(5))) score += 1;
+            if (score > bestScore) { bestScore = score; best = item; }
+          }
+          return { id: bestScore >= minScore ? (best?.id?.videoId ?? null) : null, score: bestScore };
+        };
 
-        // Score each item by how well its title matches both teams + recap/highlights keywords
-        let best: any = null;
-        let bestScore = -1;
-        for (const item of items) {
-          const title = (item?.snippet?.title ?? "").toLowerCase();
-          let score = 0;
-          if (title.includes(awayCity)) score += 2;
-          if (title.includes(homeCity)) score += 2;
-          if (title.includes("recap")) score += 2;
-          else if (title.includes("highlights")) score += 1;
-          if (dateStr && title.includes(dateStr.slice(5))) score += 1; // mm-dd token match bonus
-          if (score > bestScore) { bestScore = score; best = item; }
+        // Primary: GAMETIME HIGHLIGHTS, both teams + (full game OR highlights) + date strongly preferred.
+        let { id: videoId } = scoreItems(items, 5);
+
+        // Fallback: open YouTube search if channel-scoped lookup found no confident match.
+        if (!videoId) {
+          const fbQuery = `${awayFull} vs ${homeFull} ${dateStr} full game highlights recap`.trim();
+          const fbUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(fbQuery)}&type=video&videoEmbeddable=true&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
+          const fbRes = await fetch(fbUrl);
+          if (fbRes.ok) {
+            const fbData = await fbRes.json();
+            const fbItems: any[] = fbData?.items ?? [];
+            videoId = scoreItems(fbItems, 5).id;
+          } else if (fbRes.status === 403) {
+            errors.push(`YouTube API quota exceeded after ${found} lookups`);
+            break;
+          }
         }
-        // Require a high-confidence match (both team mentions, OR one team + recap/highlights keyword).
-        // Weak matches stay null so future runs can retry instead of stamping a wrong video.
-        const videoId = bestScore >= 3 ? (best?.id?.videoId ?? null) : null;
 
         if (videoId) {
           const { error: updateErr } = await supabase
