@@ -563,9 +563,10 @@ function InjuryList({
 }
 
 function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: number) => void }) {
+  const { teams: LEAGUE_TEAMS } = useLeagueTeams();
   const ret = formatReturn(rec.estimated_return);
   const injury = truncate(rec.injury_type || "—", 40);
-  const team = getTeamByTricode(rec.team_tricode);
+  const team = LEAGUE_TEAMS.find((t) => t.tricode === rec.team_tricode);
 
   const clickable = rec.on_roster && rec.player_id != null;
 
