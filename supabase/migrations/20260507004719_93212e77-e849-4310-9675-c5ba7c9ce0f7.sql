@@ -1,0 +1,1 @@
+UPDATE public.schedule_games SET status='FINAL' WHERE status<>'FINAL' AND (home_pts > 0 OR away_pts > 0);
