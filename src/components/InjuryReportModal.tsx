@@ -15,8 +15,10 @@ import {
 import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle } from "lucide-react";
 import { format, parseISO, isValid, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { NBA_TEAMS, getTeamByTricode } from "@/lib/nba-teams";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
+import { useLeagueTeams, type LeagueTeam } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
 import { cn } from "@/lib/utils";
 import PlayerModal from "@/components/PlayerModal";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -88,20 +90,20 @@ function normalizeName(s: string): string {
     .trim();
 }
 
-function tricodeFromTeamString(s: string): string {
+function tricodeFromTeamString(s: string, TEAMS: LeagueTeam[]): string {
   if (!s) return "";
   const upper = s.toUpperCase().trim();
-  const exact = NBA_TEAMS.find((t) => t.tricode === upper);
+  const exact = TEAMS.find((t) => t.tricode === upper);
   if (exact) return exact.tricode;
   const lower = s.toLowerCase();
-  const byName = NBA_TEAMS.find(
+  const byName = TEAMS.find(
     (t) => lower.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(lower),
   );
   return byName?.tricode ?? upper.slice(0, 3);
 }
 
-function fullNameFromTricode(tricode: string): string {
-  return NBA_TEAMS.find((t) => t.tricode === tricode)?.name ?? tricode;
+function fullNameFromTricode(tricode: string, TEAMS: LeagueTeam[]): string {
+  return TEAMS.find((t) => t.tricode === tricode)?.name ?? tricode;
 }
 
 function statusClasses(status: string): string {
