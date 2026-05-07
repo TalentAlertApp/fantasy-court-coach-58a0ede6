@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Bot, Loader2, Sparkles, Wand2 } from "lucide-react";
+import {
+  Loader2, Sparkles, Wand2,
+  DollarSign, GraduationCap, Ruler, Flame, Heart,
+} from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import {
   buildPersonalisedRoster,
@@ -24,6 +28,16 @@ const ARCHETYPES: { id: SalaryArchetype; title: string; sub: string }[] = [
 
 export default function StylePreferencesPanel({ players, busy, onDraft }: Props) {
   const { teams } = useLeagueTeams();
+  const logoByTri = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of teams) m.set(t.tricode, t.logo);
+    return m;
+  }, [teams]);
+  const nameByTri = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of teams) m.set(t.tricode, t.name);
+    return m;
+  }, [teams]);
   const [archetype, setArchetype] = useState<SalaryArchetype>("balanced");
   const [experienceTilt, setExperienceTilt] = useState(0);
   const [sizeTilt, setSizeTilt] = useState(0);
@@ -47,19 +61,24 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
   };
 
   return (
-    <div className="space-y-5 p-1">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-4 w-4 text-accent" />
-        <p className="font-heading uppercase tracking-[0.18em] text-xs font-bold">
-          Tell the coach your style
+    <TooltipProvider delayDuration={150}>
+    <div className="rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-5 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-5">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent" />
+          <p className="font-heading uppercase tracking-[0.18em] text-xs font-bold">
+            Tell the coach your style
+          </p>
+        </div>
+        <p className="text-[11px] text-muted-foreground pl-6">
+          Five quick choices. We'll build a legal lineup that matches your vibe.
         </p>
       </div>
 
+      <div className="grid md:grid-cols-2 gap-5">
+      <div className="space-y-5">
       {/* Archetype */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-heading uppercase tracking-widest text-muted-foreground">
-          Salary archetype
-        </p>
+      <Section icon={<DollarSign className="h-3.5 w-3.5 text-accent" />} label="Salary archetype">
         <div className="grid sm:grid-cols-3 gap-2">
           {ARCHETYPES.map((a) => {
             const active = archetype === a.id;
@@ -68,7 +87,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
                 key={a.id}
                 type="button"
                 onClick={() => setArchetype(a.id)}
-                className={`text-left rounded-xl border-2 p-3 transition-all ${
+                className={`text-left rounded-xl border-2 p-3 transition-all hover:-translate-y-0.5 ${
                   active
                     ? "border-accent bg-accent/10 shadow-[0_0_30px_-12px_hsl(var(--accent))]"
                     : "border-border hover:border-foreground/30"
@@ -80,53 +99,73 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
             );
           })}
         </div>
+      </Section>
+
+      <Section icon={<GraduationCap className="h-3.5 w-3.5 text-accent" />} label="Experience">
+        <TiltSlider left="Rookies" right="Vets" value={experienceTilt} onChange={setExperienceTilt} />
+      </Section>
+      <Section icon={<Ruler className="h-3.5 w-3.5 text-accent" />} label="Size">
+        <TiltSlider left="Guards" right="Bigs" value={sizeTilt} onChange={setSizeTilt} />
+      </Section>
+      <Section icon={<Flame className="h-3.5 w-3.5 text-accent" />} label="Risk appetite">
+        <TiltSlider left="Safe floor" right="Boom or bust" value={riskTilt} onChange={setRiskTilt} />
+      </Section>
       </div>
 
-      {/* Sliders */}
-      <TiltSlider label="Experience" left="Rookies" right="Vets" value={experienceTilt} onChange={setExperienceTilt} />
-      <TiltSlider label="Size" left="Guards" right="Bigs" value={sizeTilt} onChange={setSizeTilt} />
-      <TiltSlider label="Risk appetite" left="Safe floor" right="Boom or bust" value={riskTilt} onChange={setRiskTilt} />
-
-      {/* Favourite teams */}
-      <div className="space-y-2">
-        <p className="text-[10px] font-heading uppercase tracking-widest text-muted-foreground">
-          Favourite teams · pick up to 3 ({favouriteTeams.length}/3)
-        </p>
-        <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+      <div className="space-y-5">
+      {/* Favourite teams — borderless badges */}
+      <Section
+        icon={<Heart className="h-3.5 w-3.5 text-accent" />}
+        label={`Favourite teams · pick up to 3 (${favouriteTeams.length}/3)`}
+      >
+        <div className="flex flex-wrap gap-2 items-center">
           {teams.map((t) => {
             const active = favouriteTeams.includes(t.tricode);
             return (
-              <button
-                key={t.tricode}
-                type="button"
-                onClick={() => toggleTeam(t.tricode)}
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-colors ${
-                  active
-                    ? "border-accent bg-accent text-accent-foreground"
-                    : "border-border text-muted-foreground hover:border-foreground/40"
-                }`}
-              >
-                {t.tricode}
-              </button>
+              <Tooltip key={t.tricode}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => toggleTeam(t.tricode)}
+                    aria-label={t.name}
+                    className={`group relative inline-flex items-center justify-center bg-transparent transition-all duration-200 ${
+                      active
+                        ? "scale-[1.30] drop-shadow-[0_0_12px_hsl(var(--accent)/0.7)]"
+                        : "opacity-70 hover:opacity-100 hover:scale-[1.15] hover:drop-shadow-[0_0_8px_hsl(var(--accent)/0.5)]"
+                    }`}
+                  >
+                    <img
+                      src={t.logo}
+                      alt={t.tricode}
+                      className="h-9 w-9 object-contain"
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{t.name}</TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
-      </div>
+      </Section>
 
       {/* Live preview */}
       {preview && (
-        <div className="rounded-xl border-2 border-dashed border-accent/30 bg-accent/[0.04] p-3 grid grid-cols-3 gap-2 text-center">
-          <Stat label="Salary used" value={`$${preview.totalSalary.toFixed(1)}M`} />
-          <Stat label="Captain" value={preview.captain?.core.name.split(" ").slice(-1)[0] ?? "—"} />
-          <Stat label="Roster" value={preview.legal ? "Legal ✓" : `${preview.starters.length + preview.bench.length}/10`} />
+        <div className="rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-4 space-y-3">
+          <CaptainPreview captain={preview.captain} logoByTri={logoByTri} nameByTri={nameByTri} />
+          <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t border-accent/20">
+            <Stat label="Salary used" value={`$${preview.totalSalary.toFixed(1)}M`} />
+            <Stat label="Roster" value={preview.legal ? "Legal ✓" : `${preview.starters.length + preview.bench.length}/10`} />
+          </div>
         </div>
       )}
+      </div>
+      </div>
 
       <Button
         onClick={() => onDraft(prefs)}
         disabled={busy || !players.length}
         size="lg"
-        className="w-full font-heading uppercase tracking-widest"
+        className="w-full font-heading uppercase tracking-widest h-12 text-sm shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
       >
         {busy ? (
           <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Drafting…</>
@@ -140,18 +179,82 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
         </p>
       )}
     </div>
+    </TooltipProvider>
+  );
+}
+
+function Section({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        {icon}
+        <p className="text-[10px] font-heading uppercase tracking-widest text-muted-foreground">
+          {label}
+        </p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function CaptainPreview({
+  captain, logoByTri, nameByTri,
+}: {
+  captain: DraftPlayer | null;
+  logoByTri: Map<string, string>;
+  nameByTri: Map<string, string>;
+}) {
+  if (!captain) {
+    return (
+      <div className="flex items-center gap-3">
+        <div className="h-11 w-11 rounded-full bg-muted/50 animate-pulse" />
+        <div>
+          <p className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">Captain</p>
+          <p className="text-sm text-muted-foreground italic">Awaiting picks…</p>
+        </div>
+      </div>
+    );
+  }
+  const tri = captain.core.team;
+  const logo = logoByTri.get(tri);
+  return (
+    <div>
+      <p className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground mb-1.5">Captain</p>
+      <div className="flex items-center gap-3">
+      {captain.core.photo ? (
+        <img
+          src={captain.core.photo}
+          alt={captain.core.name}
+          className="h-12 w-12 rounded-full object-cover bg-background drop-shadow-[0_4px_12px_hsl(var(--accent)/0.4)] transition-transform hover:scale-110"
+        />
+      ) : (
+        <div className="h-12 w-12 rounded-full bg-muted/50" />
+      )}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <p className="font-heading text-sm font-bold truncate">{captain.core.name}</p>
+        {logo && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <img
+                src={logo}
+                alt={tri}
+                className="h-6 w-6 object-contain shrink-0 transition-transform hover:scale-[1.20] hover:drop-shadow-[0_0_8px_hsl(var(--accent)/0.5)]"
+              />
+            </TooltipTrigger>
+            <TooltipContent>{nameByTri.get(tri) ?? tri}</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
+      </div>
+    </div>
   );
 }
 
 function TiltSlider({
-  label, left, right, value, onChange,
-}: { label: string; left: string; right: string; value: number; onChange: (v: number) => void }) {
+  left, right, value, onChange,
+}: { left: string; right: string; value: number; onChange: (v: number) => void }) {
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-heading uppercase tracking-widest text-muted-foreground">{label}</p>
-        <p className="text-[10px] text-muted-foreground">{left} ↔ {right}</p>
-      </div>
       <Slider
         min={-1}
         max={1}
@@ -159,6 +262,10 @@ function TiltSlider({
         value={[value]}
         onValueChange={(v) => onChange(v[0] ?? 0)}
       />
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground px-0.5">
+        <span>{left}</span>
+        <span>{right}</span>
+      </div>
     </div>
   );
 }

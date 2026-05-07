@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { NBA_TEAMS } from "@/lib/nba-teams";
+import MissingRecapsPanel from "@/components/commissioner/MissingRecapsPanel";
 import nbaLogoSrc from "@/assets/nba-logo.svg";
 import wnbaLogoSrc from "@/assets/wnba-logo.png";
 
@@ -1380,6 +1381,8 @@ export default function CommissionerPage() {
           </div>
         )}
       </div>
+
+      <MissingRecapsPanel league={leagueCode} />
         </TabsContent>
       </Tabs>
 

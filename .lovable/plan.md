@@ -1,99 +1,105 @@
-## Part 1 — YouTube Recaps: stop the bleeding, get every game populated safely
+## Part 1 — Missing Recaps table (NBA + WNBA aware)
 
-### What actually happened
-- "Re-scan All Recaps" calls the edge function with `clear=1` once. That update **wipes `youtube_recap_id` from every FINAL game in one SQL statement** before searching anything.
-- Then the loop tries to refill them, but each YouTube `search.list` call costs **100 quota units**. The default daily quota is **10,000 units = ~100 searches/day**. With **1,215 NBA games**, a full re-scan needs ~12 days of quota. Quota dies after ~100 games → every other game is left with `null`.
-- That's why hitting Re-scan twice nuked everything: the second wipe ran, then quota died before any could be refilled.
+In `/commissioner` YouTube Recaps card, add a new **"Missing Recaps"** panel directly under the existing Populate / Re-scan buttons.
 
-### Fix (no DB changes, edge-function + UI only)
+### What it shows
+A scrollable table of every FINAL game in the **currently selected league** (NBA or WNBA — driven by `useLeague()`) where `youtube_recap_id IS NULL`:
 
-1. **Make `Re-scan All Recaps` non-destructive by default.**
-   `youtube-recap-lookup` → change `clear=1` semantics from "bulk wipe THEN search" to **"per-game clear-and-search"**: for each game in the batch, only `null` its `youtube_recap_id` *immediately before* we search it (and only persist the new ID if found, otherwise leave previous ID intact). This guarantees you can never lose more recaps than YouTube actually replaces in the same call.
-   - Add a new query param `replace=1` that opts into that behavior (used by Re-scan).
-   - `clear=1` (the old footgun) is removed.
+```text
+┌─ Missing Recaps · WNBA · 47 games ────── [Re-scan missing only] ─┐
+│ Date           │ Matchup            │ Status │ Action            │
+├────────────────┼────────────────────┼────────┼───────────────────┤
+│ Tue, May 6     │ NYL @ LAS          │ FINAL  │ [Refresh]         │
+│ Tue, May 6     │ SEA @ PHX          │ FINAL  │ [Refresh]         │
+│ …                                                                │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-2. **Add a strict typed confirmation** in `/commissioner` before Re-scan ever runs: a small inline `<input>` requiring the word `RESCAN` + a red warning banner with the quota math and the time-cost ("≈12 days at 100 games/day").
+- Columns: **Date** (Europe/Lisbon), **Matchup** (away tricode @ home tricode + small badges), **Status** (always FINAL — kept for clarity), **Action** (per-row "Refresh" button = single-game lookup, ~100 quota units).
+- Header chip shows league + total missing count.
+- Top-right action: **"Re-scan missing only"** — loops the missing rows in batches of 100, calling `youtube-recap-lookup?ids=<csv>&limit=100` (new param) until done or quota hits. Reuses the existing `recapProgress` indicator.
 
-3. **Populate behavior** stays as-is (loops batches of 100, only fills missing IDs). Add a "Pause / resume tomorrow" hint to the progress bar when quota error fires, plus persist a `recap_last_run_at` timestamp in `localStorage` so the user can see when the next batch is worth attempting.
-
-4. **Add a per-game "Refresh recap" action** on each Schedule card (commissioner-only) — a single targeted lookup costs 100 units and lets you fix bad matches without re-scanning everything.
-
-5. **Doc the long-term path**: to populate all 1,215 games faster, request a YouTube Data API v3 quota increase from Google Cloud Console (they routinely grant 1M units/day for legitimate apps). Add a small note to that effect in the YouTube Recaps card.
+### Wiring
+- Data source: direct Supabase query `from("schedule_games").select("game_id, game_date, home_team, away_team, status, youtube_recap_id, league").eq("league", currentLeague).eq("status","FINAL").is("youtube_recap_id", null).order("game_date",{ascending:false}).limit(500)`. Refetched after every Populate / Re-scan / Refresh action.
+- New `youtube-recap-lookup` edge-function param: `ids=GAME_ID_1,GAME_ID_2,…` (max 100 per call) — when present, restrict the candidate set to those game_ids only (still honors `replace=1` if passed). Existing `game_id=` single-game param stays.
+- "Refresh" per row hits `youtube-recap-lookup?game_id=<id>&replace=1` and toasts the result.
 
 ### Files
-- `supabase/functions/youtube-recap-lookup/index.ts` — replace bulk wipe with per-game clear-and-search; honor `replace=1`; remove `clear=1`.
-- `src/pages/CommissionerPage.tsx` — typed confirm for Re-scan, updated copy with quota math, pause/resume hint.
-- `src/components/GameDetailModal.tsx` (or schedule card) — add commissioner-only "Refresh recap for this game" button hitting `youtube-recap-lookup?game_id=…`.
-- `youtube-recap-lookup` — accept `game_id` param to scope the lookup to one row.
-
-### Direct answer to "how do I get them populated?"
-Use **POPULATE YOUTUBE RECAPS**. It only ever fills missing IDs — your existing recaps are safe. Run it once per day until `Remaining` reaches 0 (≈12 days at default quota). After this fix, even Re-scan can no longer wipe recaps that aren't immediately replaced.
+- `src/pages/CommissionerPage.tsx` — add `<MissingRecapsPanel/>` block + state + Supabase fetch.
+- `src/components/commissioner/MissingRecapsPanel.tsx` (new) — table UI, league-aware, badge rendering via `useLeagueTeams()`.
+- `supabase/functions/youtube-recap-lookup/index.ts` — accept `ids=` CSV param.
 
 ---
 
-## Part 2 — AI Coach onboarding: make the "personalised roster" promise real
+## Part 2 — AI Coach personalised draft modal: premium polish
 
-The Step-3 card promises "Tell the coach your style and get a personalised roster," but the modal that opens is the in-season coach (Analyze / Captain / Transfers / Injuries / Explain) with a generic "Draft my squad with AI" button — no style inputs.
+Rework `src/components/ai-coach/StylePreferencesPanel.tsx` end-to-end.
 
-### New flow when AI Coach opens with an empty roster
+### a) Team chips → Real team badges
 
-Replace the current empty-roster banner with a **Style Preferences panel** before any draft fires:
-
-```text
-┌─ AI Coach · Personalise your draft ──────────────────────┐
-│                                                           │
-│  1.  Salary archetype                                     │
-│      ◉ Stars & Scrubs  (2-3 max-salary studs + value)     │
-│      ○ Balanced         (no player > $14M, even spread)   │
-│      ○ Studs only       (top-5 average salary)            │
-│                                                           │
-│  2.  Experience tilt           [Rookies ── ●──── Vets]    │
-│                                                           │
-│  3.  Size tilt                 [Guards ──●───── Bigs]     │
-│                                                           │
-│  4.  Favourite teams (optional, max 3)                    │
-│      [+ LAL]  [+ BOS]  [+ DEN]                            │
-│                                                           │
-│  5.  Risk appetite             [Safe ────●── Boom-or-bust]│
-│                                                           │
-│           [  Draft my personalised squad  ]               │
-└───────────────────────────────────────────────────────────┘
-```
-
-### How preferences map to picks (reliable, deterministic)
-
-Build the roster client-side using the existing `usePlayersQuery` data, scored by a weighted formula — no new model needed, so results are predictable:
+Replace the rounded outline chips with the actual team logos via `useLeagueTeams().teams[*].logo` rendered as a borderless `<img>` (no chip container, no background). Layout: a flex-wrap row.
 
 ```text
-score(player) =
-    fp_pg5
-  + w_salary       * salaryArchetypeBonus(player, archetype)
-  + w_experience   * (exp - midpoint)   * tilt
-  + w_size         * (height - midpoint)* tilt
-  + w_team         * (favouriteTeams.includes(player.team) ? 1 : 0)
-  + w_risk         * stdev(player.fp_last10) * tilt
+States:
+- default: 36×36, opacity 70%, no ring
+- hover:   scales to 1.15, opacity 100%, soft accent glow ("surge")
+- selected: scales to 1.30, opacity 100%, accent ring + drop-shadow,
+            persistent glow
 ```
 
-Then run the same greedy fill the existing optimiser uses (5 FC + 5 BC, ≤ $100M, max 2 per team). Captain = highest-score eligible starter.
+Selecting still caps at 3; counter "(2/3)" stays. Tooltip on hover shows full team name.
 
-If a constraint is unsatisfiable (e.g., "Studs only" + "$100M cap" doesn't fit 10 players), fall back to the closest legal lineup and surface a toast: *"Adjusted slightly to fit cap rules."*
+### b) Captain row gets photo + team badge
 
-### UI/UX polish
-- Show a **live preview pill bar** at the bottom of the panel: estimated roster cost, projected FP, # captain candidates — updates as the user moves sliders.
-- Animate the chosen archetype card with the existing accent glow used elsewhere in onboarding.
-- "Re-roll with same style" button after the draft, in case the user wants a sibling lineup.
+The live-preview "CAPTAIN" stat (currently just last-name text) becomes:
+
+```text
+┌─ CAPTAIN ─────────────────────────────────────────┐
+│  [ photo ]   Dwight Howard   [LAL badge]          │
+└───────────────────────────────────────────────────┘
+```
+
+- Photo: 44×44 rounded circle, uses `captain.core.photo`, no border container, soft drop-shadow, hover scale 1.1.
+- Name: full first+last in heading font.
+- Team badge after name: 24×24 logo from `useLeagueTeams()`, hover scale 1.15 ("surge"), no container.
+- If no captain yet, show a subtle "Awaiting picks…" placeholder.
+
+The other two preview stats (Salary Used, Roster Legal) stay; the whole strip becomes a 3-column grid with the captain block spanning 2 columns on desktop.
+
+### c) Context-sensitive icons on each section header
+
+Add lucide icons next to the 5 section labels:
+
+| Section | Icon |
+|---|---|
+| SALARY ARCHETYPE | `DollarSign` |
+| EXPERIENCE | `GraduationCap` |
+| SIZE | `Ruler` |
+| RISK APPETITE | `Flame` |
+| FAVOURITE TEAMS | `Heart` |
+
+Icons render at 14px in `text-accent` next to the existing uppercase tracked label.
+
+### d) Premium layout polish
+
+- Wrap the panel in a single `rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-5 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)]` shell.
+- Two-column grid on `md+`: left column = Archetype + Sliders; right column = Favourite teams + sticky live-preview card. Single column on mobile.
+- Each section gets a thin divider above it (`border-t border-border/40 pt-4`) except the first.
+- Archetype cards: gain subtle hover lift (`hover:-translate-y-0.5 transition-transform`) and selected state already has accent glow.
+- Sliders: keep shadcn slider but increase track height via wrapper class + add tick marks at -1, 0, +1.
+- Submit button: full-width, `bg-accent text-accent-foreground`, larger padding, `Wand2` icon stays.
+- Live-preview pill bar: sticky on the right column at `md+`, becomes a solid accent-tinted card with the captain block above the salary/roster row.
+- Headings/labels: use `font-heading` consistently, slightly larger tracking.
+- Add a one-line subtitle under "Tell the coach your style": *"Five quick choices. We'll build a legal lineup that matches your vibe."*
 
 ### Files
-- `src/components/AICoachModal.tsx` — add `<StylePreferencesPanel/>` shown only when `isRosterEmpty`, replacing the current "NO ROSTER YET" banner.
-- `src/components/ai-coach/StylePreferencesPanel.tsx` (new) — the panel above with sliders and archetype radios.
-- `src/lib/personalised-draft.ts` (new) — pure scoring + greedy fill, ~120 LOC, fully unit-testable.
-- `src/components/onboarding/DraftPicker.tsx` — no change to copy; the modal now delivers what the card promises.
-
-### Why not just remove AI Coach?
-Because the underlying data (`fp_pg5`, salary, height, exp, team, fp_last10) is already on every player and the greedy fill is the same one the manual draft path uses. It's deterministic, explainable, and works for both NBA and WNBA without any new backend. So we keep AI Coach and finally make it personalised.
+- `src/components/ai-coach/StylePreferencesPanel.tsx` — full rewrite with sections above.
+- `src/lib/personalised-draft.ts` — no logic changes (preview already returns captain + salary + legal).
+- (No changes to `AICoachModal.tsx` shell — it already mounts the panel.)
 
 ---
 
-### Out of scope for this round
-- YouTube quota increase request (manual Google Cloud step you have to do).
-- Caching the personalised draft in Supabase — kept client-side until you ask for it.
+### Out of scope
+- Quota increase request to Google (manual GCP step).
+- Persisting personalised draft preferences across sessions.
+- Bulk "delete all empty recaps" — out of scope, the table makes the gap visible enough.
