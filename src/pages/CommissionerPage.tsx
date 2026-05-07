@@ -1325,10 +1325,11 @@ export default function CommissionerPage() {
           <Youtube className="h-5 w-5 text-destructive" />
           <h3 className="font-heading font-bold text-lg uppercase">YouTube Recaps</h3>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Auto-populate YouTube recap video IDs for all finished games missing a recap.
-          Uses the YouTube Data API to search for "Motion Station" recaps.
-        </p>
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p><strong className="text-foreground">Populate YouTube Recaps</strong> — fills in recap video IDs for FINAL games that don't have one yet. Existing IDs are preserved. Loops automatically until none remain.</p>
+          <p><strong className="text-foreground">Re-scan All Recaps</strong> — first wipes every existing recap ID, then re-searches all FINAL games using the latest source (GAMETIME HIGHLIGHTS for NBA, official @WNBA for WNBA). Use after switching sources or to refresh stale matches.</p>
+          <p className="text-xs">Each batch processes up to 100 games (YouTube quota cap). The progress bar below loops automatically.</p>
+        </div>
         <div className="grid sm:grid-cols-2 gap-2">
           <Button
             onClick={() => handleYoutubeRecapLookup(false)}
@@ -1346,10 +1347,26 @@ export default function CommissionerPage() {
             Re-scan All Recaps
           </Button>
         </div>
-        {recapResult && (
-          <div className="flex items-center gap-2 text-sm text-primary">
-            <CheckCircle2 className="h-4 w-4" />
-            Found {recapResult.found}/{recapResult.processed} recaps · {recapResult.remaining} remaining
+        {recapProgress.phase !== "idle" && (
+          <div className="space-y-1.5">
+            <Progress
+              value={
+                recapProgress.processed + recapProgress.remaining > 0
+                  ? (recapProgress.processed / (recapProgress.processed + recapProgress.remaining)) * 100
+                  : recapProgress.phase === "done" ? 100 : 0
+              }
+              className="h-2"
+            />
+            <div className="flex items-center gap-2 text-xs">
+              {recapProgress.phase === "running" ? (
+                <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
+              ) : (
+                <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+              )}
+              <span className="text-muted-foreground">
+                {recapProgress.mode === "rescan" ? "Re-scan" : "Populate"} · Batch {recapProgress.batches} · Checked <strong className="text-foreground">{recapProgress.processed}</strong> · Found <strong className="text-foreground">{recapProgress.found}</strong> · Remaining <strong className="text-foreground">{recapProgress.remaining}</strong>
+              </span>
+            </div>
           </div>
         )}
       </div>
