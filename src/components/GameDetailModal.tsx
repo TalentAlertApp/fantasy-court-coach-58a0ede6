@@ -221,7 +221,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-sm"} rounded-xl p-0 overflow-hidden`}>
-        <div className="relative px-4 pt-3 pb-2 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
+        <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
               src={venue.image}
@@ -236,28 +236,28 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             <DialogTitle className="sr-only">Game Detail</DialogTitle>
           </DialogHeader>
           {(hasGwDay || tipoffLabel) && (
-            <div className="relative flex items-center justify-center gap-2 pb-1.5">
+            <div className="relative flex items-center justify-center gap-2">
               {hasGwDay && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-heading uppercase tracking-[0.18em] font-bold text-foreground/90">
+                <span className="inline-flex items-center gap-1 px-2 py-px rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-heading uppercase tracking-[0.18em] font-bold text-foreground/90">
                   GW {game.gw} · D {game.day}
                 </span>
               )}
               {tipoffLabel && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-mono tabular-nums text-foreground/80">
+                <span className="inline-flex items-center px-2 py-px rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-mono tabular-nums text-foreground/80">
                   {tipoffLabel}
                 </span>
               )}
             </div>
           )}
-          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-1.5">
+          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-1">
             {/* Away — name on right of watermark */}
-            <div className="relative h-12 flex items-center justify-end pr-2 overflow-hidden">
+            <div className="relative h-10 flex items-center justify-end pr-2 overflow-hidden">
               {awayLogo && (
                 <img
                   src={awayLogo}
                   alt=""
                   aria-hidden
-                  className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 h-16 w-16 object-contain opacity-25 -rotate-12 select-none"
+                  className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 h-14 w-14 object-contain opacity-25 -rotate-12 select-none"
                 />
               )}
               <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm">{game.away_team}</span>
@@ -276,47 +276,47 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
             {/* Home — name on left of watermark */}
-            <div className="relative h-12 flex items-center justify-start pl-2 overflow-hidden">
+            <div className="relative h-10 flex items-center justify-start pl-2 overflow-hidden">
               {homeLogo && (
                 <img
                   src={homeLogo}
                   alt=""
                   aria-hidden
-                  className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-16 w-16 object-contain opacity-25 rotate-12 select-none"
+                  className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-14 w-14 object-contain opacity-25 rotate-12 select-none"
                 />
               )}
               <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm">{game.home_team}</span>
             </div>
           </div>
-          <div className="flex items-center justify-center gap-1.5 py-0.5 flex-wrap">
+          <div className="flex items-center justify-center gap-1.5 py-0 flex-wrap">
             {game.game_boxscore_url && (
-              <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-0.5 rounded-xl border">
+              <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <Table2 className="h-3.5 w-3.5" /> BoxScore
               </a>
             )}
             {game.game_charts_url && (
-              <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-0.5 rounded-xl border">
+              <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <BarChart3 className="h-3.5 w-3.5" /> Charts
               </a>
             )}
             {game.game_playbyplay_url && (
-              <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-0.5 rounded-xl border">
+              <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <Mic className="h-3.5 w-3.5" /> PbP
               </a>
             )}
             {game.nba_game_url && (
-              <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-0.5 rounded-xl border">
+              <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <ExternalLink className="h-3.5 w-3.5" /> {leagueName}
               </a>
             )}
           </div>
           {game.game_recap_url && (
-            <div className="flex justify-center pt-0.5">
+            <div className="flex justify-center pt-0">
               <a
                 href={game.game_recap_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1 rounded-xl border border-green-500/40"
+                className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
               >
                 <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
               </a>

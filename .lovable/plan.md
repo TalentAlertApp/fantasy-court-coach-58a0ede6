@@ -1,49 +1,35 @@
-## 1. Auto-Draft toast shows GW25 for WNBA — use league-aware gameday
+## 1) Game Played modal — slimmer header
 
-`DraftPicker.tsx` (line 66) and `AICoachModal.tsx` (line 92) both call `getCurrentGameday()` from `src/lib/deadlines.ts`, which only knows the **NBA static schedule** — that's why a freshly drafted WNBA squad ends up "Saved under GW25 · Day 6". The WNBA already has a league-aware version: `useLeagueDeadlines()` + `getCurrentGamedayFrom()`.
+**File:** `src/components/GameDetailModal.tsx`
 
-Fix:
-- In `DraftPicker.tsx`: use `useLeagueDeadlines()` + `getCurrentGamedayFrom(deadlines)` (with NBA fallback to the static `getCurrentGameday()` when no deadlines yet). Pass the resolved `{ gw, day }` to both `autoPickRoster` and `saveRoster`, and into the toast string.
-- In `AICoachModal.tsx` `handleDraftFromEmpty`: same swap — use the league deadlines so the toast says e.g. "Saved under GW3 · Day 2" for a WNBA team.
-- No backend changes needed (edge functions already accept any `gw/day`).
+Tighten vertical rhythm in the header block (the `div` wrapping venue background, GW/D chip, score row, action links):
 
-## 2. AI Coach modal — dynamic league logo, single watermark
+- Outer wrapper: `px-4 pt-3 pb-2` → `px-4 pt-2 pb-1.5`.
+- GW/D + tipoff chip row: drop `pb-1.5`, reduce chip `py-0.5` → `py-px`.
+- Score row: `py-1.5` → `py-1`; reduce away/home name container `h-12` → `h-10`, watermark logo `h-16 w-16` → `h-14 w-14`.
+- Action-links row: `py-0.5` → `py-0`, link buttons `py-0.5` → `py-px`.
+- Recap link: `pt-0.5` → `pt-0`, `py-1` → `py-0.5`.
 
-`AICoachModal.tsx` currently hard-codes `nbaLogo` in two spots:
-- A big watermark behind the whole modal (lines 251–256, inside `DialogContent`).
-- A second watermark inside the "No roster yet" banner (lines 281–286).
+Net effect: ~25–30 px shorter header, same content, no layout shift on small screens.
 
-Result: a WNBA user sees two NBA logos, including one inside the Ballers.IQ header band.
+## 2) Schedule recap video — switch to GAMETIME HIGHLIGHTS channel
 
-Fix:
-- Import both `nbaLogo` and `wnbaLogo` and `useLeague()` from `@/contexts/LeagueContext`.
-- Pick `const leagueLogo = isWnba ? wnbaLogo : nbaLogo;`.
-- Remove the watermark inside the Ballers.IQ header banner entirely (the one rendered above `DialogHeader` at lines 251–256). Keep only ONE watermark — the one inside the "No roster yet" banner — and switch its src to `leagueLogo`. (Per user: "remove the one from the Ballers.IQ header".)
-- That single remaining watermark uses the active league logo, so a WNBA team gets the WNBA logo.
+The current `youtube-recap-lookup` does an open YouTube search and frequently picks the wrong/weak match. Replace with a channel-scoped lookup against **GAMETIME HIGHLIGHTS** (channel ID `UC0LrZO9wORIqn_aRJtKdgfA`), which posts a "{Away} vs {Home} Full Game Highlights – {Month D, YYYY}" video for every NBA game shortly after final.
 
-## 3. Manual Roster picker — premium chip strip
+**File:** `supabase/functions/youtube-recap-lookup/index.ts`
 
-`PlayerPickerDialog.tsx` lines 449–510 render the four glassmorphic chips (`PICKED`, `BANK`, `FC`, `BC`) plus the mute button. Per the screenshot they look washed-out and the labels/values cramp together at narrow widths.
+Changes:
+- Add `const GAMETIME_CHANNEL_ID = "UC0LrZO9wORIqn_aRJtKdgfA";`
+- Build `query` as `"{awayFull} vs {homeFull} Full Game Highlights"` (no date in query — date is used for filtering and scoring).
+- Call YouTube `search.list` with `channelId=GAMETIME_CHANNEL_ID`, `type=video`, `videoEmbeddable=true`, `order=date`, `maxResults=10`, `publishedAfter` = tipoff − 6h, `publishedBefore` = tipoff + 72h. Drop `videoDuration=medium` (their highlight reels are ~10 min and qualify, but the time-window already filters reliably).
+- Scoring tweak: require both team city tokens AND ("highlights" OR "full game"); add +3 if title contains the exact ISO date `M D, YYYY` formatted as the channel uses (e.g. `April 5, 2026`); accept best match with `score >= 5`.
+- If the channel-scoped search yields nothing (rare — old/foreign games), fall back to the previous open-search path so we never regress for already-stamped games.
+- Keep the `clear=1` admin reset behavior so commissioner can re-scan and replace bad IDs from the old logic with the new channel-sourced ones.
 
-Redesign (no behaviour change, just visuals):
-- Lift the strip into a single dark gradient panel: `bg-gradient-to-r from-background/80 via-background/60 to-background/80`, `border border-foreground/10`, `rounded-2xl`, `p-1.5`, `shadow-lg`.
-- Each chip becomes a vertical stack inside its own pill: `h-12`, rounded-xl, `flex items-center gap-2.5 px-3.5`, with:
-  - Left: a small square icon tile (`h-8 w-8 rounded-lg`) tinted with the chip's accent (amber for Picked, emerald for Bank, red for FC, blue for BC), icon centred.
-  - Middle: stacked label + value — `LABEL` in `text-[9px] uppercase tracking-[0.3em] font-heading text-foreground/55`, value beneath in `font-mono font-black text-base tabular-nums text-foreground` (colour-shifted when constraints hit: emerald when bank>0, destructive when bank<0, amber when picked=10, etc.).
-- Active states (full / over-budget) keep the existing pulse + glow but use a subtler shadow (`shadow-[0_0_22px_-10px_<hue>]`) so it reads as premium rather than neon.
-- Provide visible high-contrast value text in both light and dark themes by using `text-foreground` rather than the muted `text-destructive/text-primary` currently used for FC/BC values — instead colour the icon tile and the small label, leave the number white/foreground for legibility.
-- Mute button: same square chip aesthetic (`h-12 w-12 rounded-xl`) so it visually aligns with the new row.
+**No DB schema change**; we keep `youtube_recap_id` (single 11-char video ID), and the existing `RecapCard` embed (`youtube-nocookie.com/embed/{id}`) keeps working.
 
-The grid stays `grid-cols-4` on desktop; on narrow widths it already wraps via the parent container.
+**Commissioner action after deploy:** click "Re-scan all recaps" on `/commissioner` to repopulate IDs from the new source.
 
-## Technical Details
-
-**Files to edit**
-- `src/components/onboarding/DraftPicker.tsx` — switch to `useLeagueDeadlines` for the auto + manual save paths.
-- `src/components/AICoachModal.tsx` — remove header watermark, swap remaining watermark to active league logo, switch `handleDraftFromEmpty` to league-aware gameday.
-- `src/components/PlayerPickerDialog.tsx` — restyle the chip strip (lines 447–510) per spec above.
-
-**Verification**
-- Create a new WNBA team → Auto-Draft → toast reads e.g. "Saved under GW3 · Day 2" (WNBA-correct), not "GW25".
-- Open AI Coach for a WNBA team → modal shows the WNBA logo as the only watermark (no NBA logo behind the Ballers.IQ header).
-- Open Manual roster picker → top chip strip is dark, premium, with high-contrast counts and tinted icon tiles; states for FC=5/5, BC=5/5, picked=10/10, and over-budget all remain visually distinct.
+### Verification
+- Header of played game modal visibly shorter (no overlap, score still bold/centered).
+- After re-scan, opening any FINAL game shows the GAMETIME HIGHLIGHTS video matching that exact game/date; non-matching old IDs are replaced.
