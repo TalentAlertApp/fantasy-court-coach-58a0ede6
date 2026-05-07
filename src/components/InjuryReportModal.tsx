@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { format, parseISO, isValid, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -56,6 +56,8 @@ interface EnrichedRecord extends InjuryRecord {
 interface InjuryReportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Optional: pre-filter the report to one or more team tricodes (e.g. ["CHI","DAL"]). */
+  initialTeams?: string[];
 }
 
 const CACHE_KEY = "nbaf:injury-report:v1";
@@ -211,7 +213,7 @@ function relativeTime(iso: string): string {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-export default function InjuryReportModal({ open, onOpenChange }: InjuryReportModalProps) {
+export default function InjuryReportModal({ open, onOpenChange, initialTeams }: InjuryReportModalProps) {
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
   const { isWnba } = useLeague();
   const getTeamByTricode = useCallback(
@@ -223,6 +225,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
   const [payload, setPayload] = useState<InjuryPayload | null>(null);
   const [rosterMap, setRosterMap] = useState<Map<string, { id: number; team: string; pos: string | null; fc_bc: string; photo: string | null }>>(new Map());
   const [view, setView] = useState<"all" | string>("all");
+  const [multiTeamFilter, setMultiTeamFilter] = useState<string[]>([]);
   const [myRosterOnly, setMyRosterOnly] = useState(false);
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "Out" | "Day-To-Day" | "Questionable" | "Probable">("all");
@@ -303,6 +306,16 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, isWnba]);
 
+  // When opened with a pre-selected set of teams, install the multi-team filter.
+  useEffect(() => {
+    if (open && initialTeams && initialTeams.length > 0) {
+      setMultiTeamFilter(initialTeams.map((t) => t.toUpperCase()));
+      setView("all");
+    } else if (!open) {
+      setMultiTeamFilter([]);
+    }
+  }, [open, initialTeams]);
+
   const enriched = useMemo<EnrichedRecord[]>(() => {
     if (!payload?.all) return [];
     return payload.all.map((r) => {
@@ -355,8 +368,13 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
 
   const updatedLabel = payload?.generated_at ? `Updated ${relativeTime(payload.generated_at)}` : "";
 
-  const visibleItems =
-    view === "all" ? filteredAll : groups.find((g) => g.tricode === view)?.items ?? [];
+  const visibleItems = useMemo(() => {
+    if (multiTeamFilter.length > 0) {
+      const set = new Set(multiTeamFilter);
+      return filteredAll.filter((r) => set.has(r.team_tricode));
+    }
+    return view === "all" ? filteredAll : groups.find((g) => g.tricode === view)?.items ?? [];
+  }, [multiTeamFilter, view, filteredAll, groups]);
 
   const statusCounts = useMemo(() => {
     const counts = { Out: 0, "Day-To-Day": 0, Questionable: 0, Probable: 0 } as Record<string, number>;
@@ -477,7 +495,7 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
 
                   <Select
                     value={view === "all" ? "" : view}
-                    onValueChange={(v) => setView(v)}
+                    onValueChange={(v) => { setMultiTeamFilter([]); setView(v); }}
                   >
                     <SelectTrigger className="h-8 w-full text-xs">
                       <SelectValue placeholder="Select team" />
@@ -508,6 +526,32 @@ export default function InjuryReportModal({ open, onOpenChange }: InjuryReportMo
                     </SelectContent>
                   </Select>
                 </div>
+
+                {multiTeamFilter.length > 0 && (
+                  <div className="flex items-center justify-center gap-2 mt-2">
+                    <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">
+                      Filtered:
+                    </span>
+                    {multiTeamFilter.map((tc) => {
+                      const team = getTeamByTricode(tc);
+                      return (
+                        <span key={tc} className="inline-flex items-center gap-1 h-6 px-2 rounded-md bg-primary/10 border border-primary/30 text-[11px] font-heading">
+                          {team?.logo && <img src={team.logo} alt="" className="h-4 w-4 object-contain" />}
+                          {team?.name ?? tc}
+                        </span>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setMultiTeamFilter([])}
+                      className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      aria-label="Clear team filter"
+                      title="Clear team filter"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Status filter chips */}
                 <div className="flex items-center justify-center flex-wrap gap-1.5 mt-2">
