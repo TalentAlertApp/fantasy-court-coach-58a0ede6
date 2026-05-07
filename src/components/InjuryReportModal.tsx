@@ -146,6 +146,9 @@ function bucketStatus(raw: string | null | undefined): "Out" | "Day-To-Day" | "Q
   if (/\bquestionable\b/.test(s)) return "Questionable";
   if (/\bprobable\b/.test(s)) return "Probable";
   if (/\bout\b/.test(s)) return "Out";
+  // "Doubtful" is the NBA's between-questionable-and-out tier; treat as Day-To-Day
+  // for bucketing purposes (player is not ruled out but not playing today).
+  if (/\bdoubtful\b/.test(s)) return "Day-To-Day";
   return null;
 }
 
