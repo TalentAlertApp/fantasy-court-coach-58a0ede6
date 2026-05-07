@@ -47,7 +47,11 @@ serve(async (req: Request) => {
 
     const url = new URL(req.url);
     const limitParam = url.searchParams.get("limit");
-    const clearAll = url.searchParams.get("clear") === "1";
+    // Per-game clear-and-search ("replace mode"): for each game we pick up,
+    // we will null its existing recap id ONLY when we find a new one. We never
+    // bulk-wipe the table — that footgun has been removed.
+    const replaceMode = url.searchParams.get("replace") === "1";
+    const targetGameId = url.searchParams.get("game_id");
     const limit = Math.min(parseInt(limitParam || "50"), 100); // max 100 per invocation
 
     const supabase = createClient(
@@ -55,24 +59,21 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Optional: invalidate all previously stored recap IDs so weak/wrong matches
-    // get re-searched in this run.
-    if (clearAll) {
-      const { error: clearErr } = await supabase
-        .from("schedule_games")
-        .update({ youtube_recap_id: null })
-        .eq("status", "FINAL")
-        .not("youtube_recap_id", "is", null);
-      if (clearErr) throw new Error(`clear failed: ${clearErr.message}`);
-    }
-
-    // Find FINAL games without youtube_recap_id
-    const { data: games, error: fetchErr } = await supabase
+    // Build the candidate game list.
+    //   - target a single game when game_id is provided (per-card refresh)
+    //   - in replace mode pick FINAL games regardless of existing recap id
+    //   - otherwise only pick FINAL games still missing a recap id
+    let q = supabase
       .from("schedule_games")
-      .select("game_id, away_team, home_team, tipoff_utc, league_id")
-      .eq("status", "FINAL")
-      .is("youtube_recap_id", null)
-      .limit(limit);
+      .select("game_id, away_team, home_team, tipoff_utc, league_id, youtube_recap_id")
+      .eq("status", "FINAL");
+    if (targetGameId) {
+      q = q.eq("game_id", targetGameId);
+    } else {
+      if (!replaceMode) q = q.is("youtube_recap_id", null);
+      q = q.limit(limit);
+    }
+    const { data: games, error: fetchErr } = await q;
 
     if (fetchErr) throw new Error(fetchErr.message);
     if (!games || games.length === 0) {
@@ -197,6 +198,10 @@ serve(async (req: Request) => {
             found++;
           }
         }
+        // In replace mode, if we explicitly want to drop a stale id even when
+        // YouTube returns nothing, we keep the existing recap intact. This is
+        // the "non-destructive replace" promise: we only overwrite when we have
+        // something better.
 
         // Small delay to avoid hammering the API
         await new Promise((r) => setTimeout(r, 200));

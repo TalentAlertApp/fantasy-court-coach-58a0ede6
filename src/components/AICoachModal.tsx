@@ -10,6 +10,8 @@ import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, Alert
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
+import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
+import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
@@ -121,6 +123,40 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
       onOpenChange(false);
     } catch (e: any) {
       toast({ title: "AI draft failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    } finally {
+      setDraftingFromEmpty(false);
+    }
+  };
+
+  /**
+   * Personalised draft: deterministic client-side scoring + greedy fill that
+   * respects the user's salary archetype, experience/size/risk tilts, and
+   * favourite teams. Saves the resulting roster + captain.
+   */
+  const handlePersonalisedDraft = async (prefs: DraftPreferences) => {
+    if (!selectedTeamId) return;
+    setDraftingFromEmpty(true);
+    try {
+      const result = buildPersonalisedRoster(allPlayers as any, prefs);
+      if (!result.starters.length) {
+        toast({ title: "Couldn't build a roster", description: "Loosen the constraints and try again.", variant: "destructive" });
+        return;
+      }
+      if (!result.legal) {
+        toast({ title: "Adjusted slightly to fit cap rules" });
+      }
+      const { gw: cgw, day: cday } = resolveGameday();
+      await saveRoster({
+        gw: cgw, day: cday,
+        starters: result.starters.map((p) => p.core.id),
+        bench: result.bench.map((p) => p.core.id),
+        captain_id: result.captain?.core.id ?? 0,
+      }, selectedTeamId);
+      await queryClient.invalidateQueries({ queryKey: ["roster-current", selectedTeamId] });
+      toast({ title: "Personalised squad drafted!", description: `Captain: ${result.captain?.core.name ?? "—"} · GW${cgw} · Day ${cday}.` });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: "Personalised draft failed", description: e?.message ?? "Try again.", variant: "destructive" });
     } finally {
       setDraftingFromEmpty(false);
     }
@@ -278,31 +314,15 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
           {isRosterEmpty && (
-            <div className="relative overflow-hidden shrink-0 mb-3 rounded-xl border-2 border-accent/40 bg-accent/5 p-4 flex items-center gap-3">
-              <img
-                src={leagueLogo}
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.08] select-none"
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <StylePreferencesPanel
+                players={allPlayers as any}
+                busy={draftingFromEmpty}
+                onDraft={handlePersonalisedDraft}
               />
-              <div className="h-10 w-10 rounded-lg bg-accent/15 flex items-center justify-center shrink-0">
-                <Sparkles className="h-5 w-5 text-accent" />
-              </div>
-              <div className="relative z-[1] flex-1 min-w-0">
-                <p className="font-heading uppercase tracking-wider text-sm font-bold">No roster yet</p>
-                <p className="text-xs text-muted-foreground">Let me build a balanced 10-player squad and pick your captain.</p>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleDraftFromEmpty}
-                disabled={draftingFromEmpty}
-                className="relative z-[1] rounded-lg font-heading uppercase text-xs shrink-0"
-              >
-                {draftingFromEmpty ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Bot className="h-4 w-4 mr-1" />}
-                Draft my squad with AI
-              </Button>
             </div>
           )}
+          {!isRosterEmpty && (
           <TabsList className="rounded-lg shrink-0 grid grid-cols-5">
             <TabsTrigger value="analyze" className="font-heading text-[10px] uppercase rounded-lg"><Activity className="h-3 w-3 mr-1" />Analyze</TabsTrigger>
             <TabsTrigger value="captain" className="font-heading text-[10px] uppercase rounded-lg"><Star className="h-3 w-3 mr-1" />Captain</TabsTrigger>
@@ -310,6 +330,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <TabsTrigger value="injuries" className="font-heading text-[10px] uppercase rounded-lg"><Shield className="h-3 w-3 mr-1" />Injuries</TabsTrigger>
             <TabsTrigger value="explain" className="font-heading text-[10px] uppercase rounded-lg"><HelpCircle className="h-3 w-3 mr-1" />Explain</TabsTrigger>
           </TabsList>
+          )}
+          {!isRosterEmpty && (
 
           <div className="flex-1 min-h-0 overflow-y-auto mt-3 space-y-2.5">
             {/* Analyze */}
@@ -600,6 +622,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               )}
             </TabsContent>
           </div>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>
