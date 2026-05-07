@@ -10,6 +10,8 @@ import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, Alert
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
+import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
+import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
@@ -121,6 +123,40 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
       onOpenChange(false);
     } catch (e: any) {
       toast({ title: "AI draft failed", description: e?.message ?? "Try again.", variant: "destructive" });
+    } finally {
+      setDraftingFromEmpty(false);
+    }
+  };
+
+  /**
+   * Personalised draft: deterministic client-side scoring + greedy fill that
+   * respects the user's salary archetype, experience/size/risk tilts, and
+   * favourite teams. Saves the resulting roster + captain.
+   */
+  const handlePersonalisedDraft = async (prefs: DraftPreferences) => {
+    if (!selectedTeamId) return;
+    setDraftingFromEmpty(true);
+    try {
+      const result = buildPersonalisedRoster(allPlayers as any, prefs);
+      if (!result.starters.length) {
+        toast({ title: "Couldn't build a roster", description: "Loosen the constraints and try again.", variant: "destructive" });
+        return;
+      }
+      if (!result.legal) {
+        toast({ title: "Adjusted slightly to fit cap rules" });
+      }
+      const { gw: cgw, day: cday } = resolveGameday();
+      await saveRoster({
+        gw: cgw, day: cday,
+        starters: result.starters.map((p) => p.core.id),
+        bench: result.bench.map((p) => p.core.id),
+        captain_id: result.captain?.core.id ?? 0,
+      }, selectedTeamId);
+      await queryClient.invalidateQueries({ queryKey: ["roster-current", selectedTeamId] });
+      toast({ title: "Personalised squad drafted!", description: `Captain: ${result.captain?.core.name ?? "—"} · GW${cgw} · Day ${cday}.` });
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: "Personalised draft failed", description: e?.message ?? "Try again.", variant: "destructive" });
     } finally {
       setDraftingFromEmpty(false);
     }
