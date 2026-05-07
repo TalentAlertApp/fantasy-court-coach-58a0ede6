@@ -1329,6 +1329,11 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         open={comparePair !== null}
         onOpenChange={(open) => !open && setComparePair(null)}
       />
+      <InjuryReportModal
+        open={injuryPair !== null}
+        onOpenChange={(open) => !open && setInjuryPair(null)}
+        initialTeams={injuryPair ? [injuryPair.a, injuryPair.b] : undefined}
+      />
     </div>
   );
 }
