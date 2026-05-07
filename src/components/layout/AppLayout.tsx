@@ -77,13 +77,13 @@ export default function AppLayout() {
                 src={nbaLogo}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute -top-4 -left-6 h-24 w-24 object-contain opacity-[0.08] -rotate-12 select-none"
+                className="pointer-events-none absolute -top-3 -left-5 h-20 w-20 object-contain opacity-[0.08] -rotate-12 select-none"
               />
               <img
                 src={wnbaLogo}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute -top-4 -right-6 h-24 w-24 object-contain opacity-[0.08] rotate-12 select-none"
+                className="pointer-events-none absolute -top-3 -right-5 h-24 w-24 object-contain opacity-[0.08] rotate-12 select-none"
               />
             </>
           )}
