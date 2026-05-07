@@ -8,9 +8,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords, Bandage } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
+import InjuryReportModal from "@/components/InjuryReportModal";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
@@ -749,6 +750,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [selectedTeamTricode, setSelectedTeamTricode] = useState<string | null>(null);
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
   const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
+  const [injuryPair, setInjuryPair] = useState<{ a: string; b: string } | null>(null);
   const colsPerRow = useColsPerRow();
 
   // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
@@ -909,6 +911,17 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                     <Tv2 className="h-3.5 w-3.5" />
                   </span>
                 )}
+                {!isFinal && !isLive && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
+                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                    title={`Injury Report — ${g.away_team} & ${g.home_team}`}
+                    aria-label="Open injury report for these teams"
+                  >
+                    <Bandage className="h-3.5 w-3.5" />
+                  </button>
+                )}
                 <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
                 <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
                 <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
@@ -1006,6 +1019,17 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   <Tv2 className="h-4 w-4" />
                 </span>
               )}
+                {!isFinal && !isLive && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
+                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                    title={`Injury Report — ${g.away_team} & ${g.home_team}`}
+                    aria-label="Open injury report for these teams"
+                  >
+                    <Bandage className="h-4 w-4" />
+                  </button>
+                )}
               <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
               <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
               <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
@@ -1221,6 +1245,17 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                       <Tv2 className="h-4 w-4" />
                     </span>
                   )}
+                  {!isFinal && !isLive && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
+                      title={`Injury Report — ${g.away_team} & ${g.home_team}`}
+                      aria-label="Open injury report for these teams"
+                    >
+                      <Bandage className="h-4 w-4" />
+                    </button>
+                  )}
                   <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
                   <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
                   <GameActionIcon icon={Mic} url={g.game_playbyplay_url} label="Play-by-Play" />
@@ -1293,6 +1328,11 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         teamB={comparePair?.b ?? null}
         open={comparePair !== null}
         onOpenChange={(open) => !open && setComparePair(null)}
+      />
+      <InjuryReportModal
+        open={injuryPair !== null}
+        onOpenChange={(open) => !open && setInjuryPair(null)}
+        initialTeams={injuryPair ? [injuryPair.a, injuryPair.b] : undefined}
       />
     </div>
   );
