@@ -236,9 +236,11 @@ export default function CommissionerPage() {
     const MAX_BATCHES = 25;
     try {
       while (remaining > 0 && batches < MAX_BATCHES) {
-        // Only the very first call carries clear=1 (re-scan wipes existing IDs once).
-        const path = (rescanAll && batches === 0)
-          ? "youtube-recap-lookup?clear=1&limit=100"
+        // Re-scan now uses replace=1 on every batch: per-game we only overwrite
+        // an existing recap id when YouTube actually returns a fresh match.
+        // No more bulk-wipe — old IDs are always preserved if no replacement is found.
+        const path = rescanAll
+          ? "youtube-recap-lookup?replace=1&limit=100"
           : "youtube-recap-lookup?limit=100";
         const { data, error } = await supabase.functions.invoke(path, { body: null });
         if (error) throw error;
@@ -266,6 +268,7 @@ export default function CommissionerPage() {
       toast.success(
         `${rescanAll ? "Re-scanned" : "Populated"}: ${totalFound} recaps across ${batches} batch${batches === 1 ? "" : "es"} · ${remaining} remaining`,
       );
+      try { localStorage.setItem("nbaf:recap_last_run_at", new Date().toISOString()); } catch { /* noop */ }
     } catch (err: any) {
       setRecapProgress((p) => ({ ...p, phase: "done" }));
       toast.error(`Recap lookup failed: ${err.message}`);
