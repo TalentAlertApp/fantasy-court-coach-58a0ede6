@@ -774,6 +774,22 @@ export default function RosterPage() {
             open={gameDetail !== null}
             onOpenChange={(o) => !o && setGameDetail(null)}
           />
+          <AutoPickConfirmModal
+            open={autoPickOpen}
+            onOpenChange={(o) => { setAutoPickOpen(o); if (!o) setAutoPickProposal(null); }}
+            current={{
+              starters: roster?.starters ?? [],
+              bench: roster?.bench ?? [],
+              captain_id: roster?.captain_id ?? 0,
+            }}
+            proposed={autoPickProposal}
+            playersById={new Map(allPlayers.map((p) => [p.core.id, {
+              id: p.core.id, name: p.core.name, team: p.core.team,
+              photo: p.core.photo, fc_bc: p.core.fc_bc, salary: p.core.salary,
+            }]))}
+            onConfirm={confirmAutoPick}
+            isApplying={autoPickApplying}
+          />
         </>
       )}
     </div>
