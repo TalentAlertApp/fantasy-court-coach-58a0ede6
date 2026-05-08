@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle, X } from "lucide-react";
+import { Shield, RefreshCw, Info, CheckCircle2, AlertTriangle, X, FilterX } from "lucide-react";
 import { format, parseISO, isValid, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -550,21 +550,36 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
                     {multiTeamFilter.map((tc) => {
                       const team = getTeamByTricode(tc);
                       return (
-                        <span key={tc} className="inline-flex items-center gap-1 h-6 px-2 rounded-md bg-primary/10 border border-primary/30 text-[11px] font-heading">
-                          {team?.logo && <img src={team.logo} alt="" className="h-4 w-4 object-contain" />}
-                          {team?.name ?? tc}
+                        <span
+                          key={tc}
+                          className="group/tc relative inline-flex items-center justify-center transition-transform duration-200 hover:scale-125"
+                          title={team?.name ?? tc}
+                        >
+                          {team?.logo ? (
+                            <img src={team.logo} alt={team?.name ?? tc} className="h-8 w-8 object-contain" />
+                          ) : (
+                            <span className="text-[11px] font-heading font-bold">{tc}</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setMultiTeamFilter((prev) => prev.filter((x) => x !== tc))}
+                            aria-label={`Remove ${team?.name ?? tc}`}
+                            title={`Remove ${team?.name ?? tc}`}
+                            className="absolute -top-1 -right-1 h-3.5 w-3.5 inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover/tc:opacity-100 transition-opacity shadow-md ring-1 ring-background"
+                          >
+                            <X className="h-2.5 w-2.5" strokeWidth={3} />
+                          </button>
                         </span>
                       );
                     })}
                     <button
                       type="button"
                       onClick={() => setMultiTeamFilter([])}
-                      className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border/60 text-[10px] uppercase tracking-wider font-heading text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      className="inline-flex items-center justify-center h-7 w-7 rounded-md border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                       aria-label="Clear team filter"
                       title="Clear team filter"
                     >
-                      <X className="h-3.5 w-3.5" />
-                      Clear filter
+                      <FilterX className="h-4 w-4" />
                     </button>
                   </div>
                 )}
