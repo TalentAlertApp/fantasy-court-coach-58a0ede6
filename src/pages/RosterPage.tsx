@@ -23,6 +23,7 @@ import OptimizeDialog from "@/components/OptimizeDialog";
 import PlayerModal from "@/components/PlayerModal";
 import PlayerPickerDialog from "@/components/PlayerPickerDialog";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import AutoPickConfirmModal, { type AutoPickProposal } from "@/components/AutoPickConfirmModal";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -454,8 +455,33 @@ export default function RosterPage() {
   // Genuine transport failure (after team is ready) — surface a retry card.
   const isRosterErrored = teamReady && rosterIsError;
   const [autoPicking, setAutoPicking] = useState(false);
+  const [autoPickProposal, setAutoPickProposal] = useState<AutoPickProposal | null>(null);
+  const [autoPickOpen, setAutoPickOpen] = useState(false);
   const handleAutoPick = async () => {
     setAutoPicking(true);
+    setAutoPickProposal(null);
+    setAutoPickOpen(true);
+    try {
+      const res = await autoPickRoster(
+        { gw: currentGameday.gw, day: currentGameday.day, strategy: "value5", dry_run: true },
+        selectedTeamId ?? undefined
+      );
+      setAutoPickProposal({
+        starters: res.roster.starters,
+        bench: res.roster.bench,
+        captain_id: res.roster.captain_id,
+        bank_remaining: res.roster.bank_remaining,
+      });
+    } catch (e: any) {
+      setAutoPickOpen(false);
+      toast({ title: "Auto-pick failed", description: e.message, variant: "destructive" });
+    } finally {
+      setAutoPicking(false);
+    }
+  };
+  const [autoPickApplying, setAutoPickApplying] = useState(false);
+  const confirmAutoPick = async () => {
+    setAutoPickApplying(true);
     try {
       await autoPickRoster(
         { gw: currentGameday.gw, day: currentGameday.day, strategy: "value5" },
@@ -463,10 +489,12 @@ export default function RosterPage() {
       );
       await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       toast({ title: "Roster auto-picked!" });
+      setAutoPickOpen(false);
+      setAutoPickProposal(null);
     } catch (e: any) {
       toast({ title: "Auto-pick failed", description: e.message, variant: "destructive" });
     } finally {
-      setAutoPicking(false);
+      setAutoPickApplying(false);
     }
   };
 
