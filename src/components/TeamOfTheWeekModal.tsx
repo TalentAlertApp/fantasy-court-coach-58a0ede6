@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTeamOfTheWeek, TOTWPlayer } from "@/hooks/useTeamOfTheWeek";
 import { Skeleton } from "@/components/ui/skeleton";
