@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
+import { Tv2, Table2, BarChart3, Mic, ExternalLink, Trophy, History } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
+import { useStandingsContext } from "@/hooks/useStandingsContext";
+import { useIsPreseason } from "@/hooks/useIsPreseason";
 import { getVenue } from "@/lib/nba-venues";
 import PlayerModal from "@/components/PlayerModal";
 import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
@@ -220,7 +223,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? "max-w-2xl" : "max-w-sm"} rounded-xl p-0 overflow-hidden`}>
+      <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
@@ -324,7 +327,150 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           )}
         </div>
         {played && <GameBoxScoreTable game={game} />}
+        {!played && <ScheduledInsights game={game} />}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ScheduledInsights({ game }: { game: GameDetailGame }) {
+  const { standingsByTeam, last5DetailByTeam, isLoading } = useStandingsContext();
+  const { data: isPreseason } = useIsPreseason();
+  const { league } = useLeague();
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+
+  const a = standingsByTeam[game.away_team];
+  const h = standingsByTeam[game.home_team];
+
+  const leagueRank = useMemo(() => {
+    const rows = Object.values(standingsByTeam);
+    const ranks: Record<string, Record<string, number>> = {};
+    const metrics: Array<{ key: keyof typeof rows[number]; lower?: boolean }> = [
+      { key: "pct" }, { key: "ppg" }, { key: "oppPpg", lower: true }, { key: "diff" }, { key: "l10W" },
+    ];
+    for (const m of metrics) {
+      const sorted = [...rows].sort((x, y) => {
+        const xv = (x as any)[m.key] ?? 0; const yv = (y as any)[m.key] ?? 0;
+        return m.lower ? xv - yv : yv - xv;
+      });
+      sorted.forEach((r, i) => {
+        (ranks[r.tricode] ||= {})[m.key as string] = i + 1;
+      });
+    }
+    return ranks;
+  }, [standingsByTeam]);
+
+  if (isPreseason) {
+    return (
+      <div className="border-t bg-muted/20 px-4 py-5">
+        <div className="rounded-xl border border-dashed border-border/60 bg-card/40 px-4 py-5 text-center text-xs text-muted-foreground font-heading uppercase tracking-wider">
+          Season hasn't started yet
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !a || !h) {
+    return (
+      <div className="border-t bg-muted/20 px-4 py-3 space-y-2">
+        <Skeleton className="h-12" />
+        <Skeleton className="h-32" />
+      </div>
+    );
+  }
+
+  const pill = (r: "W" | "L") => (
+    <span
+      className={`inline-flex items-center justify-center h-5 w-5 rounded-md text-[10px] font-mono font-black ${
+        r === "W" ? "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40" : "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
+      }`}
+    >
+      {r}
+    </span>
+  );
+
+  const RecordBlock = ({ row, side }: { row: typeof a; side: "away" | "home" }) => (
+    <div className={`flex flex-col gap-1 ${side === "away" ? "items-end text-right" : "items-start text-left"}`}>
+      <div className="font-mono font-black text-lg tabular-nums leading-none">
+        {row.w}<span className="text-muted-foreground/60">-</span>{row.l}
+      </div>
+      <div className="text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground">
+        {(row.pct * 100).toFixed(1)}% · {side === "away" ? `Away ${row.awayW}-${row.awayL}` : `Home ${row.homeW}-${row.homeL}`}
+      </div>
+    </div>
+  );
+
+  const RankRow = ({ label, metricKey }: { label: string; metricKey: string }) => {
+    const ar = leagueRank[game.away_team]?.[metricKey];
+    const hr = leagueRank[game.home_team]?.[metricKey];
+    const av = (a as any)[metricKey];
+    const hv = (h as any)[metricKey];
+    const fmt = (v: number) => (metricKey === "pct" ? `${(v * 100).toFixed(1)}%` : metricKey === "l10W" ? String(v) : v.toFixed(1));
+    const better = (rank: number | undefined) =>
+      rank == null ? "" : rank <= 5 ? "text-emerald-500" : rank >= 26 ? "text-destructive" : "text-foreground";
+    return (
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-1.5 border-b border-border/30 last:border-b-0">
+        <div className="flex items-center justify-end gap-2">
+          <span className={`text-[10px] font-mono ${better(ar)}`}>#{ar ?? "—"}</span>
+          <span className="font-mono tabular-nums text-xs font-bold">{fmt(av)}</span>
+        </div>
+        <div className="text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground text-center px-2">{label}</div>
+        <div className="flex items-center justify-start gap-2">
+          <span className="font-mono tabular-nums text-xs font-bold">{fmt(hv)}</span>
+          <span className={`text-[10px] font-mono ${better(hr)}`}>#{hr ?? "—"}</span>
+        </div>
+      </div>
+    );
+  };
+
+  const last5A = last5DetailByTeam[game.away_team] ?? [];
+  const last5H = last5DetailByTeam[game.home_team] ?? [];
+
+  return (
+    <div className="relative border-t bg-muted/20">
+      <img
+        src={watermarkLogo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
+      />
+      {/* Records strip */}
+      <div className="relative z-[1] grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-3 border-b border-border/40 bg-background/30">
+        <RecordBlock row={a} side="away" />
+        <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">Record</div>
+        <RecordBlock row={h} side="home" />
+      </div>
+
+      <Tabs defaultValue="form" className="relative z-[1]">
+        <TabsList className="w-full justify-center rounded-none bg-transparent border-b border-border/40 h-9 p-0">
+          <TabsTrigger value="form" className="text-[10px] font-heading uppercase tracking-wider data-[state=active]:bg-muted/60 rounded-none h-9 px-4 gap-1.5">
+            <History className="h-3 w-3" /> Last 5
+          </TabsTrigger>
+          <TabsTrigger value="ranks" className="text-[10px] font-heading uppercase tracking-wider data-[state=active]:bg-muted/60 rounded-none h-9 px-4 gap-1.5">
+            <Trophy className="h-3 w-3" /> League Rankings
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="form" className="mt-0 px-4 py-3">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="flex items-center justify-end gap-1">
+              {last5A.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
+              {last5A.map((g, i) => <span key={i}>{pill(g.result)}</span>)}
+            </div>
+            <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">Form</div>
+            <div className="flex items-center justify-start gap-1">
+              {last5H.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
+              {last5H.map((g, i) => <span key={i}>{pill(g.result)}</span>)}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="ranks" className="mt-0 px-4 py-2">
+          <RankRow label="Win %" metricKey="pct" />
+          <RankRow label="PPG" metricKey="ppg" />
+          <RankRow label="Opp PPG" metricKey="oppPpg" />
+          <RankRow label="Diff" metricKey="diff" />
+          <RankRow label="L10 W" metricKey="l10W" />
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
