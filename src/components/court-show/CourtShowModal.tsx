@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard, Volume2, VolumeX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard, Volume2, VolumeX, Maximize2, Minimize2, Gauge } from "lucide-react";
 import { useCourtShowData } from "./useCourtShowData";
 import CourtShowSlide from "./CourtShowSlide";
 import { useCourtShowAudio } from "./useCourtShowAudio";
@@ -19,7 +19,18 @@ interface Props {
   day: number;
 }
 
-const SLIDE_MS = 7500;
+const SPEEDS: Record<"fast" | "normal" | "slow" | "manual", number> = {
+  fast: 3000,
+  normal: 7500,
+  slow: 12000,
+  manual: 0,
+};
+const SPEED_KEY = "courtshow.speed";
+function readSpeed(): keyof typeof SPEEDS {
+  if (typeof window === "undefined") return "normal";
+  const v = localStorage.getItem(SPEED_KEY) as keyof typeof SPEEDS | null;
+  return v && v in SPEEDS ? v : "normal";
+}
 
 export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const { data, isLoading, games } = useCourtShowData(gw, day);
@@ -32,6 +43,31 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const [openTri, setOpenTri] = useState<string | null>(null);
   const [openGame, setOpenGame] = useState<GameDetailGame | null>(null);
+  const [speed, setSpeed] = useState<keyof typeof SPEEDS>(readSpeed);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const SLIDE_MS = SPEEDS[speed];
+  const autoplayActive = playing && speed !== "manual";
+
+  useEffect(() => {
+    try { localStorage.setItem(SPEED_KEY, speed); } catch {}
+  }, [speed]);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    const el = containerRef.current;
+    if (!el) return;
+    try {
+      if (!document.fullscreenElement) await el.requestFullscreen();
+      else await document.exitFullscreen();
+    } catch {}
+  };
 
   const childModalOpen = openPlayerId !== null || openTri !== null || openGame !== null;
 
@@ -45,10 +81,10 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const total = slides.length;
 
   useEffect(() => {
-    if (!open || !playing || hover || childModalOpen || total <= 1) return;
+    if (!open || !autoplayActive || hover || childModalOpen || total <= 1 || SLIDE_MS <= 0) return;
     const t = setInterval(() => setIndex((i) => (i + 1) % total), SLIDE_MS);
     return () => clearInterval(t);
-  }, [open, playing, hover, childModalOpen, total]);
+  }, [open, autoplayActive, hover, childModalOpen, total, SLIDE_MS]);
 
   useEffect(() => {
     if (!open) return;
@@ -96,7 +132,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl w-[95vw] max-h-[85vh] h-[85vh] p-0 rounded-xl overflow-hidden bg-black border-white/10 [&>button]:hidden">
-          <div className="relative w-full h-full flex flex-col" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+          <div ref={containerRef} className="relative w-full h-full flex flex-col bg-black" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
             {/* Top bar */}
             <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-2 text-white">
@@ -115,6 +151,14 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                 >
                   {audio.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                 </button>
+                <button
+                  onClick={toggleFullscreen}
+                  className="text-white/60 hover:text-amber-400 transition-colors"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </button>
                 <button onClick={() => onOpenChange(false)} className="text-white/60 hover:text-white transition-colors">
                   <X className="h-4 w-4" />
                 </button>
@@ -126,10 +170,10 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
               {slides.map((_, i) => (
                 <div key={i} className="flex-1 h-0.5 bg-white/10 rounded-full overflow-hidden">
                   <motion.div
-                    key={`${i}-${index}-${playing}`}
+                    key={`${i}-${index}-${playing}-${speed}`}
                     initial={{ width: i < index ? "100%" : "0%" }}
-                    animate={{ width: i < index ? "100%" : i === index ? (playing && !hover && !childModalOpen ? "100%" : "0%") : "0%" }}
-                    transition={{ duration: i === index && playing && !hover && !childModalOpen ? SLIDE_MS / 1000 : 0, ease: "linear" }}
+                    animate={{ width: i < index ? "100%" : i === index ? (autoplayActive && !hover && !childModalOpen ? "100%" : "0%") : "0%" }}
+                    transition={{ duration: i === index && autoplayActive && !hover && !childModalOpen && SLIDE_MS > 0 ? SLIDE_MS / 1000 : 0, ease: "linear" }}
                     className="h-full bg-amber-400"
                   />
                 </div>
@@ -181,6 +225,19 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
+              <div className="ml-3 inline-flex items-center gap-1 rounded-full bg-white/5 px-1.5 py-1">
+                <Gauge className="h-3.5 w-3.5 text-white/50 mx-1" />
+                {(["fast", "normal", "slow", "manual"] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSpeed(s)}
+                    className={`text-[10px] font-heading uppercase tracking-wider px-2 py-0.5 rounded-full transition-colors ${speed === s ? "bg-amber-400 text-black" : "text-white/60 hover:text-white"}`}
+                    aria-label={`Speed ${s}`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </DialogContent>
