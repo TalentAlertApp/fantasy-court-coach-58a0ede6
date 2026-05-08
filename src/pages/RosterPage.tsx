@@ -609,44 +609,28 @@ export default function RosterPage() {
                 <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="hidden dark:block !h-3.5 !w-3.5 mr-1" />
                 Lineup Advisor
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="relative w-40 justify-center rounded-xl font-heading uppercase text-xs hover:bg-violet-400/10 hover:text-violet-400 hover:border-violet-400/60"
-                    title="Chips & extras"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 mr-1" />Chips
-                    {(chipCaptain || chipAllStar || chipWildcard) && (
-                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-background" />
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                  <DropdownMenuLabel className="font-heading uppercase text-[10px] tracking-wider">Chips</DropdownMenuLabel>
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setChipCaptain(!chipCaptain); }} className="font-heading uppercase text-xs">
-                    <Star className="h-3.5 w-3.5 mr-2" />Captain
-                    {chipCaptain && <Check className="h-3.5 w-3.5 ml-auto text-amber-400" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setChipAllStar(!chipAllStar); }} className="font-heading uppercase text-xs">
-                    <Sparkles className="h-3.5 w-3.5 mr-2" />All-Star
-                    {chipAllStar && <Check className="h-3.5 w-3.5 ml-auto text-amber-400" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setChipWildcard(!chipWildcard); }} className="font-heading uppercase text-xs">
-                    <RefreshCw className="h-3.5 w-3.5 mr-2" />Wildcard
-                    {chipWildcard && <Check className="h-3.5 w-3.5 ml-auto text-amber-400" />}
-                  </DropdownMenuItem>
-                  {starters.length + bench.length < 10 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => handleAddPlayer()} className="font-heading uppercase text-xs">
-                        <Plus className="h-3.5 w-3.5 mr-2" />Add Player
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {starters.length + bench.length < 10 && (
+                <Button
+                  onClick={() => handleAddPlayer()}
+                  variant="outline"
+                  size="sm"
+                  className="w-32 justify-center rounded-xl font-heading uppercase text-xs"
+                  title="Add a player to your roster"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />Add
+                </Button>
+              )}
+              <Button
+                onClick={handleAutoPick}
+                variant="outline"
+                size="sm"
+                disabled={autoPicking}
+                className="w-32 justify-center rounded-xl font-heading uppercase text-xs hover:bg-violet-400/10 hover:text-violet-400 hover:border-violet-400/60"
+                title="Auto-pick a full roster"
+              >
+                {autoPicking ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
+                Auto-pick
+              </Button>
               <Button
                 onClick={handleOptimize}
                 variant="outline"
