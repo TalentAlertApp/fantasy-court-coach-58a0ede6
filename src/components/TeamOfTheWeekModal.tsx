@@ -148,14 +148,14 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
                 </span>
               </div>
 
-              {formation.map(({ player, style }) => (
+              {formation.map(({ player, style }, i) => (
                 <motion.div
                   key={player.id}
                   className="absolute -translate-x-1/2 -translate-y-1/2 w-[22%] z-10"
                   style={{ top: style.top, left: style.left }}
                   initial={{ opacity: 0, y: 32, scale: 0.6, filter: "blur(8px)" }}
                   animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-                  transition={{ delay: 0.6 + formation.indexOf(formation.find(f => f.player.id === player.id)!) * 0.55, type: "spring", stiffness: 220, damping: 20 }}
+                  transition={{ delay: 0.5 + i * 0.5, type: "spring", stiffness: 220, damping: 20 }}
                 >
                   <TOTWCard player={player} onClick={() => setSelectedPlayerId(player.id)} />
                 </motion.div>
