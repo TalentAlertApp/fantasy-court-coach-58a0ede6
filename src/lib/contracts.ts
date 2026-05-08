@@ -401,6 +401,7 @@ export const RosterAutoPickBodySchema = z
     gw: IntSchema,
     day: IntSchema,
     strategy: z.enum(["value5", "fp5"]),
+    dry_run: z.boolean().optional(),
   })
   .strict();
 
