@@ -227,14 +227,20 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
               </button>
               <div className="ml-3 inline-flex items-center gap-1 rounded-full bg-white/5 px-1.5 py-1">
                 <Gauge className="h-3.5 w-3.5 text-white/50 mx-1" />
-                {(["fast", "normal", "slow", "manual"] as const).map((s) => (
+                {([
+                  { key: "fast", label: "1.2" },
+                  { key: "normal", label: "1" },
+                  { key: "slow", label: "0.8" },
+                  { key: "manual", label: "∞" },
+                ] as const).map((s) => (
                   <button
-                    key={s}
-                    onClick={() => setSpeed(s)}
-                    className={`text-[10px] font-heading uppercase tracking-wider px-2 py-0.5 rounded-full transition-colors ${speed === s ? "bg-amber-400 text-black" : "text-white/60 hover:text-white"}`}
-                    aria-label={`Speed ${s}`}
+                    key={s.key}
+                    onClick={() => setSpeed(s.key)}
+                    className={`text-[11px] font-mono tabular-nums px-2 py-0.5 rounded-full transition-colors ${speed === s.key ? "bg-amber-400 text-black" : "text-white/60 hover:text-white"}`}
+                    aria-label={`Speed ${s.key}`}
+                    title={s.key}
                   >
-                    {s}
+                    {s.label}
                   </button>
                 ))}
               </div>

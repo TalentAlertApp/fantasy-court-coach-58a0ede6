@@ -36,6 +36,7 @@ Deno.serve(async (req) => {
     const gw = Number(body.gw) || 1;
     const day = Number(body.day) || 1;
     const strategy: "value5" | "fp5" = body.strategy === "fp5" ? "fp5" : "value5";
+    const dryRun = body.dry_run === true;
 
     // Team settings (cap etc.)
     const { data: settings } = await sb
@@ -182,13 +183,15 @@ Deno.serve(async (req) => {
     const captain = starters[0]; // highest fp5 starter
 
     // Persist: wipe and insert
-    await sb.from("roster").delete().eq("team_id", team_id);
-    const rows = [
-      ...starters.map((s) => ({ player_id: s.id, slot: "STARTER", is_captain: s.id === captain.id, gw, day, team_id, league_id: teamLeagueId })),
-      ...bench.map((b) => ({ player_id: b.id, slot: "BENCH", is_captain: false, gw, day, team_id, league_id: teamLeagueId })),
-    ];
-    const { error: insErr } = await sb.from("roster").insert(rows);
-    if (insErr) throw insErr;
+    if (!dryRun) {
+      await sb.from("roster").delete().eq("team_id", team_id);
+      const rows = [
+        ...starters.map((s) => ({ player_id: s.id, slot: "STARTER", is_captain: s.id === captain.id, gw, day, team_id, league_id: teamLeagueId })),
+        ...bench.map((b) => ({ player_id: b.id, slot: "BENCH", is_captain: false, gw, day, team_id, league_id: teamLeagueId })),
+      ];
+      const { error: insErr } = await sb.from("roster").insert(rows);
+      if (insErr) throw insErr;
+    }
 
     return okResponse({
       roster: {
@@ -202,7 +205,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
         team_id, team_name,
       },
-      debug: { strategy, candidates_considered: baseCands.length, spend, fc, bc },
+      debug: { strategy, candidates_considered: baseCands.length, spend, fc, bc, dry_run: dryRun },
     });
   } catch (e) {
     return errorResponse("AUTO_PICK_ERROR", e instanceof Error ? e.message : "Unknown", null, 500);

@@ -5,6 +5,7 @@ import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
 import { cn } from "@/lib/utils";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
@@ -25,6 +26,70 @@ function StoryBadge({ label }: { label?: string }) {
       LABEL_STYLES[label] ?? "border-white/20 text-white/70 bg-white/5",
     )}>{label}</span>
   );
+}
+
+function BallersIQInline({
+  headline,
+  body,
+  tone = "amber",
+}: {
+  headline: string;
+  body: string;
+  tone?: "amber" | "emerald" | "sky";
+}) {
+  const accent =
+    tone === "emerald"
+      ? "border-emerald-400/30 from-emerald-400/[0.06]"
+      : tone === "sky"
+      ? "border-sky-400/30 from-sky-400/[0.06]"
+      : "border-amber-400/30 from-amber-400/[0.06]";
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className={cn(
+        "relative mt-3 rounded-lg border bg-gradient-to-br to-transparent p-2.5 overflow-hidden",
+        accent,
+      )}
+    >
+      <div className="absolute -top-2 -right-2 opacity-[0.18] pointer-events-none">
+        <BallersIQBrand variant="emblem" size="lg" forceTheme="dark" />
+      </div>
+      <div className="relative flex items-center gap-1.5 mb-1">
+        <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" />
+      </div>
+      <p className="relative text-[11px] font-heading font-black uppercase tracking-wider text-white leading-tight">
+        {headline}
+      </p>
+      <p className="relative text-[10.5px] text-white/70 leading-snug mt-0.5">{body}</p>
+    </div>
+  );
+}
+
+function recapBlurb(g: RecapGame): { headline: string; body: string } {
+  const margin = g.margin;
+  const mood =
+    margin >= 20 ? "Blowout" : margin >= 10 ? "Comfortable win" : margin >= 5 ? "Solid win" : "Coin flip";
+  const top = g.topPerformer;
+  const headline = top
+    ? `${top.name} powers ${g.winner} (${top.fp.toFixed(1)} FP)`
+    : `${g.winner} closes it out`;
+  const stats = top
+    ? `${top.pts ?? 0} PTS · ${top.reb ?? 0} REB · ${top.ast ?? 0} AST · ${top.mp ?? 0} MIN`
+    : "";
+  const body = `${mood} by ${margin}. ${stats}`.trim();
+  return { headline, body };
+}
+
+function matchupBlurb(g: MatchupGame): { headline: string; body: string } {
+  const comp = Math.round(g.competitiveScore);
+  const heat =
+    comp >= 80 ? "Marquee matchup" : comp >= 60 ? "High-stakes tilt" : comp >= 40 ? "Solid slate game" : "Sleeper spot";
+  const headline = g.label ? `${g.label} · ${g.away_team} @ ${g.home_team}` : `${heat}: ${g.away_team} @ ${g.home_team}`;
+  const parts: string[] = [];
+  if (g.competitiveScore > 0) parts.push(`Competitive ${comp}`);
+  if (g.starPower > 0) parts.push(`Star power ${g.starPower}`);
+  if (g.rosterRelevant > 0) parts.push(`${g.rosterRelevant} fantasy-rel.`);
+  return { headline, body: parts.join(" · ") || "Watch tipoff for fantasy edges." };
 }
 
 
@@ -260,6 +325,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     )}
                   </div>
                 )}
+                {(() => { const b = recapBlurb(g); return <BallersIQInline headline={b.headline} body={b.body} tone="amber" />; })()}
               </motion.button>
             ))}
           </div>
@@ -299,6 +365,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     </span>
                   )}
                 </div>
+                {(() => { const b = matchupBlurb(g); return <BallersIQInline headline={b.headline} body={b.body} tone="sky" />; })()}
               </motion.button>
             ))}
           </div>

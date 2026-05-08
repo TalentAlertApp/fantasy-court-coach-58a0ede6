@@ -215,7 +215,7 @@ export async function saveRoster(body: {
 
 /** POST /roster-auto-pick */
 export async function autoPickRoster(body: {
-  gw: number; day: number; strategy: "value5" | "fp5";
+  gw: number; day: number; strategy: "value5" | "fp5"; dry_run?: boolean;
 }, teamId?: string) {
   return unwrap(await apiFetch(appendTeam("roster-auto-pick", teamId), RosterAutoPickResponseSchema, {
     method: "POST", body: JSON.stringify(body),
