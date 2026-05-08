@@ -65,7 +65,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   useEffect(() => {
     if (open) audio.onSlideChange();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, open]);
+  }, [index, open, audio]);
 
   const goPrev = () => { setIndex((i) => Math.max(0, i - 1)); setPlaying(false); };
   const goNext = () => { setIndex((i) => Math.min(total - 1, i + 1)); setPlaying(false); };
