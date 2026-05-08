@@ -231,11 +231,10 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
   const [filterTeam, setFilterTeam] = useState<string | null>(null);
-  const toggleFilter = (tri: string) => setFilterTeam((prev) => (prev === tri ? null : tri));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? "max-w-3xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
+      <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
@@ -266,25 +265,14 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           )}
           <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-2">
             {/* Away — name on right of watermark */}
-            <div className="relative h-20 flex items-center justify-end pr-2 overflow-hidden">
+            <div className="relative h-28 flex items-center justify-end pr-2 overflow-hidden">
               {awayLogo && (
-                played ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleFilter(game.away_team)}
-                    aria-label={`Filter by ${game.away_team}`}
-                    className={`pointer-events-auto absolute left-0 top-1/2 -translate-y-1/2 h-24 w-24 -rotate-12 transition-all duration-200 hover:scale-110 ${filterTeam === game.away_team ? "opacity-100 scale-110 drop-shadow-[0_0_18px_hsl(var(--primary)/0.55)]" : "opacity-40 hover:opacity-95"}`}
-                  >
-                    <img src={awayLogo} alt="" aria-hidden className="h-full w-full object-contain select-none" />
-                  </button>
-                ) : (
-                  <img
-                    src={awayLogo}
-                    alt=""
-                    aria-hidden
-                    className="pointer-events-none absolute -left-3 top-1/2 -translate-y-1/2 h-24 w-24 object-contain opacity-30 -rotate-12 select-none"
-                  />
-                )
+                <img
+                  src={awayLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -left-4 top-1/2 -translate-y-1/2 h-32 w-32 object-contain opacity-30 -rotate-12 select-none"
+                />
               )}
               {!played && (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
@@ -292,7 +280,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
             <div className="text-center">
               {played ? (
-                <span className="font-mono font-black text-2xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
+                <span className="font-mono font-black text-3xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/40 bg-primary/10 backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(var(--primary)/0.5)]">
                   <span className="relative flex h-2 w-2">
@@ -304,25 +292,14 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
             {/* Home — name on left of watermark */}
-            <div className="relative h-20 flex items-center justify-start pl-2 overflow-hidden">
+            <div className="relative h-28 flex items-center justify-start pl-2 overflow-hidden">
               {homeLogo && (
-                played ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleFilter(game.home_team)}
-                    aria-label={`Filter by ${game.home_team}`}
-                    className={`pointer-events-auto absolute right-0 top-1/2 -translate-y-1/2 h-24 w-24 rotate-12 transition-all duration-200 hover:scale-110 ${filterTeam === game.home_team ? "opacity-100 scale-110 drop-shadow-[0_0_18px_hsl(var(--primary)/0.55)]" : "opacity-40 hover:opacity-95"}`}
-                  >
-                    <img src={homeLogo} alt="" aria-hidden className="h-full w-full object-contain select-none" />
-                  </button>
-                ) : (
-                  <img
-                    src={homeLogo}
-                    alt=""
-                    aria-hidden
-                    className="pointer-events-none absolute -right-3 top-1/2 -translate-y-1/2 h-24 w-24 object-contain opacity-30 rotate-12 select-none"
-                  />
-                )
+                <img
+                  src={homeLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 h-32 w-32 object-contain opacity-30 rotate-12 select-none"
+                />
               )}
               {!played && (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.home_team}</span>
