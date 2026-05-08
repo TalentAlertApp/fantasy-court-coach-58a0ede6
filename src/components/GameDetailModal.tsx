@@ -113,31 +113,42 @@ function GameBoxScoreTable({
         className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
       />
       <div
-        className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-2 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40"
+        className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,36px)] gap-0 px-2 py-1.5 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40"
       >
-        <div className="pr-2 flex items-center gap-1.5 flex-wrap h-7">
+        <div className="pr-2 flex items-center gap-2 flex-wrap h-7">
+          {/* Team badge filters */}
+          {[game.away_team, game.home_team].map((tri) => {
+            const tlogo = logoFor(tri);
+            if (!tlogo) return null;
+            const active = filterTeam === tri;
+            return (
+              <button
+                key={tri}
+                type="button"
+                onClick={() => setFilterTeam(active ? null : tri)}
+                aria-label={`Filter by ${tri}`}
+                title={`Filter by ${tri}`}
+                className={`shrink-0 transition-all ${active ? "opacity-100 scale-110 drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "opacity-50 hover:opacity-100 hover:scale-105"}`}
+              >
+                <img src={tlogo} alt="" className="h-6 w-6 object-contain" />
+              </button>
+            );
+          })}
           <span>Player</span>
           <button
             onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
-            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
           >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />
             FC
           </button>
           <button
             onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
-            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
           >
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
             BC
           </button>
-          {filterTeam && (
-            <button
-              onClick={() => setFilterTeam(null)}
-              className="inline-flex items-center justify-center h-6 px-2 rounded-lg border border-border hover:bg-muted text-[10px] font-bold"
-              title="Clear team filter"
-            >
-              ALL
-            </button>
-          )}
         </div>
         {SORT_COLUMNS.map(({ key, label, highlight }) => (
           <button
@@ -159,29 +170,29 @@ function GameBoxScoreTable({
             <div
               key={p.player_id}
               onClick={() => setOpenPlayerId(p.player_id)}
-              className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-2 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+              className="grid grid-cols-[minmax(0,1fr)_repeat(9,36px)] gap-0 px-2 py-1 text-[13px] items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
             >
               <div className="flex items-center gap-2 pr-2 min-w-0">
                 <Avatar
-                  className={`h-7 w-7 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}
+                  className={`h-6 w-6 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}
                 >
                   {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
                   <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-semibold truncate">{p.name}</span>
+                <span className="text-[13px] font-semibold truncate">{p.name}</span>
                 {teamLogo && (
                   <img src={teamLogo} alt={p.team} className="h-4 w-4 shrink-0 object-contain" />
                 )}
               </div>
-              <span className="text-right font-mono text-sm font-bold">{p.fp}</span>
-              <span className="text-right font-mono text-sm text-red-500">{(p as any).salary ?? 0}</span>
-              <span className="text-right font-mono text-sm text-red-500">{p.value.toFixed(1)}</span>
-              <span className="text-right font-mono text-sm text-muted-foreground">{p.mp}</span>
-              <span className="text-right font-mono text-sm">{p.ps}</span>
-              <span className="text-right font-mono text-sm">{p.ast}</span>
-              <span className="text-right font-mono text-sm">{p.reb}</span>
-              <span className="text-right font-mono text-sm">{p.blk}</span>
-              <span className="text-right font-mono text-sm">{p.stl}</span>
+              <span className="text-right font-mono text-[13px] font-bold">{p.fp}</span>
+              <span className="text-right font-mono text-[13px] text-red-500">{(p as any).salary ?? 0}</span>
+              <span className="text-right font-mono text-[13px] text-red-500">{p.value.toFixed(1)}</span>
+              <span className="text-right font-mono text-[13px] text-muted-foreground">{p.mp}</span>
+              <span className="text-right font-mono text-[13px]">{p.ps}</span>
+              <span className="text-right font-mono text-[13px]">{p.ast}</span>
+              <span className="text-right font-mono text-[13px]">{p.reb}</span>
+              <span className="text-right font-mono text-[13px]">{p.blk}</span>
+              <span className="text-right font-mono text-[13px]">{p.stl}</span>
             </div>
           );
         })}
