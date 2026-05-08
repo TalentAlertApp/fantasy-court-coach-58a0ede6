@@ -331,13 +331,34 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       const opp = isHome ? g.away_team : g.home_team;
                       const oppLogo = getOppLogo(opp);
                       const tipoff = g.tipoff_utc ? new Date(g.tipoff_utc).toLocaleDateString("en-GB", { month: "short", day: "numeric" }) : "TBD";
+                      const openDetail = () => setSelectedGame({
+                        game_id: g.game_id,
+                        home_team: g.home_team,
+                        away_team: g.away_team,
+                        home_pts: g.home_pts ?? 0,
+                        away_pts: g.away_pts ?? 0,
+                        status: g.status,
+                        game_boxscore_url: g.game_boxscore_url,
+                        game_charts_url: g.game_charts_url,
+                        game_playbyplay_url: g.game_playbyplay_url,
+                        game_recap_url: g.game_recap_url,
+                        nba_game_url: g.nba_game_url,
+                        gw: g.gw, day: g.day,
+                        tipoff_utc: g.tipoff_utc,
+                        played: false,
+                      });
                       return (
-                        <div key={g.game_id} className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm">
+                        <button
+                          key={g.game_id}
+                          type="button"
+                          onClick={openDetail}
+                          className="w-full flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm text-left hover:bg-accent/30 transition-colors"
+                        >
                           {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
                           <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
                           <span className="ml-auto text-xs text-muted-foreground">{tipoff}</span>
                           <span className="text-[10px] text-muted-foreground font-mono">GW{g.gw}.{g.day}</span>
-                        </div>
+                        </button>
                       );
                     })}
                     {upcoming.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No upcoming games</p>}
