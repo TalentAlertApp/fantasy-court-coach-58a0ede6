@@ -30,8 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
-import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Star, Sparkles, RefreshCw, Bot, Heart, CalendarDays, X, Brain } from "lucide-react";
-import { Check } from "lucide-react";
+import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, Sparkles, RefreshCw, Bot, Heart, CalendarDays, X, Brain, Wand2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
@@ -77,9 +76,6 @@ export default function RosterPage() {
   const [swapPlayerId, setSwapPlayerId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  const [chipCaptain, setChipCaptain] = useState(false);
-  const [chipAllStar, setChipAllStar] = useState(false);
-  const [chipWildcard, setChipWildcard] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
