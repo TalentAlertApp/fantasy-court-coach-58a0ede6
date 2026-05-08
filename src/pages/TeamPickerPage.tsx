@@ -5,6 +5,8 @@ import { useTeam } from "@/contexts/TeamContext";
 import { Button } from "@/components/ui/button";
 import { Plus, Shield, LogOut } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 export default function TeamPickerPage() {
   const navigate = useNavigate();
@@ -64,6 +66,14 @@ export default function TeamPickerPage() {
         aria-hidden
       />
 
+      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+        <img src={wnbaLogo} alt="WNBA" className="h-8 w-auto object-contain" />
+        <img src={nbaLogo} alt="NBA" className="h-8 w-auto" />
+        <span className="text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
+          Fantasy
+        </span>
+      </div>
+
       <button
         type="button"
         onClick={async () => {
@@ -88,26 +98,36 @@ export default function TeamPickerPage() {
         </p>
 
         <div className="mt-10 grid gap-4 w-full" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}>
-          {ownedTeams.map((t: any) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => handlePick(t.id)}
-              className="group relative text-left p-5 rounded-2xl border-2 border-foreground/10 bg-foreground/[0.02] hover:border-accent hover:bg-accent/5 hover:shadow-[0_0_40px_-15px_hsl(var(--accent))] transition-all h-44 flex flex-col overflow-hidden"
-            >
-              <div className="h-11 w-11 rounded-xl flex items-center justify-center mb-3 bg-foreground/10 text-foreground/70 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                <Shield className="h-6 w-6" />
-              </div>
-              <h3 className="font-heading uppercase tracking-[0.12em] text-base text-foreground truncate">
-                {t.name}
-              </h3>
-              {t.description && (
-                <p className="mt-1.5 text-xs text-foreground/60 leading-relaxed line-clamp-2">
-                  {t.description}
-                </p>
-              )}
-            </button>
-          ))}
+          {ownedTeams.map((t: any) => {
+            const leagueLogo = t.league_code === "wnba" ? wnbaLogo : nbaLogo;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => handlePick(t.id)}
+                className="group relative text-left p-5 rounded-2xl border-2 border-foreground/10 bg-foreground/[0.02] hover:border-accent hover:bg-accent/5 hover:shadow-[0_0_40px_-15px_hsl(var(--accent))] transition-all h-44 flex flex-col overflow-hidden"
+              >
+                {/* League watermark — top-right, same effect as TeamModal header */}
+                <img
+                  src={leagueLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 object-contain opacity-[0.18] rotate-12 select-none blur-[1px] group-hover:opacity-30 group-hover:rotate-6 transition-all duration-500"
+                />
+                <div className="relative h-11 w-11 rounded-xl flex items-center justify-center mb-3 bg-foreground/10 text-foreground/70 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+                  <Shield className="h-6 w-6" />
+                </div>
+                <h3 className="relative font-heading uppercase tracking-[0.12em] text-base text-foreground truncate">
+                  {t.name}
+                </h3>
+                {t.description && (
+                  <p className="relative mt-1.5 text-xs text-foreground/60 leading-relaxed line-clamp-2">
+                    {t.description}
+                  </p>
+                )}
+              </button>
+            );
+          })}
 
           <button
             type="button"

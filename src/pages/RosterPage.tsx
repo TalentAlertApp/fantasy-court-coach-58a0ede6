@@ -247,9 +247,10 @@ export default function RosterPage() {
     };
   }, [biqAdvisor, starters, bench, upcomingByTeam]);
 
-  useMemo(() => {
+  useEffect(() => {
     if (captainId === 0 && roster?.captain_id) setCaptainId(roster.captain_id);
-  }, [roster?.captain_id, captainId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roster?.captain_id]);
 
   const saveMutation = useMutation({
     mutationFn: (body: Parameters<typeof saveRoster>[0]) =>
