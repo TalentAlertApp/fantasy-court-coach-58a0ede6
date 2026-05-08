@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tv2, Table2, BarChart3, Mic, ExternalLink, Trophy, History } from "lucide-react";
@@ -55,18 +54,23 @@ const SORT_COLUMNS: { key: SortKey; label: string; highlight?: boolean }[] = [
   { key: "stl", label: "S" },
 ];
 
-function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
+function GameBoxScoreTable({
+  game,
+  filterTeam,
+  setFilterTeam,
+}: {
+  game: GameDetailGame;
+  filterTeam: string | null;
+  setFilterTeam: (t: string | null) => void;
+}) {
   const { data, isLoading } = useGameBoxscoreQuery(game.game_id);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [filterTeam, setFilterTeam] = useState<string | null>(null);
   const [filterFcBc, setFilterFcBc] = useState<string | null>(null);
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
-  const awayLogo = logoFor(game.away_team);
-  const homeLogo = logoFor(game.home_team);
   const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   if (isLoading) {
@@ -109,42 +113,37 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
         className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
       />
       <div
-        className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,32px)] gap-0 px-3 py-2 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40"
+        className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-2 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40"
       >
-        <div className="pr-2 flex items-center gap-1 flex-wrap h-7">
+        <div className="pr-2 flex items-center gap-1.5 flex-wrap h-7">
           <span>Player</span>
           <button
-            onClick={() => setFilterTeam(filterTeam === game.away_team ? null : game.away_team)}
-            className={`inline-flex items-center gap-0.5 h-6 px-1.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === game.away_team ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
-          >
-            {awayLogo && <img src={awayLogo} alt="" className="w-3 h-3" />}
-            {game.away_team}
-          </button>
-          <button
-            onClick={() => setFilterTeam(filterTeam === game.home_team ? null : game.home_team)}
-            className={`inline-flex items-center gap-0.5 h-6 px-1.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === game.home_team ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
-          >
-            {homeLogo && <img src={homeLogo} alt="" className="w-3 h-3" />}
-            {game.home_team}
-          </button>
-          <button
             onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
-            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
           >
             FC
           </button>
           <button
             onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
-            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
+            className={`inline-flex items-center justify-center h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
           >
             BC
           </button>
+          {filterTeam && (
+            <button
+              onClick={() => setFilterTeam(null)}
+              className="inline-flex items-center justify-center h-6 px-2 rounded-lg border border-border hover:bg-muted text-[10px] font-bold"
+              title="Clear team filter"
+            >
+              ALL
+            </button>
+          )}
         </div>
         {SORT_COLUMNS.map(({ key, label, highlight }) => (
           <button
             key={key}
             onClick={() => handleSort(key)}
-            className={`text-right hover:text-foreground transition-colors cursor-pointer text-[10px] ${
+            className={`text-right hover:text-foreground transition-colors cursor-pointer text-xs ${
               sortKey === key ? "font-bold text-foreground" : ""
             } ${highlight ? "text-red-500 font-bold" : ""}`}
           >
@@ -155,34 +154,34 @@ function GameBoxScoreTable({ game }: { game: GameDetailGame }) {
       <div className="relative z-[1] max-h-[50vh] overflow-y-auto">
         {sorted.map((p) => {
           const isFc = p.fc_bc === "FC";
+          const teamLogo = logoFor(p.team);
           return (
             <div
               key={p.player_id}
               onClick={() => setOpenPlayerId(p.player_id)}
-              className="grid grid-cols-[minmax(0,1fr)_repeat(9,32px)] gap-0 px-3 py-1.5 text-xs items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+              className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-2 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
             >
-              <div className="flex items-center gap-1.5 pr-2 min-w-0">
-                <Avatar className="h-5 w-5 shrink-0">
-                  {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
-                  <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <Badge
-                  variant={isFc ? "destructive" : "default"}
-                  className="text-[7px] px-0.5 py-0 shrink-0 rounded-lg font-heading min-w-[18px] justify-center"
+              <div className="flex items-center gap-2 pr-2 min-w-0">
+                <Avatar
+                  className={`h-7 w-7 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}
                 >
-                  {p.fc_bc}
-                </Badge>
-                <span className="text-xs font-medium truncate">{p.name}</span>
+                  {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
+                  <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-semibold truncate">{p.name}</span>
+                {teamLogo && (
+                  <img src={teamLogo} alt={p.team} className="h-4 w-4 shrink-0 object-contain" />
+                )}
               </div>
-              <span className="text-right font-mono text-xs font-bold">{p.fp}</span>
-              <span className="text-right font-mono text-xs text-red-500">{(p as any).salary ?? 0}</span>
-              <span className="text-right font-mono text-xs text-red-500">{p.value.toFixed(1)}</span>
-              <span className="text-right font-mono text-xs text-muted-foreground">{p.mp}</span>
-              <span className="text-right font-mono text-xs">{p.ps}</span>
-              <span className="text-right font-mono text-xs">{p.ast}</span>
-              <span className="text-right font-mono text-xs">{p.reb}</span>
-              <span className="text-right font-mono text-xs">{p.blk}</span>
-              <span className="text-right font-mono text-xs">{p.stl}</span>
+              <span className="text-right font-mono text-sm font-bold">{p.fp}</span>
+              <span className="text-right font-mono text-sm text-red-500">{(p as any).salary ?? 0}</span>
+              <span className="text-right font-mono text-sm text-red-500">{p.value.toFixed(1)}</span>
+              <span className="text-right font-mono text-sm text-muted-foreground">{p.mp}</span>
+              <span className="text-right font-mono text-sm">{p.ps}</span>
+              <span className="text-right font-mono text-sm">{p.ast}</span>
+              <span className="text-right font-mono text-sm">{p.reb}</span>
+              <span className="text-right font-mono text-sm">{p.blk}</span>
+              <span className="text-right font-mono text-sm">{p.stl}</span>
             </div>
           );
         })}
@@ -220,10 +219,12 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
+  const [filterTeam, setFilterTeam] = useState<string | null>(null);
+  const toggleFilter = (tri: string) => setFilterTeam((prev) => (prev === tri ? null : tri));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
+      <DialogContent className={`${played ? "max-w-3xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
@@ -252,22 +253,35 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
           )}
-          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-1">
+          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-2">
             {/* Away — name on right of watermark */}
-            <div className="relative h-10 flex items-center justify-end pr-2 overflow-hidden">
+            <div className="relative h-20 flex items-center justify-end pr-2 overflow-hidden">
               {awayLogo && (
-                <img
-                  src={awayLogo}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 h-14 w-14 object-contain opacity-25 -rotate-12 select-none"
-                />
+                played ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleFilter(game.away_team)}
+                    aria-label={`Filter by ${game.away_team}`}
+                    className={`pointer-events-auto absolute left-0 top-1/2 -translate-y-1/2 h-24 w-24 -rotate-12 transition-all duration-200 hover:scale-110 ${filterTeam === game.away_team ? "opacity-100 scale-110 drop-shadow-[0_0_18px_hsl(var(--primary)/0.55)]" : "opacity-40 hover:opacity-95"}`}
+                  >
+                    <img src={awayLogo} alt="" aria-hidden className="h-full w-full object-contain select-none" />
+                  </button>
+                ) : (
+                  <img
+                    src={awayLogo}
+                    alt=""
+                    aria-hidden
+                    className="pointer-events-none absolute -left-3 top-1/2 -translate-y-1/2 h-24 w-24 object-contain opacity-30 -rotate-12 select-none"
+                  />
+                )
               )}
-              <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm">{game.away_team}</span>
+              {!played && (
+                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
+              )}
             </div>
             <div className="text-center">
               {played ? (
-                <span className="font-mono font-black text-xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
+                <span className="font-mono font-black text-2xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/40 bg-primary/10 backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(var(--primary)/0.5)]">
                   <span className="relative flex h-2 w-2">
@@ -279,16 +293,29 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
             {/* Home — name on left of watermark */}
-            <div className="relative h-10 flex items-center justify-start pl-2 overflow-hidden">
+            <div className="relative h-20 flex items-center justify-start pl-2 overflow-hidden">
               {homeLogo && (
-                <img
-                  src={homeLogo}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-14 w-14 object-contain opacity-25 rotate-12 select-none"
-                />
+                played ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleFilter(game.home_team)}
+                    aria-label={`Filter by ${game.home_team}`}
+                    className={`pointer-events-auto absolute right-0 top-1/2 -translate-y-1/2 h-24 w-24 rotate-12 transition-all duration-200 hover:scale-110 ${filterTeam === game.home_team ? "opacity-100 scale-110 drop-shadow-[0_0_18px_hsl(var(--primary)/0.55)]" : "opacity-40 hover:opacity-95"}`}
+                  >
+                    <img src={homeLogo} alt="" aria-hidden className="h-full w-full object-contain select-none" />
+                  </button>
+                ) : (
+                  <img
+                    src={homeLogo}
+                    alt=""
+                    aria-hidden
+                    className="pointer-events-none absolute -right-3 top-1/2 -translate-y-1/2 h-24 w-24 object-contain opacity-30 rotate-12 select-none"
+                  />
+                )
               )}
-              <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm">{game.home_team}</span>
+              {!played && (
+                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.home_team}</span>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-center gap-1.5 py-0 flex-wrap">
@@ -326,7 +353,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
-        {played && <GameBoxScoreTable game={game} />}
+        {played && <GameBoxScoreTable game={game} filterTeam={filterTeam} setFilterTeam={setFilterTeam} />}
         {!played && <ScheduledInsights game={game} />}
       </DialogContent>
     </Dialog>

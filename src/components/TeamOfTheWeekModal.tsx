@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useTeamOfTheWeek, TOTWPlayer } from "@/hooks/useTeamOfTheWeek";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -147,14 +148,17 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
                 </span>
               </div>
 
-              {formation.map(({ player, style }) => (
-                <div
+              {formation.map(({ player, style }, i) => (
+                <motion.div
                   key={player.id}
                   className="absolute -translate-x-1/2 -translate-y-1/2 w-[22%] z-10"
                   style={{ top: style.top, left: style.left }}
+                  initial={{ opacity: 0, y: 32, scale: 0.6, filter: "blur(8px)" }}
+                  animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+                  transition={{ delay: 0.5 + i * 0.5, type: "spring", stiffness: 220, damping: 20 }}
                 >
                   <TOTWCard player={player} onClick={() => setSelectedPlayerId(player.id)} />
-                </div>
+                </motion.div>
               ))}
             </div>
           )}

@@ -56,10 +56,8 @@ export default function ScoringPage() {
   const [sortCol, setSortCol] = useState<SortCol>("gw");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  const myTeams = useMemo(
-    () => userTeams.filter(t => true), // RLS already scopes to current user
-    [userTeams]
-  );
+  // RLS already scopes to current user, so userTeams is the user's teams.
+  const myTeams = userTeams;
 
   return (
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
