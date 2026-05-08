@@ -325,6 +325,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     )}
                   </div>
                 )}
+                {(() => { const b = recapBlurb(g); return <BallersIQInline headline={b.headline} body={b.body} tone="amber" />; })()}
               </motion.button>
             ))}
           </div>
@@ -364,6 +365,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     </span>
                   )}
                 </div>
+                {(() => { const b = matchupBlurb(g); return <BallersIQInline headline={b.headline} body={b.body} tone="sky" />; })()}
               </motion.button>
             ))}
           </div>
