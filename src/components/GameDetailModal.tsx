@@ -401,12 +401,12 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
     </div>
   );
 
-  const RankRow = ({ label, key }: { label: string; key: string }) => {
-    const ar = leagueRank[game.away_team]?.[key];
-    const hr = leagueRank[game.home_team]?.[key];
-    const av = (a as any)[key];
-    const hv = (h as any)[key];
-    const fmt = (v: number) => (key === "pct" ? `${(v * 100).toFixed(1)}%` : key === "l10W" ? String(v) : v.toFixed(1));
+  const RankRow = ({ label, metricKey }: { label: string; metricKey: string }) => {
+    const ar = leagueRank[game.away_team]?.[metricKey];
+    const hr = leagueRank[game.home_team]?.[metricKey];
+    const av = (a as any)[metricKey];
+    const hv = (h as any)[metricKey];
+    const fmt = (v: number) => (metricKey === "pct" ? `${(v * 100).toFixed(1)}%` : metricKey === "l10W" ? String(v) : v.toFixed(1));
     const better = (rank: number | undefined) =>
       rank == null ? "" : rank <= 5 ? "text-emerald-500" : rank >= 26 ? "text-destructive" : "text-foreground";
     return (
@@ -465,11 +465,11 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
           </div>
         </TabsContent>
         <TabsContent value="ranks" className="mt-0 px-4 py-2">
-          <RankRow label="Win %" key_="pct" {...({ key: "pct" } as any)} />
-          <RankRow label="PPG" {...({ key: "ppg" } as any)} />
-          <RankRow label="Opp PPG" {...({ key: "oppPpg" } as any)} />
-          <RankRow label="Diff" {...({ key: "diff" } as any)} />
-          <RankRow label="L10 W" {...({ key: "l10W" } as any)} />
+          <RankRow label="Win %" metricKey="pct" />
+          <RankRow label="PPG" metricKey="ppg" />
+          <RankRow label="Opp PPG" metricKey="oppPpg" />
+          <RankRow label="Diff" metricKey="diff" />
+          <RankRow label="L10 W" metricKey="l10W" />
         </TabsContent>
       </Tabs>
     </div>
