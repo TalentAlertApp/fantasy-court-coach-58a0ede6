@@ -155,143 +155,21 @@ function isGameLive(status: string) {
   return s === "LIVE" || s === "IN_PROGRESS";
 }
 
-type SortKey = "fp" | "mp" | "ps" | "ast" | "reb" | "blk" | "stl" | "salary" | "value";
-type SortDir = "asc" | "desc";
-
-const SORT_COLUMNS: { key: SortKey; label: string; highlight?: boolean }[] = [
-  { key: "fp", label: "FP" },
-  { key: "salary", label: "$", highlight: true },
-  { key: "value", label: "V", highlight: true },
-  { key: "mp", label: "MP" },
-  { key: "ps", label: "PS" },
-  { key: "ast", label: "A" },
-  { key: "reb", label: "R" },
-  { key: "blk", label: "B" },
-  { key: "stl", label: "S" },
-];
-
-function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, onPlayerClick }: {
+function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId }: {
   gameId: string;
   awayTeam: string;
   homeTeam: string;
   recapUrl?: string | null;
   youtubeRecapId?: string | null;
-  onPlayerClick: (playerId: number) => void;
+  onPlayerClick?: (playerId: number) => void;
 }) {
-  const { data, isLoading } = useGameBoxscoreQuery(gameId);
-  const [sortKey, setSortKey] = useState<SortKey>("fp");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [filterTeam, setFilterTeam] = useState<string | null>(null);
-  const [filterFcBc, setFilterFcBc] = useState<string | null>(null);
-
-  if (isLoading) {
-    return <div className="p-3 space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8" />)}</div>;
-  }
-
-  const players = data?.players ?? [];
-  if (players.length === 0) {
-    return <p className="p-3 text-sm text-muted-foreground">No player data available</p>;
-  }
-
-  let filtered = [...players];
-  if (filterTeam) filtered = filtered.filter((p) => p.team === filterTeam);
-  if (filterFcBc) filtered = filtered.filter((p) => p.fc_bc === filterFcBc);
-
-  const withValue = filtered.map((p) => ({ ...p, value: p.fp / ((p as any).salary || 1) }));
-  const sorted = withValue.sort((a, b) => {
-    const av = (a as any)[sortKey] ?? 0;
-    const bv = (b as any)[sortKey] ?? 0;
-    return sortDir === "desc" ? bv - av : av - bv;
-  });
-
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    else { setSortKey(key); setSortDir("desc"); }
-  };
-
-  const awayLogo = getTeamLogo(awayTeam);
-  const homeLogo = getTeamLogo(homeTeam);
-
   return (
     <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
       <div className="min-w-0">
-        <div className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-2 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40" style={{ overflowY: "hidden", scrollbarGutter: "stable" }}>
-          <div className="pr-3 flex items-center gap-1.5">
-            <span>Player</span>
-            <button
-              onClick={() => setFilterTeam(filterTeam === awayTeam ? null : awayTeam)}
-              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === awayTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
-            >
-              {awayLogo && <img src={awayLogo} alt="" className="w-3 h-3" />}
-              {awayTeam}
-            </button>
-            <button
-              onClick={() => setFilterTeam(filterTeam === homeTeam ? null : homeTeam)}
-              className={`flex items-center gap-0.5 px-1 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterTeam === homeTeam ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
-            >
-              {homeLogo && <img src={homeLogo} alt="" className="w-3 h-3" />}
-              {homeTeam}
-            </button>
-            <button
-              onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
-              className={`px-1.5 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
-            >
-              FC
-            </button>
-            <button
-              onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
-              className={`px-1.5 py-0.5 rounded-lg border text-[8px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
-            >
-              BC
-            </button>
-          </div>
-          {SORT_COLUMNS.map(({ key, label, highlight }) => (
-            <button
-              key={key}
-              onClick={() => handleSort(key)}
-              className={`text-right hover:text-foreground transition-colors cursor-pointer ${
-                sortKey === key ? "font-bold text-foreground" : ""
-              } ${highlight ? "text-red-500 font-bold" : ""}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="max-h-[360px] overflow-y-auto" style={{ scrollbarGutter: "stable" }}>
-          {sorted.map((p) => {
-            const isFc = p.fc_bc === "FC";
-            return (
-              <div
-                key={p.player_id}
-                onClick={() => onPlayerClick(p.player_id)}
-                className="grid grid-cols-[minmax(0,1fr)_repeat(9,40px)] gap-0 px-3 py-1.5 text-sm items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
-              >
-                <div className="flex items-center gap-1.5 pr-3">
-                  <Avatar className="h-5 w-5 shrink-0">
-                    {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
-                    <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
-                  </Avatar>
-                  <Badge
-                    variant={isFc ? "destructive" : "default"}
-                    className="text-[7px] px-0.5 py-0 shrink-0 rounded-lg font-heading min-w-[18px] justify-center"
-                  >
-                    {p.fc_bc}
-                  </Badge>
-                  <span className="text-sm font-medium whitespace-nowrap">{p.name}</span>
-                </div>
-                <span className="text-right font-mono text-sm font-bold">{p.fp}</span>
-                <span className="text-right font-mono text-sm text-red-500">{(p as any).salary ?? 0}</span>
-                <span className="text-right font-mono text-sm text-red-500">{p.value.toFixed(1)}</span>
-                <span className="text-right font-mono text-sm text-muted-foreground">{p.mp}</span>
-                <span className="text-right font-mono text-sm">{p.ps}</span>
-                <span className="text-right font-mono text-sm">{p.ast}</span>
-                <span className="text-right font-mono text-sm">{p.reb}</span>
-                <span className="text-right font-mono text-sm">{p.blk}</span>
-                <span className="text-right font-mono text-sm">{p.stl}</span>
-              </div>
-            );
-          })}
-        </div>
+        <GameBoxScoreTable
+          game={{ game_id: gameId, away_team: awayTeam, home_team: homeTeam }}
+          maxBodyHeightClass="max-h-[360px]"
+        />
       </div>
       <div className="w-[640px] shrink-0 border-l aspect-video self-stretch">
         <RecapCard url={recapUrl} youtubeRecapId={youtubeRecapId} awayTeam={awayTeam} homeTeam={homeTeam} />
