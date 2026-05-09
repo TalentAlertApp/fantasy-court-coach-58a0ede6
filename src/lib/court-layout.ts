@@ -44,3 +44,44 @@ export function getRowPositions(count: number, topPct: string): { top: string; l
     { top: topPct, left: "88%" },
   ];
 }
+
+/**
+ * Shared formation helper used by BOTH the Starting 5 court (RosterCourtView)
+ * and the Team of the Week modal so they render with identical anchors.
+ * Splits items into FC / BC rows and assigns row coordinates from
+ * `getRowPositions`. Any leftover items (data anomalies) are placed into the
+ * remaining slot pool to avoid silent drops.
+ */
+export function getCourtFormation<T>(
+  items: T[],
+  getFcBc: (item: T) => string,
+  topFc: string = "28%",
+  topBc: string = "72%",
+): { item: T; style: { top: string; left: string } }[] {
+  const fcs = items.filter((p) => getFcBc(p) === "FC");
+  const bcs = items.filter((p) => getFcBc(p) === "BC");
+
+  const fcPositions = getRowPositions(fcs.length, topFc);
+  const bcPositions = getRowPositions(bcs.length, topBc);
+
+  const positioned: { item: T; style: { top: string; left: string } }[] = [];
+
+  fcs.forEach((p, i) => {
+    if (i < fcPositions.length) positioned.push({ item: p, style: fcPositions[i] });
+  });
+  bcs.forEach((p, i) => {
+    if (i < bcPositions.length) positioned.push({ item: p, style: bcPositions[i] });
+  });
+
+  if (positioned.length < items.length) {
+    const used = new Set(positioned.map((pp) => pp.item));
+    const remaining = items.filter((p) => !used.has(p));
+    const allSpots = [...fcPositions, ...bcPositions];
+    remaining.forEach((p, i) => {
+      const idx = positioned.length + i;
+      if (idx < allSpots.length) positioned.push({ item: p, style: allSpots[idx] });
+    });
+  }
+
+  return positioned;
+}
