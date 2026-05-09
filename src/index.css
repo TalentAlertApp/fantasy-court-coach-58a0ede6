@@ -416,16 +416,13 @@
 .biq-badge-art {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: fill;
   display: block;
   user-select: none;
   pointer-events: none;
   filter: contrast(1.05) saturate(1.06);
-  /* Scale the artwork up so the baked-in silver/white frame around the
-     supplied PNG is clipped beyond the rounded card edge — the inner
-     artwork now fills the same footprint as the gold back face. */
-  transform: scale(1.32);
-  transform-origin: center center;
+  /* Asset is pre-cropped to the inner blue badge — render edge-to-edge so
+     the front face matches the back face footprint exactly. */
 }
 
 /* Edge band: visible card thickness, brushed chrome */
