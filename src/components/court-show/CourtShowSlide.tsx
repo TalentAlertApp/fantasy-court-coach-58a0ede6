@@ -210,7 +210,7 @@ function RecapCarousel({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 content-start"
+          className="grid grid-cols-1 md:grid-cols-2 auto-rows-fr gap-3 flex-1"
         >
           {slice.map((g) => (
             <RecapCard key={g.game_id} g={g} onGameClick={() => onGameClick(g)} onPlayerClick={onPlayerClick} />
