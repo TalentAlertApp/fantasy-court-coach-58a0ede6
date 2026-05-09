@@ -59,6 +59,7 @@ export default function AutoPickConfirmModal({
   playersById,
   onConfirm,
   isApplying,
+  onPlayerClick,
 }: Props) {
   const diff = useMemo(() => {
     if (!proposed) return { adds: [] as number[], drops: [] as number[] };
@@ -113,7 +114,7 @@ export default function AutoPickConfirmModal({
                 {diff.drops.length === 0 ? (
                   <div className="text-xs text-muted-foreground italic py-1">No drops</div>
                 ) : (
-                  diff.drops.map((id) => <PlayerRow key={id} p={playersById.get(id)} />)
+                  diff.drops.map((id) => <PlayerRow key={id} p={playersById.get(id)} onClick={onPlayerClick} />)
                 )}
               </div>
               <div className="rounded-lg border bg-card p-3">
@@ -122,7 +123,7 @@ export default function AutoPickConfirmModal({
                   <div className="text-xs text-muted-foreground italic py-1">No additions</div>
                 ) : (
                   diff.adds.map((id) => (
-                    <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} />
+                    <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} onClick={onPlayerClick} />
                   ))
                 )}
               </div>
@@ -135,7 +136,7 @@ export default function AutoPickConfirmModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
                 {proposed.starters.map((id) => (
-                  <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} />
+                  <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} onClick={onPlayerClick} />
                 ))}
               </div>
             </div>
