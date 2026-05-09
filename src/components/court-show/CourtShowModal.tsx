@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard, Volume2, Volum
 import { useCourtShowData } from "./useCourtShowData";
 import CourtShowSlide from "./CourtShowSlide";
 import { useCourtShowAudio } from "./useCourtShowAudio";
+import { useLeague } from "@/contexts/LeagueContext";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
@@ -38,7 +39,8 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [hover, setHover] = useState(false);
-  const audio = useCourtShowAudio(open);
+  const { isWnba } = useLeague();
+  const audio = useCourtShowAudio(open, isWnba);
 
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const [openTri, setOpenTri] = useState<string | null>(null);
