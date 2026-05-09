@@ -15,7 +15,6 @@ import type {
   MatchupGame,
   CaptainPick,
   StoryLabel,
-  BallersIQSlideBullet,
 } from "./types";
 
 function buildWeekDayDate(gw: number, day: number): string {
