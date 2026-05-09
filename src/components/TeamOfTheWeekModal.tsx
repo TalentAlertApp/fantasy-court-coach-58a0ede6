@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import courtBg from "@/assets/court-bg.png";
 import PlayerModal from "@/components/PlayerModal";
 import { useWishlist } from "@/hooks/useWishlist";
-import { getRowPositions } from "@/lib/court-layout";
+import { getCourtFormation } from "@/lib/court-layout";
 
 function formatShortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -23,21 +23,12 @@ function getFormation(players: TOTWPlayer[]) {
   const sortByFp = (a: TOTWPlayer, b: TOTWPlayer) => b.fp_avg - a.fp_avg;
   const fcs = players.filter((p) => p.fc_bc === "FC").sort(sortByFp).slice(0, 3);
   const bcs = players.filter((p) => p.fc_bc === "BC").sort(sortByFp).slice(0, 2);
-
-  // Mirror /MY ROSTER court layout: FC row at 28%, BC row at 72%.
-  const fcPositions = getRowPositions(fcs.length, "28%");
-  const bcPositions = getRowPositions(bcs.length, "72%");
-
-  const positioned: { player: TOTWPlayer; style: { top: string; left: string } }[] = [];
-
-  fcs.forEach((p, i) => {
-    if (i < fcPositions.length) positioned.push({ player: p, style: fcPositions[i] });
-  });
-  bcs.forEach((p, i) => {
-    if (i < bcPositions.length) positioned.push({ player: p, style: bcPositions[i] });
-  });
-
-  return positioned;
+  // Mirror /MY ROSTER Starting 5 court via the SAME shared coordinate helper.
+  const merged = [...fcs, ...bcs];
+  return getCourtFormation(merged, (p) => p.fc_bc).map(({ item, style }) => ({
+    player: item,
+    style,
+  }));
 }
 
 function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void }) {
@@ -120,7 +111,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wider">
               <Trophy className="h-5 w-5 text-accent" />
@@ -136,9 +127,8 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
             </div>
           ) : (
             <div
-              className="relative w-full rounded-lg overflow-hidden"
+              className="relative w-full rounded-lg overflow-hidden min-h-[640px] aspect-[16/10]"
               style={{
-                aspectRatio: "16/9",
                 backgroundImage: `url(${courtBg})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
@@ -153,7 +143,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
               {formation.map(({ player, style }, i) => (
                 <motion.div
                   key={player.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[22%] z-10"
+                  className="absolute -translate-x-1/2 -translate-y-1/2 w-[26%] md:w-[24%] lg:w-[22%] z-10"
                   style={{ top: style.top, left: style.left }}
                   initial={{ opacity: 0, y: 32, scale: 0.6, filter: "blur(8px)" }}
                   animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
