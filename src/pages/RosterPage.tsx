@@ -57,11 +57,7 @@ function useCountdown(deadlineUtc: string | null) {
   if (firedRef.current.deadline !== deadlineUtc) {
     firedRef.current = { deadline: deadlineUtc, thresholds: new Set() };
   }
-  // Buzzer cues at 5min, 1min, and 0
-  const fired = firedRef.current.thresholds;
-  if (diff <= 0 && !fired.has(0)) { fired.add(0); playSfx("buzzer"); }
-  else if (diff > 0 && diff <= 60_000 && !fired.has(60)) { fired.add(60); playSfx("buzzer"); }
-  else if (diff > 60_000 && diff <= 300_000 && !fired.has(300)) { fired.add(300); playSfx("buzzer"); }
+  // Buzzer cue removed per product decision (no audio at deadline thresholds).
   if (diff <= 0) return "LOCKED";
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
