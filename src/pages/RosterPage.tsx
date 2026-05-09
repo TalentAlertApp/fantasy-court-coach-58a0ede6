@@ -264,6 +264,7 @@ export default function RosterPage() {
       saveRoster(body, selectedTeamId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+      playSfx("lineup");
       toast({ title: "Lineup saved!" });
     },
     onError: (err) => {
@@ -450,6 +451,7 @@ export default function RosterPage() {
       return;
     }
     setCaptainId(playerId);
+    playSfx("swoosh");
     const starterIds = [...(roster.starters ?? [])];
     const benchIds = [...(roster.bench ?? [])];
     saveMutation.mutate({
