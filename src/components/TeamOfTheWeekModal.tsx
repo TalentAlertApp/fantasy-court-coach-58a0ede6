@@ -21,14 +21,27 @@ function formatShortName(fullName: string): string {
 
 function getFormation(players: TOTWPlayer[]) {
   const sortByFp = (a: TOTWPlayer, b: TOTWPlayer) => b.fp_avg - a.fp_avg;
-  const fcs = players.filter((p) => p.fc_bc === "FC").sort(sortByFp).slice(0, 3);
-  const bcs = players.filter((p) => p.fc_bc === "BC").sort(sortByFp).slice(0, 2);
-  // Mirror /MY ROSTER Starting 5 court via the SAME shared coordinate helper.
+  // Use whichever Starting-5 valid shape the data fits: 3FC+2BC or 2FC+3BC.
+  const fcsAll = players.filter((p) => p.fc_bc === "FC").sort(sortByFp);
+  const bcsAll = players.filter((p) => p.fc_bc === "BC").sort(sortByFp);
+  let fcs = fcsAll.slice(0, 3);
+  let bcs = bcsAll.slice(0, 2);
+  if (fcsAll.length < 3 && bcsAll.length >= 3) {
+    fcs = fcsAll.slice(0, 2);
+    bcs = bcsAll.slice(0, 3);
+  }
   const merged = [...fcs, ...bcs];
-  return getCourtFormation(merged, (p) => p.fc_bc).map(({ item, style }) => ({
-    player: item,
-    style,
-  }));
+  // Mirror /MY ROSTER Starting 5 court via the SAME shared coordinate helper,
+  // then shift the entire formation left so it visually centers within the
+  // wider TOTW court canvas (the rightmost slot was sitting on the edge).
+  const OFFSET_X = -6; // percent
+  return getCourtFormation(merged, (p) => p.fc_bc).map(({ item, style }) => {
+    const leftPct = parseFloat(style.left);
+    return {
+      player: item,
+      style: { top: style.top, left: `${leftPct + OFFSET_X}%` },
+    };
+  });
 }
 
 function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void }) {
