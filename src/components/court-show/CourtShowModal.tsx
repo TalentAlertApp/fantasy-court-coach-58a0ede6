@@ -48,6 +48,10 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>(readSpeed);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  // Snapshot the user's playing state before the video took over so we can
+  // restore it when the video pauses/ends.
+  const playingBeforeVideoRef = useRef<boolean | null>(null);
 
   const BASE_SLIDE_MS = SPEEDS[speed];
   const autoplayActive = playing && speed !== "manual";
@@ -85,10 +89,27 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const SLIDE_MS = current?.durationMs ?? BASE_SLIDE_MS;
 
   useEffect(() => {
-    if (!open || !autoplayActive || hover || childModalOpen || total <= 1 || SLIDE_MS <= 0) return;
+    if (!open || !autoplayActive || hover || childModalOpen || videoPlaying || total <= 1 || SLIDE_MS <= 0) return;
     const t = setTimeout(() => setIndex((i) => (i + 1) % total), SLIDE_MS);
     return () => clearTimeout(t);
-  }, [open, autoplayActive, hover, childModalOpen, total, SLIDE_MS, index]);
+  }, [open, autoplayActive, hover, childModalOpen, videoPlaying, total, SLIDE_MS, index]);
+
+  // Reset video state when leaving a slide.
+  useEffect(() => {
+    setVideoPlaying(false);
+    playingBeforeVideoRef.current = null;
+  }, [index]);
+
+  const handleVideoPlayingChange = (vp: boolean) => {
+    setVideoPlaying(vp);
+    if (vp) {
+      if (playingBeforeVideoRef.current === null) playingBeforeVideoRef.current = playing;
+      if (playing) setPlaying(false);
+    } else {
+      if (playingBeforeVideoRef.current) setPlaying(true);
+      playingBeforeVideoRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -196,8 +217,8 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                   <motion.div
                     key={`${i}-${index}-${playing}-${speed}`}
                     initial={{ width: i < index ? "100%" : "0%" }}
-                    animate={{ width: i < index ? "100%" : i === index ? (autoplayActive && !hover && !childModalOpen ? "100%" : "0%") : "0%" }}
-                    transition={{ duration: i === index && autoplayActive && !hover && !childModalOpen && SLIDE_MS > 0 ? SLIDE_MS / 1000 : 0, ease: "linear" }}
+                    animate={{ width: i < index ? "100%" : i === index ? (autoplayActive && !hover && !childModalOpen && !videoPlaying ? "100%" : "0%") : "0%" }}
+                    transition={{ duration: i === index && autoplayActive && !hover && !childModalOpen && !videoPlaying && SLIDE_MS > 0 ? SLIDE_MS / 1000 : 0, ease: "linear" }}
                     className="h-full bg-amber-400"
                   />
                 </div>
@@ -219,6 +240,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                     onTeamClick={setOpenTri}
                     onGameClick={handleGameClick}
                     onOutroAction={handleOutroAction}
+                    onVideoPlayingChange={handleVideoPlayingChange}
                   />
                 </AnimatePresence>
               )}
