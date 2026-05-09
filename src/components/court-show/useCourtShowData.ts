@@ -382,11 +382,14 @@ export function useCourtShowData(gw: number, day: number) {
 
     // ── Played Games Recap (paginated in the slide) ───────────────────
     if (recap.length) {
+      const pages = Math.max(1, Math.ceil(recap.length / 6));
       slides.push({
         kind: "recap",
         title: "Played Games Recap",
         subtitle: "Final scores and the night's top fantasy producer",
         payload: { kind: "recap", data: recap },
+        // 3s per page so all played games are shown before advancing.
+        durationMs: pages * 3000,
       });
     }
 

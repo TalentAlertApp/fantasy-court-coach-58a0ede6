@@ -4,7 +4,7 @@ import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, Trend
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
-import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind } from "./types";
+import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow } from "./types";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
@@ -109,6 +109,282 @@ function fmtDeadline(iso: string | null): string {
   try {
     return format(new Date(iso), "EEE, MMM d · HH:mm");
   } catch { return ""; }
+}
+
+function fmtDeadlineShort(iso: string | null): string {
+  if (!iso) return "";
+  try { return format(new Date(iso), "EEE HH:mm"); } catch { return ""; }
+}
+
+const AI_KIND_META: Record<AIIndexKind, { label: string; icon: any; ring: string; chip: string; glow: string }> = {
+  form_index:      { label: "Form Index",      icon: TrendingUp, ring: "border-amber-400/30",   chip: "text-amber-300",   glow: "from-amber-400/[0.06]" },
+  matchup_index:   { label: "Matchup Index",   icon: Shield,     ring: "border-sky-400/30",     chip: "text-sky-300",     glow: "from-sky-400/[0.06]" },
+  schedule_index:  { label: "Schedule Index",  icon: Calendar,   ring: "border-emerald-400/30", chip: "text-emerald-300", glow: "from-emerald-400/[0.06]" },
+  market_index:    { label: "Market Index",    icon: DollarSign, ring: "border-violet-400/30",  chip: "text-violet-300",  glow: "from-violet-400/[0.06]" },
+  role_stability:  { label: "Role Stability",  icon: Brain,      ring: "border-orange-400/30",  chip: "text-orange-300",  glow: "from-orange-400/[0.06]" },
+};
+
+function AICardView({
+  card,
+  onPlayerClick,
+  onTeamClick,
+}: {
+  card: AIBallersIQCard;
+  onPlayerClick: (id: number) => void;
+  onTeamClick: (tri: string) => void;
+}) {
+  const meta = AI_KIND_META[card.kind] ?? AI_KIND_META.form_index;
+  const Icon = meta.icon;
+  const hasGameTeams = !!(card.away_team && card.home_team);
+  return (
+    <div className={cn(
+      "group relative rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
+      meta.ring, meta.glow,
+    )}>
+      <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
+      <div className="relative flex items-center justify-between gap-2 mb-2">
+        <span className={cn("inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.28em] font-heading font-black", meta.chip)}>
+          <Icon className="h-3 w-3" />
+          {meta.label}
+        </span>
+        {typeof card.score === "number" && (
+          <span className="font-mono text-[10px] text-white/55">{Math.round(card.score)}</span>
+        )}
+      </div>
+      <p className="relative font-heading font-black text-[13px] text-white leading-tight">
+        {card.headline}
+      </p>
+      <p className="relative text-[11px] text-white/70 leading-snug mt-1.5">{card.body}</p>
+      <div className="relative mt-2.5 flex items-center gap-3 flex-wrap">
+        {hasGameTeams && (
+          <div className="flex items-center gap-2">
+            <InlineTeamMark tri={card.away_team!} side="left" onClick={onTeamClick} />
+            <span className="text-white/30 text-[10px]">@</span>
+            <InlineTeamMark tri={card.home_team!} side="right" onClick={onTeamClick} />
+          </div>
+        )}
+        {!hasGameTeams && card.team && (
+          <InlineTeamMark tri={card.team} side="left" onClick={onTeamClick} />
+        )}
+        {card.player_id && card.player_name && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPlayerClick(card.player_id!); }}
+            className="ml-auto inline-flex items-center gap-2 rounded-full bg-black/30 border border-white/10 pl-1 pr-3 py-1 hover:border-amber-400/40 transition-colors"
+          >
+            {card.player_photo ? (
+              <img src={card.player_photo} alt="" className="h-6 w-6 rounded-full object-cover" />
+            ) : <span className="h-6 w-6 rounded-full bg-white/10" />}
+            <span className="text-[11px] font-heading font-black text-white truncate max-w-[120px]">{card.player_name}</span>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RecapCarousel({
+  games,
+  onGameClick,
+  onPlayerClick,
+}: {
+  games: RecapGame[];
+  onGameClick: (g: RecapGame) => void;
+  onPlayerClick: (id: number) => void;
+}) {
+  const PAGE = 6;
+  const pages = Math.max(1, Math.ceil(games.length / PAGE));
+  const [page, setPage] = useState(0);
+  useEffect(() => {
+    if (pages <= 1) return;
+    const t = setInterval(() => setPage((p) => (p + 1) % pages), 3000);
+    return () => clearInterval(t);
+  }, [pages]);
+  const start = page * PAGE;
+  const slice = games.slice(start, start + PAGE);
+  return (
+    <div className="h-full flex flex-col">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={page}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 flex-1 content-start"
+        >
+          {slice.map((g) => (
+            <RecapCard key={g.game_id} g={g} onGameClick={() => onGameClick(g)} onPlayerClick={onPlayerClick} />
+          ))}
+        </motion.div>
+      </AnimatePresence>
+      {pages > 1 && (
+        <div className="mt-3 flex items-center justify-center gap-1.5">
+          {Array.from({ length: pages }).map((_, i) => (
+            <span key={i} className={cn("h-1 rounded-full transition-all", i === page ? "w-6 bg-amber-400" : "w-2 bg-white/20")} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RecapCard({
+  g,
+  onGameClick,
+  onPlayerClick,
+}: {
+  g: RecapGame;
+  onGameClick: () => void;
+  onPlayerClick: (id: number) => void;
+}) {
+  const awayWon = g.winner === g.away_team;
+  return (
+    <button
+      onClick={onGameClick}
+      className="group text-left rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-4 hover:border-amber-400/40 transition-all hover:-translate-y-0.5"
+    >
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-[9px] uppercase tracking-[0.28em] text-emerald-300/80 font-heading font-black">FINAL</span>
+        {g.game_recap_url && (
+          <a
+            href={g.game_recap_url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[10px] text-white/50 hover:text-amber-300"
+          >
+            Recap <ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <InlineTeamMark tri={g.away_team} side="left" />
+          <span className={cn("font-mono font-black text-xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
+        </div>
+        <span className="text-white/30 text-xs">—</span>
+        <div className="flex items-center gap-2">
+          <span className={cn("font-mono font-black text-xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
+          <InlineTeamMark tri={g.home_team} side="right" />
+        </div>
+      </div>
+      {g.topPerformer && (
+        <div className="mt-3">
+          <TopPerformerBlock tp={g.topPerformer} onPlayerClick={onPlayerClick} />
+        </div>
+      )}
+    </button>
+  );
+}
+
+function OutstandingSlide({
+  payload,
+  onPlayerClick,
+  onTeamClick,
+  onGameClick,
+}: {
+  payload: OutstandingGamePayload;
+  onPlayerClick: (id: number) => void;
+  onTeamClick: (tri: string) => void;
+  onGameClick: (g: RecapGame) => void;
+}) {
+  const g = payload.game;
+  const awayWon = g.winner === g.away_team;
+  const ytSrc = payload.youtube_recap_id
+    ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1`
+    : null;
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full content-start">
+      {/* Left: header + top-10 table */}
+      <div className="flex flex-col rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 min-h-0">
+        <button
+          onClick={() => onGameClick(g)}
+          className="flex items-center justify-between gap-3 pb-3 border-b border-white/10 hover:opacity-90 transition-opacity"
+        >
+          <div className="flex items-center gap-2">
+            <InlineTeamMark tri={g.away_team} side="left" onClick={onTeamClick} />
+            <span className={cn("font-mono font-black text-2xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
+          </div>
+          <span className="text-white/30">—</span>
+          <div className="flex items-center gap-2">
+            <span className={cn("font-mono font-black text-2xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
+            <InlineTeamMark tri={g.home_team} side="right" onClick={onTeamClick} />
+          </div>
+        </button>
+        <div className="flex-1 min-h-0 overflow-y-auto mt-3">
+          <table className="w-full text-[11px]">
+            <thead className="text-white/40 uppercase tracking-wider text-[9px]">
+              <tr>
+                <th className="text-left font-heading font-black py-1">Player</th>
+                <th className="text-right font-mono py-1">MIN</th>
+                <th className="text-right font-mono py-1">PTS</th>
+                <th className="text-right font-mono py-1">REB</th>
+                <th className="text-right font-mono py-1">AST</th>
+                <th className="text-right font-mono py-1 text-amber-400">FP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payload.topRows.map((r) => (
+                <tr
+                  key={r.player_id}
+                  onClick={() => onPlayerClick(r.player_id)}
+                  className="border-t border-white/5 hover:bg-white/5 cursor-pointer"
+                >
+                  <td className="py-1.5">
+                    <div className="flex items-center gap-2">
+                      {r.photo ? (
+                        <img src={r.photo} alt="" className="h-6 w-6 rounded-full object-cover" />
+                      ) : <span className="h-6 w-6 rounded-full bg-white/10" />}
+                      <span className="font-heading font-black text-white truncate">{r.name}</span>
+                      <span className="text-white/40 text-[9px]">{r.team}</span>
+                    </div>
+                  </td>
+                  <td className="text-right font-mono text-white/70">{r.mp ?? 0}</td>
+                  <td className="text-right font-mono text-white/85">{r.pts ?? 0}</td>
+                  <td className="text-right font-mono text-white/85">{r.reb ?? 0}</td>
+                  <td className="text-right font-mono text-white/85">{r.ast ?? 0}</td>
+                  <td className="text-right font-mono font-bold text-amber-300">{r.fp.toFixed(1)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {/* Right: YouTube recap */}
+      <div className="rounded-xl border border-white/10 bg-black/40 overflow-hidden flex flex-col min-h-0">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+          <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] font-heading font-black text-amber-300">
+            <PlayCircle className="h-3 w-3" /> Game Recap
+          </span>
+          {payload.game_recap_url && (
+            <a
+              href={payload.game_recap_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[10px] text-white/55 hover:text-amber-300 inline-flex items-center gap-1"
+            >
+              Open <ExternalLink className="h-2.5 w-2.5" />
+            </a>
+          )}
+        </div>
+        <div className="flex-1 min-h-0 bg-black">
+          {ytSrc ? (
+            <iframe
+              src={ytSrc}
+              title="Game recap"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">
+              Recap not yet available.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function TeamBadge({ tricode, size = 56, onClick }: { tricode: string; size?: number; onClick?: () => void }) {
@@ -598,6 +874,15 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             </div>
           );
         })()}
+
+        {slide.payload.kind === "outstanding" && (
+          <OutstandingSlide
+            payload={slide.payload.data}
+            onPlayerClick={onPlayerClick}
+            onTeamClick={onTeamClick}
+            onGameClick={onGameClick}
+          />
+        )}
 
         {slide.payload.kind === "captain" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
