@@ -24,8 +24,9 @@ function getFormation(players: TOTWPlayer[]) {
   const fcs = players.filter((p) => p.fc_bc === "FC").sort(sortByFp).slice(0, 3);
   const bcs = players.filter((p) => p.fc_bc === "BC").sort(sortByFp).slice(0, 2);
 
-  const fcPositions = getRowPositions(fcs.length, "32%");
-  const bcPositions = getRowPositions(bcs.length, "70%");
+  // Mirror /MY ROSTER court layout: FC row at 28%, BC row at 72%.
+  const fcPositions = getRowPositions(fcs.length, "28%");
+  const bcPositions = getRowPositions(bcs.length, "72%");
 
   const positioned: { player: TOTWPlayer; style: { top: string; left: string } }[] = [];
 
