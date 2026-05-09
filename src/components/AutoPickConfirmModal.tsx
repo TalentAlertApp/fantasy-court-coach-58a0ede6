@@ -28,13 +28,18 @@ interface Props {
   playersById: Map<number, PlayerLite>;
   onConfirm: () => void;
   isApplying: boolean;
+  onPlayerClick?: (id: number) => void;
 }
 
-function PlayerRow({ p, isCaptain }: { p?: PlayerLite; isCaptain?: boolean }) {
+function PlayerRow({ p, isCaptain, onClick }: { p?: PlayerLite; isCaptain?: boolean; onClick?: (id: number) => void }) {
   if (!p) return <div className="text-xs text-muted-foreground italic">Unknown</div>;
   const isFc = p.fc_bc === "FC";
   return (
-    <div className="flex items-center gap-2 py-1">
+    <div
+      className="flex items-center gap-2 py-1 px-1 rounded-md cursor-pointer hover:bg-accent/40 transition-colors"
+      onClick={() => onClick?.(p.id)}
+      role="button"
+    >
       <Avatar className={`h-6 w-6 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
         {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
         <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
