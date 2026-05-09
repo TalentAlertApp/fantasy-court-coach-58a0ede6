@@ -138,7 +138,7 @@ function AICardView({
   const hasGameTeams = !!(card.away_team && card.home_team);
   return (
     <div className={cn(
-      "group relative h-full flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
+      "group relative flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
       meta.ring, meta.glow,
     )}>
       <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
@@ -155,7 +155,7 @@ function AICardView({
         {card.headline}
       </p>
       <p className="relative text-[11px] text-white/70 leading-snug mt-1.5">{card.body}</p>
-      <div className="relative mt-auto pt-2.5 flex items-center gap-3 flex-wrap">
+      <div className="relative mt-2.5 flex items-center gap-3 flex-wrap">
         {hasGameTeams && (
           <div className="flex items-center gap-2">
             <InlineTeamMark tri={card.away_team!} side="left" onClick={onTeamClick} />
@@ -251,7 +251,7 @@ function RecapCard({
           src={awayLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -left-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+          className="pointer-events-none absolute -left-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
         />
       )}
       {homeLogo && (
@@ -259,7 +259,7 @@ function RecapCard({
           src={homeLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -right-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+          className="pointer-events-none absolute -right-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
         />
       )}
       <div className="relative flex items-center justify-between gap-2 mb-2">
@@ -869,7 +869,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               </h3>
               <div className="relative h-px w-24 bg-gradient-to-r from-amber-400 to-transparent mb-5" />
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 auto-rows-fr gap-3 flex-1 content-start">
+              <div className="relative grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-3 content-start">
                 {cards.length === 0 && (
                   <>
                     {[0, 1, 2, 3].map((i) => (
@@ -890,7 +890,6 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 * i, duration: 0.5, ease: [0.22, 0.9, 0.3, 1] }}
-                    className="h-full"
                   >
                     <AICardView card={c} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
                   </motion.div>
