@@ -189,6 +189,9 @@ export interface CourtShowSlideItem {
   title: string;
   subtitle?: string;
   payload: SlidePayload;
+  /** Optional override for autoplay duration on this slide (ms). Used by the
+   *  Played-Games Recap to stay open long enough to cycle through all pages. */
+  durationMs?: number;
 }
 
 export interface CourtShowData {
