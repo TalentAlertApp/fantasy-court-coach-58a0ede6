@@ -7,6 +7,7 @@ import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { useLeague } from "@/contexts/LeagueContext";
+import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
@@ -151,10 +152,6 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
 
 export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
   const { league } = useLeague();
-  const sponsorLogo =
-    league === "wnba"
-      ? "/brand/sponsor-ballers-iq-wnba.png"
-      : "/brand/sponsor-ballers-iq-nba.png";
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
     (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
@@ -231,37 +228,17 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 </div>
               )}
             </div>
-            {/* Sponsor sting — league-aware Ballers.IQ logo */}
+            {/* Sponsor sting — premium 3D rotating Ballers.IQ badge */}
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 0.95, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.6, ease: "easeOut" }}
-              className="relative mt-4 inline-block overflow-hidden rounded-xl"
-              style={{ width: "clamp(280px, 38vw, 520px)" }}
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.0, duration: 0.7, ease: [0.22, 0.9, 0.3, 1] }}
+              className="mt-6 flex flex-col items-center gap-2"
             >
-              <div
-                aria-hidden
-                className="absolute inset-0 -z-10 blur-2xl"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at center, rgba(245,200,80,0.18), rgba(40,90,180,0.12) 45%, transparent 70%)",
-                }}
-              />
-              <img
-                src={sponsorLogo}
-                alt=""
-                aria-hidden
-                draggable={false}
-                className="block w-full h-auto object-contain select-none pointer-events-none"
-              />
-              <motion.div
-                aria-hidden
-                initial={{ x: "-120%" }}
-                animate={{ x: "120%" }}
-                transition={{ delay: 1.8, duration: 0.9, ease: "easeInOut" }}
-                className="pointer-events-none absolute inset-y-0 -left-1/4 w-1/2 bg-gradient-to-r from-transparent via-white/35 to-transparent mix-blend-overlay"
-                style={{ transform: "skewX(-20deg)" }}
-              />
+              <span className="text-[9px] md:text-[10px] font-heading font-bold uppercase tracking-[0.42em] text-white/45">
+                Powered by
+              </span>
+              <RotatingBallersIQBadge width={Math.min(480, Math.max(360, Math.round(window.innerWidth * 0.28)))} />
             </motion.div>
           </div>
         )}
