@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
@@ -102,6 +102,7 @@ interface Props {
   onTeamClick: (tri: string) => void;
   onGameClick: (game: RecapGame | MatchupGame) => void;
   onOutroAction?: () => void;
+  onVideoPlayingChange?: (playing: boolean) => void;
 }
 
 function fmtDeadline(iso: string | null): string {
@@ -301,17 +302,76 @@ function OutstandingSlide({
   onPlayerClick,
   onTeamClick,
   onGameClick,
+  onVideoPlayingChange,
 }: {
   payload: OutstandingGamePayload;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
   onGameClick: (g: RecapGame) => void;
+  onVideoPlayingChange?: (playing: boolean) => void;
 }) {
   const g = payload.game;
   const awayWon = g.winner === g.away_team;
   const ytSrc = payload.youtube_recap_id
-    ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1`
+    ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1&enablejsapi=1`
     : null;
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // Listen to YouTube IFrame API postMessage events to pause/resume the
+  // surrounding court show whenever the video is playing.
+  useEffect(() => {
+    if (!ytSrc || !onVideoPlayingChange) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const subscribe = () => {
+      try {
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({ event: "listening", id: "court-show-recap", channel: "widget" }),
+          "*",
+        );
+        iframe.contentWindow?.postMessage(
+          JSON.stringify({
+            event: "command",
+            func: "addEventListener",
+            args: ["onStateChange"],
+            id: "court-show-recap",
+            channel: "widget",
+          }),
+          "*",
+        );
+      } catch {}
+    };
+    iframe.addEventListener("load", subscribe);
+    // In case it already loaded
+    subscribe();
+
+    const onMsg = (e: MessageEvent) => {
+      if (typeof e.origin === "string" && !e.origin.includes("youtube.com")) return;
+      let data: any = e.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch { return; }
+      }
+      if (!data || typeof data !== "object") return;
+      const state =
+        data.event === "onStateChange" ? data.info :
+        data.info && typeof data.info.playerState === "number" ? data.info.playerState :
+        undefined;
+      if (typeof state !== "number") return;
+      // 1 = playing, 3 = buffering → treat as playing
+      if (state === 1 || state === 3) onVideoPlayingChange(true);
+      // 0 ended, 2 paused, 5 cued, -1 unstarted → not playing
+      else if (state === 0 || state === 2 || state === 5 || state === -1) onVideoPlayingChange(false);
+    };
+    window.addEventListener("message", onMsg);
+    return () => {
+      window.removeEventListener("message", onMsg);
+      iframe.removeEventListener("load", subscribe);
+      // Reset on unmount so the show resumes
+      onVideoPlayingChange(false);
+    };
+  }, [ytSrc, onVideoPlayingChange]);
+
   return (
     <div className="h-full flex items-center">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
@@ -398,6 +458,7 @@ function OutstandingSlide({
         <div className="flex-1 min-h-0 bg-black">
           {ytSrc ? (
             <iframe
+              ref={iframeRef}
               src={ytSrc}
               title="Game recap"
               className="w-full h-full"
@@ -640,7 +701,7 @@ function BiqScheduledCard({
   );
 }
 
-export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
+export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction, onVideoPlayingChange }: Props) {
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
     (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
@@ -943,6 +1004,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             onPlayerClick={onPlayerClick}
             onTeamClick={onTeamClick}
             onGameClick={onGameClick}
+            onVideoPlayingChange={onVideoPlayingChange}
           />
         )}
 
