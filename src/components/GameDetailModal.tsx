@@ -75,8 +75,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
-  const [filterTeam, setFilterTeam] = useState<string | null>(null);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
@@ -186,7 +184,11 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
-        {played && <GameBoxScoreTable game={game} filterTeam={filterTeam} setFilterTeam={setFilterTeam} />}
+        {played && (
+          <div className="border-t">
+            <GameBoxScoreTable game={game} />
+          </div>
+        )}
         {!played && <ScheduledInsights game={game} />}
       </DialogContent>
     </Dialog>
@@ -198,6 +200,7 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const { data: isPreseason } = useIsPreseason();
   const { league } = useLeague();
   const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const [historyGame, setHistoryGame] = useState<GameDetailGame | null>(null);
 
   const a = standingsByTeam[game.away_team];
   const h = standingsByTeam[game.home_team];
@@ -286,6 +289,38 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const last5A = last5DetailByTeam[game.away_team] ?? [];
   const last5H = last5DetailByTeam[game.home_team] ?? [];
 
+  const openHistory = (own: string, g: typeof last5A[number]) => {
+    if (!g.game_id) return;
+    setHistoryGame({
+      game_id: g.game_id,
+      home_team: g.homeTeam,
+      away_team: g.awayTeam,
+      home_pts: g.homePts,
+      away_pts: g.awayPts,
+      status: "FINAL",
+      played: true,
+      game_boxscore_url: g.game_boxscore_url ?? null,
+      game_charts_url: g.game_charts_url ?? null,
+      game_playbyplay_url: g.game_playbyplay_url ?? null,
+      game_recap_url: g.game_recap_url ?? null,
+      nba_game_url: g.nba_game_url ?? null,
+    });
+  };
+
+  const PillBtn = ({ g, own }: { g: typeof last5A[number]; own: string }) => (
+    <button
+      type="button"
+      onClick={() => openHistory(own, g)}
+      disabled={!g.game_id}
+      className={`inline-flex items-center justify-center h-5 w-5 rounded-md text-[10px] font-mono font-black transition-transform ${g.game_id ? "cursor-pointer hover:scale-110" : "cursor-default opacity-70"} ${
+        g.result === "W" ? "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40" : "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
+      }`}
+      title={g.game_id ? `vs ${g.opp} · ${g.ownPts}-${g.oppPts}` : undefined}
+    >
+      {g.result}
+    </button>
+  );
+
   return (
     <div className="relative border-t bg-muted/20">
       <img
@@ -301,36 +336,36 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
         <RecordBlock row={h} side="home" />
       </div>
 
-      <Tabs defaultValue="form" className="relative z-[1]">
-        <TabsList className="w-full justify-center rounded-none bg-transparent border-b border-border/40 h-9 p-0">
-          <TabsTrigger value="form" className="text-[10px] font-heading uppercase tracking-wider data-[state=active]:bg-muted/60 rounded-none h-9 px-4 gap-1.5">
-            <History className="h-3 w-3" /> Last 5
-          </TabsTrigger>
-          <TabsTrigger value="ranks" className="text-[10px] font-heading uppercase tracking-wider data-[state=active]:bg-muted/60 rounded-none h-9 px-4 gap-1.5">
-            <Trophy className="h-3 w-3" /> League Rankings
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="form" className="mt-0 px-4 py-3">
+      <div className="relative z-[1]">
+        <div className="px-4 py-3 border-b border-border/40">
+          <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground text-center mb-2">Last 5 · Form</div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center justify-end gap-1">
               {last5A.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
-              {last5A.map((g, i) => <span key={i}>{pill(g.result)}</span>)}
+              {last5A.map((g, i) => <PillBtn key={i} g={g} own={game.away_team} />)}
             </div>
-            <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">Form</div>
+            <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">vs</div>
             <div className="flex items-center justify-start gap-1">
               {last5H.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
-              {last5H.map((g, i) => <span key={i}>{pill(g.result)}</span>)}
+              {last5H.map((g, i) => <PillBtn key={i} g={g} own={game.home_team} />)}
             </div>
           </div>
-        </TabsContent>
-        <TabsContent value="ranks" className="mt-0 px-4 py-2">
+        </div>
+        <div className="px-4 py-2">
+          <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground text-center mb-1">League Rankings</div>
           <RankRow label="Win %" metricKey="pct" />
           <RankRow label="PPG" metricKey="ppg" />
           <RankRow label="Opp PPG" metricKey="oppPpg" />
           <RankRow label="Diff" metricKey="diff" />
           <RankRow label="L10 W" metricKey="l10W" />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
+
+      <GameDetailModal
+        game={historyGame}
+        open={historyGame !== null}
+        onOpenChange={(o) => !o && setHistoryGame(null)}
+      />
     </div>
   );
 }
