@@ -279,7 +279,7 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const last5A = last5DetailByTeam[game.away_team] ?? [];
   const last5H = last5DetailByTeam[game.home_team] ?? [];
 
-  const openHistory = (own: string, g: typeof last5A[number]) => {
+  const openHistory = (g: typeof last5A[number]) => {
     if (!g.game_id) return;
     setHistoryGame({
       game_id: g.game_id,
@@ -297,10 +297,10 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
     });
   };
 
-  const PillBtn = ({ g, own }: { g: typeof last5A[number]; own: string }) => (
+  const PillBtn = ({ g }: { g: typeof last5A[number] }) => (
     <button
       type="button"
-      onClick={() => openHistory(own, g)}
+      onClick={() => openHistory(g)}
       disabled={!g.game_id}
       className={`inline-flex items-center justify-center h-5 w-5 rounded-md text-[10px] font-mono font-black transition-transform ${g.game_id ? "cursor-pointer hover:scale-110" : "cursor-default opacity-70"} ${
         g.result === "W" ? "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40" : "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
@@ -332,12 +332,12 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center justify-end gap-1">
               {last5A.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
-              {last5A.map((g, i) => <PillBtn key={i} g={g} own={game.away_team} />)}
+              {last5A.map((g, i) => <PillBtn key={i} g={g} />)}
             </div>
             <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">vs</div>
             <div className="flex items-center justify-start gap-1">
               {last5H.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
-              {last5H.map((g, i) => <PillBtn key={i} g={g} own={game.home_team} />)}
+              {last5H.map((g, i) => <PillBtn key={i} g={g} />)}
             </div>
           </div>
         </div>
