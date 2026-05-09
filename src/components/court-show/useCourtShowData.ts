@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import { DEADLINES } from "@/lib/deadlines";
 import type {
   CourtShowData,
@@ -15,6 +16,8 @@ import type {
   MatchupGame,
   CaptainPick,
   StoryLabel,
+  AIBallersIQCard,
+  OutstandingGameRow,
 } from "./types";
 
 function buildWeekDayDate(gw: number, day: number): string {
@@ -52,6 +55,7 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: scheduleData, isLoading: schedLoading } = useScheduleQuery({ gw, day });
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: rosterData } = useRosterQuery();
+  const { data: leagueId } = useLeagueId();
 
   const games = scheduleData?.games ?? [];
   const finalGameIds = useMemo(
@@ -70,6 +74,41 @@ export function useCourtShowData(gw: number, day: number) {
         .in("game_id", finalGameIds);
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  // ── Ballers.IQ AI cards (cached per league/gw/day) ───────────────────
+  const { data: aiRow, isLoading: aiLoading } = useQuery({
+    queryKey: ["court-show-ai", leagueId, gw, day],
+    enabled: !!leagueId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("court_show_intelligence")
+        .select("cards, headline, mode, generated_at")
+        .eq("league_id", leagueId!)
+        .eq("gw", gw)
+        .eq("day", day)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { cards: AIBallersIQCard[]; headline: string | null; mode: string } | null;
+    },
+  });
+
+  // Best-effort on-demand generation: if no cached row exists yet, kick off
+  // the edge function once. The query above will refresh when invalidated.
+  const shouldKickOff = !!leagueId && !aiLoading && aiRow === null && !schedLoading && games.length > 0;
+  useQuery({
+    queryKey: ["court-show-ai-trigger", leagueId, gw, day, shouldKickOff],
+    enabled: shouldKickOff,
+    staleTime: 60_000,
+    queryFn: async () => {
+      try {
+        await supabase.functions.invoke("court-show-intelligence", {
+          body: { league_id: leagueId, gw, day },
+        });
+      } catch (_e) { /* swallow — the slide renders skeleton until the row appears */ }
+      return true;
     },
   });
 
@@ -213,16 +252,7 @@ export function useCourtShowData(gw: number, day: number) {
           nba_game_url: g.nba_game_url, game_recap_url: g.game_recap_url,
         } as RecapGame;
       })
-      .sort((a, b) => a.margin - b.margin)
-      .slice(0, 4);
-    if (recap.length) {
-      slides.push({
-        kind: "recap",
-        title: "Played Games Recap",
-        subtitle: "Final scores, margins and the night's top fantasy producer",
-        payload: { kind: "recap", data: recap },
-      });
-    }
+      .sort((a, b) => a.margin - b.margin);
 
     // ── High-Competitive Matchups ─────────────────────────────────────
     // Wins-from-prior FINAL games on this slate (proxy)
@@ -288,12 +318,11 @@ export function useCourtShowData(gw: number, day: number) {
         if (gap >= 3 && (ah.rosterImpact + aa.rosterImpact) >= 2) { m.label = "TRAP GAME"; break; }
       }
 
-      slides.push({
-        kind: "matchups",
-        title: "High-Competitive Matchups",
-        subtitle: "Star power · fantasy relevance · roster impact",
-        payload: { kind: "matchups", data: matchups },
-      });
+      // Build a single short narrative storyline for each matchup
+      // (NLP replacement for the old metric chips).
+      for (const m of matchups) {
+        m.story = buildMatchupStoryline(m);
+      }
     }
 
     // ── Captain Radar ─────────────────────────────────────────────────
@@ -321,79 +350,105 @@ export function useCourtShowData(gw: number, day: number) {
       .slice(0, 3)
       .map((c) => ({ ...c, label: captainLabel(c) }));
 
-    // ── Ballers.IQ Gamenight Intelligence ─────────────────────────────
-    // Two distinct card kinds: PLAYED (final score + top performer, season
-    // averages only — no L5/FP5 metrics) and SCHEDULED (tipoff + competitive
-    // narrative + star anchor by season FP).
-    const playedCards: RecapGame[] = recap.slice(0, 2);
-
-    // Pick a star-anchor player per scheduled matchup using SEASON averages
-    // (intentionally avoiding L5 / FP5 fields on this slide).
-    const playersByTeam = new Map<string, any[]>();
-    for (const p of playersData?.items ?? []) {
-      const t = p.core?.team;
-      if (!t) continue;
-      const arr = playersByTeam.get(t) ?? [];
-      arr.push(p);
-      playersByTeam.set(t, arr);
-    }
-    const scheduledCards: MatchupGame[] = matchups.slice(0, 4).map((m) => {
-      const pool = [
-        ...(playersByTeam.get(m.home_team) ?? []),
-        ...(playersByTeam.get(m.away_team) ?? []),
-      ].filter((p: any) => !p.flags?.injury);
-      pool.sort((a: any, b: any) => (b.season?.fp ?? 0) - (a.season?.fp ?? 0));
-      const star = pool[0];
-      const starPlayer = star
-        ? {
-            player_id: star.core.id,
-            name: star.core.name,
-            team: star.core.team,
-            photo: star.core.photo ?? null,
-            season_fp: star.season?.fp,
-            season_pts: star.season?.pts,
-            season_reb: star.season?.reb,
-            season_ast: star.season?.ast,
-            gp: star.season?.gp,
-          }
-        : null;
-      let story = "";
-      if (m.label === "SLATE HAMMER") story = "Slate hammer — late-tip fantasy ceiling.";
-      else if (m.label === "TRAP GAME") story = "Trap spot — heavy talent gap, manage exposure.";
-      else if (m.competitiveScore >= 60) story = `Most competitive matchup — score ${m.competitiveScore}.`;
-      else if (m.starPower >= 35) story = `Star-power leader (${m.starPower} FP ceiling).`;
-      else if (m.rosterRelevant >= 2) story = `${m.rosterRelevant} fantasy-relevant starters in play.`;
-      else story = "Watch tipoff for fantasy edges.";
-      return { ...m, starPlayer, story };
+    // ── Ballers.IQ Gamenight Intelligence (AI cards from cache) ───────
+    const aiCards: AIBallersIQCard[] = (aiRow?.cards ?? []) as AIBallersIQCard[];
+    const biqMode: "recap" | "matchup" | "mixed" =
+      recap.length && upcoming.length ? "mixed" : recap.length ? "recap" : "matchup";
+    // Always pushed — slide handles loading/empty states with skeletons so the
+    // sequence is identical for played and scheduled days.
+    slides.push({
+      kind: "ballersiq",
+      title: "Ballers.IQ",
+      subtitle:
+        biqMode === "recap" ? "Gamenight intelligence · Recap"
+        : biqMode === "matchup" ? "Gamenight intelligence · Matchups"
+        : "Gamenight intelligence · Recap & Matchups",
+      payload: {
+        kind: "ballersiq",
+        data: {
+          mode: biqMode,
+          gw, day,
+          headline: aiRow?.headline ?? "GAMENIGHT INTELLIGENCE",
+          aiCards,
+          loading: !aiRow,
+        },
+      },
     });
 
-    const totalCards = playedCards.length + scheduledCards.length;
-    if (totalCards) {
-      const mode: "recap" | "matchup" | "mixed" =
-        playedCards.length && scheduledCards.length ? "mixed"
-        : playedCards.length ? "recap" : "matchup";
-      const subtitle =
-        mode === "mixed" ? "Gamenight intelligence · Recap & Matchups"
-        : mode === "recap" ? "Gamenight intelligence · Recap"
-        : "Gamenight intelligence · Matchups";
+    // ── Played Games Recap (paginated in the slide) ───────────────────
+    if (recap.length) {
       slides.push({
-        kind: "ballersiq",
-        title: "Ballers.IQ",
-        subtitle,
-        payload: {
-          kind: "ballersiq",
-          data: {
-            mode,
-            gw, day,
-            headline: "GAMENIGHT INTELLIGENCE",
-            played: playedCards,
-            scheduled: scheduledCards,
-          },
-        },
+        kind: "recap",
+        title: "Played Games Recap",
+        subtitle: "Final scores and the night's top fantasy producer",
+        payload: { kind: "recap", data: recap },
       });
     }
 
-    // Captain Radar comes AFTER Ballers.IQ so the show finishes with the actionable pick.
+    // ── Outstanding Game (composite: top FP + closeness + total points) ─
+    if (recap.length) {
+      const totals = recap.map((g) => g.home_pts + g.away_pts);
+      const tps = recap.map((g) => g.topPerformer?.fp ?? 0);
+      const maxTotal = Math.max(...totals, 1);
+      const maxTp = Math.max(...tps, 1);
+      let best: RecapGame | null = null;
+      let bestScore = -Infinity;
+      for (const g of recap) {
+        const tpFp = g.topPerformer?.fp ?? 0;
+        const closeness = 1 / (g.margin + 1);
+        const total = g.home_pts + g.away_pts;
+        const score = (tpFp / maxTp) * 0.45 + closeness * 0.30 + (total / maxTotal) * 0.25;
+        if (score > bestScore) { bestScore = score; best = g; }
+      }
+      if (best) {
+        const bestId = best.game_id;
+        const topRows: OutstandingGameRow[] = allLogs
+          .filter((l: any) => l.game_id === bestId)
+          .map((l: any) => {
+            const p = playersById.get(l.player_id);
+            return {
+              player_id: l.player_id,
+              name: p?.core?.name ?? `#${l.player_id}`,
+              team: p?.core?.team ?? "",
+              photo: p?.core?.photo ?? null,
+              fp: fpFromLog(l),
+              mp: l.mp, pts: l.pts, reb: l.reb, ast: l.ast, stl: l.stl, blk: l.blk,
+            } as OutstandingGameRow;
+          })
+          .sort((a, b) => b.fp - a.fp)
+          .slice(0, 10);
+        const fullGame = games.find((g: any) => g.game_id === bestId);
+        const youtube_recap_id = (fullGame as any)?.youtube_recap_id ?? null;
+        const storyline = buildOutstandingStoryline(best);
+        slides.push({
+          kind: "outstanding",
+          title: "Outstanding Game",
+          subtitle: storyline,
+          payload: {
+            kind: "outstanding",
+            data: {
+              game: best,
+              topRows,
+              youtube_recap_id,
+              game_recap_url: best.game_recap_url ?? null,
+              storyline,
+            },
+          },
+        });
+      }
+    }
+
+    // ── High-Competitive Matchups ─────────────────────────────────────
+    if (matchups.length) {
+      slides.push({
+        kind: "matchups",
+        title: "High-Competitive Matchups",
+        subtitle: "Tonight's must-watch tilts",
+        payload: { kind: "matchups", data: matchups },
+      });
+    }
+
+    // Captain Radar comes after the gameday content.
     if (captains.length) {
       slides.push({
         kind: "captain",
@@ -426,11 +481,48 @@ export function useCourtShowData(gw: number, day: number) {
       gamesCount: games.length,
       slides,
     };
-  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading]);
+  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow]);
 
   return {
     data,
     isLoading: schedLoading || playersLoading || logsLoading,
     games,
   };
+}
+
+/** Single short NLP storyline for the High-Competitive Matchups slide. */
+function buildMatchupStoryline(m: MatchupGame): string {
+  const stars = m.starPower;
+  const rel = m.rosterRelevant;
+  const comp = m.competitiveScore;
+  if (m.label === "SLATE HAMMER")
+    return `Slate hammer — late-tip ceiling with ${rel || "multiple"} fantasy-relevant starters in play.`;
+  if (m.label === "TRAP GAME")
+    return `Trap spot — talent gap on paper, manage exposure on both sides.`;
+  if (comp >= 70 && stars >= 50)
+    return `Marquee tilt: elite star power on both ends in a near-even matchup.`;
+  if (comp >= 70)
+    return `Pace and parity — one of the night's most balanced matchups.`;
+  if (stars >= 60)
+    return `Star-driven game with ${rel} fantasy-relevant producers in play.`;
+  if (rel >= 3)
+    return `Roster-dense game — ${rel} fantasy starters affect lineups tonight.`;
+  return `Solid slate game — watch tipoff minutes for fantasy edges.`;
+}
+
+/** Single-line storyline for the Outstanding Game slide. */
+function buildOutstandingStoryline(g: RecapGame): string {
+  const tp = g.topPerformer;
+  const tight = g.margin <= 5;
+  const total = g.home_pts + g.away_pts;
+  const high = total >= 230;
+  if (tp && tight && high)
+    return `${tp.name} (${tp.fp.toFixed(1)} FP) headlines a ${g.home_pts}-${g.away_pts} thriller — drama, ceiling and points.`;
+  if (tight)
+    return `Coin flip decided by ${g.margin} — ${g.winner} edges it ${Math.max(g.home_pts, g.away_pts)}-${Math.min(g.home_pts, g.away_pts)}.`;
+  if (tp && high)
+    return `${tp.name} drops ${tp.fp.toFixed(1)} FP in a ${total}-point shootout.`;
+  if (tp)
+    return `${tp.name} powers ${g.winner} with ${tp.fp.toFixed(1)} FP — the night's marquee tilt.`;
+  return `${g.winner} closes it out — the night's marquee tilt.`;
 }
