@@ -810,35 +810,67 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
 
         {slide.payload.kind === "matchups" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {slide.payload.data.map((g, i) => (
-              <motion.button
-                key={g.game_id}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.05 * i }}
-                onClick={() => onGameClick(g)}
-                className="group text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-all"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <TeamBadge tricode={g.away_team} size={56} onClick={() => onTeamClick(g.away_team)} />
-                  <div className="flex flex-col items-center">
-                    <span className="px-2 py-0.5 rounded-md bg-amber-400 text-black text-[10px] font-heading font-black tracking-wider">VS</span>
-                    {g.tipoff_utc && (
-                      <span className="text-[10px] text-white/50 mt-1 font-mono">{format(new Date(g.tipoff_utc), "HH:mm")}</span>
-                    )}
+            {slide.payload.data.map((g, i) => {
+              const awayLogo = getTeamLogo(g.away_team);
+              const homeLogo = getTeamLogo(g.home_team);
+              return (
+                <motion.button
+                  key={g.game_id}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.05 * i }}
+                  onClick={() => onGameClick(g)}
+                  className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-all"
+                >
+                  {awayLogo && (
+                    <img
+                      src={awayLogo}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute -left-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                    />
+                  )}
+                  {homeLogo && (
+                    <img
+                      src={homeLogo}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute -right-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                    />
+                  )}
+                  <div className="relative flex items-center justify-between gap-3">
+                    <span
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
+                      className="font-heading font-black text-lg tracking-wider text-white hover:text-amber-300 transition-colors"
+                    >
+                      {g.away_team}
+                    </span>
+                    <div className="flex flex-col items-center">
+                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-black text-[10px] font-heading font-black tracking-wider">VS</span>
+                      {g.tipoff_utc && (
+                        <span className="text-[10px] text-white/50 mt-1 font-mono">{format(new Date(g.tipoff_utc), "HH:mm")}</span>
+                      )}
+                    </div>
+                    <span
+                      role="button"
+                      onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
+                      className="font-heading font-black text-lg tracking-wider text-white hover:text-amber-300 transition-colors"
+                    >
+                      {g.home_team}
+                    </span>
                   </div>
-                  <TeamBadge tricode={g.home_team} size={56} onClick={() => onTeamClick(g.home_team)} />
-                </div>
-                <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
-                  {g.label && <StoryBadge label={g.label} />}
-                </div>
-                {g.story && (
-                  <p className="mt-3 text-[12px] text-white/75 leading-snug text-center">
-                    {g.story}
-                  </p>
-                )}
-              </motion.button>
-            ))}
+                  <div className="relative mt-3 flex items-center justify-center gap-2 flex-wrap">
+                    {g.label && <StoryBadge label={g.label} />}
+                  </div>
+                  {g.story && (
+                    <p className="relative mt-3 text-[12px] text-white/75 leading-snug text-center">
+                      {g.story}
+                    </p>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
         )}
 
