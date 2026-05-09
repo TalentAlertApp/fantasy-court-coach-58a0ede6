@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Target, TrendingUp, Shield } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
