@@ -251,7 +251,7 @@ function RecapCard({
           src={awayLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -left-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+          className="pointer-events-none absolute -left-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
         />
       )}
       {homeLogo && (
@@ -259,7 +259,7 @@ function RecapCard({
           src={homeLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute -right-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+          className="pointer-events-none absolute -right-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
         />
       )}
       <div className="relative flex items-center justify-between gap-2 mb-2">
