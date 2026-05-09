@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
@@ -39,11 +39,13 @@ import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
+import { playSfx } from "@/hooks/useSfx";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
 function useCountdown(deadlineUtc: string | null) {
   const [now, setNow] = useState(() => Date.now());
+  const firedRef = useRef<{ deadline: string | null; thresholds: Set<number> }>({ deadline: null, thresholds: new Set() });
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
@@ -51,6 +53,15 @@ function useCountdown(deadlineUtc: string | null) {
 
   if (!deadlineUtc) return null;
   const diff = new Date(deadlineUtc).getTime() - now;
+  // Reset fired thresholds when deadline changes
+  if (firedRef.current.deadline !== deadlineUtc) {
+    firedRef.current = { deadline: deadlineUtc, thresholds: new Set() };
+  }
+  // Buzzer cues at 5min, 1min, and 0
+  const fired = firedRef.current.thresholds;
+  if (diff <= 0 && !fired.has(0)) { fired.add(0); playSfx("buzzer"); }
+  else if (diff > 0 && diff <= 60_000 && !fired.has(60)) { fired.add(60); playSfx("buzzer"); }
+  else if (diff > 60_000 && diff <= 300_000 && !fired.has(300)) { fired.add(300); playSfx("buzzer"); }
   if (diff <= 0) return "LOCKED";
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
