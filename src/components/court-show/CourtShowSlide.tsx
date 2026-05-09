@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Target, TrendingUp, Shield } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
@@ -368,6 +368,50 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             ))}
           </div>
         )}
+
+        {slide.payload.kind === "ballersiq" && (() => {
+          const d = slide.payload.data;
+          const ICONS = { flame: Flame, target: Target, trend: TrendingUp, shield: Shield } as const;
+          return (
+            <div className="relative h-full flex flex-col">
+              {/* oversized BIQ emblem watermark */}
+              <div className="pointer-events-none absolute -bottom-10 -right-10 opacity-[0.08]">
+                <BallersIQBrand variant="emblem" size="lg" forceTheme="dark" />
+              </div>
+              <div className="relative flex items-center gap-3 mb-4">
+                <BallersIQBrand variant="wordmark" size="md" forceTheme="dark" />
+                <span className="text-[10px] uppercase tracking-[0.3em] text-amber-400 font-heading font-bold">
+                  {d.mode === "recap" ? "Recap" : "Matchups"} · GW {d.gw}.{d.day}
+                </span>
+              </div>
+              <h3 className="relative font-heading font-black text-xl md:text-2xl text-white mb-4 tracking-tight">
+                {d.headline}
+              </h3>
+              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
+                {d.bullets.map((b, i) => {
+                  const Ico = b.icon ? ICONS[b.icon] : Target;
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.08 * i }}
+                      className="rounded-xl border border-amber-400/25 bg-gradient-to-br from-amber-400/[0.06] to-transparent p-4"
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Ico className="h-3.5 w-3.5 text-amber-400" />
+                        <span className="font-heading font-black text-[11px] uppercase tracking-wider text-white">
+                          {b.title}
+                        </span>
+                      </div>
+                      <p className="text-[12px] text-white/70 leading-snug">{b.body}</p>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {slide.payload.kind === "captain" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">

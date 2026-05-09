@@ -107,6 +107,15 @@
     @apply flex h-screen w-screen overflow-hidden bg-background text-foreground;
   }
 
+  /* Court Show fullscreen — make the stage fill the entire screen when fullscreened
+     (Radix Dialog otherwise caps it at max-h:85vh). */
+  .court-show-stage:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    background: #000;
+  }
+
   .sidebar {
     display: flex;
     flex-direction: column;

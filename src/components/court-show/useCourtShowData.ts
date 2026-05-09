@@ -322,15 +322,6 @@ export function useCourtShowData(gw: number, day: number) {
       .slice(0, 3)
       .map((c) => ({ ...c, label: captainLabel(c) }));
 
-    if (captains.length) {
-      slides.push({
-        kind: "captain",
-        title: "Captain Radar",
-        subtitle: "Elite, safe and matchup-ready 2× plays",
-        payload: { kind: "captain", data: captains },
-      });
-    }
-
     // ── Ballers.IQ Gamenight Intelligence ─────────────────────────────
     const isRecapMode = recap.length > 0;
     const biqMode: "recap" | "matchup" = isRecapMode ? "recap" : (matchups.length ? "matchup" : "recap");
@@ -398,6 +389,16 @@ export function useCourtShowData(gw: number, day: number) {
             keyMatchup: matchups[0] ?? null,
           },
         },
+      });
+    }
+
+    // Captain Radar comes AFTER Ballers.IQ so the show finishes with the actionable pick.
+    if (captains.length) {
+      slides.push({
+        kind: "captain",
+        title: "Captain Radar",
+        subtitle: "Elite, safe and matchup-ready 2× plays",
+        payload: { kind: "captain", data: captains },
       });
     }
 
