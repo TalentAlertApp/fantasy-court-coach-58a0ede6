@@ -23,6 +23,7 @@ import TeamCompareModal from "@/components/TeamCompareModal";
 import { fetchGameBoxscore, fetchPlayers } from "@/lib/api";
 import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 import { pickGameLeader, pickWatchLeader } from "@/lib/game-blurbs";
+import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
