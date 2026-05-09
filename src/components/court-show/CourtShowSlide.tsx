@@ -313,7 +313,8 @@ function OutstandingSlide({
     ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1`
     : null;
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full content-start">
+    <div className="h-full flex items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
       {/* Left: header + top-10 table */}
       <div className="lg:col-span-5 flex flex-col rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 min-h-0">
         <button
@@ -334,16 +335,16 @@ function OutstandingSlide({
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
               <col />
-              <col className="w-[42px]" />
-              <col className="w-[42px]" />
-              <col className="w-[42px]" />
-              <col className="w-[42px]" />
-              <col className="w-[50px]" />
+              <col className="w-[38px]" />
+              <col className="w-[34px]" />
+              <col className="w-[34px]" />
+              <col className="w-[34px]" />
+              <col className="w-[44px]" />
             </colgroup>
             <thead className="text-white/40 uppercase tracking-wider text-[9px]">
               <tr>
                 <th className="text-left font-heading font-black py-1">Player</th>
-                <th className="text-right font-mono py-1 pl-2">MIN</th>
+                <th className="text-right font-mono py-1">MIN</th>
                 <th className="text-right font-mono py-1">PTS</th>
                 <th className="text-right font-mono py-1">REB</th>
                 <th className="text-right font-mono py-1">AST</th>
@@ -358,15 +359,15 @@ function OutstandingSlide({
                   className="border-t border-white/5 hover:bg-white/5 cursor-pointer"
                 >
                   <td className="py-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1">
                       {r.photo ? (
-                        <img src={r.photo} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
-                      ) : <span className="h-6 w-6 rounded-full bg-white/10 shrink-0" />}
-                      <span className="font-heading font-black text-white truncate min-w-0">{r.name}</span>
+                        <img src={r.photo} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      ) : <span className="h-5 w-5 rounded-full bg-white/10 shrink-0" />}
+                      <span className="font-heading font-black text-white whitespace-nowrap">{r.name}</span>
                       <span className="text-white/40 text-[9px] ml-1 shrink-0">{r.team}</span>
                     </div>
                   </td>
-                  <td className="text-right font-mono text-white/70 pl-2">{r.mp ?? 0}</td>
+                  <td className="text-right font-mono text-white/70">{r.mp ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.pts ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.reb ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.ast ?? 0}</td>
@@ -409,6 +410,7 @@ function OutstandingSlide({
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
