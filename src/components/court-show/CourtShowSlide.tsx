@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
-import { useLeague } from "@/contexts/LeagueContext";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
