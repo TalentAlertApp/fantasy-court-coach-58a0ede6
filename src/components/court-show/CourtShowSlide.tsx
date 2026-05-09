@@ -228,9 +228,9 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             </div>
             {/* Sponsor sting — premium 3D rotating Ballers.IQ badge */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.0, duration: 0.7, ease: [0.22, 0.9, 0.3, 1] }}
+              initial={{ opacity: 0, y: 12, scale: 0.97, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              transition={{ delay: 1.1, duration: 1.1, ease: [0.22, 0.61, 0.36, 1] }}
               className="mt-6 flex flex-col items-center gap-2"
             >
               <span className="text-[9px] md:text-[10px] font-heading font-bold uppercase tracking-[0.42em] text-white/45">
