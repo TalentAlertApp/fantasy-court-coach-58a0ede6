@@ -149,7 +149,6 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
 }
 
 export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
-  const { league } = useLeague();
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
     (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
