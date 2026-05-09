@@ -875,9 +875,15 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           );
         })()}
 
-        {slide.payload.kind === "captain" && (
-          (() => null)()
+        {slide.payload.kind === "outstanding" && (
+          <OutstandingSlide
+            payload={slide.payload.data}
+            onPlayerClick={onPlayerClick}
+            onTeamClick={onTeamClick}
+            onGameClick={onGameClick}
+          />
         )}
+
         {slide.payload.kind === "captain" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
             {slide.payload.data.map((p, i) => (
