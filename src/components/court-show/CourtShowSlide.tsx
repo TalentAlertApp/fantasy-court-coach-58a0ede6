@@ -149,6 +149,190 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
   );
 }
 
+/** Inline team logo + tricode used inside Ballers.IQ cards.
+ *  No container; surge on hover. Logo position is configurable so callers
+ *  can render `[logo] AWY` for the away side and `HOM [logo]` for the home side. */
+function InlineTeamMark({
+  tri,
+  side,
+  onClick,
+}: {
+  tri: string;
+  side: "left" | "right";
+  onClick?: (tri: string) => void;
+}) {
+  const logo = getTeamLogo(tri);
+  const order = side === "left" ? "flex-row" : "flex-row-reverse";
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick?.(tri); }}
+      className={cn("group/team inline-flex items-center gap-2", order)}
+      aria-label={tri}
+    >
+      {logo ? (
+        <img
+          src={logo}
+          alt=""
+          className="h-7 w-7 object-contain transition-all duration-200 group-hover/team:scale-125 group-hover/team:drop-shadow-[0_0_10px_rgba(251,191,36,0.55)]"
+        />
+      ) : (
+        <span className="h-7 w-7 rounded-full bg-white/10" />
+      )}
+      <span className="font-heading font-black text-sm tracking-wider text-white/90 group-hover/team:text-amber-300 transition-colors">
+        {tri}
+      </span>
+    </button>
+  );
+}
+
+function BiqPlayedCard({
+  g,
+  onGameClick,
+  onTeamClick,
+  onPlayerClick,
+}: {
+  g: RecapGame;
+  onGameClick: () => void;
+  onTeamClick: (tri: string) => void;
+  onPlayerClick: (id: number) => void;
+}) {
+  const awayWon = g.winner === g.away_team;
+  const tp = g.topPerformer;
+  return (
+    <button
+      onClick={onGameClick}
+      className="group relative w-full text-left rounded-xl border border-amber-400/25 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-white/[0.01] p-4 overflow-hidden transition-all hover:border-amber-400/55 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.35)]"
+    >
+      {/* sheen sweep */}
+      <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
+      <div className="relative flex items-center justify-between gap-2 mb-3">
+        <span className="text-[9px] uppercase tracking-[0.32em] font-heading font-black text-emerald-300/80">FINAL · margin {g.margin}</span>
+        {g.game_recap_url && (
+          <a
+            href={g.game_recap_url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[10px] text-white/50 hover:text-amber-300"
+          >
+            Recap <ExternalLink className="h-2.5 w-2.5" />
+          </a>
+        )}
+      </div>
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <InlineTeamMark tri={g.away_team} side="left" onClick={onTeamClick} />
+          <span className={cn("font-mono font-black text-2xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
+        </div>
+        <span className="text-white/30 font-heading text-xs">—</span>
+        <div className="flex items-center gap-2">
+          <span className={cn("font-mono font-black text-2xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
+          <InlineTeamMark tri={g.home_team} side="right" onClick={onTeamClick} />
+        </div>
+      </div>
+      {tp && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPlayerClick(tp.player_id); }}
+          className="relative mt-3 flex items-center gap-3 w-full rounded-lg bg-black/30 border border-white/5 px-3 py-2 text-left hover:border-amber-400/40 hover:bg-black/40 transition-colors"
+        >
+          {tp.photo ? (
+            <img src={tp.photo} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-amber-400/40" />
+          ) : (
+            <div className="h-9 w-9 rounded-full bg-white/10" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Flame className="h-3 w-3 text-amber-400" />
+              <span className="font-heading font-black text-[12px] text-white truncate">{tp.name}</span>
+              <span className="ml-auto font-mono font-bold text-[12px] text-amber-300">{tp.fp.toFixed(1)} FP</span>
+            </div>
+            <p className="text-[10px] text-white/55 mt-0.5">
+              {(tp.pts ?? 0)} PTS · {(tp.reb ?? 0)} REB · {(tp.ast ?? 0)} AST · {(tp.stl ?? 0)} STL · {(tp.blk ?? 0)} BLK
+            </p>
+          </div>
+        </button>
+      )}
+    </button>
+  );
+}
+
+function BiqScheduledCard({
+  g,
+  onGameClick,
+  onTeamClick,
+  onPlayerClick,
+}: {
+  g: MatchupGame;
+  onGameClick: () => void;
+  onTeamClick: (tri: string) => void;
+  onPlayerClick: (id: number) => void;
+}) {
+  const sp = g.starPlayer ?? null;
+  return (
+    <button
+      onClick={onGameClick}
+      className="group relative w-full text-left rounded-xl border border-sky-400/25 bg-gradient-to-br from-sky-400/[0.06] via-white/[0.03] to-white/[0.01] p-4 overflow-hidden transition-all hover:border-amber-400/55 hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(56,189,248,0.35)]"
+    >
+      <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
+      <div className="relative flex items-center justify-between gap-2 mb-3">
+        <span className="text-[9px] uppercase tracking-[0.32em] font-heading font-black text-sky-300/80">
+          {g.tipoff_utc ? format(new Date(g.tipoff_utc), "EEE · HH:mm") : "Scheduled"}
+        </span>
+        {g.label && <StoryBadge label={g.label} />}
+      </div>
+      <div className="relative flex items-center justify-between gap-3">
+        <InlineTeamMark tri={g.away_team} side="left" onClick={onTeamClick} />
+        <span className="px-2 py-0.5 rounded-md bg-amber-400/90 text-black text-[10px] font-heading font-black tracking-wider">VS</span>
+        <InlineTeamMark tri={g.home_team} side="right" onClick={onTeamClick} />
+      </div>
+      {g.story && (
+        <p className="relative mt-3 text-[12px] text-white/75 leading-snug">
+          {g.story}
+        </p>
+      )}
+      <div className="relative mt-2 flex items-center gap-2 flex-wrap text-[10px]">
+        {g.competitiveScore > 0 && (
+          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/65">
+            Competitive {g.competitiveScore}
+          </span>
+        )}
+        {g.starPower > 0 && (
+          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/65">
+            Star {g.starPower}
+          </span>
+        )}
+        {g.rosterRelevant > 0 && (
+          <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/65">
+            {g.rosterRelevant} fantasy-rel.
+          </span>
+        )}
+      </div>
+      {sp && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onPlayerClick(sp.player_id); }}
+          className="relative mt-3 flex items-center gap-3 w-full rounded-lg bg-black/30 border border-white/5 px-3 py-2 text-left hover:border-amber-400/40 hover:bg-black/40 transition-colors"
+        >
+          {sp.photo ? (
+            <img src={sp.photo} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-sky-400/40" />
+          ) : (
+            <div className="h-9 w-9 rounded-full bg-white/10" />
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Star className="h-3 w-3 text-sky-300 fill-sky-300" />
+              <span className="font-heading font-black text-[12px] text-white truncate">{sp.name}</span>
+              <span className="ml-auto text-[10px] text-white/40 uppercase tracking-wider">{sp.team}</span>
+            </div>
+            <p className="text-[10px] text-white/55 mt-0.5">
+              Season: {(sp.season_pts ?? 0).toFixed(1)} PTS · {(sp.season_reb ?? 0).toFixed(1)} REB · {(sp.season_ast ?? 0).toFixed(1)} AST · {(sp.season_fp ?? 0).toFixed(1)} FP{sp.gp ? ` (${sp.gp}G)` : ""}
+            </p>
+          </div>
+        </button>
+      )}
+    </button>
+  );
+}
+
 export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
