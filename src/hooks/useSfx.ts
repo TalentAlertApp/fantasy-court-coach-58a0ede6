@@ -1,14 +1,14 @@
 import { useCallback } from "react";
 import swooshUrl from "@/assets/audio/swoosh.wav";
 import lineupUrl from "@/assets/audio/lineup.wav";
-import buzzerUrl from "@/assets/audio/buzzer.wav";
 
 export type SfxKind = "swoosh" | "lineup" | "buzzer";
 
 const URLS: Record<SfxKind, string> = {
   swoosh: swooshUrl,
   lineup: lineupUrl,
-  buzzer: buzzerUrl,
+  // buzzer cue removed per product decision; kept type for backwards compat (no-op).
+  buzzer: "",
 };
 
 const MUTE_KEY = "sfx.muted";
@@ -33,6 +33,7 @@ function get(kind: SfxKind): HTMLAudioElement | null {
 
 export function playSfx(kind: SfxKind) {
   if (isMuted()) return;
+  if (!URLS[kind]) return;
   const base = get(kind);
   if (!base) return;
   try {
