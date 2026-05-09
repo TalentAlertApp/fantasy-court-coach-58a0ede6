@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import bedUrl from "@/assets/court-show-bed.mp3";
 
 const STORAGE_KEY = "courtshow.audio.enabled";
-const VO_URL = "/audio/FantasyCourt_BallersIQ-MALE.mp3";
+const VO_MALE_URL = "/audio/FantasyCourt_BallersIQ-MALE.mp3";
+const VO_FEMALE_URL = "/audio/FantasyCourt_BallersIQ-FEMALE.mp3";
 
 function readPref(): boolean {
   if (typeof window === "undefined") return true;
@@ -15,10 +16,11 @@ function readPref(): boolean {
  * Properly tears down the <audio> element + listeners whenever
  * the modal closes (active=false) or the component unmounts.
  */
-export function useCourtShowAudio(active: boolean) {
+export function useCourtShowAudio(active: boolean, isWnba: boolean = false) {
   const [enabled, setEnabled] = useState<boolean>(readPref);
   const voRef = useRef<HTMLAudioElement | null>(null);
   const voPlayedRef = useRef(false);
+  const voUrl = isWnba ? VO_FEMALE_URL : VO_MALE_URL;
 
   // Reset one-shot flag whenever the modal re-opens, and tear down VO on close/mute.
   useEffect(() => {
@@ -31,6 +33,16 @@ export function useCourtShowAudio(active: boolean) {
       voRef.current = null;
     }
   }, [active]);
+
+  // Reset VO when league (voice) changes mid-session.
+  useEffect(() => {
+    voPlayedRef.current = false;
+    const a = voRef.current;
+    if (a) {
+      try { a.pause(); a.currentTime = 0; } catch {}
+    }
+    voRef.current = null;
+  }, [voUrl]);
 
   useEffect(() => {
     if (!enabled) {
@@ -94,7 +106,7 @@ export function useCourtShowAudio(active: boolean) {
     if (!enabled) return;
     if (voPlayedRef.current) return;
     if (!voRef.current) {
-      const a = new Audio(VO_URL);
+      const a = new Audio(voUrl);
       a.preload = "auto";
       a.volume = 0.9;
       voRef.current = a;
@@ -108,7 +120,7 @@ export function useCourtShowAudio(active: boolean) {
       .catch(() => {
         // Autoplay blocked — leave flag false so a user-initiated play retries.
       });
-  }, [enabled]);
+  }, [enabled, voUrl]);
 
   const toggle = useCallback(() => {
     setEnabled((prev) => {
