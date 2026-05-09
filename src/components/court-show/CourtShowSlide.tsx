@@ -238,12 +238,31 @@ function RecapCard({
   onPlayerClick: (id: number) => void;
 }) {
   const awayWon = g.winner === g.away_team;
+  const awayLogo = getTeamLogo(g.away_team);
+  const homeLogo = getTeamLogo(g.home_team);
   return (
     <button
       onClick={onGameClick}
-      className="group text-left rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-4 hover:border-amber-400/40 transition-all hover:-translate-y-0.5"
+      className="group relative overflow-hidden text-left rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-4 hover:border-amber-400/40 transition-all hover:-translate-y-0.5"
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
+      {/* Oversized team-logo watermarks (sidebar-style) */}
+      {awayLogo && (
+        <img
+          src={awayLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -left-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+        />
+      )}
+      {homeLogo && (
+        <img
+          src={homeLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+        />
+      )}
+      <div className="relative flex items-center justify-between gap-2 mb-2">
         <span className="text-[9px] uppercase tracking-[0.28em] text-emerald-300/80 font-heading font-black">FINAL</span>
         {g.game_recap_url && (
           <a
@@ -257,19 +276,19 @@ function RecapCard({
           </a>
         )}
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <InlineTeamMark tri={g.away_team} side="left" />
-          <span className={cn("font-mono font-black text-xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className={cn("font-heading font-black text-sm tracking-wider", awayWon ? "text-white" : "text-white/55")}>{g.away_team}</span>
+          <span className={cn("font-mono font-black text-2xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
         </div>
         <span className="text-white/30 text-xs">—</span>
-        <div className="flex items-center gap-2">
-          <span className={cn("font-mono font-black text-xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
-          <InlineTeamMark tri={g.home_team} side="right" />
+        <div className="flex items-baseline gap-2">
+          <span className={cn("font-mono font-black text-2xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
+          <span className={cn("font-heading font-black text-sm tracking-wider", !awayWon ? "text-white" : "text-white/55")}>{g.home_team}</span>
         </div>
       </div>
       {g.topPerformer && (
-        <div className="mt-3">
+        <div className="relative mt-3">
           <TopPerformerBlock tp={g.topPerformer} onPlayerClick={onPlayerClick} />
         </div>
       )}
