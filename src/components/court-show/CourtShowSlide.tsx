@@ -869,7 +869,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               </h3>
               <div className="relative h-px w-24 bg-gradient-to-r from-amber-400 to-transparent mb-5" />
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-3 content-start">
+              <div className="relative grid grid-cols-1 md:grid-cols-2 grid-rows-2 auto-rows-fr gap-3">
                 {cards.length === 0 && (
                   <>
                     {[0, 1, 2, 3].map((i) => (
@@ -887,6 +887,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 {cards.slice(0, 4).map((c, i) => (
                   <motion.div
                     key={i}
+                    className="h-full"
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 * i, duration: 0.5, ease: [0.22, 0.9, 0.3, 1] }}
