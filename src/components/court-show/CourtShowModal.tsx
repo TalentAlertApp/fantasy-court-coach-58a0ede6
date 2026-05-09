@@ -109,6 +109,22 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
 
   const current = slides[index];
 
+  // Sponsor sting voiceover — fire once per open, only on the intro slide.
+  useEffect(() => {
+    if (!open || !current) return;
+    if (current.payload.kind !== "intro") return;
+    const t = setTimeout(() => audio.playIntroVO(), 300);
+    return () => clearTimeout(t);
+  }, [open, current, audio]);
+
+  const togglePlaying = () => {
+    setPlaying((p) => {
+      const next = !p;
+      if (next && current?.payload.kind === "intro") audio.playIntroVO();
+      return next;
+    });
+  };
+
   const handleGameClick = (g: RecapGame | MatchupGame) => {
     const full = games.find((x: any) => x.game_id === g.game_id);
     if (full) {
@@ -217,7 +233,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setPlaying((p) => !p)}
+                onClick={togglePlaying}
                 className="p-2 rounded-full bg-amber-400 text-black hover:bg-amber-300 transition-colors"
                 aria-label={playing ? "Pause" : "Play"}
               >

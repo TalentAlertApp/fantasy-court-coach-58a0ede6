@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import bedUrl from "@/assets/court-show-bed.mp3";
 
 const STORAGE_KEY = "courtshow.audio.enabled";
+const VO_URL = "/audio/FantasyCourt_BallersIQ-MALE.mp3";
 
 function readPref(): boolean {
   if (typeof window === "undefined") return true;
@@ -16,6 +17,29 @@ function readPref(): boolean {
  */
 export function useCourtShowAudio(active: boolean) {
   const [enabled, setEnabled] = useState<boolean>(readPref);
+  const voRef = useRef<HTMLAudioElement | null>(null);
+  const voPlayedRef = useRef(false);
+
+  // Reset one-shot flag whenever the modal re-opens, and tear down VO on close/mute.
+  useEffect(() => {
+    if (!active) {
+      voPlayedRef.current = false;
+      const a = voRef.current;
+      if (a) {
+        try { a.pause(); a.currentTime = 0; } catch {}
+      }
+      voRef.current = null;
+    }
+  }, [active]);
+
+  useEffect(() => {
+    if (!enabled) {
+      const a = voRef.current;
+      if (a) {
+        try { a.pause(); a.currentTime = 0; } catch {}
+      }
+    }
+  }, [enabled]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,6 +89,27 @@ export function useCourtShowAudio(active: boolean) {
     // No-op: bed loops continuously; no per-slide cue.
   }, []);
 
+  const playIntroVO = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!enabled) return;
+    if (voPlayedRef.current) return;
+    if (!voRef.current) {
+      const a = new Audio(VO_URL);
+      a.preload = "auto";
+      a.volume = 0.9;
+      voRef.current = a;
+    }
+    const node = voRef.current!;
+    node
+      .play()
+      .then(() => {
+        voPlayedRef.current = true;
+      })
+      .catch(() => {
+        // Autoplay blocked — leave flag false so a user-initiated play retries.
+      });
+  }, [enabled]);
+
   const toggle = useCallback(() => {
     setEnabled((prev) => {
       const next = !prev;
@@ -73,5 +118,5 @@ export function useCourtShowAudio(active: boolean) {
     });
   }, []);
 
-  return { enabled, toggle, onSlideChange };
+  return { enabled, toggle, onSlideChange, playIntroVO };
 }

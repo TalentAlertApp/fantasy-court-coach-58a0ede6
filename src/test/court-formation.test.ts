@@ -46,3 +46,32 @@ describe("getCourtFormation — TOTW mirrors Starting 5 court", () => {
     ]);
   });
 });
+
+describe("getRowPositions — snapshot of Starting 5 coordinates", () => {
+  it("3 FC at top row 28%", () => {
+    expect(getRowPositions(3, "28%")).toEqual([
+      { top: "28%", left: "20%" },
+      { top: "28%", left: "50%" },
+      { top: "28%", left: "80%" },
+    ]);
+  });
+  it("2 BC at bottom row 72%", () => {
+    expect(getRowPositions(2, "72%")).toEqual([
+      { top: "72%", left: "33%" },
+      { top: "72%", left: "67%" },
+    ]);
+  });
+  it("2 FC at top row 28%", () => {
+    expect(getRowPositions(2, "28%")).toEqual([
+      { top: "28%", left: "33%" },
+      { top: "28%", left: "67%" },
+    ]);
+  });
+  it("3 BC at bottom row 72%", () => {
+    expect(getRowPositions(3, "72%")).toEqual([
+      { top: "72%", left: "20%" },
+      { top: "72%", left: "50%" },
+      { top: "72%", left: "80%" },
+    ]);
+  });
+});

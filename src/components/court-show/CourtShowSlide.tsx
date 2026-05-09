@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import { useLeague } from "@/contexts/LeagueContext";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
@@ -149,6 +150,11 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
 }
 
 export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
+  const { league } = useLeague();
+  const sponsorLogo =
+    league === "wnba"
+      ? "/brand/sponsor-ballers-iq-wnba.png"
+      : "/brand/sponsor-ballers-iq-nba.png";
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
     (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
@@ -203,10 +209,15 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
       <div className="relative z-[1] flex-1 min-h-0 overflow-y-auto px-8 pb-8">
         {slide.payload.kind === "intro" && (
           <div className="h-full flex flex-col items-center justify-center text-center gap-4">
-            <div className="font-heading font-black text-6xl md:text-8xl text-white tracking-tight">
+            <motion.div
+              initial={{ scale: 0.98 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.8, duration: 0.5, ease: "easeOut" }}
+              className="font-heading font-black text-6xl md:text-8xl text-white tracking-tight"
+            >
               GW {slide.payload.data.gw}
               <span className="text-amber-400">.{slide.payload.data.day}</span>
-            </div>
+            </motion.div>
             <p className="text-base md:text-lg text-white/80 font-heading uppercase tracking-widest">{slide.payload.data.dateLabel}</p>
             <div className="flex items-center gap-6 mt-3">
               <div className="text-center">
@@ -220,6 +231,38 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 </div>
               )}
             </div>
+            {/* Sponsor sting — league-aware Ballers.IQ logo */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 0.95, y: 0 }}
+              transition={{ delay: 1.2, duration: 0.6, ease: "easeOut" }}
+              className="relative mt-4 inline-block overflow-hidden rounded-xl"
+              style={{ width: "clamp(280px, 38vw, 520px)" }}
+            >
+              <div
+                aria-hidden
+                className="absolute inset-0 -z-10 blur-2xl"
+                style={{
+                  background:
+                    "radial-gradient(ellipse at center, rgba(245,200,80,0.18), rgba(40,90,180,0.12) 45%, transparent 70%)",
+                }}
+              />
+              <img
+                src={sponsorLogo}
+                alt=""
+                aria-hidden
+                draggable={false}
+                className="block w-full h-auto object-contain select-none pointer-events-none"
+              />
+              <motion.div
+                aria-hidden
+                initial={{ x: "-120%" }}
+                animate={{ x: "120%" }}
+                transition={{ delay: 1.8, duration: 0.9, ease: "easeInOut" }}
+                className="pointer-events-none absolute inset-y-0 -left-1/4 w-1/2 bg-gradient-to-r from-transparent via-white/35 to-transparent mix-blend-overlay"
+                style={{ transform: "skewX(-20deg)" }}
+              />
+            </motion.div>
           </div>
         )}
 
