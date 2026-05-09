@@ -13,7 +13,7 @@ import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDead
 import { useLeague } from "@/contexts/LeagueContext";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import { getRowPositions } from "@/lib/court-layout";
+import { getRowPositions, getCourtFormation } from "@/lib/court-layout";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -41,30 +41,10 @@ interface RosterCourtViewProps {
 }
 
 function getFormationPositions(starters: PlayerListItem[]) {
-  const fcs = starters.filter((p) => p.core.fc_bc === "FC");
-  const bcs = starters.filter((p) => p.core.fc_bc === "BC");
-
-  const fcPositions = getRowPositions(fcs.length, "28%");
-  const bcPositions = getRowPositions(bcs.length, "72%");
-
-  const positioned: { player: PlayerListItem; style: { top: string; left: string } }[] = [];
-
-  fcs.forEach((p, i) => {
-    if (i < fcPositions.length) positioned.push({ player: p, style: fcPositions[i] });
-  });
-  bcs.forEach((p, i) => {
-    if (i < bcPositions.length) positioned.push({ player: p, style: bcPositions[i] });
-  });
-
-  const usedIds = new Set(positioned.map((pp) => pp.player.core.id));
-  const remaining = starters.filter((p) => !usedIds.has(p.core.id));
-  const allSpots = [...fcPositions, ...bcPositions];
-  remaining.forEach((p, i) => {
-    const idx = positioned.length + i;
-    if (idx < allSpots.length) positioned.push({ player: p, style: allSpots[idx] });
-  });
-
-  return positioned;
+  return getCourtFormation(starters, (p) => p.core.fc_bc).map(({ item, style }) => ({
+    player: item,
+    style,
+  }));
 }
 
 export default function RosterCourtView({ starters, bench, captainId, onPlayerClick, onSwap, onSetCaptain, onDnDSwap, upcomingByTeam, onSlotClick, gameLogsByPlayer, sidebarProps }: RosterCourtViewProps) {
