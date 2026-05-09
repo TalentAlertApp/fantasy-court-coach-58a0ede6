@@ -382,7 +382,7 @@ export default function SchedulePage() {
         <div className="px-1 py-3 bg-background">
           <div className="relative flex items-center flex-wrap gap-y-2">
             {/* LEFT: date / deadline / grid */}
-            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 md:max-w-[calc(50%-220px)]">
               <h3 className="font-heading font-bold text-sm uppercase">{selectedDateLabel}</h3>
               <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-xl">Day {day}</span>
               {isToday && <Badge variant="destructive" className="text-[9px] rounded-xl px-1.5 py-0">TODAY</Badge>}
@@ -414,16 +414,14 @@ export default function SchedulePage() {
                   <LayoutGrid className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <span className="text-muted-foreground/40">·</span>
               <button
                 onClick={() => setInjuryOpen(true)}
-                className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                className="text-muted-foreground hover:text-destructive transition-colors p-1 ml-0.5"
                 title="Injury Report"
                 aria-label="Open injury report"
               >
                 <Bandage className="h-4 w-4" />
               </button>
-              <span className="text-muted-foreground/40">·</span>
               <button
                 onClick={() => navigate(`/schedule/grid?gw=${gw}`)}
                 className="text-muted-foreground hover:text-foreground transition-colors p-1"
