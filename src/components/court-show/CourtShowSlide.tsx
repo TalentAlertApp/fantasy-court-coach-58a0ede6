@@ -138,7 +138,7 @@ function AICardView({
   const hasGameTeams = !!(card.away_team && card.home_team);
   return (
     <div className={cn(
-      "group relative flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
+      "group relative h-full flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
       meta.ring, meta.glow,
     )}>
       <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
@@ -155,7 +155,7 @@ function AICardView({
         {card.headline}
       </p>
       <p className="relative text-[11px] text-white/70 leading-snug mt-1.5">{card.body}</p>
-      <div className="relative mt-2.5 flex items-center gap-3 flex-wrap">
+      <div className="relative mt-auto pt-2.5 flex items-center gap-3 flex-wrap">
         {hasGameTeams && (
           <div className="flex items-center gap-2">
             <InlineTeamMark tri={card.away_team!} side="left" onClick={onTeamClick} />
