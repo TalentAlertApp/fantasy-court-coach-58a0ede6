@@ -89,7 +89,12 @@ export default function AppLayout() {
           )}
           {!collapsed && (
             <>
-              <div className="flex flex-col leading-none truncate flex-1 relative z-10">
+              <NavLink
+                to="/"
+                end
+                aria-label="Go to My Roster (home)"
+                className="flex flex-col leading-none truncate flex-1 relative z-10 cursor-pointer rounded-md hover:bg-white/5 transition-colors -mx-1 px-1 py-0.5"
+              >
                 <span className="text-sm font-heading font-bold uppercase tracking-[0.22em] truncate"
                       style={{ color: "hsl(var(--sidebar-foreground))" }}>
                   Fantasy
@@ -98,7 +103,7 @@ export default function AppLayout() {
                       style={{ color: "hsl(var(--accent) / 0.85)" }}>
                   Manager
                 </span>
-              </div>
+              </NavLink>
               <HowToPlayModal iconClassName="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 shrink-0 relative z-10" />
             </>
           )}
