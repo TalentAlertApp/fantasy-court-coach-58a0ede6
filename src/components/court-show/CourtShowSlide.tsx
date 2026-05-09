@@ -202,7 +202,7 @@ function RecapCarousel({
   const start = page * PAGE;
   const slice = games.slice(start, start + PAGE);
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col">
       <AnimatePresence mode="wait">
         <motion.div
           key={page}
@@ -210,7 +210,7 @@ function RecapCarousel({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="grid grid-cols-1 md:grid-cols-2 auto-rows-fr gap-3 flex-1"
+          className="grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-3"
         >
           {slice.map((g) => (
             <RecapCard key={g.game_id} g={g} onGameClick={() => onGameClick(g)} onPlayerClick={onPlayerClick} />
