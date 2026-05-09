@@ -4,6 +4,7 @@ export type SlideKind =
   | "value"
   | "recap"
   | "matchups"
+  | "ballersiq"
   | "captain"
   | "outro";
 
@@ -96,12 +97,29 @@ export interface OutroPayload {
   keyGame?: RecapGame | MatchupGame | null;
 }
 
+export interface BallersIQSlideBullet {
+  title: string;
+  body: string;
+  icon?: "flame" | "target" | "trend" | "shield";
+}
+
+export interface BallersIQSlidePayload {
+  mode: "recap" | "matchup";
+  gw: number;
+  day: number;
+  headline: string;
+  bullets: BallersIQSlideBullet[];
+  topPerformer?: TopPerformer | null;
+  keyMatchup?: MatchupGame | null;
+}
+
 export type SlidePayload =
   | { kind: "intro"; data: IntroPayload }
   | { kind: "performances"; data: TopPerformer[] }
   | { kind: "value"; data: ValuePlay[] }
   | { kind: "recap"; data: RecapGame[] }
   | { kind: "matchups"; data: MatchupGame[] }
+  | { kind: "ballersiq"; data: BallersIQSlidePayload }
   | { kind: "captain"; data: CaptainPick[] }
   | { kind: "outro"; data: OutroPayload };
 
