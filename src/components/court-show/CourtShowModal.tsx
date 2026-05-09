@@ -217,8 +217,8 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                   <motion.div
                     key={`${i}-${index}-${playing}-${speed}`}
                     initial={{ width: i < index ? "100%" : "0%" }}
-                    animate={{ width: i < index ? "100%" : i === index ? (autoplayActive && !hover && !childModalOpen ? "100%" : "0%") : "0%" }}
-                    transition={{ duration: i === index && autoplayActive && !hover && !childModalOpen && SLIDE_MS > 0 ? SLIDE_MS / 1000 : 0, ease: "linear" }}
+                    animate={{ width: i < index ? "100%" : i === index ? (autoplayActive && !hover && !childModalOpen && !videoPlaying ? "100%" : "0%") : "0%" }}
+                    transition={{ duration: i === index && autoplayActive && !hover && !childModalOpen && !videoPlaying && SLIDE_MS > 0 ? SLIDE_MS / 1000 : 0, ease: "linear" }}
                     className="h-full bg-amber-400"
                   />
                 </div>
