@@ -665,7 +665,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
       {/* body */}
       <div className="relative z-[1] flex-1 min-h-0 overflow-y-auto px-8 pb-8">
         {slide.payload.kind === "intro" && (
-          <div className="h-full flex flex-col items-center justify-start text-center gap-3 pt-8">
+          <div className="h-full flex flex-col items-center justify-center text-center gap-3">
             <motion.div
               initial={{ scale: 0.98 }}
               animate={{ scale: 1 }}
@@ -692,7 +692,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               initial={{ opacity: 0, y: 12, scale: 0.97, filter: "blur(4px)" }}
               animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
               transition={{ delay: 1.1, duration: 1.1, ease: [0.22, 0.61, 0.36, 1] }}
-              className="mt-auto flex flex-col items-center gap-2 pb-4"
+              className="mt-6 flex flex-col items-center gap-3"
             >
               <span className="text-[9px] md:text-[10px] font-heading font-bold uppercase tracking-[0.42em] text-white/45">
                 Powered by
