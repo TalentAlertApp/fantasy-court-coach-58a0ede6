@@ -1,95 +1,68 @@
-## 1. SFX cues — wire the three audio files
+## Scope
 
-- Copy the three uploads into `src/assets/audio/`:
-  - `swoosh.wav` → captain set
-  - `lineup.wav` → lineup saved (whistle)
-  - `buzzer.wav` → deadline alert
-- Create `src/hooks/useSfx.ts` exporting a small singleton-cache helper:
-  - Imports the three assets via ES6 (so Vite hashes/bundles them).
-  - Exposes `play(kind: "swoosh" | "lineup" | "buzzer")`.
-  - Lazily constructs `HTMLAudioElement`s, sets `volume = 0.55`, clones on each call so rapid retriggers overlap cleanly.
-  - Honors a `localStorage` mute key `sfx.muted` (default off) so we can later add a UI toggle without refactor.
-- Wire from `src/pages/RosterPage.tsx`:
-  - `swoosh` inside the captain handler at line ~441 (`setCaptainId(playerId)` block).
-  - `lineup` inside `saveMutation`'s `onSuccess`.
-  - `buzzer` inside `useCountdown` — fire once when the remaining time crosses **5:00**, **1:00**, and at **0** (LOCKED). Track "already fired" thresholds in a `useRef<Set<number>>` keyed by deadline.
+Two surgical changes:
 
-## 2. Court Show modal
+1. **Ballers.IQ slide watermark** — league-aware corner brand image (NBA or WNBA) using the exact same overlay treatment as the team-badge watermark on the Played Games Recap slide.
+2. **Team of the Week positioning** — make it visually identical in structure to the `/MY ROSTER` Starting 5 court by reusing the same shared coordinate logic and giving the court enough room to render at the same scale.
 
-### a) Replace inline Ballers.IQ blurbs with a dedicated slide
-- Remove the `BallersIQInline` blocks rendered inside each game card in `CourtShowSlide.tsx` (recap + matchup sections).
-- Extend `SlideKind` in `src/components/court-show/types.ts` with `"ballersiq"` and add a `BallersIQSlidePayload`:
-  ```ts
-  { kind: "ballersiq"; data: {
-      mode: "recap" | "matchup";
-      gw: number; day: number;
-      headline: string;             // e.g. "GAMENIGHT INTELLIGENCE"
-      bullets: { title: string; body: string; icon?: "flame"|"target"|"trend"|"shield" }[];
-      topPerformer?: TopPerformer | null;
-      keyMatchup?: MatchupGame | null;
-  } }
-  ```
-- In `useCourtShowData.ts`, after the recap/matchups slides are built, push a single `ballersiq` slide:
-  - Recap day → 3–4 bullets distilled from existing `recapBlurb` outputs (top performer line, blowout/coin-flip count, biggest value pop reusing `value` slide data).
-  - Matchup day → 3–4 bullets from `matchupBlurb` (most competitive game, most roster-relevant, star power leader).
-  - Insertion order: **after** the `recap`/`matchups` slide, **before** the `captain` slide.
-- Add a render branch in `CourtShowSlide.tsx` for `kind === "ballersiq"` that mirrors the typography, header chrome, and `motion` cadence of the other slides:
-  - Title row uses `<BallersIQBrand variant="wordmark" forceTheme="dark" transparent />`, no surrounding container.
-  - One large `<BallersIQBrand variant="emblem" forceTheme="dark" transparent />` absolutely positioned at low opacity as the watermark (analogous to existing slide watermarks).
-  - Bullets in a 2-column grid, each card ghost-bordered, premium dark styling consistent with the rest of the show.
+No card redesign. No new positioning system.
 
-### b) Fix “can’t advance past slide 1 in fullscreen”
-The keyboard listener is bound to `window`, but Radix `<Dialog>` traps focus and pointer events to the dialog overlay; in fullscreen the overlay sits behind `document.fullscreenElement`, so footer button clicks can land on the wrong target and key events can be swallowed by the dialog root.
-- Move the `keydown` listener from `window` to `containerRef.current` (the fullscreened element) and refocus it (`tabIndex={-1}` + `el.focus()`) whenever fullscreen toggles.
-- Also bump the footer/topbar `z-index` to `z-[60]` and add `pointer-events-auto` so the Prev/Next buttons remain clickable inside `:fullscreen`.
-- Add `:fullscreen { background: black; }` style on the container so the layout is preserved.
+---
 
-## 3. Team of the Week — correct positions
+## 1) Ballers.IQ slide league watermark
 
-Goal: match the layout shown in the screenshot (3 FC across the top half, 2 BC on the bottom half, evenly spaced).
-- In `TeamOfTheWeekModal.tsx#getFormation`, after the FC/BC split, sort each group by `fp_avg` desc so the highest scorers anchor center / outside positions deterministically (current order is whatever Postgres returned).
-- Use `getRowPositions(fcs.length, "32%")` and `getRowPositions(bcs.length, "70%")` to push BC further down and FC slightly higher (the current 28/72 leaves the FC photos clipped against the top edge once the cinematic photo size is applied).
-- Cap the rendered group sizes at the standard 3 FC + 2 BC; if upstream returns more, slice after sort.
-- Keep the existing staggered Framer reveal — only the position math changes.
+Files:
+- Copy `user-uploads://NBA_BALLERSIQ.png` → `public/brand/ballers-iq-league-nba.png`
+- Copy `user-uploads://WNBA_BALLERSIQ.png` → `public/brand/ballers-iq-league-wnba.png`
+- Edit `src/components/court-show/CourtShowSlide.tsx`
 
-## 4. Auto-Pick proposal modal — wire player rows to PlayerModal
+Change:
+- Import `useLeague` from `@/contexts/LeagueContext`.
+- When `slide.payload.kind === "ballersiq"`, render an additional `<img>` watermark in the same place and with the same classes used today by the team-badge recap watermark:
 
-- In `src/components/AutoPickConfirmModal.tsx`:
-  - Accept a new prop `onPlayerClick: (id: number) => void`.
-  - Make `PlayerRow` clickable (the entire row + the avatar) calling `onPlayerClick(p.id)` with `cursor-pointer hover:bg-accent/30 rounded-md` styling.
-- In `RosterPage.tsx`, where `<AutoPickConfirmModal>` is rendered, pass `onPlayerClick={(id) => setOpenPlayerId(id)}` so the existing `PlayerModal` opens on top of the proposal modal (Radix dialogs stack natively).
+```
+className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.13] blur-md select-none"
+```
 
-## 5. /schedule expanded panel — reuse the premium boxscore table
+…with `src` resolved to `/brand/ballers-iq-league-nba.png` or `/brand/ballers-iq-league-wnba.png` based on `useLeague().league`. Suppress the existing team-tricode watermark for `ballersiq` slides (it is already null by virtue of the switch, since `ballersiq` is not in the `watermarkTri` chain — confirmed) so the league watermark stands alone.
 
-- Export the existing `GameBoxScoreTable` from `GameDetailModal.tsx` (rename the local function and add `export`), or extract it into `src/components/game/GameBoxScoreTable.tsx` and re-import it in `GameDetailModal.tsx`. Extracting is cleaner — do that.
-- Replace the legacy `GameBoxScore` JSX inside `src/components/ScheduleList.tsx` with a thin wrapper that:
-  - Lays out a 2-column grid `[1fr_640px]` so the right-side `<RecapCard>` is preserved.
-  - Renders the new shared `<GameBoxScoreTable game={...} />` on the left.
-  - Keeps the wrapper at `max-h-[360px]` with `overflow-y-auto` so the existing expanded-panel vertical height + scroll behavior is unchanged.
-- Drop the now-unused `SORT_COLUMNS` / `GameBoxScore` definitions from `ScheduleList.tsx`.
+No layout, header, or content changes to the BIQ slide otherwise.
 
-## 6. Scheduled Game modal — merge "Last 5" and "League Rankings" + wire L5 rows
+---
 
-In `GameDetailModal.tsx#ScheduledInsights`:
-- Remove the `<Tabs>` wrapper. Render Last 5 first, then League Rankings stacked underneath, separated by a thin divider with a small heading per section (`Form` / `League rankings`) using the existing `text-[9px] font-heading uppercase tracking-[0.22em]` style.
-- Convert each W/L pill into a button (keep visual as-is) that, when clicked, opens a nested `<GameDetailModal>` for that historical game. The `Last5Detail` already carries `game_id`, `homeTeam`, `awayTeam`, `homePts`, `awayPts`, and the action URLs — map straight into a `GameDetailGame` and set local state `historyGame`. Render `<GameDetailModal game={historyGame} ... />` at the end of the component (Radix supports modal-on-modal stacking).
-- No data-layer changes required.
+## 2) Team of the Week — mirror Starting 5 court exactly
+
+Root cause of the mismatch (already verified in code):
+- Both components already share `getRowPositions(count, "28%" | "72%")` via `src/lib/court-layout.ts` — the **coordinates are already shared**.
+- The visual mismatch comes from the **container**, not the coordinate system:
+  - TOTW modal uses `max-w-4xl` and the court uses `aspectRatio: 16/9`, producing a court that is too short for cards anchored at 28%/72%, so the bottom row visually clips and labels collide.
+  - TOTW slot wrapper is fixed `w-[22%]` while Starting 5 uses responsive `w-[26%] md:w-[24%] lg:w-[22%]`.
+
+Files:
+- `src/components/TeamOfTheWeekModal.tsx` (only file touched for this fix)
+
+Changes (no new positioning system; reuses the existing shared helper):
+
+a) Extract a tiny shared helper used by **both** Starting 5 and TOTW so the contract is explicit:
+- New export in `src/lib/court-layout.ts`: `getCourtFormation<T>(items, getFcBc, topFc="28%", topBc="72%")` returning `{ item, style }[]`. Refactor `RosterCourtView.getFormationPositions` and `TeamOfTheWeekModal.getFormation` to call it. Single source of truth, identical anchors, identical row tops, identical fallback behaviour.
+
+b) Match the Starting 5 court container so cards render at the same effective scale:
+- Replace `<DialogContent className="max-w-4xl">` with `max-w-6xl` (closer to Starting 5 court width on desktop).
+- Replace `aspectRatio: "16/9"` on the court div with `min-h-[640px] aspect-[16/10]` (taller envelope so 28%/72% rows have the same vertical breathing room as Starting 5; 16/10 mirrors the real Starting 5 area on common viewports while staying responsive).
+- Replace each player wrapper's fixed `w-[22%]` with the responsive `w-[26%] md:w-[24%] lg:w-[22%]` used by Starting 5.
+
+c) Keep `TOTWCard` visuals (photo sizes, badges, FP pill) untouched per the explicit "do NOT redesign cards" rule. Only the **positioning envelope** changes.
+
+Verification (visual checklist after change):
+- 3 FC + 2 BC: 3 evenly spread on top row (12/31/50/69/88 collapses to 20/50/80 for n=3), 2 on bottom row at 33/67 — identical to Starting 5.
+- 2 FC + 3 BC: mirrored — identical to Starting 5.
+- No clipping at modal edges; no label/photo overlap between rows.
+- Both NBA and WNBA renders identical.
+
+---
 
 ## Out of scope
-- No new edge functions, no scoring/optimizer logic changes.
-- No SFX UI mute toggle yet (hook supports it, surface later if asked).
-- No restyle of the recap right-pane in the schedule expanded panel beyond keeping it intact.
 
-## Files touched
-- `src/assets/audio/swoosh.wav|lineup.wav|buzzer.wav` (new)
-- `src/hooks/useSfx.ts` (new)
-- `src/pages/RosterPage.tsx`
-- `src/components/court-show/types.ts`
-- `src/components/court-show/useCourtShowData.ts`
-- `src/components/court-show/CourtShowSlide.tsx`
-- `src/components/court-show/CourtShowModal.tsx`
-- `src/components/TeamOfTheWeekModal.tsx`
-- `src/components/AutoPickConfirmModal.tsx`
-- `src/components/game/GameBoxScoreTable.tsx` (new, extracted)
-- `src/components/GameDetailModal.tsx`
-- `src/components/ScheduleList.tsx`
+- Court background art, player card visuals, FP pill styling, wishlist heart, modal chrome.
+- Any change to the Played Games Recap slide.
+- Any change to scoring or roster business logic.
