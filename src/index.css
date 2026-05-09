@@ -421,6 +421,11 @@
   user-select: none;
   pointer-events: none;
   filter: contrast(1.05) saturate(1.06);
+  /* Scale the artwork up so the baked-in silver/white frame around the
+     supplied PNG is clipped beyond the rounded card edge — the inner
+     artwork now fills the same footprint as the gold back face. */
+  transform: scale(1.14);
+  transform-origin: center center;
 }
 
 /* Edge band: visible card thickness, brushed chrome */

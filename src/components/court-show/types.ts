@@ -69,6 +69,21 @@ export interface MatchupGame {
   rosterRelevant: number;
   starPower: number;
   label?: StoryLabel;
+  /** Anchor player for scheduled-game storytelling. Season-to-date stats only
+   *  (Ballers.IQ slide intentionally avoids L5/FP5 metrics). */
+  starPlayer?: {
+    player_id: number;
+    name: string;
+    team: string;
+    photo: string | null;
+    season_fp?: number;
+    season_pts?: number;
+    season_reb?: number;
+    season_ast?: number;
+    gp?: number;
+  } | null;
+  /** Short narrative line shown on Ballers.IQ scheduled cards. */
+  story?: string;
 }
 
 export interface CaptainPick {
@@ -97,20 +112,17 @@ export interface OutroPayload {
   keyGame?: RecapGame | MatchupGame | null;
 }
 
-export interface BallersIQSlideBullet {
-  title: string;
-  body: string;
-  icon?: "flame" | "target" | "trend" | "shield";
-}
-
 export interface BallersIQSlidePayload {
-  mode: "recap" | "matchup";
+  /** "recap" if the slate is fully played, "matchup" if fully upcoming,
+   *  "mixed" when both played and scheduled cards are shown together. */
+  mode: "recap" | "matchup" | "mixed";
   gw: number;
   day: number;
   headline: string;
-  bullets: BallersIQSlideBullet[];
-  topPerformer?: TopPerformer | null;
-  keyMatchup?: MatchupGame | null;
+  /** Played (FINAL) games — final score + top performer narrative. */
+  played: RecapGame[];
+  /** Scheduled (not-yet-played) games — tipoff + competitiveness + star anchor. */
+  scheduled: MatchupGame[];
 }
 
 export type SlidePayload =

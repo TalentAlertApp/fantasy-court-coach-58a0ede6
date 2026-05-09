@@ -15,7 +15,6 @@ import type {
   MatchupGame,
   CaptainPick,
   StoryLabel,
-  BallersIQSlideBullet,
 } from "./types";
 
 function buildWeekDayDate(gw: number, day: number): string {
@@ -323,70 +322,72 @@ export function useCourtShowData(gw: number, day: number) {
       .map((c) => ({ ...c, label: captainLabel(c) }));
 
     // ── Ballers.IQ Gamenight Intelligence ─────────────────────────────
-    const isRecapMode = recap.length > 0;
-    const biqMode: "recap" | "matchup" = isRecapMode ? "recap" : (matchups.length ? "matchup" : "recap");
-    const biqBullets: BallersIQSlideBullet[] = [];
-    if (isRecapMode) {
-      const blowouts = recap.filter((r) => r.margin >= 12).length;
-      const coinflips = recap.filter((r) => r.margin <= 5).length;
-      const top = performers[0];
-      if (top) {
-        biqBullets.push({
-          icon: "flame",
-          title: `${top.name} · ${top.fp} FP`,
-          body: `Slate-leading line: ${top.pts ?? 0} PTS · ${top.reb ?? 0} REB · ${top.ast ?? 0} AST.`,
-        });
-      }
-      biqBullets.push({
-        icon: "shield",
-        title: `${blowouts} blowout${blowouts === 1 ? "" : "s"} · ${coinflips} coin-flip${coinflips === 1 ? "" : "s"}`,
-        body: blowouts > coinflips
-          ? "Lopsided night — production concentrated on winning sides."
-          : "Tight slate — late-game minutes spread the fantasy load.",
-      });
-      const vp = valueRanked[0];
-      if (vp) {
-        biqBullets.push({
-          icon: "target",
-          title: `${vp.name} · $${vp.salary}M`,
-          body: `Cheap producer popping at ${(vp.value5 ?? 0).toFixed(1)} V over L5.`,
-        });
-      }
-    } else if (matchups.length) {
-      const sorted = [...matchups].sort((a, b) => b.competitiveScore - a.competitiveScore);
-      const top = sorted[0];
-      const mostRel = [...matchups].sort((a, b) => b.rosterRelevant - a.rosterRelevant)[0];
-      const mostStar = [...matchups].sort((a, b) => b.starPower - a.starPower)[0];
-      if (top) biqBullets.push({
-        icon: "trend",
-        title: `${top.away_team} @ ${top.home_team}`,
-        body: `Most competitive matchup tonight — score ${top.competitiveScore}.`,
-      });
-      if (mostRel && mostRel.game_id !== top?.game_id) biqBullets.push({
-        icon: "target",
-        title: `${mostRel.away_team} @ ${mostRel.home_team}`,
-        body: `${mostRel.rosterRelevant} fantasy-relevant starters in play.`,
-      });
-      if (mostStar) biqBullets.push({
-        icon: "flame",
-        title: `${mostStar.away_team} @ ${mostStar.home_team}`,
-        body: `Star-power leader (${mostStar.starPower} FP ceiling).`,
-      });
+    // Two distinct card kinds: PLAYED (final score + top performer, season
+    // averages only — no L5/FP5 metrics) and SCHEDULED (tipoff + competitive
+    // narrative + star anchor by season FP).
+    const playedCards: RecapGame[] = recap.slice(0, 2);
+
+    // Pick a star-anchor player per scheduled matchup using SEASON averages
+    // (intentionally avoiding L5 / FP5 fields on this slide).
+    const playersByTeam = new Map<string, any[]>();
+    for (const p of playersData?.items ?? []) {
+      const t = p.core?.team;
+      if (!t) continue;
+      const arr = playersByTeam.get(t) ?? [];
+      arr.push(p);
+      playersByTeam.set(t, arr);
     }
-    if (biqBullets.length) {
+    const scheduledCards: MatchupGame[] = matchups.slice(0, 4).map((m) => {
+      const pool = [
+        ...(playersByTeam.get(m.home_team) ?? []),
+        ...(playersByTeam.get(m.away_team) ?? []),
+      ].filter((p: any) => !p.flags?.injury);
+      pool.sort((a: any, b: any) => (b.season?.fp ?? 0) - (a.season?.fp ?? 0));
+      const star = pool[0];
+      const starPlayer = star
+        ? {
+            player_id: star.core.id,
+            name: star.core.name,
+            team: star.core.team,
+            photo: star.core.photo ?? null,
+            season_fp: star.season?.fp,
+            season_pts: star.season?.pts,
+            season_reb: star.season?.reb,
+            season_ast: star.season?.ast,
+            gp: star.season?.gp,
+          }
+        : null;
+      let story = "";
+      if (m.label === "SLATE HAMMER") story = "Slate hammer — late-tip fantasy ceiling.";
+      else if (m.label === "TRAP GAME") story = "Trap spot — heavy talent gap, manage exposure.";
+      else if (m.competitiveScore >= 60) story = `Most competitive matchup — score ${m.competitiveScore}.`;
+      else if (m.starPower >= 35) story = `Star-power leader (${m.starPower} FP ceiling).`;
+      else if (m.rosterRelevant >= 2) story = `${m.rosterRelevant} fantasy-relevant starters in play.`;
+      else story = "Watch tipoff for fantasy edges.";
+      return { ...m, starPlayer, story };
+    });
+
+    const totalCards = playedCards.length + scheduledCards.length;
+    if (totalCards) {
+      const mode: "recap" | "matchup" | "mixed" =
+        playedCards.length && scheduledCards.length ? "mixed"
+        : playedCards.length ? "recap" : "matchup";
+      const subtitle =
+        mode === "mixed" ? "Gamenight intelligence · Recap & Matchups"
+        : mode === "recap" ? "Gamenight intelligence · Recap"
+        : "Gamenight intelligence · Matchups";
       slides.push({
         kind: "ballersiq",
         title: "Ballers.IQ",
-        subtitle: isRecapMode ? "Gamenight intelligence · Recap" : "Gamenight intelligence · Matchups",
+        subtitle,
         payload: {
           kind: "ballersiq",
           data: {
-            mode: biqMode,
+            mode,
             gw, day,
             headline: "GAMENIGHT INTELLIGENCE",
-            bullets: biqBullets,
-            topPerformer: performers[0] ?? null,
-            keyMatchup: matchups[0] ?? null,
+            played: playedCards,
+            scheduled: scheduledCards,
           },
         },
       });
