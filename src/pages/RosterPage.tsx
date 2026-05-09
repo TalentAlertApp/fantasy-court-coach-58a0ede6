@@ -802,6 +802,7 @@ export default function RosterPage() {
             }]))}
             onConfirm={confirmAutoPick}
             isApplying={autoPickApplying}
+            onPlayerClick={(id) => setSelectedPlayerId(id)}
           />
         </>
       )}
