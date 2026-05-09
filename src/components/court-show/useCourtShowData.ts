@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parse } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
@@ -56,6 +56,7 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: rosterData } = useRosterQuery();
   const { data: leagueId } = useLeagueId();
+  const queryClient = useQueryClient();
 
   const games = scheduleData?.games ?? [];
   const finalGameIds = useMemo(
@@ -81,7 +82,7 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: aiRow, isLoading: aiLoading } = useQuery({
     queryKey: ["court-show-ai", leagueId, gw, day],
     enabled: !!leagueId,
-    staleTime: 5 * 60_000,
+    staleTime: 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("court_show_intelligence")
@@ -109,10 +110,15 @@ export function useCourtShowData(gw: number, day: number) {
     staleTime: 60_000,
     queryFn: async () => {
       try {
-        await supabase.functions.invoke("court-show-intelligence", {
+        const { error } = await supabase.functions.invoke("court-show-intelligence", {
           body: { league_id: leagueId, gw, day },
         });
-      } catch (_e) { /* swallow — the slide renders skeleton until the row appears */ }
+        if (error) console.warn("[court-show-intelligence] invoke error", error);
+        // Refresh the cached AI row now that the function has upserted it.
+        await queryClient.invalidateQueries({ queryKey: ["court-show-ai", leagueId, gw, day] });
+      } catch (e) {
+        console.warn("[court-show-intelligence] invoke threw", e);
+      }
       return true;
     },
   });
