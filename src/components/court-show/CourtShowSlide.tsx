@@ -238,7 +238,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               <span className="text-[9px] md:text-[10px] font-heading font-bold uppercase tracking-[0.42em] text-white/45">
                 Powered by
               </span>
-              <RotatingBallersIQBadge width={Math.min(480, Math.max(360, Math.round(window.innerWidth * 0.28)))} />
+              <RotatingBallersIQBadge width={460} />
             </motion.div>
           </div>
         )}
