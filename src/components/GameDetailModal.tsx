@@ -242,16 +242,6 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
     );
   }
 
-  const pill = (r: "W" | "L") => (
-    <span
-      className={`inline-flex items-center justify-center h-5 w-5 rounded-md text-[10px] font-mono font-black ${
-        r === "W" ? "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40" : "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
-      }`}
-    >
-      {r}
-    </span>
-  );
-
   const RecordBlock = ({ row, side }: { row: typeof a; side: "away" | "home" }) => (
     <div className={`flex flex-col gap-1 ${side === "away" ? "items-end text-right" : "items-start text-left"}`}>
       <div className="font-mono font-black text-lg tabular-nums leading-none">
