@@ -138,7 +138,7 @@ function AICardView({
   const hasGameTeams = !!(card.away_team && card.home_team);
   return (
     <div className={cn(
-      "group relative rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
+      "group relative h-full flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
       meta.ring, meta.glow,
     )}>
       <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
@@ -155,7 +155,7 @@ function AICardView({
         {card.headline}
       </p>
       <p className="relative text-[11px] text-white/70 leading-snug mt-1.5">{card.body}</p>
-      <div className="relative mt-2.5 flex items-center gap-3 flex-wrap">
+      <div className="relative mt-auto pt-2.5 flex items-center gap-3 flex-wrap">
         {hasGameTeams && (
           <div className="flex items-center gap-2">
             <InlineTeamMark tri={card.away_team!} side="left" onClick={onTeamClick} />
@@ -202,7 +202,7 @@ function RecapCarousel({
   const start = page * PAGE;
   const slice = games.slice(start, start + PAGE);
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col">
       <AnimatePresence mode="wait">
         <motion.div
           key={page}
@@ -210,7 +210,7 @@ function RecapCarousel({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="grid grid-cols-1 md:grid-cols-2 auto-rows-fr gap-3 flex-1"
+          className="grid grid-cols-1 md:grid-cols-2 auto-rows-min gap-3"
         >
           {slice.map((g) => (
             <RecapCard key={g.game_id} g={g} onGameClick={() => onGameClick(g)} onPlayerClick={onPlayerClick} />
@@ -238,12 +238,31 @@ function RecapCard({
   onPlayerClick: (id: number) => void;
 }) {
   const awayWon = g.winner === g.away_team;
+  const awayLogo = getTeamLogo(g.away_team);
+  const homeLogo = getTeamLogo(g.home_team);
   return (
     <button
       onClick={onGameClick}
-      className="group text-left rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-4 hover:border-amber-400/40 transition-all hover:-translate-y-0.5"
+      className="group relative overflow-hidden text-left rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent p-4 hover:border-amber-400/40 transition-all hover:-translate-y-0.5"
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
+      {/* Oversized team-logo watermarks (sidebar-style) */}
+      {awayLogo && (
+        <img
+          src={awayLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -left-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+        />
+      )}
+      {homeLogo && (
+        <img
+          src={homeLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-6 h-56 w-56 object-contain opacity-[0.13] blur-[1.5px] select-none"
+        />
+      )}
+      <div className="relative flex items-center justify-between gap-2 mb-2">
         <span className="text-[9px] uppercase tracking-[0.28em] text-emerald-300/80 font-heading font-black">FINAL</span>
         {g.game_recap_url && (
           <a
@@ -257,19 +276,19 @@ function RecapCard({
           </a>
         )}
       </div>
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <InlineTeamMark tri={g.away_team} side="left" />
-          <span className={cn("font-mono font-black text-xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <span className={cn("font-heading font-black text-sm tracking-wider", awayWon ? "text-white" : "text-white/55")}>{g.away_team}</span>
+          <span className={cn("font-mono font-black text-2xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
         </div>
         <span className="text-white/30 text-xs">—</span>
-        <div className="flex items-center gap-2">
-          <span className={cn("font-mono font-black text-xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
-          <InlineTeamMark tri={g.home_team} side="right" />
+        <div className="flex items-baseline gap-2">
+          <span className={cn("font-mono font-black text-2xl", !awayWon ? "text-white" : "text-white/45")}>{g.home_pts}</span>
+          <span className={cn("font-heading font-black text-sm tracking-wider", !awayWon ? "text-white" : "text-white/55")}>{g.home_team}</span>
         </div>
       </div>
       {g.topPerformer && (
-        <div className="mt-3">
+        <div className="relative mt-3">
           <TopPerformerBlock tp={g.topPerformer} onPlayerClick={onPlayerClick} />
         </div>
       )}
@@ -294,7 +313,8 @@ function OutstandingSlide({
     ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1`
     : null;
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full content-start">
+    <div className="h-full flex items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
       {/* Left: header + top-10 table */}
       <div className="lg:col-span-5 flex flex-col rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 min-h-0">
         <button
@@ -315,16 +335,16 @@ function OutstandingSlide({
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
               <col />
-              <col className="w-[42px]" />
-              <col className="w-[42px]" />
-              <col className="w-[42px]" />
-              <col className="w-[42px]" />
-              <col className="w-[50px]" />
+              <col className="w-[38px]" />
+              <col className="w-[34px]" />
+              <col className="w-[34px]" />
+              <col className="w-[34px]" />
+              <col className="w-[44px]" />
             </colgroup>
             <thead className="text-white/40 uppercase tracking-wider text-[9px]">
               <tr>
                 <th className="text-left font-heading font-black py-1">Player</th>
-                <th className="text-right font-mono py-1 pl-2">MIN</th>
+                <th className="text-right font-mono py-1">MIN</th>
                 <th className="text-right font-mono py-1">PTS</th>
                 <th className="text-right font-mono py-1">REB</th>
                 <th className="text-right font-mono py-1">AST</th>
@@ -339,15 +359,15 @@ function OutstandingSlide({
                   className="border-t border-white/5 hover:bg-white/5 cursor-pointer"
                 >
                   <td className="py-1.5">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1">
                       {r.photo ? (
-                        <img src={r.photo} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
-                      ) : <span className="h-6 w-6 rounded-full bg-white/10 shrink-0" />}
-                      <span className="font-heading font-black text-white truncate min-w-0">{r.name}</span>
+                        <img src={r.photo} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                      ) : <span className="h-5 w-5 rounded-full bg-white/10 shrink-0" />}
+                      <span className="font-heading font-black text-white whitespace-nowrap">{r.name}</span>
                       <span className="text-white/40 text-[9px] ml-1 shrink-0">{r.team}</span>
                     </div>
                   </td>
-                  <td className="text-right font-mono text-white/70 pl-2">{r.mp ?? 0}</td>
+                  <td className="text-right font-mono text-white/70">{r.mp ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.pts ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.reb ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.ast ?? 0}</td>
@@ -390,6 +410,7 @@ function OutstandingSlide({
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
@@ -848,7 +869,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               </h3>
               <div className="relative h-px w-24 bg-gradient-to-r from-amber-400 to-transparent mb-5" />
 
-              <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
+              <div className="relative grid grid-cols-1 md:grid-cols-2 auto-rows-fr gap-3 flex-1 content-start">
                 {cards.length === 0 && (
                   <>
                     {[0, 1, 2, 3].map((i) => (
@@ -869,6 +890,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 * i, duration: 0.5, ease: [0.22, 0.9, 0.3, 1] }}
+                    className="h-full"
                   >
                     <AICardView card={c} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
                   </motion.div>
