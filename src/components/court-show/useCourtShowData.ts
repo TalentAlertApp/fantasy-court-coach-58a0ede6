@@ -91,7 +91,12 @@ export function useCourtShowData(gw: number, day: number) {
         .eq("day", day)
         .maybeSingle();
       if (error) throw error;
-      return data as { cards: AIBallersIQCard[]; headline: string | null; mode: string } | null;
+      if (!data) return null;
+      return {
+        cards: (data.cards ?? []) as unknown as AIBallersIQCard[],
+        headline: (data.headline ?? null) as string | null,
+        mode: (data.mode ?? "mixed") as string,
+      };
     },
   });
 
