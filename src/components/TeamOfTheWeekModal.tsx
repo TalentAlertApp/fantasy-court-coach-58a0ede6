@@ -34,12 +34,14 @@ function getFormation(players: TOTWPlayer[]) {
   // Mirror /MY ROSTER Starting 5 court via the SAME shared coordinate helper,
   // then shift the entire formation left so it visually centers within the
   // wider TOTW court canvas (the rightmost slot was sitting on the edge).
-  const OFFSET_X = -6; // percent
+  const OFFSET_X = -9; // percent — shift formation visually left in the wide TOTW canvas
+  const OFFSET_Y = -6; // percent — lift formation up to clear the bottom edge
   return getCourtFormation(merged, (p) => p.fc_bc).map(({ item, style }) => {
     const leftPct = parseFloat(style.left);
+    const topPct = parseFloat(style.top);
     return {
       player: item,
-      style: { top: style.top, left: `${leftPct + OFFSET_X}%` },
+      style: { top: `${topPct + OFFSET_Y}%`, left: `${leftPct + OFFSET_X}%` },
     };
   });
 }
