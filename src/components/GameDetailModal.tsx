@@ -1,19 +1,16 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tv2, Table2, BarChart3, Mic, ExternalLink, Trophy, History } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
+import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import { useIsPreseason } from "@/hooks/useIsPreseason";
 import { getVenue } from "@/lib/nba-venues";
-import PlayerModal from "@/components/PlayerModal";
 import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 
 export interface GameDetailGame {
   game_id: string;
