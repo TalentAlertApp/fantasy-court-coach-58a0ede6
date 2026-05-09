@@ -132,7 +132,13 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-5xl w-[95vw] max-h-[85vh] h-[85vh] p-0 rounded-xl overflow-hidden bg-black border-white/10 [&>button]:hidden">
-          <div ref={containerRef} className="relative w-full h-full flex flex-col bg-black" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+          <div
+            ref={containerRef}
+            tabIndex={-1}
+            className="court-show-stage relative w-full h-full flex flex-col bg-black focus:outline-none"
+            onMouseEnter={() => setHover(true)}
+            onMouseLeave={() => setHover(false)}
+          >
             {/* Top bar */}
             <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-2 text-white">
