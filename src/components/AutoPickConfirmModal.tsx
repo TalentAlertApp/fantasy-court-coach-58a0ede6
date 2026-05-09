@@ -28,13 +28,18 @@ interface Props {
   playersById: Map<number, PlayerLite>;
   onConfirm: () => void;
   isApplying: boolean;
+  onPlayerClick?: (id: number) => void;
 }
 
-function PlayerRow({ p, isCaptain }: { p?: PlayerLite; isCaptain?: boolean }) {
+function PlayerRow({ p, isCaptain, onClick }: { p?: PlayerLite; isCaptain?: boolean; onClick?: (id: number) => void }) {
   if (!p) return <div className="text-xs text-muted-foreground italic">Unknown</div>;
   const isFc = p.fc_bc === "FC";
   return (
-    <div className="flex items-center gap-2 py-1">
+    <div
+      className="flex items-center gap-2 py-1 px-1 rounded-md cursor-pointer hover:bg-accent/40 transition-colors"
+      onClick={() => onClick?.(p.id)}
+      role="button"
+    >
       <Avatar className={`h-6 w-6 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
         {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
         <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
@@ -54,6 +59,7 @@ export default function AutoPickConfirmModal({
   playersById,
   onConfirm,
   isApplying,
+  onPlayerClick,
 }: Props) {
   const diff = useMemo(() => {
     if (!proposed) return { adds: [] as number[], drops: [] as number[] };
@@ -108,7 +114,7 @@ export default function AutoPickConfirmModal({
                 {diff.drops.length === 0 ? (
                   <div className="text-xs text-muted-foreground italic py-1">No drops</div>
                 ) : (
-                  diff.drops.map((id) => <PlayerRow key={id} p={playersById.get(id)} />)
+                  diff.drops.map((id) => <PlayerRow key={id} p={playersById.get(id)} onClick={onPlayerClick} />)
                 )}
               </div>
               <div className="rounded-lg border bg-card p-3">
@@ -117,7 +123,7 @@ export default function AutoPickConfirmModal({
                   <div className="text-xs text-muted-foreground italic py-1">No additions</div>
                 ) : (
                   diff.adds.map((id) => (
-                    <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} />
+                    <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} onClick={onPlayerClick} />
                   ))
                 )}
               </div>
@@ -130,7 +136,7 @@ export default function AutoPickConfirmModal({
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3">
                 {proposed.starters.map((id) => (
-                  <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} />
+                  <PlayerRow key={id} p={playersById.get(id)} isCaptain={id === proposed.captain_id} onClick={onPlayerClick} />
                 ))}
               </div>
             </div>

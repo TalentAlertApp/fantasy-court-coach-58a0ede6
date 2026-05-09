@@ -1,19 +1,16 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tv2, Table2, BarChart3, Mic, ExternalLink, Trophy, History } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
+import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import { useIsPreseason } from "@/hooks/useIsPreseason";
 import { getVenue } from "@/lib/nba-venues";
-import PlayerModal from "@/components/PlayerModal";
 import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 
 export interface GameDetailGame {
   game_id: string;
@@ -54,158 +51,6 @@ const SORT_COLUMNS: { key: SortKey; label: string; highlight?: boolean }[] = [
   { key: "stl", label: "S" },
 ];
 
-function GameBoxScoreTable({
-  game,
-  filterTeam,
-  setFilterTeam,
-}: {
-  game: GameDetailGame;
-  filterTeam: string | null;
-  setFilterTeam: (t: string | null) => void;
-}) {
-  const { data, isLoading } = useGameBoxscoreQuery(game.game_id);
-  const [sortKey, setSortKey] = useState<SortKey>("fp");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [filterFcBc, setFilterFcBc] = useState<string | null>(null);
-  const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
-  const { teams: leagueTeams } = useLeagueTeams();
-  const { league } = useLeague();
-  const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
-
-  if (isLoading) {
-    return (
-      <div className="p-3 space-y-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-8" />
-        ))}
-      </div>
-    );
-  }
-
-  const players = data?.players ?? [];
-  if (players.length === 0) {
-    return <p className="p-3 text-sm text-muted-foreground text-center">No player data available</p>;
-  }
-
-  let filtered = [...players];
-  if (filterTeam) filtered = filtered.filter((p) => p.team === filterTeam);
-  if (filterFcBc) filtered = filtered.filter((p) => p.fc_bc === filterFcBc);
-
-  const withValue = filtered.map((p) => ({ ...p, value: p.fp / ((p as any).salary || 1) }));
-  const sorted = withValue.sort((a, b) => {
-    const av = (a as any)[sortKey] ?? 0;
-    const bv = (b as any)[sortKey] ?? 0;
-    return sortDir === "desc" ? bv - av : av - bv;
-  });
-
-  const handleSort = (k: SortKey) => {
-    if (sortKey === k) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
-    else { setSortKey(k); setSortDir("desc"); }
-  };
-
-  return (
-    <div className="relative border-t bg-muted/20">
-      <img
-        src={watermarkLogo}
-        alt=""
-        aria-hidden
-        className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
-      />
-      <div
-        className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,36px)] gap-0 px-2 py-1.5 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40"
-      >
-        <div className="pr-2 flex items-center gap-2 flex-wrap h-7">
-          {/* Team badge filters */}
-          {[game.away_team, game.home_team].map((tri) => {
-            const tlogo = logoFor(tri);
-            if (!tlogo) return null;
-            const active = filterTeam === tri;
-            return (
-              <button
-                key={tri}
-                type="button"
-                onClick={() => setFilterTeam(active ? null : tri)}
-                aria-label={`Filter by ${tri}`}
-                title={`Filter by ${tri}`}
-                className={`shrink-0 transition-all ${active ? "opacity-100 scale-110 drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "opacity-50 hover:opacity-100 hover:scale-105"}`}
-              >
-                <img src={tlogo} alt="" className="h-6 w-6 object-contain" />
-              </button>
-            );
-          })}
-          <span>Player</span>
-          <button
-            onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
-            className={`inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
-          >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-destructive" />
-            FC
-          </button>
-          <button
-            onClick={() => setFilterFcBc(filterFcBc === "BC" ? null : "BC")}
-            className={`inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "BC" ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-muted"}`}
-          >
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-            BC
-          </button>
-        </div>
-        {SORT_COLUMNS.map(({ key, label, highlight }) => (
-          <button
-            key={key}
-            onClick={() => handleSort(key)}
-            className={`text-right hover:text-foreground transition-colors cursor-pointer text-xs ${
-              sortKey === key ? "font-bold text-foreground" : ""
-            } ${highlight ? "text-red-500 font-bold" : ""}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <div className="relative z-[1] max-h-[50vh] overflow-y-auto">
-        {sorted.map((p) => {
-          const isFc = p.fc_bc === "FC";
-          const teamLogo = logoFor(p.team);
-          return (
-            <div
-              key={p.player_id}
-              onClick={() => setOpenPlayerId(p.player_id)}
-              className="grid grid-cols-[minmax(0,1fr)_repeat(9,36px)] gap-0 px-2 py-1 text-[13px] items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
-            >
-              <div className="flex items-center gap-2 pr-2 min-w-0">
-                <Avatar
-                  className={`h-6 w-6 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}
-                >
-                  {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
-                  <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <span className="text-[13px] font-semibold truncate">{p.name}</span>
-                {teamLogo && (
-                  <img src={teamLogo} alt={p.team} className="h-4 w-4 shrink-0 object-contain" />
-                )}
-              </div>
-              <span className="text-right font-mono text-[13px] font-bold">{p.fp}</span>
-              <span className="text-right font-mono text-[13px] text-red-500">{(p as any).salary ?? 0}</span>
-              <span className="text-right font-mono text-[13px] text-red-500">{p.value.toFixed(1)}</span>
-              <span className="text-right font-mono text-[13px] text-muted-foreground">{p.mp}</span>
-              <span className="text-right font-mono text-[13px]">{p.ps}</span>
-              <span className="text-right font-mono text-[13px]">{p.ast}</span>
-              <span className="text-right font-mono text-[13px]">{p.reb}</span>
-              <span className="text-right font-mono text-[13px]">{p.blk}</span>
-              <span className="text-right font-mono text-[13px]">{p.stl}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      <PlayerModal
-        playerId={openPlayerId}
-        open={openPlayerId !== null}
-        onOpenChange={(o) => !o && setOpenPlayerId(null)}
-      />
-    </div>
-  );
-}
 
 interface GameDetailModalProps {
   game: GameDetailGame | null;
@@ -230,8 +75,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
-  const [filterTeam, setFilterTeam] = useState<string | null>(null);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
@@ -341,7 +184,11 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
-        {played && <GameBoxScoreTable game={game} filterTeam={filterTeam} setFilterTeam={setFilterTeam} />}
+        {played && (
+          <div className="border-t">
+            <GameBoxScoreTable game={game} />
+          </div>
+        )}
         {!played && <ScheduledInsights game={game} />}
       </DialogContent>
     </Dialog>
@@ -353,6 +200,7 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const { data: isPreseason } = useIsPreseason();
   const { league } = useLeague();
   const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const [historyGame, setHistoryGame] = useState<GameDetailGame | null>(null);
 
   const a = standingsByTeam[game.away_team];
   const h = standingsByTeam[game.home_team];
@@ -394,16 +242,6 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
     );
   }
 
-  const pill = (r: "W" | "L") => (
-    <span
-      className={`inline-flex items-center justify-center h-5 w-5 rounded-md text-[10px] font-mono font-black ${
-        r === "W" ? "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40" : "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
-      }`}
-    >
-      {r}
-    </span>
-  );
-
   const RecordBlock = ({ row, side }: { row: typeof a; side: "away" | "home" }) => (
     <div className={`flex flex-col gap-1 ${side === "away" ? "items-end text-right" : "items-start text-left"}`}>
       <div className="font-mono font-black text-lg tabular-nums leading-none">
@@ -441,6 +279,38 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const last5A = last5DetailByTeam[game.away_team] ?? [];
   const last5H = last5DetailByTeam[game.home_team] ?? [];
 
+  const openHistory = (g: typeof last5A[number]) => {
+    if (!g.game_id) return;
+    setHistoryGame({
+      game_id: g.game_id,
+      home_team: g.homeTeam,
+      away_team: g.awayTeam,
+      home_pts: g.homePts,
+      away_pts: g.awayPts,
+      status: "FINAL",
+      played: true,
+      game_boxscore_url: g.game_boxscore_url ?? null,
+      game_charts_url: g.game_charts_url ?? null,
+      game_playbyplay_url: g.game_playbyplay_url ?? null,
+      game_recap_url: g.game_recap_url ?? null,
+      nba_game_url: g.nba_game_url ?? null,
+    });
+  };
+
+  const PillBtn = ({ g }: { g: typeof last5A[number] }) => (
+    <button
+      type="button"
+      onClick={() => openHistory(g)}
+      disabled={!g.game_id}
+      className={`inline-flex items-center justify-center h-5 w-5 rounded-md text-[10px] font-mono font-black transition-transform ${g.game_id ? "cursor-pointer hover:scale-110" : "cursor-default opacity-70"} ${
+        g.result === "W" ? "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/40" : "bg-destructive/20 text-destructive ring-1 ring-destructive/40"
+      }`}
+      title={g.game_id ? `vs ${g.opp} · ${g.ownPts}-${g.oppPts}` : undefined}
+    >
+      {g.result}
+    </button>
+  );
+
   return (
     <div className="relative border-t bg-muted/20">
       <img
@@ -456,36 +326,36 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
         <RecordBlock row={h} side="home" />
       </div>
 
-      <Tabs defaultValue="form" className="relative z-[1]">
-        <TabsList className="w-full justify-center rounded-none bg-transparent border-b border-border/40 h-9 p-0">
-          <TabsTrigger value="form" className="text-[10px] font-heading uppercase tracking-wider data-[state=active]:bg-muted/60 rounded-none h-9 px-4 gap-1.5">
-            <History className="h-3 w-3" /> Last 5
-          </TabsTrigger>
-          <TabsTrigger value="ranks" className="text-[10px] font-heading uppercase tracking-wider data-[state=active]:bg-muted/60 rounded-none h-9 px-4 gap-1.5">
-            <Trophy className="h-3 w-3" /> League Rankings
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="form" className="mt-0 px-4 py-3">
+      <div className="relative z-[1]">
+        <div className="px-4 py-3 border-b border-border/40">
+          <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground text-center mb-2">Last 5 · Form</div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="flex items-center justify-end gap-1">
               {last5A.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
-              {last5A.map((g, i) => <span key={i}>{pill(g.result)}</span>)}
+              {last5A.map((g, i) => <PillBtn key={i} g={g} />)}
             </div>
-            <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">Form</div>
+            <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground">vs</div>
             <div className="flex items-center justify-start gap-1">
               {last5H.length === 0 && <span className="text-[10px] text-muted-foreground">No games</span>}
-              {last5H.map((g, i) => <span key={i}>{pill(g.result)}</span>)}
+              {last5H.map((g, i) => <PillBtn key={i} g={g} />)}
             </div>
           </div>
-        </TabsContent>
-        <TabsContent value="ranks" className="mt-0 px-4 py-2">
+        </div>
+        <div className="px-4 py-2">
+          <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-muted-foreground text-center mb-1">League Rankings</div>
           <RankRow label="Win %" metricKey="pct" />
           <RankRow label="PPG" metricKey="ppg" />
           <RankRow label="Opp PPG" metricKey="oppPpg" />
           <RankRow label="Diff" metricKey="diff" />
           <RankRow label="L10 W" metricKey="l10W" />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
+
+      <GameDetailModal
+        game={historyGame}
+        open={historyGame !== null}
+        onOpenChange={(o) => !o && setHistoryGame(null)}
+      />
     </div>
   );
 }
