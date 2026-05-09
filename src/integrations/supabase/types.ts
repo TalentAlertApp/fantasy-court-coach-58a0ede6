@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      court_show_intelligence: {
+        Row: {
+          cards: Json
+          day: number
+          generated_at: string
+          gw: number
+          headline: string | null
+          league_id: string
+          mode: string
+        }
+        Insert: {
+          cards?: Json
+          day: number
+          generated_at?: string
+          gw: number
+          headline?: string | null
+          league_id: string
+          mode: string
+        }
+        Update: {
+          cards?: Json
+          day?: number
+          generated_at?: string
+          gw?: number
+          headline?: string | null
+          league_id?: string
+          mode?: string
+        }
+        Relationships: []
+      }
       games: {
         Row: {
           away_pts: number | null

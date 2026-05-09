@@ -1,12 +1,14 @@
-import { motion } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
-import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
+import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind } from "./types";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
+import TopPerformerBlock from "./TopPerformerBlock";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
@@ -387,7 +389,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
       {/* body */}
       <div className="relative z-[1] flex-1 min-h-0 overflow-y-auto px-8 pb-8">
         {slide.payload.kind === "intro" && (
-          <div className="h-full flex flex-col items-center justify-center text-center gap-4">
+          <div className="h-full flex flex-col items-center justify-start text-center gap-3 pt-8">
             <motion.div
               initial={{ scale: 0.98 }}
               animate={{ scale: 1 }}
@@ -397,15 +399,14 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               GW {slide.payload.data.gw}
               <span className="text-amber-400">.{slide.payload.data.day}</span>
             </motion.div>
-            <p className="text-base md:text-lg text-white/80 font-heading uppercase tracking-widest">{slide.payload.data.dateLabel}</p>
-            <div className="flex items-center gap-6 mt-3">
+            <div className="flex items-center gap-10 mt-1">
               <div className="text-center">
                 <p className="text-3xl font-heading font-black text-white">{slide.payload.data.gamesCount}</p>
                 <p className="text-[10px] uppercase tracking-wider text-white/50">Games</p>
               </div>
               {slide.payload.data.deadlineUtc && (
                 <div className="text-center">
-                  <p className="text-sm font-mono font-bold text-amber-400 flex items-center gap-1"><Clock className="h-3 w-3" />{fmtDeadline(slide.payload.data.deadlineUtc)}</p>
+                  <p className="text-3xl font-heading font-black text-white">{fmtDeadlineShort(slide.payload.data.deadlineUtc)}</p>
                   <p className="text-[10px] uppercase tracking-wider text-white/50">Deadline</p>
                 </div>
               )}
@@ -415,7 +416,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               initial={{ opacity: 0, y: 12, scale: 0.97, filter: "blur(4px)" }}
               animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
               transition={{ delay: 1.1, duration: 1.1, ease: [0.22, 0.61, 0.36, 1] }}
-              className="mt-6 flex flex-col items-center gap-2"
+              className="mt-auto flex flex-col items-center gap-2 pb-4"
             >
               <span className="text-[9px] md:text-[10px] font-heading font-bold uppercase tracking-[0.42em] text-white/45">
                 Powered by
@@ -499,47 +500,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         )}
 
         {slide.payload.kind === "recap" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {slide.payload.data.map((g, i) => (
-              <motion.button
-                key={g.game_id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * i }}
-                onClick={() => onGameClick(g)}
-                className="group text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4 hover:border-amber-400/40 transition-all hover:bg-white/[0.07]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 flex-1">
-                    <TeamBadge tricode={g.away_team} size={40} onClick={() => { /* swallow */ }} />
-                    <span className={cn("font-mono font-black text-2xl", g.winner === g.away_team ? "text-white" : "text-white/50")}>
-                      {g.away_pts}
-                    </span>
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-amber-400/70 font-bold">FINAL</div>
-                  <div className="flex items-center gap-3 flex-1 justify-end">
-                    <span className={cn("font-mono font-black text-2xl", g.winner === g.home_team ? "text-white" : "text-white/50")}>
-                      {g.home_pts}
-                    </span>
-                    <TeamBadge tricode={g.home_team} size={40} />
-                  </div>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-[10px] text-white/50">
-                  <span>Margin: {g.margin}</span>
-                  {g.topPerformer && (
-                    <span className="flex items-center gap-1 text-amber-400/80"><Flame className="h-3 w-3" />{g.topPerformer.name} · {g.topPerformer.fp.toFixed(1)} FP</span>
-                  )}
-                </div>
-                {(g.nba_game_url || g.game_recap_url) && (
-                  <div className="mt-2 flex gap-2">
-                    {g.game_recap_url && (
-                      <a href={g.game_recap_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="text-[10px] text-white/60 hover:text-amber-400 inline-flex items-center gap-1">Recap <ExternalLink className="h-2.5 w-2.5" /></a>
-                    )}
-                  </div>
-                )}
-              </motion.button>
-            ))}
-          </div>
+          <RecapCarousel games={slide.payload.data} onGameClick={onGameClick} onPlayerClick={onPlayerClick} />
         )}
 
         {slide.payload.kind === "matchups" && (
@@ -565,17 +526,12 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 </div>
                 <div className="mt-3 flex items-center justify-center gap-2 flex-wrap">
                   {g.label && <StoryBadge label={g.label} />}
-                  {g.starPower > 0 && (
-                    <span className="text-[10px] text-white/60 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-                      Star {g.starPower}
-                    </span>
-                  )}
-                  {g.rosterRelevant > 0 && (
-                    <span className="text-[10px] text-white/60 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-                      {g.rosterRelevant} fantasy-rel.
-                    </span>
-                  )}
                 </div>
+                {g.story && (
+                  <p className="mt-3 text-[12px] text-white/75 leading-snug text-center">
+                    {g.story}
+                  </p>
+                )}
               </motion.button>
             ))}
           </div>
@@ -583,13 +539,10 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
 
         {slide.payload.kind === "ballersiq" && (() => {
           const d = slide.payload.data;
-          const cards: Array<{ kind: "played"; data: RecapGame } | { kind: "scheduled"; data: MatchupGame }> = [
-            ...d.played.map((g) => ({ kind: "played" as const, data: g })),
-            ...d.scheduled.map((g) => ({ kind: "scheduled" as const, data: g })),
-          ];
           const modeLabel =
             d.mode === "mixed" ? "Recap & Matchups"
             : d.mode === "recap" ? "Recap" : "Matchups";
+          const cards = d.aiCards ?? [];
           return (
             <div className="relative h-full flex flex-col">
               {/* oversized BIQ emblem watermark */}
@@ -612,31 +565,36 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               <div className="relative h-px w-24 bg-gradient-to-r from-amber-400 to-transparent mb-5" />
 
               <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
-                {cards.map((c, i) => (
+                {cards.length === 0 && (
+                  <>
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-5 h-32 animate-pulse"
+                      >
+                        <div className="h-3 w-20 bg-white/10 rounded mb-3" />
+                        <div className="h-4 w-3/4 bg-white/10 rounded mb-2" />
+                        <div className="h-3 w-2/3 bg-white/5 rounded" />
+                      </div>
+                    ))}
+                  </>
+                )}
+                {cards.slice(0, 4).map((c, i) => (
                   <motion.div
-                    key={`${c.kind}-${c.data.game_id}`}
+                    key={i}
                     initial={{ opacity: 0, y: 14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 * i, duration: 0.5, ease: [0.22, 0.9, 0.3, 1] }}
                   >
-                    {c.kind === "played" ? (
-                      <BiqPlayedCard
-                        g={c.data}
-                        onGameClick={() => onGameClick(c.data)}
-                        onTeamClick={onTeamClick}
-                        onPlayerClick={onPlayerClick}
-                      />
-                    ) : (
-                      <BiqScheduledCard
-                        g={c.data}
-                        onGameClick={() => onGameClick(c.data)}
-                        onTeamClick={onTeamClick}
-                        onPlayerClick={onPlayerClick}
-                      />
-                    )}
+                    <AICardView card={c} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
                   </motion.div>
                 ))}
               </div>
+              {d.loading && cards.length === 0 && (
+                <p className="relative mt-3 text-[10px] uppercase tracking-[0.32em] text-white/40">
+                  Generating intelligence…
+                </p>
+              )}
             </div>
           );
         })()}
