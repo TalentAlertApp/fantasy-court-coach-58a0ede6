@@ -15,6 +15,7 @@ import type {
   MatchupGame,
   CaptainPick,
   StoryLabel,
+  BallersIQSlideBullet,
 } from "./types";
 
 function buildWeekDayDate(gw: number, day: number): string {
@@ -327,6 +328,76 @@ export function useCourtShowData(gw: number, day: number) {
         title: "Captain Radar",
         subtitle: "Elite, safe and matchup-ready 2× plays",
         payload: { kind: "captain", data: captains },
+      });
+    }
+
+    // ── Ballers.IQ Gamenight Intelligence ─────────────────────────────
+    const isRecapMode = recap.length > 0;
+    const biqMode: "recap" | "matchup" = isRecapMode ? "recap" : (matchups.length ? "matchup" : "recap");
+    const biqBullets: BallersIQSlideBullet[] = [];
+    if (isRecapMode) {
+      const blowouts = recap.filter((r) => r.margin >= 12).length;
+      const coinflips = recap.filter((r) => r.margin <= 5).length;
+      const top = performers[0];
+      if (top) {
+        biqBullets.push({
+          icon: "flame",
+          title: `${top.name} · ${top.fp} FP`,
+          body: `Slate-leading line: ${top.pts ?? 0} PTS · ${top.reb ?? 0} REB · ${top.ast ?? 0} AST.`,
+        });
+      }
+      biqBullets.push({
+        icon: "shield",
+        title: `${blowouts} blowout${blowouts === 1 ? "" : "s"} · ${coinflips} coin-flip${coinflips === 1 ? "" : "s"}`,
+        body: blowouts > coinflips
+          ? "Lopsided night — production concentrated on winning sides."
+          : "Tight slate — late-game minutes spread the fantasy load.",
+      });
+      const vp = valueRanked[0];
+      if (vp) {
+        biqBullets.push({
+          icon: "target",
+          title: `${vp.name} · $${vp.salary}M`,
+          body: `Cheap producer popping at ${(vp.value5 ?? 0).toFixed(1)} V over L5.`,
+        });
+      }
+    } else if (matchups.length) {
+      const sorted = [...matchups].sort((a, b) => b.competitiveScore - a.competitiveScore);
+      const top = sorted[0];
+      const mostRel = [...matchups].sort((a, b) => b.rosterRelevant - a.rosterRelevant)[0];
+      const mostStar = [...matchups].sort((a, b) => b.starPower - a.starPower)[0];
+      if (top) biqBullets.push({
+        icon: "trend",
+        title: `${top.away_team} @ ${top.home_team}`,
+        body: `Most competitive matchup tonight — score ${top.competitiveScore}.`,
+      });
+      if (mostRel && mostRel.game_id !== top?.game_id) biqBullets.push({
+        icon: "target",
+        title: `${mostRel.away_team} @ ${mostRel.home_team}`,
+        body: `${mostRel.rosterRelevant} fantasy-relevant starters in play.`,
+      });
+      if (mostStar) biqBullets.push({
+        icon: "flame",
+        title: `${mostStar.away_team} @ ${mostStar.home_team}`,
+        body: `Star-power leader (${mostStar.starPower} FP ceiling).`,
+      });
+    }
+    if (biqBullets.length) {
+      slides.push({
+        kind: "ballersiq",
+        title: "Ballers.IQ",
+        subtitle: isRecapMode ? "Gamenight intelligence · Recap" : "Gamenight intelligence · Matchups",
+        payload: {
+          kind: "ballersiq",
+          data: {
+            mode: biqMode,
+            gw, day,
+            headline: "GAMENIGHT INTELLIGENCE",
+            bullets: biqBullets,
+            topPerformer: performers[0] ?? null,
+            keyMatchup: matchups[0] ?? null,
+          },
+        },
       });
     }
 
