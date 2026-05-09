@@ -6,7 +6,6 @@ import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame } from "./types";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
-import { useLeague } from "@/contexts/LeagueContext";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
@@ -150,7 +149,6 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
 }
 
 export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction }: Props) {
-  const { league } = useLeague();
   const watermarkTri =
     (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
     (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
@@ -160,11 +158,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
     null;
   const watermarkLogo = watermarkTri ? getTeamLogo(watermarkTri) : null;
   const isBiq = slide.payload.kind === "ballersiq";
-  const biqWatermark = isBiq
-    ? (league === "wnba"
-        ? "/brand/ballers-iq-league-wnba.png"
-        : "/brand/ballers-iq-league-nba.png")
-    : null;
+  const biqWatermark = isBiq ? "/brand/ballers-iq-league-watermark.png" : null;
 
   return (
     <motion.div
