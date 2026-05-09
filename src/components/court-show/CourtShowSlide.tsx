@@ -294,9 +294,9 @@ function OutstandingSlide({
     ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1`
     : null;
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 h-full content-start">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full content-start">
       {/* Left: header + top-10 table */}
-      <div className="flex flex-col rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 min-h-0">
+      <div className="lg:col-span-5 flex flex-col rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 min-h-0">
         <button
           onClick={() => onGameClick(g)}
           className="flex items-center justify-between gap-3 pb-3 border-b border-white/10 hover:opacity-90 transition-opacity"
@@ -312,11 +312,19 @@ function OutstandingSlide({
           </div>
         </button>
         <div className="flex-1 min-h-0 overflow-y-auto mt-3">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-[11px] table-fixed">
+            <colgroup>
+              <col />
+              <col className="w-[42px]" />
+              <col className="w-[42px]" />
+              <col className="w-[42px]" />
+              <col className="w-[42px]" />
+              <col className="w-[50px]" />
+            </colgroup>
             <thead className="text-white/40 uppercase tracking-wider text-[9px]">
               <tr>
                 <th className="text-left font-heading font-black py-1">Player</th>
-                <th className="text-right font-mono py-1">MIN</th>
+                <th className="text-right font-mono py-1 pl-2">MIN</th>
                 <th className="text-right font-mono py-1">PTS</th>
                 <th className="text-right font-mono py-1">REB</th>
                 <th className="text-right font-mono py-1">AST</th>
@@ -331,15 +339,15 @@ function OutstandingSlide({
                   className="border-t border-white/5 hover:bg-white/5 cursor-pointer"
                 >
                   <td className="py-1.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       {r.photo ? (
-                        <img src={r.photo} alt="" className="h-6 w-6 rounded-full object-cover" />
-                      ) : <span className="h-6 w-6 rounded-full bg-white/10" />}
-                      <span className="font-heading font-black text-white truncate">{r.name}</span>
-                      <span className="text-white/40 text-[9px]">{r.team}</span>
+                        <img src={r.photo} alt="" className="h-6 w-6 rounded-full object-cover shrink-0" />
+                      ) : <span className="h-6 w-6 rounded-full bg-white/10 shrink-0" />}
+                      <span className="font-heading font-black text-white truncate min-w-0">{r.name}</span>
+                      <span className="text-white/40 text-[9px] ml-1 shrink-0">{r.team}</span>
                     </div>
                   </td>
-                  <td className="text-right font-mono text-white/70">{r.mp ?? 0}</td>
+                  <td className="text-right font-mono text-white/70 pl-2">{r.mp ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.pts ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.reb ?? 0}</td>
                   <td className="text-right font-mono text-white/85">{r.ast ?? 0}</td>
@@ -351,7 +359,7 @@ function OutstandingSlide({
         </div>
       </div>
       {/* Right: YouTube recap */}
-      <div className="rounded-xl border border-white/10 bg-black/40 overflow-hidden flex flex-col min-h-0">
+      <div className="lg:col-span-7 rounded-xl border border-white/10 bg-black/40 overflow-hidden flex flex-col min-h-0">
         <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
           <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.28em] font-heading font-black text-amber-300">
             <PlayCircle className="h-3 w-3" /> Game Recap
