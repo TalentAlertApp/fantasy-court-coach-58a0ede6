@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Target, TrendingUp, Shield } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
@@ -399,43 +399,59 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
 
         {slide.payload.kind === "ballersiq" && (() => {
           const d = slide.payload.data;
-          const ICONS = { flame: Flame, target: Target, trend: TrendingUp, shield: Shield } as const;
+          const cards: Array<{ kind: "played"; data: RecapGame } | { kind: "scheduled"; data: MatchupGame }> = [
+            ...d.played.map((g) => ({ kind: "played" as const, data: g })),
+            ...d.scheduled.map((g) => ({ kind: "scheduled" as const, data: g })),
+          ];
+          const modeLabel =
+            d.mode === "mixed" ? "Recap & Matchups"
+            : d.mode === "recap" ? "Recap" : "Matchups";
           return (
             <div className="relative h-full flex flex-col">
               {/* oversized BIQ emblem watermark */}
               <div className="pointer-events-none absolute -bottom-10 -right-10 opacity-[0.08]">
                 <BallersIQBrand variant="emblem" size="lg" forceTheme="dark" />
               </div>
+
+              {/* Header — premium enamel pill + gradient headline */}
               <div className="relative flex items-center gap-3 mb-4">
-                <BallersIQBrand variant="wordmark" size="md" forceTheme="dark" />
-                <span className="text-[10px] uppercase tracking-[0.3em] text-amber-400 font-heading font-bold">
-                  {d.mode === "recap" ? "Recap" : "Matchups"} · GW {d.gw}.{d.day}
+                <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-400/15 to-amber-400/5 px-3 py-1 shadow-[0_0_18px_-6px_rgba(251,191,36,0.55)]">
+                  <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" />
+                  <span className="text-[10px] uppercase tracking-[0.32em] text-amber-300 font-heading font-black">
+                    {modeLabel} · GW {d.gw}.{d.day}
+                  </span>
                 </span>
               </div>
-              <h3 className="relative font-heading font-black text-xl md:text-2xl text-white mb-4 tracking-tight">
+              <h3 className="relative font-heading font-black text-2xl md:text-3xl mb-1 tracking-tight bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
                 {d.headline}
               </h3>
+              <div className="relative h-px w-24 bg-gradient-to-r from-amber-400 to-transparent mb-5" />
+
               <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 content-start">
-                {d.bullets.map((b, i) => {
-                  const Ico = b.icon ? ICONS[b.icon] : Target;
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.08 * i }}
-                      className="rounded-xl border border-amber-400/25 bg-gradient-to-br from-amber-400/[0.06] to-transparent p-4"
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Ico className="h-3.5 w-3.5 text-amber-400" />
-                        <span className="font-heading font-black text-[11px] uppercase tracking-wider text-white">
-                          {b.title}
-                        </span>
-                      </div>
-                      <p className="text-[12px] text-white/70 leading-snug">{b.body}</p>
-                    </motion.div>
-                  );
-                })}
+                {cards.map((c, i) => (
+                  <motion.div
+                    key={`${c.kind}-${c.data.game_id}`}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.08 * i, duration: 0.5, ease: [0.22, 0.9, 0.3, 1] }}
+                  >
+                    {c.kind === "played" ? (
+                      <BiqPlayedCard
+                        g={c.data}
+                        onGameClick={() => onGameClick(c.data)}
+                        onTeamClick={onTeamClick}
+                        onPlayerClick={onPlayerClick}
+                      />
+                    ) : (
+                      <BiqScheduledCard
+                        g={c.data}
+                        onGameClick={() => onGameClick(c.data)}
+                        onTeamClick={onTeamClick}
+                        onPlayerClick={onPlayerClick}
+                      />
+                    )}
+                  </motion.div>
+                ))}
               </div>
             </div>
           );
