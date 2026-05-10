@@ -700,7 +700,7 @@ export default function CommissionerPage() {
     setScheduleValidation(null);
   };
 
-  // ---------- Advanced Stats CSV import (end-of-Regular-Season totals) ----------
+  // ---------- Advanced Stats CSV import (season-to-date accumulated totals) ----------
   const ADV_HEADER_MAP: Record<string, string> = {
     "ID": "id",
     "FGM": "fgm", "FGA": "fga", "FG_PCT": "fg_pct",
@@ -1082,7 +1082,7 @@ export default function CommissionerPage() {
             </div>
             <div className="p-4 space-y-3">
               <p className="text-xs text-muted-foreground">
-                CSV/TSV: ID, NAME, TEAM, FGM, FGA, FG_PCT, 3PM, 3PA, 3P_PCT, FTM, FTA, FT_PCT, OREB, DREB, TOV, PF, PLUS_MINUS — end-of-Regular-Season totals.
+                CSV/TSV: ID, NAME, TEAM, FGM, FGA, FG_PCT, 3PM, 3PA, 3P_PCT, FTM, FTA, FT_PCT, OREB, DREB, TOV, PF, PLUS_MINUS — season-to-date accumulated totals (re-import any time during the Regular Season; values reflect totals through the latest imported game day).
               </p>
               <div className="flex items-center gap-2">
                 <Switch id="replace-adv" checked={replaceAdv} onCheckedChange={setReplaceAdv} />

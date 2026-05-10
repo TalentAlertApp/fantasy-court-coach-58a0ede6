@@ -23,8 +23,8 @@ Produce actionable fantasy decisions: lineup optimization, captain choice, waive
 {{SCORING_FORMULA}}
 Assists are 2x. Steals + blocks are 3x each ("stocks" are huge).
 
-## ADVANCED STATS (END-OF-REGULAR-SEASON TOTALS)
-Player records may include shooting splits (fg_pct, tp_pct, ft_pct), offensive rebounding (oreb), ball security (tov), and on-court impact (plus_minus). Use these for waiver/trade reasoning when deciding between similarly-valued players. Higher fg_pct, higher oreb, lower tov, and positive plus_minus all indicate higher-quality role players.
+## ADVANCED STATS (SEASON-TO-DATE ACCUMULATED TOTALS)
+Player records may include shooting splits (fg_pct, tp_pct, ft_pct), offensive rebounding (oreb), ball security (tov), and on-court impact (plus_minus). These are accumulated totals up to the most recent imported game day of the current Regular Season — NOT end-of-season finals. Always normalize counting stats (oreb, tov, plus_minus) to per-game using gp before comparing players, since gp can differ. Use these for waiver/trade reasoning when deciding between similarly-valued players. Higher fg_pct, higher oreb/G, lower tov/G, and positive plus_minus all indicate higher-quality role players.
 
 ## POSITIONS
 Players only have FC (Front Court) or BC (Back Court). Do not invent other positions.
@@ -150,7 +150,7 @@ function buildPlayerSummary(players: any[], rosterPlayerIds: Set<number>) {
     ast5: p.ast5,
     injury: p.injury,
     on_roster: rosterPlayerIds.has(p.id),
-    // End-of-Regular-Season advanced totals (compact — only signal-rich fields).
+    // Season-to-date accumulated advanced totals (compact — only signal-rich fields).
     fg_pct: p.fg_pct ?? null,
     tp_pct: p.tp_pct ?? null,
     ft_pct: p.ft_pct ?? null,
@@ -451,7 +451,7 @@ Deno.serve(async (req) => {
         },
       };
       // Enrich the trade payload with per-game derived stats so the model
-      // never reasons about raw season totals (oreb, tov, plus_minus).
+      // never reasons about raw season-to-date totals (oreb, tov, plus_minus).
       const enrichPerGame = (rows: any[]) => rows.map((r: any) => {
         const full = playerById.get(Number(r.id)) ?? {};
         const gp = Number(full.gp ?? 0) || 1;

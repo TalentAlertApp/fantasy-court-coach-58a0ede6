@@ -157,7 +157,9 @@ export const PlayerFlagsSchema = z
   })
   .strict();
 
-/** End-of-Regular-Season advanced totals (FGM/A, 3P, FT, OREB, DREB, TOV, PF, +/-).
+/** Season-to-date accumulated advanced totals (FGM/A, 3P, FT, OREB, DREB, TOV, PF, +/-).
+ *  Refreshed by the commissioner at any point during the Regular Season — these
+ *  are running totals up to the most recent imported game day, NOT end-of-season.
  *  All fields are nullable since not every player will have a row uploaded
  *  (e.g. mid-season call-ups). */
 export const PlayerAdvancedSchema = z
