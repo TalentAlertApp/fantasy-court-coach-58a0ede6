@@ -295,11 +295,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                       </div>
                     ))}
                   </div>
-                  {/* Advanced Stats — End-of-Regular-Season totals */}
+                  {/* Advanced Stats — Season-to-date accumulated totals */}
                   {data.player.advanced && (
                     <div className="mt-4 rounded-lg border bg-muted/50 p-3">
                       <p className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2">
-                        Advanced (End of Regular Season)
+                        Advanced (Season-to-Date)
                       </p>
                       <div className="grid grid-cols-3 gap-2 text-center text-xs">
                         {[
