@@ -24,6 +24,7 @@ import { fetchGameBoxscore, fetchPlayers } from "@/lib/api";
 import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 import { pickGameLeader, pickWatchLeader } from "@/lib/game-blurbs";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
+import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
@@ -357,68 +358,23 @@ function useAllTeamsForm(enabled: boolean) {
 }
 
 function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null; open: boolean; onOpenChange: (o: boolean) => void }) {
-  if (!game) return null;
-  const awayLogo = getTeamLogo(game.away_team);
-  const homeLogo = getTeamLogo(game.home_team);
-  const { league } = useLeague();
-  const leagueName = league === "wnba" ? "WNBA" : "NBA";
-  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm rounded-xl p-4">
-        <DialogHeader>
-          <DialogTitle className="font-heading text-sm uppercase">Game Detail</DialogTitle>
-        </DialogHeader>
-        <div className="flex items-center justify-center gap-3 py-2">
-          <div className="flex items-center gap-1.5 text-right">
-            {awayLogo && <img src={awayLogo} alt="" className="w-6 h-6" />}
-            <span className="font-heading font-bold text-sm">{game.away_team}</span>
-          </div>
-          <div className="text-center">
-            <span className="font-mono font-black text-lg">{game.away_pts} - {game.home_pts}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="font-heading font-bold text-sm">{game.home_team}</span>
-            {homeLogo && <img src={homeLogo} alt="" className="w-6 h-6" />}
-          </div>
-        </div>
-        <div className="flex items-center justify-center gap-2 py-1">
-          {game.game_boxscore_url && (
-            <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="Box Score">
-              <Table2 className="h-3.5 w-3.5" /> BoxScore
-            </a>
-          )}
-          {game.game_charts_url && (
-            <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="Charts">
-              <BarChart3 className="h-3.5 w-3.5" /> Charts
-            </a>
-          )}
-          {game.game_playbyplay_url && (
-            <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title="Play-by-Play">
-              <Mic className="h-3.5 w-3.5" /> PbP
-            </a>
-          )}
-          {game.nba_game_url && (
-            <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-xl border" title={recapHost}>
-              <ExternalLink className="h-3.5 w-3.5" /> {leagueName}
-            </a>
-          )}
-        </div>
-        {game.game_recap_url && (
-          <div className="flex justify-center pt-1">
-            <a
-              href={game.game_recap_url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-1.5 rounded-xl border border-green-500/40"
-            >
-              <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
-            </a>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
+  const detail: GameDetailGame | null = game
+    ? {
+        game_id: game.game_id,
+        home_team: game.home_team,
+        away_team: game.away_team,
+        home_pts: game.home_pts,
+        away_pts: game.away_pts,
+        status: "FINAL",
+        played: true,
+        game_boxscore_url: game.game_boxscore_url,
+        game_charts_url: game.game_charts_url,
+        game_playbyplay_url: game.game_playbyplay_url,
+        game_recap_url: game.game_recap_url,
+        nba_game_url: game.nba_game_url,
+      }
+    : null;
+  return <GameDetailModal game={detail} open={open} onOpenChange={onOpenChange} />;
 }
 
 function computeConfStandings(data: Record<string, TeamFormData>, tricode: string): { tricode: string; rank: number; w: number; l: number; gp: number; pctStr: string; gb: string }[] {
