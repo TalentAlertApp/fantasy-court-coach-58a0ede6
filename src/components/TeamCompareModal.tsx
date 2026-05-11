@@ -6,11 +6,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Swords, ExternalLink } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { useIsPreseason } from "@/hooks/useIsPreseason";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import TeamModal from "@/components/TeamModal";
 
 interface TeamCompareModalProps {
@@ -47,8 +50,8 @@ function MetricRow({
   );
 }
 
-function TeamHeader({ tricode, side, rank, conf, onOpen }: { tricode: string; side: "L" | "R"; rank?: number; conf?: string; onOpen?: (t: string) => void }) {
-  const team = getTeamByTricode(tricode);
+function TeamHeader({ tricode, side, rank, conf, onOpen, teamLookup }: { tricode: string; side: "L" | "R"; rank?: number; conf?: string; onOpen?: (t: string) => void; teamLookup: (t: string) => { name: string; logo: string } | undefined }) {
+  const team = teamLookup(tricode);
   return (
     <button
       type="button"
@@ -81,6 +84,16 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
   const { standingsByTeam, isLoading: standingsLoading } = useStandingsContext();
   const { data: leagueId } = useLeagueId();
   const { data: isPreseason } = useIsPreseason();
+  const { teams: leagueTeams } = useLeagueTeams();
+  const { league } = useLeague();
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const teamLookup = (tri: string) => {
+    const lt = leagueTeams.find((t) => t.tricode === tri);
+    if (lt) return { name: lt.name, logo: lt.logo };
+    const fallback = getTeamByTricode(tri);
+    return fallback ? { name: fallback.name, logo: fallback.logo } : undefined;
+  };
+  const logoLookup = (tri: string) => teamLookup(tri)?.logo ?? getTeamLogo(tri);
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const [openTricode, setOpenTricode] = useState<string | null>(null);
 
@@ -139,8 +152,8 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
 
   if (!teamA || !teamB) return null;
 
-  const teamAObj = getTeamByTricode(teamA);
-  const teamBObj = getTeamByTricode(teamB);
+  const teamAObj = teamLookup(teamA);
+  const teamBObj = teamLookup(teamB);
 
   return (
     <>
@@ -160,7 +173,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
               {teamAObj?.name ?? teamA} vs {teamBObj?.name ?? teamB}
             </DialogTitle>
             <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-              <TeamHeader tricode={teamA} side="L" rank={confRank[teamA]} conf={aRow?.conference} onOpen={setOpenTricode} />
+              <TeamHeader tricode={teamA} side="L" rank={confRank[teamA]} conf={aRow?.conference} onOpen={setOpenTricode} teamLookup={teamLookup} />
               <div className="flex flex-col items-center gap-1">
                 <Swords className="h-6 w-6 text-[hsl(var(--nba-yellow))]" />
                 <div className="text-[10px] font-heading uppercase tracking-[0.25em] text-muted-foreground">Compare</div>
@@ -172,7 +185,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                   </div>
                 )}
               </div>
-              <TeamHeader tricode={teamB} side="R" rank={confRank[teamB]} conf={bRow?.conference} onOpen={setOpenTricode} />
+              <TeamHeader tricode={teamB} side="R" rank={confRank[teamB]} conf={bRow?.conference} onOpen={setOpenTricode} teamLookup={teamLookup} />
             </div>
           </DialogHeader>
 
@@ -192,7 +205,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                 ) : (
                   <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/60 px-4 py-3">
                     <img
-                      src={nbaLogo}
+                      src={watermarkLogo}
                       alt=""
                       aria-hidden
                       className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.05] select-none"
@@ -256,8 +269,8 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                         >
                           <div className="flex items-center justify-end gap-2">
                             <span className="text-xs font-heading font-bold uppercase">{aIsHome ? "vs" : "@"} {aIsHome ? g.away_team : g.home_team}</span>
-                            {getTeamLogo(aIsHome ? g.away_team : g.home_team) && (
-                              <img src={getTeamLogo(aIsHome ? g.away_team : g.home_team)} alt="" className="w-5 h-5 object-contain" />
+                            {logoLookup(aIsHome ? g.away_team : g.home_team) && (
+                              <img src={logoLookup(aIsHome ? g.away_team : g.home_team)} alt="" className="w-5 h-5 object-contain" />
                             )}
                           </div>
                           <div className="flex items-center gap-2 min-w-[120px] justify-center">
