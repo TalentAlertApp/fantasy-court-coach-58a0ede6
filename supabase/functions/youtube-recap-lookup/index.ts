@@ -16,11 +16,6 @@ const TEAM_FULL_NAME: Record<string, string> = {
   OKC: "Oklahoma City Thunder", ORL: "Orlando Magic", PHI: "Philadelphia 76ers", PHX: "Phoenix Suns",
   POR: "Portland Trail Blazers", SAC: "Sacramento Kings", SAS: "San Antonio Spurs", TOR: "Toronto Raptors",
   UTA: "Utah Jazz", WAS: "Washington Wizards",
-  // WNBA
-  ATA: "Atlanta Dream", CHS: "Chicago Sky", CON: "Connecticut Sun", DAW: "Dallas Wings",
-  GSV: "Golden State Valkyries", IDF: "Indiana Fever", LVA: "Las Vegas Aces", LAS: "Los Angeles Sparks",
-  MIN_W: "Minnesota Lynx", NYL: "New York Liberty", PHO: "Phoenix Mercury", SEA: "Seattle Storm",
-  WAS_W: "Washington Mystics",
 };
 
 const TEAM_CITY: Record<string, string> = {
@@ -30,6 +25,23 @@ const TEAM_CITY: Record<string, string> = {
   MIA: "miami", MIL: "milwaukee", MIN: "minnesota", NOP: "new orleans", NYK: "new york",
   OKC: "oklahoma", ORL: "orlando", PHI: "philadelphia", PHX: "phoenix", POR: "portland",
   SAC: "sacramento", SAS: "san antonio", TOR: "toronto", UTA: "utah", WAS: "washington",
+};
+
+// WNBA full names — keyed by the actual tricodes used in schedule_games
+// (which collide with NBA codes for some teams: ATL/CHI/IND/WAS/DAL/MIN/TOR/POR/LAS).
+const WNBA_TEAM_FULL_NAME: Record<string, string> = {
+  ATL: "Atlanta Dream",         CHI: "Chicago Sky",            CON: "Connecticut Sun",
+  IND: "Indiana Fever",         NYL: "New York Liberty",       TOR: "Toronto Tempo",
+  WAS: "Washington Mystics",    DAL: "Dallas Wings",           GSV: "Golden State Valkyries",
+  LVA: "Las Vegas Aces",        LAS: "Los Angeles Sparks",     MIN: "Minnesota Lynx",
+  PHX: "Phoenix Mercury",       POR: "Portland Fire",          SEA: "Seattle Storm",
+};
+// WNBA scoring tokens — use the unique team nickname (always present in
+// official @WNBA recap titles like "Connecticut Sun vs. New York Liberty | FULL GAME HIGHLIGHTS | May 8, 2026").
+const WNBA_TEAM_CITY: Record<string, string> = {
+  ATL: "dream",    CHI: "sky",       CON: "sun",         IND: "fever",     NYL: "liberty",
+  TOR: "tempo",    WAS: "mystics",   DAL: "wings",       GSV: "valkyries", LVA: "aces",
+  LAS: "sparks",   MIN: "lynx",      PHX: "mercury",     POR: "fire",      SEA: "storm",
 };
 
 // GAMETIME HIGHLIGHTS — posts "{Away} vs {Home} Full Game Highlights – {Month D, YYYY}" for every NBA game.
@@ -108,8 +120,10 @@ serve(async (req: Request) => {
       try {
         const leagueCode = leagueCodeById.get((game as any).league_id) ?? "nba";
         const isWnba = leagueCode === "wnba";
-        const awayFull = TEAM_FULL_NAME[game.away_team] ?? game.away_team;
-        const homeFull = TEAM_FULL_NAME[game.home_team] ?? game.home_team;
+        const fullMap = isWnba ? WNBA_TEAM_FULL_NAME : TEAM_FULL_NAME;
+        const cityMap = isWnba ? WNBA_TEAM_CITY : TEAM_CITY;
+        const awayFull = fullMap[game.away_team] ?? game.away_team;
+        const homeFull = fullMap[game.home_team] ?? game.home_team;
         const tipoff = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
         const dateStr = tipoff ? tipoff.toISOString().slice(0, 10) : "";
         const longDate = tipoff
@@ -127,7 +141,7 @@ serve(async (req: Request) => {
           : undefined;
 
         const query = isWnba
-          ? `${awayFull} vs ${homeFull} Highlights`
+          ? `${awayFull} vs. ${homeFull} FULL GAME HIGHLIGHTS`
           : `${awayFull} vs ${homeFull} Full Game Highlights`;
         const params = new URLSearchParams({
           part: "snippet",
@@ -156,8 +170,8 @@ serve(async (req: Request) => {
 
         let ytData = await ytRes.json();
         let items: any[] = ytData?.items ?? [];
-        const awayCity = TEAM_CITY[game.away_team] ?? game.away_team.toLowerCase();
-        const homeCity = TEAM_CITY[game.home_team] ?? game.home_team.toLowerCase();
+        const awayCity = cityMap[game.away_team] ?? game.away_team.toLowerCase();
+        const homeCity = cityMap[game.home_team] ?? game.home_team.toLowerCase();
         const scoreItems = (arr: any[], minScore: number): { id: string | null; score: number } => {
           let best: any = null;
           let bestScore = -1;
