@@ -46,8 +46,8 @@ const WNBA_TEAM_CITY: Record<string, string> = {
 
 // GAMETIME HIGHLIGHTS — posts "{Away} vs {Home} Full Game Highlights – {Month D, YYYY}" for every NBA game.
 const GAMETIME_CHANNEL_ID = "UC0LrZO9wORIqn_aRJtKdgfA";
-// Official WNBA channel — posts "{Away} vs {Home} | Highlights" for every WNBA game.
-const WNBA_CHANNEL_ID = "UCqYwOSqyi0tEPRRwTPL5MXA";
+// Official @WNBA channel — posts "{Away Full} vs. {Home Full} | FULL GAME HIGHLIGHTS | {Month D, YYYY}".
+const WNBA_CHANNEL_ID = "UCO9a_ryN_l7DIDS-VIt-zmw";
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 serve(async (req: Request) => {
