@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
+import { useLeague } from "@/contexts/LeagueContext";
 
 interface PlayerCompareModalProps {
   open: boolean;
@@ -28,6 +30,8 @@ interface PlayerCompareModalProps {
 export default function PlayerCompareModal({ open, onOpenChange, playerA }: PlayerCompareModalProps) {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const { league } = useLeague();
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   const { data: searchResults } = useQuery({
     queryKey: ["compare-search", search],
@@ -94,7 +98,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
       <DialogContent className="max-w-xl rounded-xl max-h-[94vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="relative overflow-hidden border-b border-border/50 px-5 pt-5 pb-4 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent">
           <img
-            src={nbaLogo}
+            src={watermarkLogo}
             alt=""
             aria-hidden
             className="pointer-events-none absolute -top-6 -right-6 h-32 w-auto opacity-10 rotate-12 select-none blur-[1px]"
@@ -160,7 +164,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
             {/* Stat rows */}
             <div className="relative space-y-1">
               <img
-                src={nbaLogo}
+                src={watermarkLogo}
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute inset-0 m-auto h-44 w-auto opacity-[0.05] select-none"

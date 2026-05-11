@@ -14,6 +14,8 @@ import { format } from "date-fns";
 import PlayerCompareModal from "@/components/PlayerCompareModal";
 import { useWishlist } from "@/hooks/useWishlist";
 import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
+import { useLeague } from "@/contexts/LeagueContext";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import TeamModal from "@/components/TeamModal";
 import BallersIQPlayerVerdict from "@/components/ballers-iq/BallersIQPlayerVerdict";
@@ -132,6 +134,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
 
   const teamLogo = data ? getTeamLogo(data.player.core.team) : undefined;
   const wishlisted = playerId ? isInWishlist(playerId) : false;
+  const { league } = useLeague();
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   return (
     <>
@@ -139,7 +143,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         <DialogContent className="max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden">
           {/* NBA logo watermark — visible on every tab */}
           <img
-            src={nbaLogo}
+            src={watermarkLogo}
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 m-auto w-1/3 max-w-[160px] opacity-[0.04] select-none"

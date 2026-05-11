@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Minus } from "lucide-react";
+import { useLeague } from "@/contexts/LeagueContext";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 export interface RosterPanePlayer {
   player_id: number;
@@ -93,6 +96,8 @@ export default function RosterPane({
   onToggleOut,
   onPlayerClick,
 }: RosterPaneProps) {
+  const { league } = useLeague();
+  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
   // Single continuous list — all FC first (sub-sorted by salary DESC), then all BC (DESC).
   const all = [...starters, ...bench];
   const sorted = all.sort((a, b) => {
@@ -102,20 +107,26 @@ export default function RosterPane({
   const empty = !isLoading && sorted.length === 0;
 
   return (
-    <div className="flex flex-col gap-0.5 pr-1">
+    <div className="relative flex flex-col gap-0.5 pr-1">
+      <img
+        src={watermarkLogo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 m-auto h-40 w-40 object-contain opacity-[0.05] select-none z-0"
+      />
       {isLoading && sorted.length === 0
-        ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-9 rounded-md" />)
+        ? Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-9 rounded-md relative z-[1]" />)
         : sorted.map((p) => (
-            <RosterRow
+            <div key={p.player_id} className="relative z-[1]"><RosterRow
               key={p.player_id}
               player={p}
               isOut={outZone.includes(p.player_id)}
               onToggleOut={onToggleOut}
               onPlayerClick={onPlayerClick}
-            />
+            /></div>
           ))}
       {empty && (
-        <div className="text-xs text-muted-foreground italic px-2">Roster loading…</div>
+        <div className="text-xs text-muted-foreground italic px-2 relative z-[1]">Roster loading…</div>
       )}
     </div>
   );

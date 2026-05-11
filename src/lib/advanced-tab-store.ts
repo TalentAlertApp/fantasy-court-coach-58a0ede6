@@ -5,7 +5,7 @@ export type AdvancedTab = "play-search" | "playing-time" | "advanced-stats" | "t
 const VALID: AdvancedTab[] = ["play-search", "playing-time", "advanced-stats", "trending"];
 
 export const ADVANCED_TAB_LABEL: Record<AdvancedTab, string> = {
-  "play-search": "NBA Play Search",
+  "play-search": "Play Search",
   "playing-time": "Playing Time",
   "advanced-stats": "Advanced Stats",
   "trending": "Trending",

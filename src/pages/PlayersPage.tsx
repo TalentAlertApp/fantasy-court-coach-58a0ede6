@@ -19,6 +19,7 @@ import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Sparkle
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import AICoachModal from "@/components/AICoachModal";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
@@ -157,7 +158,8 @@ export default function PlayersPage() {
     [rosterPlayers],
   );
 
-  const current = getCurrentGameday();
+  const { deadlines: leagueDeadlines } = useLeagueDeadlines();
+  const current = getCurrentGamedayFrom(leagueDeadlines) ?? getCurrentGameday();
   const gw = current.gw;
   const day = current.day;
 
@@ -167,9 +169,9 @@ export default function PlayersPage() {
   const gwUsed = gwTx?.used ?? 0;
 
   const capResetLabel = useMemo(() => {
-    const next = DEADLINES.find((d) => d.gw === gw + 1);
+    const next = leagueDeadlines.find((d) => d.gw === gw + 1);
     return next ? formatDeadline(next.deadline_utc) : "next GW";
-  }, [gw]);
+  }, [gw, leagueDeadlines]);
 
   const validationPool: ValidationPlayer[] = useMemo(() => {
     const src = allPlayersFull.length > 0 ? allPlayersFull : allPlayers;
