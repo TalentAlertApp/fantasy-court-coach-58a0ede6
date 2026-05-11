@@ -429,7 +429,7 @@ function NBAPlaySearchSection() {
       <SectionHeader
         tone="blue"
         icon={<Search className="h-4 w-4" />}
-        title="NBA Play Search"
+        title="Play Search"
         meta={
           <span className="inline-flex items-center gap-1 normal-case tracking-normal">
             Play-by-play clips on NBAPlayDB · opens in a new tab
@@ -808,7 +808,7 @@ export default function AdvancedPage() {
         <div className="border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg">
           <TabsList className="bg-transparent p-0 h-auto grid grid-cols-4 w-full max-w-3xl mx-auto">
             {([
-              ["play-search", "NBA Play Search"],
+              ["play-search", "Play Search"],
               ["playing-time", "Playing Time"],
               ["advanced-stats", "Advanced Stats"],
               ["trending", "Trending"],
