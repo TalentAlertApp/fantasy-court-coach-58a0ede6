@@ -539,8 +539,7 @@ export function useCourtShowData(gw: number, day: number) {
               mp: l.mp, pts: l.pts, reb: l.reb, ast: l.ast, stl: l.stl, blk: l.blk,
             } as OutstandingGameRow;
           })
-          .sort((a, b) => b.fp - a.fp)
-          .slice(0, 10);
+          .sort((a, b) => b.fp - a.fp);
         const fullGame = games.find((g: any) => g.game_id === bestId);
         const youtube_recap_id = (fullGame as any)?.youtube_recap_id ?? null;
         const storyline = buildOutstandingStoryline(best);
