@@ -219,9 +219,16 @@
     color: hsl(var(--sidebar-foreground) / 0.5);
   }
   .sidebar.collapsed .nav-item { @apply px-0 justify-center gap-0; margin-right: 0; }
+  /* Collapsed: turn the active vertical bar into a centered underline dot
+     so the icon column stays optically centered with the logo + footer. */
   .sidebar.collapsed .nav-item.active::before {
-    left: 0;
-    width: 3px;
+    left: 50%;
+    top: auto;
+    bottom: 4px;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 2px;
+    border-radius: 2px;
   }
 
   .main-content { @apply flex-1 flex flex-col overflow-hidden; }
