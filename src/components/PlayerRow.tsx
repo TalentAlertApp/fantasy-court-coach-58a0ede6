@@ -10,6 +10,9 @@ import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyCol
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
 import { formatSalary, formatStat } from "@/lib/format-salary";
 import { useLeague } from "@/contexts/LeagueContext";
+import { normalizePlayerHealth } from "@/lib/health";
+import HealthStatusIcon from "@/components/health/HealthStatusIcon";
+import HealthTooltip from "@/components/health/HealthTooltip";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -36,6 +39,7 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
   const { isWnba } = useLeague();
   const teamLogo = getTeamLogo(core.team);
   const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
+  const health = normalizePlayerHealth(player);
   // Pre-season heuristic: no games played anywhere → dash out perf stats.
   const preseason = isWnba && Number((player.season as any)?.gp ?? 0) === 0
     && Number(last5?.fp5 ?? 0) === 0;
@@ -150,6 +154,15 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
         <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-lg">
           {core.fc_bc}
         </Badge>
+      </TableCell>
+      <TableCell className="text-center w-14">
+        {health.status ? (
+          <HealthTooltip health={health}>
+            <span className="inline-flex"><HealthStatusIcon health={health} size="sm" /></span>
+          </HealthTooltip>
+        ) : (
+          <span className="text-xs text-muted-foreground/50">—</span>
+        )}
       </TableCell>
       <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatSalary(core.salary)}</TableCell>
       <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>

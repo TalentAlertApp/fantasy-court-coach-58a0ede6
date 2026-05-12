@@ -36,6 +36,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useTeamChips } from "@/hooks/useTeamChips";
+import { normalizePlayerHealth, shouldBlockCaptain, shouldWarnCaptain, getCaptainHealthWarning } from "@/lib/health";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
 import DraftPicker from "@/components/onboarding/DraftPicker";
@@ -84,6 +85,12 @@ export default function RosterPage() {
 
   const [viewMode, setViewMode] = useState<"court" | "list">("court");
   const [captainId, setCaptainId] = useState<number>(0);
+  const [captainConfirm, setCaptainConfirm] = useState<{
+    playerId: number;
+    playerName: string;
+    level: "block" | "warn";
+    message: string;
+  } | null>(null);
   const [optimizeOpen, setOptimizeOpen] = useState(false);
   const [optimizerResult, setOptimizerResult] = useState<OptimizerResult | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -453,6 +460,25 @@ export default function RosterPage() {
       });
       return;
     }
+    // Health gate — block OUT, warn risky. Open confirm dialog instead of committing immediately.
+    const target = [...starters, ...bench].find((p) => p.core.id === playerId);
+    if (target) {
+      const h = normalizePlayerHealth(target);
+      if (shouldBlockCaptain(h) || shouldWarnCaptain(h)) {
+        setCaptainConfirm({
+          playerId,
+          playerName: target.core.name,
+          level: shouldBlockCaptain(h) ? "block" : "warn",
+          message: getCaptainHealthWarning(h, target.core.name) ?? "",
+        });
+        return;
+      }
+    }
+    commitCaptain(playerId);
+  };
+
+  const commitCaptain = (playerId: number) => {
+    if (!roster) return;
     setCaptainId(playerId);
     playSfx("swoosh");
     const starterIds = [...(roster.starters ?? [])];
@@ -887,6 +913,35 @@ export default function RosterPage() {
             open={gameDetail !== null}
             onOpenChange={(o) => !o && setGameDetail(null)}
           />
+          <AlertDialog open={!!captainConfirm} onOpenChange={(o) => { if (!o) setCaptainConfirm(null); }}>
+            <AlertDialogContent className="rounded-xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {captainConfirm?.level === "block" ? "Captain Not Recommended" : "Availability Risk"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {captainConfirm?.level === "block"
+                    ? `${captainConfirm?.playerName} is listed OUT/unavailable. Captaining him is not recommended.`
+                    : `${captainConfirm?.message || "This player has an availability risk. Check status before lock."}`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (captainConfirm) {
+                      const pid = captainConfirm.playerId;
+                      setCaptainConfirm(null);
+                      commitCaptain(pid);
+                    }
+                  }}
+                  className={captainConfirm?.level === "block" ? "bg-destructive text-destructive-foreground" : ""}
+                >
+                  Captain anyway
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <AutoPickConfirmModal
             open={autoPickOpen}
             onOpenChange={(o) => { setAutoPickOpen(o); if (!o) setAutoPickProposal(null); }}
