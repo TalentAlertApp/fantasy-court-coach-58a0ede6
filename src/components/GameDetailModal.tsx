@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tv2, Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
+import { Tv2, Table2, BarChart3, Mic, ExternalLink, X, MapPin } from "lucide-react";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
@@ -75,6 +75,15 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
+  const [recapOpen, setRecapOpen] = useState(false);
+  const tableWrapRef = useRef<HTMLDivElement | null>(null);
+  const [embedHeight, setEmbedHeight] = useState<number>(420);
+  useEffect(() => {
+    if (recapOpen) return;
+    const h = tableWrapRef.current?.offsetHeight;
+    if (h && h > 200) setEmbedHeight(h);
+  }, [recapOpen]);
+  const embedSrc = useMemo(() => toYouTubeEmbed(game.game_recap_url ?? null), [game.game_recap_url]);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
@@ -92,8 +101,8 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           <DialogHeader>
             <DialogTitle className="sr-only">Game Detail</DialogTitle>
           </DialogHeader>
-          {(hasGwDay || tipoffLabel) && (
-            <div className="relative flex items-center justify-center gap-2">
+          {(hasGwDay || tipoffLabel || venue?.name) && (
+            <div className="relative flex items-center justify-center gap-2 flex-wrap">
               {hasGwDay && (
                 <span className="inline-flex items-center gap-1 px-2 py-px rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-heading uppercase tracking-[0.18em] font-bold text-foreground/90">
                   GW {game.gw} · D {game.day}
@@ -102,6 +111,14 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               {tipoffLabel && (
                 <span className="inline-flex items-center px-2 py-px rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-mono tabular-nums text-foreground/80">
                   {tipoffLabel}
+                </span>
+              )}
+              {venue?.name && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-px rounded-md border border-border/60 bg-background/40 backdrop-blur-sm text-[10px] font-heading uppercase tracking-[0.16em] font-semibold text-foreground/80 max-w-[260px] truncate"
+                  title={venue.name}
+                >
+                  <MapPin className="h-2.5 w-2.5 opacity-70" /> {venue.name}
                 </span>
               )}
             </div>
@@ -171,7 +188,32 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               </a>
             )}
           </div>
-          {game.game_recap_url && (
+          {game.game_recap_url && played && (
+            <div className="flex justify-center pt-0">
+              {embedSrc ? (
+                <button
+                  type="button"
+                  onClick={() => setRecapOpen((v) => !v)}
+                  aria-label={recapOpen ? "Close recap video" : "Watch recap video"}
+                  title={recapOpen ? "Close recap" : "Watch Recap"}
+                  className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-all px-3 py-0.5 rounded-xl border border-green-500/40 hover:border-green-400 hover:bg-green-500/10 hover:scale-[1.04]"
+                >
+                  {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
+                  {recapOpen ? "Close Recap" : "Watch Recap"}
+                </button>
+              ) : (
+                <a
+                  href={game.game_recap_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
+                >
+                  <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          )}
+          {game.game_recap_url && !played && (
             <div className="flex justify-center pt-0">
               <a
                 href={game.game_recap_url}
@@ -184,15 +226,48 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
-        {played && (
-          <div className="border-t">
+        {played && !recapOpen && (
+          <div ref={tableWrapRef} className="border-t">
             <GameBoxScoreTable game={game} />
+          </div>
+        )}
+        {played && recapOpen && embedSrc && (
+          <div className="border-t bg-black relative" style={{ minHeight: embedHeight }}>
+            <iframe
+              src={embedSrc}
+              title="Game Recap"
+              className="absolute inset-0 w-full h-full"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+            />
           </div>
         )}
         {!played && <ScheduledInsights game={game} />}
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Convert YouTube watch / youtu.be URLs into embeddable URLs. Returns null otherwise. */
+function toYouTubeEmbed(url: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    let id: string | null = null;
+    if (u.hostname.includes("youtu.be")) {
+      id = u.pathname.replace(/^\//, "").split("/")[0] || null;
+    } else if (u.hostname.includes("youtube.com")) {
+      if (u.pathname.startsWith("/embed/")) return url;
+      id = u.searchParams.get("v");
+      if (!id && u.pathname.startsWith("/shorts/")) {
+        id = u.pathname.split("/")[2] ?? null;
+      }
+    }
+    if (!id) return null;
+    return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
+  } catch {
+    return null;
+  }
 }
 
 function ScheduledInsights({ game }: { game: GameDetailGame }) {
