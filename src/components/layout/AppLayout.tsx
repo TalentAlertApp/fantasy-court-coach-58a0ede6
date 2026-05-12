@@ -71,7 +71,7 @@ export default function AppLayout() {
       {/* ── LEFT SIDEBAR ─────────────────────────────── */}
       <aside className={`sidebar${collapsed ? " collapsed" : ""} animate-slide-in-left`}>
         {/* Brand — NBA Logo + FANTASY + Guide */}
-        <div className="relative overflow-hidden flex items-center gap-3 px-4 py-5">
+        <div className={`relative overflow-hidden flex items-center ${collapsed ? "justify-center px-0 py-4" : "gap-3 px-4 py-5"}`}>
           {/* Watermark logos escaping the corners */}
           {!collapsed && (
             <>
@@ -113,14 +113,14 @@ export default function AppLayout() {
             <img
               src={isWnba ? wnbaLogo : nbaLogo}
               alt={isWnba ? "WNBA" : "NBA"}
-              className="h-9 w-auto mx-auto flex-shrink-0 relative z-10"
+              className="h-8 w-auto flex-shrink-0 relative z-10"
             />
           )}
         </div>
         <div className="sidebar-divider" />
 
         {/* Nav */}
-        <nav className="flex-1 py-3 flex flex-col gap-1 overflow-y-auto">
+        <nav className={`flex-1 ${collapsed ? "py-4 items-center" : "py-3"} flex flex-col gap-1 overflow-y-auto`}>
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavTooltip key={to} collapsed={collapsed} label={label}>
               <NavLink
@@ -157,7 +157,7 @@ export default function AppLayout() {
             <span className="sidebar-section-label">Account</span>
           </div>
         )}
-        <div className="flex flex-col gap-2 p-3">
+        <div className={`flex flex-col ${collapsed ? "gap-2 px-0 py-3 items-center" : "gap-2 p-3"}`}>
           {user && !collapsed && (
             <div className="flex items-center gap-2 rounded-lg px-2 py-1.5"
                  style={{ background: "hsl(0 0% 100% / 0.03)", boxShadow: "inset 0 0 0 1px hsl(var(--sidebar-border) / 0.5)" }}>
@@ -187,7 +187,7 @@ export default function AppLayout() {
               </button>
             </NavTooltip>
           )}
-          <div className={collapsed ? "flex flex-col gap-2" : "grid grid-cols-2 gap-2"}>
+          <div className={collapsed ? "flex flex-col gap-2 items-center" : "grid grid-cols-2 gap-2"}>
             <NavTooltip collapsed={collapsed} label={dark ? "Switch to Light" : "Switch to Dark"}>
               <button
                 onClick={() => setDark(d => !d)}
