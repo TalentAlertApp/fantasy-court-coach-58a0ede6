@@ -68,7 +68,7 @@ export default function MissingRecapsPanel({ league }: { league: "nba" | "wnba" 
     setRefreshingId(game_id);
     try {
       const { data, error } = await supabase.functions.invoke(
-        `youtube-recap-lookup?game_id=${encodeURIComponent(game_id)}&replace=1`,
+        `youtube-recap-lookup?game_id=${encodeURIComponent(game_id)}&replace=1&league=${league}`,
         { body: null },
       );
       if (error) throw error;
@@ -96,7 +96,7 @@ export default function MissingRecapsPanel({ league }: { league: "nba" | "wnba" 
         const chunk = ids.slice(i, i + 100);
         batch += 1;
         const { data, error } = await supabase.functions.invoke(
-          `youtube-recap-lookup?ids=${chunk.join(",")}&replace=1`,
+          `youtube-recap-lookup?ids=${chunk.join(",")}&replace=1&league=${league}`,
           { body: null },
         );
         if (error) throw error;
