@@ -1,61 +1,54 @@
-## What is actually broken
 
-- **Injury persistence:** the Edge Function is matching players correctly, but every update fails because `players.injury` has a database check constraint that only accepts `OUT`, `Q`, or `DTD`. The function is trying to write labels like `Out — Calf`, so Postgres rejects all 117 updates. Aaron Gordon remains `null` because the update never commits.
-- **Game Detail modal:** the app is already mostly using `GameDetailModal`, but Player Modal history also has a separate older “Game Box Score” dialog and the history payload does not include recap link fields from `schedule_games`, so the green `Tv2` recap affordance cannot reliably show there.
-- **Roster header:** Quick Actions is still amber/yellow, too close to the light-theme background; Ballers.IQ wordmark theme assets are reversed from the requested visual result.
-- **Collapsed sidebar:** CSS rules were added, but the collapsed column still has inconsistent structural padding/axis alignment between logo, nav, and footer controls.
+## Goal
+When the user is watching the Game Recap video inside `GameDetailModal`, let them toggle two player-scoring tables (away on the left, home on the right) that animate out from behind the video and back in when closed.
 
-## Implementation plan
+## Scope
+Single file: `src/components/GameDetailModal.tsx`. No backend, no schema, no new components — `GameBoxScoreTable` already supports a `filterTeam` prop and a height override (`maxBodyHeightClass`), which is exactly what we need.
 
-1. **Repair injury persistence at the source**
-   - Add a database migration to replace `players_injury_check` with a constraint that accepts normalized app health codes: `OUT`, `Q`, `DTD`, `GTD`, `PROB`.
-   - Update `supabase/functions/nba-injury-report/index.ts` so it writes only the normalized code to `players.injury`, never rich labels like `Out — Calf`.
-   - Preserve rich details without breaking the constraint by keeping them in the injury report response and, where safe, in `players.note` only if needed and non-destructive.
-   - Return accurate persistence stats: matched players, changed rows, cleared rows, and update errors.
+## UX behavior
+1. New state `panelsOpen` (default `false`), only meaningful when `recapOpen === true`.
+2. New header icon button placed in the action row (next to BoxScore / Charts / PbP / NBA), visible **only while the recap is playing**. Context-sensitive, no container/border — just an icon button (using `PanelLeftOpen` / `PanelRightOpen` style or `Columns2` from lucide-react), with a subtle hover scale and color change to match the existing "Watch Recap" toggle styling (no pill background).
+3. Clicking the icon toggles `panelsOpen`. The icon swaps to a "close" variant when open (e.g. `Columns2` ↔ `X`), and `aria-pressed` reflects state.
+4. While `recapOpen && panelsOpen`, the modal becomes wider (`max-w-6xl`) and the recap area becomes a 3-column grid:
+   - Left column: `GameBoxScoreTable` filtered to `away_team`
+   - Center column: existing video iframe (unchanged size logic, fixed minHeight)
+   - Right column: `GameBoxScoreTable` filtered to `home_team`
+   Both tables use `maxBodyHeightClass` matching the video height so the three blocks share the exact same vertical extent.
+5. While `recapOpen && !panelsOpen`, layout is exactly today's centered video.
+6. When the recap is closed, `panelsOpen` is reset to `false` so reopening the recap starts collapsed.
 
-2. **Make app queries immediately reflect injury updates**
-   - Ensure `players-list`, `player-detail`, and roster fallback data expose `core.injury` consistently in addition to `flags.injury`, because several UI paths read `core.injury`.
-   - Keep health normalization centralized through `src/lib/health.ts`; no direct UI should depend on raw injury labels as the primary source.
+## Slide-from-behind animation
+Wrap the recap area in `relative overflow-hidden`. The two side tables are absolutely positioned behind the video (`z-0`), the video sits on top (`z-10`). The tables are translated horizontally off-screen behind the video when closed and slide outward when opened:
+- Left table: `transition-transform duration-500 ease-out` with `translate-x-0` when open, `translate-x-full` (toward center, behind video) when closed; matching `opacity` fade.
+- Right table: mirrored with `-translate-x-full` → `translate-x-0`.
+- Video keeps its central column width when panels are open (CSS grid `[280px_1fr_280px]` on md+, collapsing to single column on small screens where panels stay closed).
 
-3. **Unify played-game modal behavior**
-   - Use `GameDetailModal` as the canonical played-game modal for roster game slots and Player Modal history clicks.
-   - Remove or stop using the older Player Modal “Game Box Score” dialog path for game-level opening, keeping player click-through behavior via the shared box score table.
-   - Enrich `player-detail` history rows with `game_boxscore_url`, `game_charts_url`, `game_playbyplay_url`, `game_recap_url`, `youtube_recap_id`, and `tipoff_utc` from `schedule_games`.
-   - Extend `GameDetailModal` so recap embed works from either `youtube_recap_id` or a YouTube URL, while NBA.com recap links remain external when no YouTube ID exists.
-   - Add `youtube_recap_id` to the frontend game types and schedule hooks used by roster slots and schedule previews.
+To keep the "behind the video" illusion, the side tables are rendered *outside* the central video column but their initial `translate` keeps them tucked under the video edge before sliding outward; closing reverses the transform so they appear to retract behind it.
 
-4. **Fix roster header icon polish**
-   - Change Quick Actions from amber/yellow to a theme-safe distinct color with a clear hover state in both light and dark themes.
-   - Swap Ballers.IQ wordmark asset usage so the light and dark theme PNGs are reversed as requested, keeping the transparent pill and hover surge.
-   - Keep Reset unchanged except for existing destructive styling and no surge.
+## Implementation outline
+1. Add `panelsOpen` state and reset effect:
+   ```ts
+   const [panelsOpen, setPanelsOpen] = useState(false);
+   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
+   ```
+2. Add icon button in the existing action-row (only when `recapOpen && embedSrc`):
+   ```tsx
+   <button onClick={() => setPanelsOpen(v => !v)} aria-pressed={panelsOpen}
+     className="text-muted-foreground hover:text-primary transition-transform hover:scale-110">
+     {panelsOpen ? <X .../> : <Columns2 .../>}
+   </button>
+   ```
+3. Replace the current recap render block with a layout that conditionally splits into 3 columns and renders the side tables wrapped in animated containers. Use `embedHeight` (already tracked) to set both `minHeight` for the iframe wrapper and a matching `style={{ maxHeight: embedHeight }}` on each side table's scroll body via inline style override (passing a custom `maxBodyHeightClass` like `max-h-none` and constraining the parent).
+4. Widen the dialog when panels are open: switch `max-w-2xl` → `max-w-6xl` only when `played && recapOpen && panelsOpen`.
+5. Filter the side tables by team using existing `filterTeam` prop on `GameBoxScoreTable`, passing a no-op `setFilterTeam` so the team can't be unselected by the user.
 
-5. **Fix collapsed sidebar alignment for real**
-   - Refactor collapsed sidebar structure so the logo, nav icons, sign-out, theme, and expand controls all use the same fixed-width centered rail.
-   - Remove the residual left/right padding and active/hover offset effects only in collapsed mode.
-   - Increase vertical spacing between collapsed nav icons while preserving the existing expanded sidebar look.
+## Out of scope
+- No edits to `GameBoxScoreTable` internals (it already supports `filterTeam` + height override).
+- No mobile-specific layout — on narrow viewports, the side panels collapse and the icon still works but tables stack below the video. (If the user wants strict mobile behavior, we can refine after.)
+- No changes to the inline boxscore that shows when the recap is closed.
 
-6. **Validation**
-   - Read back Aaron Gordon from Supabase after the migration/function change to confirm `players.injury = 'OUT'` can persist.
-   - Call or inspect the injury Edge Function logs to confirm update errors are gone.
-   - Verify the two example games (`SAS at DEN`, `PHI at SAS`) carry recap video IDs/links into the shared modal.
-   - Run targeted checks for TypeScript/import issues through the normal harness, and use browser/preview inspection for collapsed sidebar alignment and modal behavior.
-
-## Files expected to change
-
-- `supabase/functions/nba-injury-report/index.ts`
-- `supabase/functions/player-detail/index.ts`
-- Supabase migration for `players_injury_check`
-- `src/lib/contracts.ts`
-- `src/components/GameDetailModal.tsx`
-- `src/components/PlayerModal.tsx`
-- `src/hooks/useUpcomingByTeam.ts`
-- `src/hooks/useScheduleWeekGames.ts`
-- `src/hooks/useStandingsContext.ts`
-- `src/pages/RosterPage.tsx`
-- `src/components/layout/AppLayout.tsx`
-- `src/index.css`
-
-<lov-actions>
-<lov-open-history>View History</lov-open-history>
-<lov-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</lov-link>
-</lov-actions>
+## Verification
+- Open a played game → click "Watch Recap" → confirm new icon appears in the action row.
+- Click icon → side tables slide outward from behind the video; both tables match video height.
+- Click icon again → tables retract behind the video.
+- Close recap → reopen → panels start closed.
