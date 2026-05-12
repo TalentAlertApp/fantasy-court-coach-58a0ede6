@@ -19,6 +19,7 @@ interface SchedRow {
   game_playbyplay_url?: string | null;
   game_recap_url?: string | null;
   nba_game_url?: string | null;
+  youtube_recap_id?: string | null;
 }
 
 export interface Last5Detail {
@@ -38,6 +39,7 @@ export interface Last5Detail {
   game_playbyplay_url?: string | null;
   game_recap_url?: string | null;
   nba_game_url?: string | null;
+  youtube_recap_id?: string | null;
 }
 
 const DIV_ABBR: Record<string, string> = {
@@ -58,7 +60,7 @@ async function fetchAllScheduleGames(leagueId: string): Promise<SchedRow[]> {
   while (true) {
     const { data, error } = await supabase
       .from("schedule_games")
-      .select("home_team,away_team,home_pts,away_pts,status,tipoff_utc,game_id,game_boxscore_url,game_charts_url,game_playbyplay_url,game_recap_url,nba_game_url")
+      .select("home_team,away_team,home_pts,away_pts,status,tipoff_utc,game_id,game_boxscore_url,game_charts_url,game_playbyplay_url,game_recap_url,nba_game_url,youtube_recap_id")
       .eq("league_id", leagueId)
       .order("tipoff_utc", { ascending: true })
       .range(from, from + PAGE - 1);
@@ -119,6 +121,7 @@ export function useStandingsContext() {
         game_playbyplay_url: g.game_playbyplay_url ?? null,
         game_recap_url: g.game_recap_url ?? null,
         nba_game_url: g.nba_game_url ?? null,
+        youtube_recap_id: g.youtube_recap_id ?? null,
       };
       (map[g.home_team] ||= []).push({
         result: homeWon ? "W" : "L",

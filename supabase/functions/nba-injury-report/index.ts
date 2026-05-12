@@ -201,6 +201,22 @@ function buildInjuryLabel(rec: InjuryRecord): string {
   return status;
 }
 
+/** Map an InjuryRecord status to the normalized health code stored in players.injury.
+ *  Allowed DB values: 'OUT' | 'Q' | 'DTD' | 'GTD' | 'PROB'. */
+function toInjuryCode(rec: InjuryRecord): "OUT" | "Q" | "DTD" | "GTD" | "PROB" | null {
+  const s = (rec.status ?? "").toLowerCase().trim();
+  if (!s) return null;
+  if (s.includes("out")) return "OUT";
+  if (s.includes("suspend") || s.includes("g league") || s.includes("g-league") ||
+      s.includes("personal") || s.includes("rest") || s.includes("load manag") ||
+      s.includes("inactive")) return "OUT";
+  if (s.includes("game-time") || s === "gtd") return "GTD";
+  if (s.includes("day-to-day") || s === "dtd") return "DTD";
+  if (s.includes("questionable") || s === "q") return "Q";
+  if (s.includes("probable")) return "PROB";
+  return "Q"; // conservative fallback
+}
+
 async function persistInjuriesToPlayers(
   injuries: InjuryRecord[],
 ): Promise<{ matched: number; cleared: number; skipped?: boolean } | null> {
@@ -235,7 +251,7 @@ async function persistInjuriesToPlayers(
   }
 
   const matchedIds = new Set<number>();
-  const updates: Array<{ id: number; label: string }> = [];
+  const updates: Array<{ id: number; code: string }> = [];
   const unmatched: string[] = [];
   for (const rec of injuries) {
     const norm = normalizeName(rec.player_name);
@@ -251,8 +267,9 @@ async function persistInjuriesToPlayers(
     if (!hit) { unmatched.push(rec.player_name); continue; }
     if (matchedIds.has(hit.id)) continue;
     matchedIds.add(hit.id);
-    const label = buildInjuryLabel(rec);
-    if (hit.injury !== label) updates.push({ id: hit.id, label });
+    const code = toInjuryCode(rec);
+    if (!code) continue;
+    if (hit.injury !== code) updates.push({ id: hit.id, code });
   }
 
   // Clear stale injuries for players no longer in the report.
@@ -268,7 +285,7 @@ async function persistInjuriesToPlayers(
   let firstErr: string | null = null;
   const results = await Promise.all(
     updates.map((u) =>
-      sb.from("players").update({ injury: u.label }).eq("id", u.id),
+      sb.from("players").update({ injury: u.code }).eq("id", u.id),
     ),
   );
   for (const r of results) {

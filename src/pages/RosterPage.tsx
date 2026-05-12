@@ -117,6 +117,7 @@ export default function RosterPage() {
       game_playbyplay_url: g.pbpUrl ?? null,
       game_recap_url: g.recapUrl ?? null,
       nba_game_url: g.nbaGameUrl ?? null,
+      youtube_recap_id: (g as any).youtubeRecapId ?? null,
       gw: g.gw ?? null,
       day: g.day ?? null,
       tipoff_utc: g.tipoffUtc ?? null,
@@ -572,8 +573,9 @@ export default function RosterPage() {
               title="Open Ballers.IQ"
               className="biq-header-pill w-32"
             >
-              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-6 w-auto" />
-              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-6 w-auto" />
+              {/* Swapped per design: dark wordmark on light theme, light wordmark on dark theme. */}
+              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="dark:hidden !h-6 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="hidden dark:block !h-6 w-auto" />
             </button>
 
             <Tooltip>
