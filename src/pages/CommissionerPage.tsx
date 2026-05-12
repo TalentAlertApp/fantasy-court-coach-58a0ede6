@@ -1383,6 +1383,8 @@ export default function CommissionerPage() {
       </div>
 
       <MissingRecapsPanel league={leagueCode} />
+
+      {leagueCode === "wnba" && <WnbaSheetSyncPanel />}
         </TabsContent>
       </Tabs>
 
