@@ -403,7 +403,7 @@ function OutstandingSlide({
               <col className="w-[34px]" />
               <col className="w-[44px]" />
             </colgroup>
-            <thead className="text-white/60 uppercase tracking-wider text-[9px] sticky top-0 z-10 bg-[#0b1220]/95 backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
+            <thead className="text-white/60 uppercase tracking-wider text-[9px] sticky top-0 z-10 shadow-[0_1px_0_0_rgba(255,255,255,0.08)] [&>tr>th]:bg-[#0b1220]">
               <tr>
                 <th className="text-left font-heading font-black py-1.5">Player</th>
                 <th className="text-right font-mono py-1.5">MIN</th>
