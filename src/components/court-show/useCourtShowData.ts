@@ -572,6 +572,11 @@ export function useCourtShowData(gw: number, day: number) {
       });
     }
 
+    // Health Watch — placed BEFORE Captain Radar on scheduled days.
+    if (healthWatchSlide && healthWatchMode === "scheduled") {
+      slides.push(healthWatchSlide);
+    }
+
     // Captain Radar comes after the gameday content.
     if (captains.length) {
       slides.push({
