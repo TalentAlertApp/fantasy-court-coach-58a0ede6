@@ -141,11 +141,11 @@ export function useCourtShowData(gw: number, day: number) {
   const data = useMemo<CourtShowData | null>(() => {
     if (schedLoading || playersLoading) return null;
 
-    const dateStr = buildWeekDayDate(gw, day);
+    const dateStr = buildWeekDayDate(deadlines, gw, day);
     const dateLabel = dateStr
       ? format(parse(dateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
       : "";
-    const deadline = DEADLINES.find((d) => d.gw === gw && d.day === day);
+    const deadline = deadlines.find((d) => d.gw === gw && d.day === day);
     const teamsOnSlate = new Set<string>();
     for (const g of games) { teamsOnSlate.add(g.home_team); teamsOnSlate.add(g.away_team); }
 
@@ -475,8 +475,8 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Outro ─────────────────────────────────────────────────────────
-    const idx = DEADLINES.findIndex((d) => d.gw === gw && d.day === day);
-    const next = idx >= 0 && idx < DEADLINES.length - 1 ? DEADLINES[idx + 1] : null;
+    const idx = deadlines.findIndex((d) => d.gw === gw && d.day === day);
+    const next = idx >= 0 && idx < deadlines.length - 1 ? deadlines[idx + 1] : null;
     slides.push({
       kind: "outro",
       title: "Set Lineup Before Lock",
