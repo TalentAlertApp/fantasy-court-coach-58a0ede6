@@ -25,6 +25,15 @@ import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 import { pickGameLeader, pickWatchLeader } from "@/lib/game-blurbs";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
+import {
+  normalizePlayerHealth,
+  isHealthUnavailable,
+  isHealthRisky,
+  getHealthLabel,
+  type PlayerHealth,
+} from "@/lib/health";
+import { HealthStatusIcon } from "@/components/health";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
@@ -588,6 +597,117 @@ function useColsPerRow() {
   return cols;
 }
 
+/** Compact, context-sensitive injury bandage that opens InjuryReportModal for the matchup. */
+function GameInjuryButton({
+  awayTeam,
+  homeTeam,
+  rosterOut,
+  rosterRisk,
+  teamInjuriesCount,
+  size = "sm",
+  onClick,
+}: {
+  awayTeam: string;
+  homeTeam: string;
+  rosterOut: number;
+  rosterRisk: number;
+  teamInjuriesCount: number;
+  size?: "xs" | "sm";
+  onClick: () => void;
+}) {
+  const tier =
+    rosterOut > 0 ? "danger" : rosterRisk > 0 ? "warning" : teamInjuriesCount > 0 ? "neutral" : "muted";
+  const tone =
+    tier === "danger"
+      ? "text-red-500 hover:text-red-400 drop-shadow-[0_0_4px_rgba(239,68,68,0.45)]"
+      : tier === "warning"
+      ? "text-amber-400 hover:text-amber-300"
+      : tier === "neutral"
+      ? "text-foreground/70 hover:text-foreground"
+      : "text-muted-foreground/60 hover:text-muted-foreground";
+  const titleParts = [`Open Injury Report — ${awayTeam} & ${homeTeam}`];
+  if (rosterOut > 0) titleParts.push(`${rosterOut} roster player${rosterOut > 1 ? "s" : ""} listed OUT`);
+  if (rosterRisk > 0) titleParts.push(`${rosterRisk} availability risk${rosterRisk > 1 ? "s" : ""} on your roster`);
+  if (rosterOut === 0 && rosterRisk === 0 && teamInjuriesCount > 0)
+    titleParts.push(`${teamInjuriesCount} team injur${teamInjuriesCount > 1 ? "ies" : "y"} in this matchup`);
+  const title = titleParts.join(" • ");
+  const total = rosterOut + rosterRisk;
+  const iconCls = size === "xs" ? "h-3.5 w-3.5" : "h-4 w-4";
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`inline-flex items-center gap-0.5 transition-colors p-0.5 ${tone}`}
+      title={title}
+      aria-label={title}
+    >
+      <Bandage className={iconCls} />
+      {total > 0 ? (
+        <span className="text-[9px] font-heading font-bold leading-none">{total}</span>
+      ) : teamInjuriesCount > 0 ? (
+        <span className="text-[9px] font-mono leading-none opacity-80">{teamInjuriesCount}</span>
+      ) : null}
+    </button>
+  );
+}
+
+/** Inline strip listing roster-affected players for the matchup. */
+function MatchupHealthStrip({
+  gh,
+  isFinal,
+  onPlayerClick,
+}: {
+  gh: {
+    rosterOut: { id: number; name: string; team: string; photo?: string | null; health: PlayerHealth }[];
+    rosterRisk: { id: number; name: string; team: string; photo?: string | null; health: PlayerHealth }[];
+    teamInjuriesCount: number;
+  };
+  isFinal: boolean;
+  onPlayerClick: (id: number) => void;
+}) {
+  const items = [...gh.rosterOut, ...gh.rosterRisk];
+  if (items.length === 0) return null;
+  const headline = isFinal
+    ? "Roster injury context"
+    : `${gh.rosterOut.length > 0 ? `${gh.rosterOut.length} OUT` : ""}${
+        gh.rosterOut.length > 0 && gh.rosterRisk.length > 0 ? " • " : ""
+      }${gh.rosterRisk.length > 0 ? `${gh.rosterRisk.length} at risk` : ""}`;
+  return (
+    <div className={`border-b ${isFinal ? "bg-muted/10" : "bg-muted/30"} px-4 py-2 flex items-center gap-3 flex-wrap`}>
+      <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+        {headline}
+      </span>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {items.map((p) => {
+          const teamLogo = getTeamLogo(p.team);
+          const tone = isHealthUnavailable(p.health)
+            ? "border-red-500/40 bg-red-500/10"
+            : "border-amber-400/40 bg-amber-400/10";
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onPlayerClick(p.id); }}
+              className={`inline-flex items-center gap-1.5 rounded-full border ${tone} pl-0.5 pr-2 py-0.5 hover:scale-[1.03] transition-transform`}
+              title={`${p.name} — ${getHealthLabel(p.health)}`}
+              aria-label={`Open ${p.name} (${getHealthLabel(p.health)})`}
+            >
+              {p.photo ? (
+                <img src={p.photo} alt="" className="h-5 w-5 rounded-full object-cover object-top ring-1 ring-border/50" />
+              ) : (
+                <span className="h-5 w-5 rounded-full bg-muted" />
+              )}
+              {teamLogo && <img src={teamLogo} alt={p.team} className="h-3.5 w-3.5" />}
+              <span className="text-[11px] font-heading font-bold leading-none">{p.name}</span>
+              <HealthStatusIcon health={p.health} size="xs" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function ScheduleList({ games, viewMode = "grid", gameBadges }: ScheduleListProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -617,14 +737,71 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   }, [boxscoreQueries, finalGameIds]);
 
   // Prefetch players list for "Players to Watch" on scheduled games.
-  const hasScheduled = viewMode === "list" && games.some((g) => !isGameFinal(g.status) && !isGameLive(g.status));
   const { data: playersData } = useQuery({
     queryKey: ["players", { limit: 1000 }],
     queryFn: () => fetchPlayers({ limit: 1000 }),
     staleTime: 60_000,
-    enabled: hasScheduled,
+    enabled: games.length > 0,
   });
   const playerItems: any[] = (playersData as any)?.items ?? [];
+
+  // ---------- Roster-aware health context for matchups ----------
+  const { data: rosterData } = useRosterQuery();
+  const rosterIds = useMemo(() => {
+    const set = new Set<number>();
+    const slots = (rosterData as any)?.roster ?? (rosterData as any)?.slots ?? [];
+    if (Array.isArray(slots)) {
+      for (const s of slots) {
+        const pid = s?.player_id ?? s?.player?.id ?? s?.id;
+        if (typeof pid === "number") set.add(pid);
+      }
+    }
+    return set;
+  }, [rosterData]);
+
+  type AffectedPlayer = {
+    id: number;
+    name: string;
+    team: string;
+    photo?: string | null;
+    health: PlayerHealth;
+  };
+  type GameHealth = {
+    rosterOut: AffectedPlayer[];
+    rosterRisk: AffectedPlayer[];
+    teamInjuriesCount: number;
+  };
+
+  const healthByTeam = useMemo(() => {
+    const map = new Map<string, AffectedPlayer[]>();
+    for (const p of playerItems) {
+      const c = p?.core;
+      if (!c?.team) continue;
+      const h = normalizePlayerHealth(c);
+      if (!h.status) continue;
+      const arr = map.get(c.team) ?? [];
+      arr.push({ id: c.id, name: c.name, team: c.team, photo: c.photo, health: h });
+      map.set(c.team, arr);
+    }
+    return map;
+  }, [playerItems]);
+
+  const computeGameHealth = (awayTeam: string, homeTeam: string): GameHealth => {
+    const out: GameHealth = { rosterOut: [], rosterRisk: [], teamInjuriesCount: 0 };
+    for (const team of [awayTeam, homeTeam]) {
+      const arr = healthByTeam.get(team) ?? [];
+      for (const item of arr) {
+        if (rosterIds.has(item.id)) {
+          if (isHealthUnavailable(item.health)) out.rosterOut.push(item);
+          else if (isHealthRisky(item.health)) out.rosterRisk.push(item);
+          else out.teamInjuriesCount++;
+        } else {
+          out.teamInjuriesCount++;
+        }
+      }
+    }
+    return out;
+  };
 
   if (games.length === 0) {
     return (
@@ -638,8 +815,16 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const renderExpandedPanel = (g: ScheduleGame) => {
     const isFinal = isGameFinal(g.status);
     const isScheduled = !isFinal && !isGameLive(g.status);
+    const gh = computeGameHealth(g.away_team, g.home_team);
     return (
       <div className={`bg-card border border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-xl overflow-hidden`}>
+        {(gh.rosterOut.length > 0 || gh.rosterRisk.length > 0) && (
+          <MatchupHealthStrip
+            gh={gh}
+            isFinal={isFinal}
+            onPlayerClick={setSelectedPlayerId}
+          />
+        )}
         {isFinal && (
           <GameBoxScore
             gameId={g.game_id}
@@ -665,6 +850,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
     const isExpanded = expandedId === g.game_id;
     const hasYoutubeRecap = !!g.youtube_recap_id;
     const venue = getVenue(g.home_team);
+    const gh = computeGameHealth(g.away_team, g.home_team);
+    const showInjuryBtn =
+      isScheduled || gh.rosterOut.length > 0 || gh.rosterRisk.length > 0;
 
     return (
       <div
@@ -755,16 +943,16 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                     <Tv2 className="h-3.5 w-3.5" />
                   </span>
                 )}
-                {!isFinal && !isLive && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                    title={`Injury Report — ${g.away_team} & ${g.home_team}`}
-                    aria-label="Open injury report for these teams"
-                  >
-                    <Bandage className="h-3.5 w-3.5" />
-                  </button>
+                {showInjuryBtn && (
+                  <GameInjuryButton
+                    awayTeam={g.away_team}
+                    homeTeam={g.home_team}
+                    rosterOut={gh.rosterOut.length}
+                    rosterRisk={gh.rosterRisk.length}
+                    teamInjuriesCount={gh.teamInjuriesCount}
+                    size="xs"
+                    onClick={() => setInjuryPair({ a: g.away_team, b: g.home_team })}
+                  />
                 )}
                 <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
                 <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
@@ -863,16 +1051,15 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   <Tv2 className="h-4 w-4" />
                 </span>
               )}
-                {!isFinal && !isLive && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                    title={`Injury Report — ${g.away_team} & ${g.home_team}`}
-                    aria-label="Open injury report for these teams"
-                  >
-                    <Bandage className="h-4 w-4" />
-                  </button>
+                {showInjuryBtn && (
+                  <GameInjuryButton
+                    awayTeam={g.away_team}
+                    homeTeam={g.home_team}
+                    rosterOut={gh.rosterOut.length}
+                    rosterRisk={gh.rosterRisk.length}
+                    teamInjuriesCount={gh.teamInjuriesCount}
+                    onClick={() => setInjuryPair({ a: g.away_team, b: g.home_team })}
+                  />
                 )}
               <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
               <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
@@ -966,6 +1153,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         const isExpanded = expandedId === g.game_id;
         const hasYoutubeRecap = !!g.youtube_recap_id;
         const venue = getVenue(g.home_team);
+        const gh = computeGameHealth(g.away_team, g.home_team);
+        const showInjuryBtn =
+          isScheduled || gh.rosterOut.length > 0 || gh.rosterRisk.length > 0;
 
         return (
           <Collapsible
@@ -1094,16 +1284,15 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                       <Tv2 className="h-4 w-4" />
                     </span>
                   )}
-                  {!isFinal && !isLive && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
-                      className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                      title={`Injury Report — ${g.away_team} & ${g.home_team}`}
-                      aria-label="Open injury report for these teams"
-                    >
-                      <Bandage className="h-4 w-4" />
-                    </button>
+                  {showInjuryBtn && (
+                    <GameInjuryButton
+                      awayTeam={g.away_team}
+                      homeTeam={g.home_team}
+                      rosterOut={gh.rosterOut.length}
+                      rosterRisk={gh.rosterRisk.length}
+                      teamInjuriesCount={gh.teamInjuriesCount}
+                      onClick={() => setInjuryPair({ a: g.away_team, b: g.home_team })}
+                    />
                   )}
                   <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
                   <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
@@ -1136,6 +1325,13 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className={`bg-card border border-t-0 border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-b-xl overflow-hidden`}>
+                {isExpanded && (gh.rosterOut.length > 0 || gh.rosterRisk.length > 0) && (
+                  <MatchupHealthStrip
+                    gh={gh}
+                    isFinal={isFinal}
+                    onPlayerClick={setSelectedPlayerId}
+                  />
+                )}
                 {isExpanded && isFinal && (
                   <GameBoxScore
                     gameId={g.game_id}
