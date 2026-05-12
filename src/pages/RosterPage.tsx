@@ -75,6 +75,9 @@ export default function RosterPage() {
   const { selectedTeamId, teams, isReady: teamReady, isError: teamError } = useTeam();
   const { league } = useLeague();
   const { deadlines: leagueDeadlines } = useLeagueDeadlines();
+  const { data: usedChips } = useTeamChips(selectedTeamId);
+  const allStarUsed = usedChips?.find((c) => c.chip === "all_star");
+  const wildcardUsed = usedChips?.find((c) => c.chip === "wildcard");
   const { data: rosterData, isLoading: rosterLoading, isError: rosterIsError, isSuccess: rosterSuccess, refetch: refetchRoster } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
