@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -56,6 +57,19 @@ export default function PlayersPage() {
   const [inZone, setInZone] = useState<number[]>([]);
   const [chipAllStar, setChipAllStar] = useState(false);
   const [chipWildcard, setChipWildcard] = useState(false);
+  // Pre-arm chip via URL param (?chip=all_star|wildcard) coming from /MY ROSTER quick-actions.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const c = searchParams.get("chip");
+    if (c === "all_star") setChipAllStar(true);
+    if (c === "wildcard") setChipWildcard(true);
+    if (c) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("chip");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
