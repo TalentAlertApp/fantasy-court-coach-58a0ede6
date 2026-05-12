@@ -139,6 +139,21 @@ function buildInjuryLabel(rec: InjuryRecord): string {
   return status;
 }
 
+/** Map an InjuryRecord status to the normalized health code stored in players.injury.
+ *  Allowed DB values: 'OUT' | 'Q' | 'DTD' | 'GTD' | 'PROB'. */
+function toInjuryCode(rec: InjuryRecord): "OUT" | "Q" | "DTD" | "GTD" | "PROB" | null {
+  const s = (rec.status ?? "").toLowerCase().trim();
+  if (!s) return null;
+  if (s.includes("out")) return "OUT";
+  if (s.includes("suspend") || s.includes("personal") || s.includes("rest") ||
+      s.includes("load manag") || s.includes("inactive")) return "OUT";
+  if (s.includes("game-time") || s === "gtd") return "GTD";
+  if (s.includes("day-to-day") || s === "dtd") return "DTD";
+  if (s.includes("questionable") || s === "q") return "Q";
+  if (s.includes("probable")) return "PROB";
+  return "Q";
+}
+
 async function persistInjuriesToPlayers(
   injuries: InjuryRecord[],
 ): Promise<{ matched: number; cleared: number; skipped?: boolean } | null> {
@@ -172,7 +187,7 @@ async function persistInjuriesToPlayers(
   }
 
   const matchedIds = new Set<number>();
-  const updates: Array<{ id: number; label: string }> = [];
+  const updates: Array<{ id: number; code: string }> = [];
   const unmatched: string[] = [];
   for (const rec of injuries) {
     const norm = normalizeName(rec.player_name);
@@ -187,8 +202,9 @@ async function persistInjuriesToPlayers(
     if (!hit) { unmatched.push(rec.player_name); continue; }
     if (matchedIds.has(hit.id)) continue;
     matchedIds.add(hit.id);
-    const label = buildInjuryLabel(rec);
-    if (hit.injury !== label) updates.push({ id: hit.id, label });
+    const code = toInjuryCode(rec);
+    if (!code) continue;
+    if (hit.injury !== code) updates.push({ id: hit.id, code });
   }
 
   const toClear: number[] = [];
@@ -198,14 +214,24 @@ async function persistInjuriesToPlayers(
     }
   }
 
-  await Promise.all(
-    updates.map((u) => sb.from("players").update({ injury: u.label }).eq("id", u.id)),
+  let updateErrors = 0;
+  let firstErr: string | null = null;
+  const results = await Promise.all(
+    updates.map((u) => sb.from("players").update({ injury: u.code }).eq("id", u.id)),
   );
+  for (const r of results) {
+    if ((r as any)?.error) {
+      updateErrors++;
+      if (!firstErr) firstErr = JSON.stringify((r as any).error);
+    }
+  }
   if (toClear.length) {
-    await sb.from("players").update({ injury: null }).in("id", toClear);
+    const cr = await sb.from("players").update({ injury: null }).in("id", toClear);
+    if ((cr as any)?.error && !firstErr) firstErr = JSON.stringify((cr as any).error);
   }
   console.log(
-    `[wnba-injury-report] persist: matched=${matchedIds.size} updates=${updates.length} cleared=${toClear.length} unmatched=${unmatched.length}` +
+    `[wnba-injury-report] persist: matched=${matchedIds.size} updates=${updates.length} cleared=${toClear.length} unmatched=${unmatched.length} updateErrors=${updateErrors}` +
+    (firstErr ? ` firstErr=${firstErr}` : "") +
     (unmatched.length ? ` sample=${unmatched.slice(0, 5).join("|")}` : ""),
   );
   return { matched: updates.length, cleared: toClear.length };
