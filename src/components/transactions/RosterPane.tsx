@@ -7,6 +7,9 @@ import { Minus } from "lucide-react";
 import { useLeague } from "@/contexts/LeagueContext";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import { HealthStatusIcon } from "@/components/health";
+import type { PlayerHealth } from "@/lib/health";
+import { isHealthUnavailable, isHealthRisky } from "@/lib/health";
 
 export interface RosterPanePlayer {
   player_id: number;
@@ -15,6 +18,7 @@ export interface RosterPanePlayer {
   salary: number;
   fc_bc: string;
   photo: string | null;
+  health?: PlayerHealth | null;
 }
 
 interface RosterPaneProps {
@@ -38,12 +42,18 @@ function RosterRow({
   onPlayerClick: (id: number) => void;
 }) {
   const teamLogo = getTeamLogo(player.team);
+  const out = isHealthUnavailable(player.health);
+  const risk = isHealthRisky(player.health);
   return (
     <div
       onClick={() => onPlayerClick(player.player_id)}
       className={`group relative overflow-hidden flex items-center px-1.5 py-1.5 rounded-md cursor-pointer transition-colors ${
         isOut
           ? "bg-destructive/15 ring-1 ring-destructive/40"
+          : out
+            ? "bg-red-500/5 ring-1 ring-red-500/30"
+            : risk
+              ? "bg-amber-500/5 ring-1 ring-amber-500/25"
           : "hover:bg-accent/30"
       }`}
     >
@@ -82,6 +92,7 @@ function RosterRow({
           {player.fc_bc}
         </Badge>
         <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
+        <HealthStatusIcon health={player.health ?? null} size="xs" className="shrink-0" />
         <span className="text-sm font-bold tabular-nums text-foreground shrink-0">${player.salary}</span>
       </div>
     </div>
