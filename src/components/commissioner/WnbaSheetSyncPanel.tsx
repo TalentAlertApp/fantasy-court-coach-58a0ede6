@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Database, Loader2 } from "lucide-react";
+import { Database, Loader2, CalendarDays, Trophy, Users, BarChart3, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -13,6 +13,20 @@ interface InspectResult {
   sheet_id: string;
   tabs: Record<string, TabInspect>;
 }
+interface SyncResult {
+  mode: string;
+  elapsed_ms: number;
+  tab?: string;
+  rows_read?: number;
+  upserted?: number;
+  skipped?: number;
+  nulled_out?: number;
+  games_upserted?: number;
+  last_game_updated?: number;
+  players_aggregated?: number;
+  errors?: string[];
+  results?: Record<string, SyncResult>;
+}
 
 const TAB_LABELS: Record<string, string> = {
   schedule: "Schedule",
@@ -21,32 +35,55 @@ const TAB_LABELS: Record<string, string> = {
   players: "DB_Players",
 };
 
-export default function WnbaSheetSyncPanel() {
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<InspectResult | null>(null);
+const adminSecret = () =>
+  (typeof window !== "undefined" ? localStorage.getItem("nba_admin_secret") : "") ?? "";
 
-  const runInspect = async () => {
-    setBusy(true);
-    setResult(null);
+export default function WnbaSheetSyncPanel() {
+  const [busyMode, setBusyMode] = useState<string | null>(null);
+  const [inspect, setInspect] = useState<InspectResult | null>(null);
+  const [results, setResults] = useState<Record<string, SyncResult>>({});
+
+  const run = async (mode: string, label: string) => {
+    setBusyMode(mode);
     try {
       const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
-        body: { mode: "inspect" },
-        headers: {
-          "x-admin-secret": (typeof window !== "undefined"
-            ? localStorage.getItem("nba_admin_secret")
-            : "") ?? "",
-        },
+        body: { mode },
+        headers: { "x-admin-secret": adminSecret() },
       });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error?.message ?? "Unknown error");
-      setResult(data.data as InspectResult);
-      toast.success("WNBA sheet inspected");
+      if (mode === "inspect") {
+        setInspect(data.data as InspectResult);
+      } else if (mode === "all") {
+        const all = data.data as SyncResult;
+        if (all.results) setResults((prev) => ({ ...prev, ...all.results }));
+        setResults((prev) => ({ ...prev, all }));
+      } else {
+        setResults((prev) => ({ ...prev, [mode]: data.data as SyncResult }));
+      }
+      toast.success(`${label} done`);
     } catch (e) {
-      toast.error(`Inspect failed: ${(e as Error).message}`);
+      toast.error(`${label} failed: ${(e as Error).message}`);
     } finally {
-      setBusy(false);
+      setBusyMode(null);
     }
   };
+
+  const Btn = ({ mode, label, icon: Icon, primary }: {
+    mode: string; label: string; icon: typeof Database; primary?: boolean;
+  }) => (
+    <Button
+      onClick={() => run(mode, label)}
+      disabled={busyMode !== null}
+      variant={primary ? "default" : "secondary"}
+      size="sm"
+    >
+      {busyMode === mode
+        ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        : <Icon className="h-4 w-4 mr-2" />}
+      {label}
+    </Button>
+  );
 
   return (
     <div className="bg-card border rounded-lg p-4 space-y-4">
@@ -55,25 +92,52 @@ export default function WnbaSheetSyncPanel() {
         <h3 className="font-heading font-bold text-lg uppercase">WNBA Google Sheets Sync</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Manual, on-demand pull from the WNBA spreadsheet (service account auth, read-only).
-        Step 1: <strong className="text-foreground">Inspect</strong> the four tabs to confirm the
-        column layouts. Once verified, per-tab Sync buttons will be wired to the existing
-        <code className="mx-1">import-*</code> edge functions with <code>league_code: "wnba"</code>.
+        Manual, on-demand pull from the WNBA spreadsheet (service-account auth). All writes are
+        scoped to the WNBA league. Player <strong>salary ($) is never overwritten</strong> by the
+        sheet — managed in-app on request.
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={runInspect} disabled={busy}>
-          {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
-          Inspect WNBA Sheet
-        </Button>
+        <Btn mode="inspect"        label="Inspect Sheet"       icon={Database} />
+        <Btn mode="players"        label="Sync Player Database" icon={Users} />
+        <Btn mode="schedule"       label="Sync Schedule"        icon={CalendarDays} />
+        <Btn mode="game-data"      label="Sync Game Data"       icon={Trophy} />
+        <Btn mode="advanced-stats" label="Sync Advanced Stats"  icon={BarChart3} />
+        <Btn mode="all"            label="Sync ALL"             icon={RefreshCw} primary />
       </div>
 
-      {result && (
+      {/* Per-tab sync results */}
+      {Object.entries(results).filter(([k]) => k !== "all").length > 0 && (
+        <div className="space-y-2">
+          {Object.entries(results)
+            .filter(([k]) => k !== "all")
+            .map(([key, r]) => (
+              <div key={key} className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1">
+                <span className="font-semibold">{key}</span>
+                <span className="text-muted-foreground">{r.tab}</span>
+                {r.rows_read !== undefined && <span>read: <b>{r.rows_read}</b></span>}
+                {r.upserted !== undefined && <span>upserted: <b>{r.upserted}</b></span>}
+                {r.skipped !== undefined && <span>skipped: <b>{r.skipped}</b></span>}
+                {r.nulled_out !== undefined && <span>nulled: <b>{r.nulled_out}</b></span>}
+                {r.games_upserted !== undefined && <span>games: <b>{r.games_upserted}</b></span>}
+                {r.last_game_updated !== undefined && <span>last_game: <b>{r.last_game_updated}</b></span>}
+                {r.players_aggregated !== undefined && <span>aggregated: <b>{r.players_aggregated}</b></span>}
+                <span className="text-muted-foreground">{r.elapsed_ms}ms</span>
+                {r.errors && r.errors.length > 0 && (
+                  <span className="text-destructive">errors: {r.errors.length}</span>
+                )}
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Inspect result */}
+      {inspect && (
         <div className="space-y-4">
           <div className="text-xs text-muted-foreground">
-            Sheet ID: <code>{result.sheet_id}</code>
+            Sheet ID: <code>{inspect.sheet_id}</code>
           </div>
-          {Object.entries(result.tabs).map(([key, info]) => (
+          {Object.entries(inspect.tabs).map(([key, info]) => (
             <div key={key} className="border rounded-md p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="font-semibold text-sm">
@@ -83,9 +147,7 @@ export default function WnbaSheetSyncPanel() {
                   {info.headers.length} cols · {info.samples.length} sample rows
                 </div>
               </div>
-              {info.error && (
-                <div className="text-xs text-destructive">Error: {info.error}</div>
-              )}
+              {info.error && <div className="text-xs text-destructive">Error: {info.error}</div>}
               {!info.error && (
                 <div className="overflow-x-auto">
                   <table className="text-xs w-full">
