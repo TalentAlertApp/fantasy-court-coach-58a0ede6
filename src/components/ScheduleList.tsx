@@ -704,8 +704,16 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const renderExpandedPanel = (g: ScheduleGame) => {
     const isFinal = isGameFinal(g.status);
     const isScheduled = !isFinal && !isGameLive(g.status);
+    const gh = computeGameHealth(g.away_team, g.home_team);
     return (
       <div className={`bg-card border border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-xl overflow-hidden`}>
+        {(gh.rosterOut.length > 0 || gh.rosterRisk.length > 0) && (
+          <MatchupHealthStrip
+            gh={gh}
+            isFinal={isFinal}
+            onPlayerClick={setSelectedPlayerId}
+          />
+        )}
         {isFinal && (
           <GameBoxScore
             gameId={g.game_id}
