@@ -873,7 +873,7 @@ export default function CommissionerPage() {
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground">
-          Player & Schedule imports below apply <strong className="text-foreground">only</strong> to the selected league.
+          Player, Schedule & Advanced Stats imports below apply <strong className="text-foreground">only</strong> to the selected league.
           Replace = true will not affect the other league's data.
         </span>
       </div>
