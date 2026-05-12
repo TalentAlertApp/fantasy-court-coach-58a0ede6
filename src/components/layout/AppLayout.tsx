@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLeague } from "@/contexts/LeagueContext";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -45,6 +46,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user, signOut } = useAuth();
+  const { isWnba } = useLeague();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [dark, setDark] = useState(() =>
@@ -108,7 +110,11 @@ export default function AppLayout() {
             </>
           )}
           {collapsed && (
-            <img src={nbaLogo} alt="NBA" className="h-9 w-auto mx-auto flex-shrink-0 relative z-10" />
+            <img
+              src={isWnba ? wnbaLogo : nbaLogo}
+              alt={isWnba ? "WNBA" : "NBA"}
+              className="h-9 w-auto mx-auto flex-shrink-0 relative z-10"
+            />
           )}
         </div>
         <div className="sidebar-divider" />
