@@ -74,7 +74,9 @@ export default function GameBoxScoreTable({
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const teamWatermark = externallyFiltered ? logoFor(externalFilterTeam as string) : null;
+  const watermarkLogo = teamWatermark ?? (league === "wnba" ? wnbaLogo : nbaLogo);
+  const watermarkOpacity = teamWatermark ? "opacity-[0.10]" : "opacity-[0.05]";
 
   if (isLoading) {
     return (
@@ -113,7 +115,7 @@ export default function GameBoxScoreTable({
         src={watermarkLogo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
+        className={`pointer-events-none absolute inset-0 m-auto h-48 w-48 ${watermarkOpacity} select-none object-contain`}
       />
       <div className={`relative z-[1] grid ${gridCols} gap-0 ${compact ? "px-1.5 py-1 text-[10px]" : "px-2 py-1.5 text-xs"} font-heading uppercase text-muted-foreground border-b bg-muted/40`}>
         <div className={`pr-2 flex items-center ${compact ? "gap-1.5" : "gap-2"} flex-wrap h-7`}>
