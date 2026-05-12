@@ -3,6 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Wand2, RefreshCw, Star } from "lucide-react";
+import type { PlayerHealth } from "@/lib/health";
+import { isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
+import { HealthStatusIcon } from "@/components/health";
 
 interface PlayerLite {
   id: number;
@@ -11,6 +14,7 @@ interface PlayerLite {
   photo?: string | null;
   fc_bc?: string;
   salary?: number;
+  health?: PlayerHealth | null;
 }
 
 export interface AutoPickProposal {
@@ -34,6 +38,7 @@ interface Props {
 function PlayerRow({ p, isCaptain, onClick }: { p?: PlayerLite; isCaptain?: boolean; onClick?: (id: number) => void }) {
   if (!p) return <div className="text-xs text-muted-foreground italic">Unknown</div>;
   const isFc = p.fc_bc === "FC";
+  const captainBlocked = isCaptain && isHealthUnavailable(p.health);
   return (
     <div
       className="flex items-center gap-2 py-1 px-1 rounded-md cursor-pointer hover:bg-accent/40 transition-colors"
@@ -45,7 +50,13 @@ function PlayerRow({ p, isCaptain, onClick }: { p?: PlayerLite; isCaptain?: bool
         <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
       </Avatar>
       <span className="text-[13px] font-semibold truncate flex-1">{p.name}</span>
+      <HealthStatusIcon health={p.health ?? null} size="xs" />
       {isCaptain && <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 shrink-0" />}
+      {captainBlocked && (
+        <span className="text-[9px] uppercase tracking-wider text-red-500 font-heading shrink-0">
+          Risk
+        </span>
+      )}
       <span className="text-[11px] font-mono text-muted-foreground tabular-nums shrink-0">${(p.salary ?? 0).toFixed(1)}M</span>
     </div>
   );
@@ -71,6 +82,20 @@ export default function AutoPickConfirmModal({
   }, [current, proposed]);
 
   const captainChanged = proposed && proposed.captain_id !== current.captain_id;
+  const captainPlayer = proposed ? playersById.get(proposed.captain_id) : undefined;
+  const captainHealthNote = captainPlayer
+    ? isHealthUnavailable(captainPlayer.health)
+      ? `Avoided captain recommended: ${captainPlayer.name} is ${getHealthLabel(captainPlayer.health)}.`
+      : isHealthRisky(captainPlayer.health)
+      ? `Captain at risk: ${captainPlayer.name} — ${getHealthLabel(captainPlayer.health)}.`
+      : null
+    : null;
+
+  const riskyStarters = proposed
+    ? proposed.starters
+        .map((id) => playersById.get(id))
+        .filter((p): p is PlayerLite => !!p && (isHealthUnavailable(p.health) || isHealthRisky(p.health)))
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -128,6 +153,19 @@ export default function AutoPickConfirmModal({
                 )}
               </div>
             </div>
+
+            {(captainHealthNote || riskyStarters.length > 0) && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1">
+                {captainHealthNote && (
+                  <div className="text-[11px] text-amber-200/90 font-body">• {captainHealthNote}</div>
+                )}
+                {riskyStarters.map((p) => (
+                  <div key={p.id} className="text-[11px] text-amber-200/90 font-body">
+                    • {isHealthUnavailable(p.health) ? "Moved-in starter is OUT" : "Risk penalty applied"}: {p.name} — {getHealthLabel(p.health)}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Proposed starting 5 */}
             <div className="rounded-lg border bg-card p-3">
