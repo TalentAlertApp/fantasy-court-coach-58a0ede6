@@ -375,8 +375,8 @@ function OutstandingSlide({
   }, [ytSrc, onVideoPlayingChange]);
 
   return (
-    <div className="h-full flex items-center">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
+    <div className="h-full flex items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full h-full">
       {/* Left: header + top-10 table */}
       <div className="lg:col-span-5 flex flex-col rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.05] to-transparent p-4 min-h-0">
         <button
@@ -393,7 +393,7 @@ function OutstandingSlide({
             <InlineTeamMark tri={g.home_team} side="right" onClick={onTeamClick} />
           </div>
         </button>
-        <div className="flex-1 min-h-0 overflow-y-auto mt-3">
+        <div className="flex-1 min-h-0 overflow-y-auto mt-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
               <col />
