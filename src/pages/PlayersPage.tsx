@@ -641,22 +641,6 @@ export default function PlayersPage() {
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
         </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="outline"
-              className="rounded-xl h-8 w-8"
-              onClick={() => setFiltersOpen((v) => !v)}
-              aria-label={filtersOpen ? "Collapse filters" : "Expand filters"}
-            >
-              {filtersOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">
-            {filtersOpen ? "Collapse filters" : "Expand filters"}
-          </TooltipContent>
-        </Tooltip>
       </div>
 
       {isLoading ? (
@@ -683,6 +667,23 @@ export default function PlayersPage() {
               reportOpen={reportOpen}
               addMode={addMode}
               rosterSize={rosterIdList.length}
+              filtersToggle={(
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => setFiltersOpen((v) => !v)}
+                      aria-label={filtersOpen ? "Collapse filters" : "Expand filters"}
+                    >
+                      {filtersOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {filtersOpen ? "Collapse filters" : "Expand filters"}
+                  </TooltipContent>
+                </Tooltip>
+              )}
             />
 
             {scheduleOpen && (
