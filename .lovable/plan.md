@@ -1,55 +1,83 @@
-## Diagnosis
+## Scope
 
-The `youtube-recap-lookup` edge function uses a single `TEAM_FULL_NAME` / `TEAM_CITY` map that is NBA‑first. Most WNBA tricodes used in `schedule_games` (`ATL`, `CHI`, `IND`, `WAS`, `DAL`, `MIN`, `TOR`, `POR`, `LAS`) collide with NBA codes and resolve to NBA franchise names (Hawks, Bulls, Pacers, Wizards…). The YouTube search query becomes nonsense (e.g. *"Atlanta Hawks vs Chicago Bulls Highlights"* on the official `@WNBA` channel) and returns zero matches. This is why "Populate" reports `Found 0 / Checked 100` for WNBA. NBA path is unaffected.
-
-Auto‑pause of the Court Show on Game Recap play was already wired in a prior turn (`onVideoPlayingChange` from `CourtShowSlide` → `CourtShowModal`).
+Three items: (1) cross‑league YouTube recap fetching that respects quota, (2) finish leftover items from the previous plan, (3) make the page‑level Chips actually do something instead of being cosmetic.
 
 ---
 
-## Plan
+### 1) `youtube-recap-lookup` — don't waste API calls; continue across leagues
 
-### A. Fix WNBA team resolution in `youtube-recap-lookup` (NBA path untouched)
+Today the function takes either a single `game_id`, an `ids=` list, or a generic missing‑recap scan (FINAL games where `youtube_recap_id IS NULL`). The /commissioner page exposes two separate league panels (NBA, WNBA) and triggers each scan independently.
 
-File: `supabase/functions/youtube-recap-lookup/index.ts`
+Changes (no DB migration):
 
-1. Keep the existing NBA `TEAM_FULL_NAME` and `TEAM_CITY` maps and the GAMETIME channel logic exactly as they are.
-2. Add a separate, WNBA‑only pair of maps keyed by the actual WNBA tricodes used in `schedule_games`:
+- Edge function `supabase/functions/youtube-recap-lookup/index.ts`:
+  - Accept new optional `league=nba|wnba|both` query param.
+  - Build the candidate game list scoped by league via `leagues.code` join (`league_id IN (...)`), so a "wnba" run only pulls WNBA games and never burns quota on NBA games (and vice‑versa).
+  - With `league=both` (default for cross‑league runs): order candidates so we exhaust the **smaller** missing set first, then continue into the other league inside the same invocation. Stop early if quota 403 is observed. Return per‑league counters in the response (`{ processed_nba, found_nba, processed_wnba, found_wnba, quota_exhausted }`).
+  - Already non‑destructive (only writes when a videoId is found) — keep that.
 
-   Full names (used in YouTube search query):
-   ```
-   ATL=Atlanta Dream         CHI=Chicago Sky         CON=Connecticut Sun
-   IND=Indiana Fever         NYL=New York Liberty    TOR=Toronto Tempo
-   WAS=Washington Mystics    DAL=Dallas Wings        GSV=Golden State Valkyries
-   LVA=Las Vegas Aces        LAS=Los Angeles Sparks  MIN=Minnesota Lynx
-   PHX=Phoenix Mercury       POR=Portland Fire       SEA=Seattle Storm
-   ```
+- /commissioner UI (`src/components/commissioner/MissingRecapsPanel.tsx` and `src/pages/CommissionerPage.tsx`):
+  - Add a single "Re‑scan Missing (Both Leagues)" button at the top that calls the function once with `league=both`, then refetches both panels' missing lists.
+  - Per‑league panel buttons keep working but pass `league=<code>` so they only consume quota for that league.
+  - Surface `quota_exhausted` as a soft warning toast with remaining counts so the user knows to retry tomorrow.
 
-   City/nickname tokens (used in title scoring) — pick the unique nickname since titles always include the team nickname (e.g. "Connecticut Sun vs. New York Liberty | FULL GAME HIGHLIGHTS | May 8, 2026"):
-   ```
-   ATL=dream    CHI=sky      CON=sun        IND=fever     NYL=liberty
-   TOR=tempo    WAS=mystics  DAL=wings      GSV=valkyries LVA=aces
-   LAS=sparks   MIN=lynx     PHX=mercury    POR=fire      SEA=storm
-   ```
-3. After determining `isWnba` (already in code via `leagueCodeById`), pick the correct lookup pair and use it for `awayFull`, `homeFull`, `awayCity`, `homeCity`. NBA games keep using the NBA maps untouched.
-4. Tighten the WNBA query string to mirror the official channel pattern: `"{Away Full} vs. {Home Full} FULL GAME HIGHLIGHTS"`. Keep the WNBA channel id (`UCqYwOSqyi0tEPRRwTPL5MXA` → `@WNBA`) and the existing time window, scoring weights, fallback open search, replace‑mode behaviour, and quota handling unchanged.
-5. **Backfill**: deploy and trigger one `replace=1` scan scoped to WNBA only. WNBA has ~330 games in the 2026 Regular Season (≈3 batches of 100). Run via the same edge function and report `processed / found / remaining` per batch. Do **not** rescan any NBA games.
+### 2) Resume previous plan — remaining items
 
-### B. Verify the player UX
+From the prior plan, the items still outstanding after the WNBA‑deadlines / Court Show / sidebar / standings batch:
 
-- `/schedule` Grid + List → expand a WNBA game with a freshly populated `youtube_recap_id` and confirm the embedded recap plays inside the card (`RecapCard` in `ScheduleList.tsx`, already implemented).
-- Daily Court Show → "Outstanding Game" slide → confirm the embedded recap plays and that:
-  - the slide does **not** advance while the video state is `playing` or `buffering`,
-  - the show resumes auto‑advance once the user pauses, ends, or manually browses to another slide.
-  Already implemented via the `videoPlaying` gate on the auto‑advance timer + progress bar in `CourtShowModal.tsx`. If QA reveals a regression (e.g. iframe state events not firing), patch the listener; otherwise no code change.
+- **/MY ROSTER WNBA fixes** (`src/components/transactions/RosterPane.tsx`, `src/pages/PlayersPage.tsx`):
+  - Schedule modal default GW: pass page‑resolved `{gw, day}` (already from `useLeagueDeadlines`) instead of any hard‑coded GW 25.
+  - Schedule grid: filter `schedule_games` by `league_id` and cap day list by WNBA deadlines for WNBA teams.
 
-### C. Out of scope
+- **Player modal header icons** (`src/components/PlayerModal.tsx`): finish the chip treatment for light theme (rounded `bg-muted/60`, hover `bg-muted`, accent on active state) so the icons read in both themes.
 
-- No DB schema changes.
-- No NBA recap logic changes.
-- No frontend changes unless QA in B uncovers a regression.
+- **/schedule WATCH RECAP fallback** (`src/components/ScheduleList.tsx`, `src/components/court-show/CourtShowModal.tsx`): when `youtube_recap_id` is present → embed YouTube (current behaviour). When it is missing but the schedule row carries a `wnba.com/...?watchRecap=true` URL → render an outbound "Open recap on WNBA.com ↗" button instead of trying (and failing) to iframe a `X-Frame-Options: SAMEORIGIN` page.
 
-## Technical notes
+- **Court Show auto‑pause on Outstanding Game video play** (`src/components/court-show/CourtShowModal.tsx`, `useCourtShowAudio.ts`): when the embedded YouTube player reports `playing`, pause the slide auto‑advance timer; resume when the video reports `paused`/`ended` or the user manually advances.
 
-- Title example confirmed: `Connecticut Sun vs. New York Liberty | FULL GAME HIGHLIGHTS | May 8, 2026`. With nickname tokens (+2/+2), `full game` (+2), `highlights` (+1) and the long date (+3), every WNBA recap will land far above the WNBA `minScore` threshold.
-- Quota: ~100 units per game lookup. ~330 WNBA games ≈ 33 000 units → comfortably under one day of YouTube Data API daily quota; the full WNBA backfill should complete in a single scan triggered after deploy.
-- Secret already configured: `YOUTUBE_API_KEY`. No new secrets required.
+### 3) Chips — wire All‑Star and Wildcard into real game logic
+
+Right now `chipAllStar` / `chipWildcard` only widen `gwCap` locally on /transactions and never persist; the moment the page re‑mounts the chip is gone, and the trade‑commit path never knows a chip was used. There is no "Captain" page chip — Captain is already real (per‑roster `is_captain` with the DB scoring multiplier), so we keep it as is and only fix the two page chips.
+
+DB (single small migration):
+
+```sql
+create table public.team_chips (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  league_id uuid not null,
+  gw int not null,
+  chip text not null check (chip in ('all_star','wildcard')),
+  used_at timestamptz not null default now(),
+  unique (team_id, chip)            -- each chip can be used once per season
+);
+alter table public.team_chips enable row level security;
+-- owner-only RLS via teams.owner_id, mirroring transactions policies
+```
+
+Edge function `transactions-commit/index.ts`:
+- Accept `chip?: 'all_star' | 'wildcard'` in the request body.
+- Reject if the chip was already used (`team_chips` row exists for that chip+team).
+- Use chip semantics during validation:
+  - `wildcard`: bypass the GW transfer cap entirely for this commit and skip excess‑transfer cost.
+  - `all_star`: raise the effective cap by +2 for this GW only.
+- On success, insert a `team_chips` row so the chip is consumed.
+
+Frontend (`src/pages/PlayersPage.tsx`, `src/components/transactions/TradeWorkbench.tsx`):
+- Load used chips for the current team via a small `useTeamChips(teamId)` query and disable a chip's button when it's already been spent (with a "Used" badge + tooltip showing GW it was used in).
+- Pass the active chip into `handleCommit` → `transactions-commit` body.
+- Keep the local `gwCap` math but derive it from the same source of truth (used vs. active chip) so the UI matches what the server enforces.
+- Show a confirmation step ("Use Wildcard for GW X? This chip can only be used once.") before commit when a chip is active.
+- Update `HowToPlayModal.tsx` Chips section to describe the now‑real behaviour and the "once per season" rule.
+
+Out of scope: any new chip beyond All‑Star and Wildcard; changing Captain semantics; UI redesign of the chip buttons.
+
+---
+
+### Order of execution
+
+1. Migration for `team_chips` + RLS.
+2. Edge function changes: `youtube-recap-lookup` cross‑league, `transactions-commit` chip handling.
+3. Frontend wiring for chips + commissioner cross‑league button.
+4. Finish leftover items from the previous plan (RosterPane, PlayerModal icons, WATCH RECAP fallback, Court Show auto‑pause).
+5. Smoke test: NBA + WNBA roster commit with each chip; cross‑league recap scan from /commissioner.
