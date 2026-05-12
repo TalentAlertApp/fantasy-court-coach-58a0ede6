@@ -25,6 +25,15 @@ import { buildOutstandingBlurb, buildWatchBlurb } from "@/lib/game-blurbs";
 import { pickGameLeader, pickWatchLeader } from "@/lib/game-blurbs";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
+import {
+  normalizePlayerHealth,
+  isHealthUnavailable,
+  isHealthRisky,
+  getHealthLabel,
+  type PlayerHealth,
+} from "@/lib/health";
+import { HealthStatusIcon } from "@/components/health";
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
