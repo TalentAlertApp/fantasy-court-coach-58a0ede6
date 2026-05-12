@@ -23,6 +23,7 @@ export interface GameDetailGame {
   game_charts_url?: string | null;
   game_playbyplay_url?: string | null;
   game_recap_url?: string | null;
+  youtube_recap_id?: string | null;
   nba_game_url?: string | null;
   played?: boolean;
   gw?: number | null;
@@ -83,7 +84,10 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
     const h = tableWrapRef.current?.offsetHeight;
     if (h && h > 200) setEmbedHeight(h);
   }, [recapOpen]);
-  const embedSrc = useMemo(() => toYouTubeEmbed(game.game_recap_url ?? null), [game.game_recap_url]);
+  const embedSrc = useMemo(
+    () => toYouTubeEmbed(game.game_recap_url ?? null, game.youtube_recap_id ?? null),
+    [game.game_recap_url, game.youtube_recap_id],
+  );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${played ? "max-w-2xl" : "max-w-xl"} rounded-xl p-0 overflow-hidden`}>
@@ -248,8 +252,11 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   );
 }
 
-/** Convert YouTube watch / youtu.be URLs into embeddable URLs. Returns null otherwise. */
-function toYouTubeEmbed(url: string | null): string | null {
+/** Convert YouTube watch / youtu.be URLs (or a raw video id) into embeddable URLs. */
+function toYouTubeEmbed(url: string | null, ytId?: string | null): string | null {
+  if (ytId && /^[A-Za-z0-9_-]{6,}$/.test(ytId)) {
+    return `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`;
+  }
   if (!url) return null;
   try {
     const u = new URL(url);
