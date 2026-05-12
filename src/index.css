@@ -376,7 +376,7 @@
 
   /* Premium Ballers.IQ pill — transparent, amber border, surge on hover. */
   .biq-header-pill {
-    @apply group relative inline-flex items-center justify-center rounded-xl
+    @apply relative inline-flex items-center justify-center rounded-xl
            bg-transparent border h-9 px-4 mr-1 transition-all duration-200 ease-out;
     border-color: hsl(40 95% 55% / 0.50);
   }
