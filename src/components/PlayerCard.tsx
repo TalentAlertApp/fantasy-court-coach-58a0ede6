@@ -7,6 +7,9 @@ import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
 import type { BIQTeamDifficulty } from "@/lib/ballers-iq/types";
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky } from "@/lib/health";
+import HealthStatusIcon from "@/components/health/HealthStatusIcon";
+import HealthTooltip from "@/components/health/HealthTooltip";
 import React from "react";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -88,6 +91,11 @@ export default function PlayerCard({
   const teamLogo = getTeamLogo(core.team);
   const v5 = (player.computed as any)?.value5;
 
+  // Normalized health → drives compact indicator + subtle card-tone signal.
+  const health = normalizePlayerHealth(player);
+  const isOut = isHealthUnavailable(health);
+  const isRisky = isHealthRisky(health);
+
   // Slots = one per gameday in the current GW (already pre-bucketed by parent).
   const slots = upcoming ?? [];
 
@@ -128,9 +136,18 @@ export default function PlayerCard({
         onDrop={onDrop}
         onDragEnd={onDragEnd}
         onClick={onClick}
-        className={`bg-card/95 backdrop-blur-sm border-l-2 ${accentColor} rounded-xl cursor-pointer hover:ring-1 hover:ring-accent/50 hover:shadow-lg transition-all duration-200 relative group overflow-hidden`}
+        className={`bg-card/95 backdrop-blur-sm border-l-2 ${accentColor} rounded-xl cursor-pointer hover:ring-1 hover:ring-accent/50 hover:shadow-lg transition-all duration-200 relative group overflow-hidden ${
+          isOut ? "ring-1 ring-red-500/40" : isRisky ? "ring-1 ring-amber-400/30" : ""
+        }`}
       >
         {isCaptain && <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>}
+        {health.status && (
+          <div className="absolute bottom-0.5 right-1 z-10">
+            <HealthTooltip health={health} side="left">
+              <span className="inline-flex"><HealthStatusIcon health={health} size="xs" /></span>
+            </HealthTooltip>
+          </div>
+        )}
         {onSetCaptain && !isCaptain && (
           <button
             onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
