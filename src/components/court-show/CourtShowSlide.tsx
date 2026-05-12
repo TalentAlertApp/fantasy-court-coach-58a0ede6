@@ -951,7 +951,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
               {/* Header — premium enamel pill + gradient headline */}
               <div className="relative flex items-center gap-3 mb-4">
                 <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-gradient-to-r from-amber-400/15 to-amber-400/5 px-3 py-1 shadow-[0_0_18px_-6px_rgba(251,191,36,0.55)]">
-                  <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" />
+                  <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" transparent />
                   <span className="text-[10px] uppercase tracking-[0.32em] text-amber-300 font-heading font-black">
                     {modeLabel} · GW {d.gw}.{d.day}
                   </span>

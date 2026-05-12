@@ -6,7 +6,8 @@ import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useLeagueId } from "@/hooks/useLeagueId";
-import { DEADLINES } from "@/lib/deadlines";
+import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
+import type { Deadline } from "@/lib/deadlines";
 import type {
   CourtShowData,
   CourtShowSlideItem,
@@ -20,8 +21,8 @@ import type {
   OutstandingGameRow,
 } from "./types";
 
-function buildWeekDayDate(gw: number, day: number): string {
-  const d = DEADLINES.find((x) => x.gw === gw && x.day === day);
+function buildWeekDayDate(deadlines: Deadline[], gw: number, day: number): string {
+  const d = deadlines.find((x) => x.gw === gw && x.day === day);
   if (!d) return "";
   return new Date(d.deadline_utc).toISOString().slice(0, 10);
 }
@@ -56,6 +57,7 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: rosterData } = useRosterQuery();
   const { data: leagueId } = useLeagueId();
+  const { deadlines } = useLeagueDeadlines();
   const queryClient = useQueryClient();
 
   const games = scheduleData?.games ?? [];
@@ -139,11 +141,11 @@ export function useCourtShowData(gw: number, day: number) {
   const data = useMemo<CourtShowData | null>(() => {
     if (schedLoading || playersLoading) return null;
 
-    const dateStr = buildWeekDayDate(gw, day);
+    const dateStr = buildWeekDayDate(deadlines, gw, day);
     const dateLabel = dateStr
       ? format(parse(dateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
       : "";
-    const deadline = DEADLINES.find((d) => d.gw === gw && d.day === day);
+    const deadline = deadlines.find((d) => d.gw === gw && d.day === day);
     const teamsOnSlate = new Set<string>();
     for (const g of games) { teamsOnSlate.add(g.home_team); teamsOnSlate.add(g.away_team); }
 
@@ -473,8 +475,8 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Outro ─────────────────────────────────────────────────────────
-    const idx = DEADLINES.findIndex((d) => d.gw === gw && d.day === day);
-    const next = idx >= 0 && idx < DEADLINES.length - 1 ? DEADLINES[idx + 1] : null;
+    const idx = deadlines.findIndex((d) => d.gw === gw && d.day === day);
+    const next = idx >= 0 && idx < deadlines.length - 1 ? deadlines[idx + 1] : null;
     slides.push({
       kind: "outro",
       title: "Set Lineup Before Lock",
@@ -495,7 +497,7 @@ export function useCourtShowData(gw: number, day: number) {
       gamesCount: games.length,
       slides,
     };
-  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow]);
+  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines]);
 
   return {
     data,
