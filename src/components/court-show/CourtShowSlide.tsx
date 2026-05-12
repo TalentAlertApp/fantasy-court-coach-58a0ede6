@@ -403,14 +403,14 @@ function OutstandingSlide({
               <col className="w-[34px]" />
               <col className="w-[44px]" />
             </colgroup>
-            <thead className="text-white/40 uppercase tracking-wider text-[9px]">
+            <thead className="text-white/60 uppercase tracking-wider text-[9px] sticky top-0 z-10 bg-[#0b1220]/95 backdrop-blur-sm shadow-[0_1px_0_0_rgba(255,255,255,0.08)]">
               <tr>
-                <th className="text-left font-heading font-black py-1">Player</th>
-                <th className="text-right font-mono py-1">MIN</th>
-                <th className="text-right font-mono py-1">PTS</th>
-                <th className="text-right font-mono py-1">REB</th>
-                <th className="text-right font-mono py-1">AST</th>
-                <th className="text-right font-mono py-1 text-amber-400">FP</th>
+                <th className="text-left font-heading font-black py-1.5">Player</th>
+                <th className="text-right font-mono py-1.5">MIN</th>
+                <th className="text-right font-mono py-1.5">PTS</th>
+                <th className="text-right font-mono py-1.5">REB</th>
+                <th className="text-right font-mono py-1.5">AST</th>
+                <th className="text-right font-mono py-1.5 text-amber-400">FP</th>
               </tr>
             </thead>
             <tbody>
