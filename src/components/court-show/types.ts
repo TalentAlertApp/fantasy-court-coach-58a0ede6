@@ -1,3 +1,5 @@
+import type { PlayerHealth } from "@/lib/health";
+
 export type SlideKind =
   | "intro"
   | "performances"
@@ -7,6 +9,7 @@ export type SlideKind =
   | "ballersiq"
   | "captain"
   | "outstanding"
+  | "health_watch"
   | "outro";
 
 export type StoryLabel =
@@ -173,6 +176,29 @@ export interface OutstandingGamePayload {
   storyline: string;
 }
 
+export interface HealthWatchPlayer {
+  player_id: number;
+  name: string;
+  team: string;
+  photo: string | null;
+  fc_bc?: "FC" | "BC";
+  salary?: number;
+  fp5?: number;
+  season_fp?: number;
+  health: PlayerHealth;
+  reason: string | null;
+  label?: string;
+  onRoster?: boolean;
+}
+
+export interface HealthWatchPayload {
+  myRoster: HealthWatchPlayer[];
+  leagueWatch: HealthWatchPlayer[];
+  mode: "played" | "scheduled";
+  gw: number;
+  day: number;
+}
+
 export type SlidePayload =
   | { kind: "intro"; data: IntroPayload }
   | { kind: "performances"; data: TopPerformer[] }
@@ -182,6 +208,7 @@ export type SlidePayload =
   | { kind: "ballersiq"; data: BallersIQSlidePayload }
   | { kind: "captain"; data: CaptainPick[] }
   | { kind: "outstanding"; data: OutstandingGamePayload }
+  | { kind: "health_watch"; data: HealthWatchPayload }
   | { kind: "outro"; data: OutroPayload };
 
 export interface CourtShowSlideItem {

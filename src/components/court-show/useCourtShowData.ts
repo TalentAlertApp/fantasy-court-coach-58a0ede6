@@ -8,7 +8,12 @@ import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import type { Deadline } from "@/lib/deadlines";
-import { normalizePlayerHealth, isHealthUnavailable } from "@/lib/health";
+import {
+  normalizePlayerHealth,
+  isHealthUnavailable,
+  isHealthRisky,
+  type PlayerHealth,
+} from "@/lib/health";
 import type {
   CourtShowData,
   CourtShowSlideItem,
@@ -20,6 +25,7 @@ import type {
   StoryLabel,
   AIBallersIQCard,
   OutstandingGameRow,
+  HealthWatchPlayer,
 } from "./types";
 
 function buildWeekDayDate(deadlines: Deadline[], gw: number, day: number): string {
@@ -168,6 +174,102 @@ export function useCourtShowData(gw: number, day: number) {
 
     const allLogs = logs ?? [];
 
+    // ── Health Watch (built early so it can be inserted before value / captain) ─
+    const STATUS_RANK: Record<string, number> = { OUT: 0, Q: 1, GTD: 1, DTD: 2, PROB: 3 };
+    const allWithHealth: { p: any; h: PlayerHealth }[] = [];
+    for (const p of (playersData?.items ?? []) as any[]) {
+      const h = normalizePlayerHealth(p);
+      if (!h.status) continue;
+      allWithHealth.push({ p, h });
+    }
+    const toHealthWatchPlayer = (p: any, h: PlayerHealth, onRoster: boolean): HealthWatchPlayer => ({
+      player_id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      photo: p.core.photo ?? null,
+      fc_bc: p.core.fc_bc,
+      salary: p.core.salary,
+      fp5: p.last5?.fp5,
+      season_fp: p.season?.fp,
+      health: h,
+      reason:
+        h.injury_type ||
+        h.notes ||
+        h.raw_status ||
+        (h.reason ? h.reason.charAt(0).toUpperCase() + h.reason.slice(1) : null),
+      onRoster,
+    });
+    const sortByHealthThenRelevance = (a: { h: PlayerHealth; score: number }, b: { h: PlayerHealth; score: number }) => {
+      const ra = STATUS_RANK[a.h.status ?? "PROB"] ?? 9;
+      const rb = STATUS_RANK[b.h.status ?? "PROB"] ?? 9;
+      if (ra !== rb) return ra - rb;
+      return b.score - a.score;
+    };
+
+    // My-roster affected players (any status, prioritized OUT → risky → PROB)
+    const myRosterAffectedRanked = allWithHealth
+      .filter(({ p }) => rosterIds.has(p.core.id))
+      .map(({ p, h }) => ({
+        p, h,
+        score: (p.last5?.fp5 ?? 0) * 1.2 + (p.season?.fp ?? 0) + (p.core.salary ?? 0) * 0.5,
+      }))
+      .sort(sortByHealthThenRelevance)
+      .slice(0, 3)
+      .map(({ p, h }) => toHealthWatchPlayer(p, h, true));
+
+    // League Watch — outstanding affected players, prefer teams on slate.
+    const leagueWatchPool = allWithHealth
+      .filter(({ p }) => !rosterIds.has(p.core.id))
+      .filter(({ h }) => isHealthUnavailable(h) || isHealthRisky(h) || h.status === "PROB")
+      .map(({ p, h }) => {
+        const fp5 = p.last5?.fp5 ?? 0;
+        const seasonFp = p.season?.fp ?? 0;
+        const salary = p.core.salary ?? 0;
+        const onSlate = teamsOnSlate.has(p.core.team) ? 1 : 0;
+        // Star relevance: weight FP5 heaviest, season FP, then salary.
+        const score = fp5 * 1.4 + seasonFp * 0.8 + salary * 0.6 + onSlate * 6;
+        return { p, h, score };
+      })
+      .filter(({ score }) => score > 0);
+
+    // Take strongest statuses first, then fall back to PROB only if needed.
+    const strongLeagueWatch = leagueWatchPool
+      .filter(({ h }) => h.status !== "PROB")
+      .sort(sortByHealthThenRelevance)
+      .slice(0, 3);
+    let leagueWatchRanked = strongLeagueWatch;
+    if (leagueWatchRanked.length < 3) {
+      const filler = leagueWatchPool
+        .filter(({ h }) => h.status === "PROB")
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3 - leagueWatchRanked.length);
+      leagueWatchRanked = [...leagueWatchRanked, ...filler];
+    }
+    const leagueWatch = leagueWatchRanked.map(({ p, h }) => toHealthWatchPlayer(p, h, false));
+
+    const healthWatchMode: "played" | "scheduled" =
+      finalGameIds.length > 0 ? "played" : "scheduled";
+    const healthWatchSlide: CourtShowSlideItem | null =
+      myRosterAffectedRanked.length > 0 || leagueWatch.length > 0
+        ? {
+            kind: "health_watch",
+            title: "Health Watch",
+            subtitle:
+              healthWatchMode === "played"
+                ? "Who missed or carried availability risk on this slate"
+                : "Roster risks and star absences before lock",
+            payload: {
+              kind: "health_watch",
+              data: {
+                myRoster: myRosterAffectedRanked,
+                leagueWatch,
+                mode: healthWatchMode,
+                gw, day,
+              },
+            },
+          }
+        : null;
+
     // ── Performances ──────────────────────────────────────────────────
     // Rank by FP, tiebreak with box-score completeness (count of meaningful stats)
     const perfRanked = [...allLogs]
@@ -227,6 +329,11 @@ export function useCourtShowData(gw: number, day: number) {
       })
       .slice(0, 3)
       .map((v) => ({ ...v, label: valueLabel(v) }));
+
+    // Health Watch — placed BEFORE Best Value Plays on played days.
+    if (healthWatchSlide && healthWatchMode === "played") {
+      slides.push(healthWatchSlide);
+    }
 
     if (valueRanked.length) {
       slides.push({
@@ -463,6 +570,11 @@ export function useCourtShowData(gw: number, day: number) {
         subtitle: "Tonight's must-watch tilts",
         payload: { kind: "matchups", data: matchups },
       });
+    }
+
+    // Health Watch — placed BEFORE Captain Radar on scheduled days.
+    if (healthWatchSlide && healthWatchMode === "scheduled") {
+      slides.push(healthWatchSlide);
     }
 
     // Captain Radar comes after the gameday content.

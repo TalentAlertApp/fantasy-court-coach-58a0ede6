@@ -4,7 +4,9 @@ import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, Trend
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
-import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow } from "./types";
+import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer } from "./types";
+import { HealthStatusBadge, HealthStatusIcon } from "@/components/health";
+import { isHealthUnavailable } from "@/lib/health";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
@@ -514,6 +516,168 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
         <p className="text-[10px] text-white/60 uppercase tracking-wider">{p.team}</p>
       </div>
     </button>
+  );
+}
+
+/** Compact row used inside the Health Watch slide. */
+function HealthWatchRow({
+  p,
+  onPlayerClick,
+  onTeamClick,
+  showStats,
+}: {
+  p: HealthWatchPlayer;
+  onPlayerClick: (id: number) => void;
+  onTeamClick: (tri: string) => void;
+  showStats: boolean;
+}) {
+  const logo = getTeamLogo(p.team);
+  const isOut = isHealthUnavailable(p.health);
+  const tone = isOut
+    ? "border-red-500/40 bg-red-500/10 hover:border-red-400/60"
+    : "border-amber-400/30 bg-amber-400/5 hover:border-amber-300/60";
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.35 }}
+      className={cn("group flex items-center gap-3 rounded-xl border backdrop-blur-sm px-3 py-2.5 transition-colors", tone)}
+    >
+      <button
+        onClick={() => onPlayerClick(p.player_id)}
+        className="relative shrink-0 h-12 w-12 rounded-full overflow-hidden ring-1 ring-white/15 transition-transform group-hover:scale-105"
+        aria-label={`Open ${p.name}`}
+      >
+        {p.photo ? (
+          <img src={p.photo} alt={p.name} className="h-full w-full object-cover object-top" />
+        ) : (
+          <div className="h-full w-full bg-white/10" />
+        )}
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onPlayerClick(p.player_id)}
+            className="text-sm font-heading font-bold text-white truncate hover:text-amber-300 transition-colors text-left"
+          >
+            {p.name}
+          </button>
+          <HealthStatusIcon health={p.health} size="xs" />
+        </div>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <button
+            onClick={() => onTeamClick(p.team)}
+            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-white/55 hover:text-amber-300"
+            aria-label={p.team}
+          >
+            {logo && <img src={logo} alt="" className="h-3.5 w-3.5 object-contain" />}
+            <span className="font-heading">{p.team}</span>
+          </button>
+          {showStats && p.fp5 != null && (
+            <span className="text-[10px] font-mono text-white/55">· {p.fp5.toFixed(1)} FP5</span>
+          )}
+          {showStats && p.salary != null && (
+            <span className="text-[10px] font-mono text-white/45">· ${p.salary.toFixed(1)}M</span>
+          )}
+        </div>
+        {p.reason && (
+          <p className="mt-0.5 text-[10px] text-white/55 truncate" title={p.reason}>
+            {p.reason}
+          </p>
+        )}
+      </div>
+      <HealthStatusBadge health={p.health} compact showProbable />
+    </motion.div>
+  );
+}
+
+function HealthWatchSlide({
+  payload,
+  onPlayerClick,
+  onTeamClick,
+}: {
+  payload: HealthWatchPayload;
+  onPlayerClick: (id: number) => void;
+  onTeamClick: (tri: string) => void;
+}) {
+  const { myRoster, leagueWatch, mode, gw, day } = payload;
+  return (
+    <div className="relative h-full grid grid-cols-1 md:grid-cols-2 gap-5 content-stretch">
+      {/* Faded watermark */}
+      <Shield
+        aria-hidden
+        className="pointer-events-none absolute right-4 bottom-2 h-48 w-48 text-red-500/10"
+      />
+      <div className="absolute top-0 right-0 text-[10px] font-heading uppercase tracking-[0.2em] text-white/40">
+        GW{gw} · Day {day}
+      </div>
+
+      {/* Your roster */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="relative flex flex-col gap-2 rounded-2xl border border-red-500/20 bg-gradient-to-br from-red-500/[0.06] via-transparent to-transparent backdrop-blur-sm p-4"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Shield className="h-3.5 w-3.5 text-red-400" />
+          <span className="text-[10px] uppercase tracking-[0.2em] text-red-300 font-bold">Your Roster</span>
+        </div>
+        {myRoster.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {myRoster.slice(0, 3).map((p) => (
+              <HealthWatchRow
+                key={p.player_id}
+                p={p}
+                onPlayerClick={onPlayerClick}
+                onTeamClick={onTeamClick}
+                showStats={false}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-center px-3 py-6 rounded-xl border border-white/5 bg-white/[0.02]">
+            <p className="text-xs text-white/55 italic">
+              No major availability flags found for your roster.
+            </p>
+          </div>
+        )}
+      </motion.div>
+
+      {/* League watch */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.08 }}
+        className="relative flex flex-col gap-2 rounded-2xl border border-amber-400/20 bg-gradient-to-br from-amber-400/[0.06] via-transparent to-transparent backdrop-blur-sm p-4"
+      >
+        <div className="flex items-center gap-2 mb-1">
+          <Star className="h-3.5 w-3.5 text-amber-300" />
+          <span className="text-[10px] uppercase tracking-[0.2em] text-amber-300 font-bold">League Watch</span>
+        </div>
+        {leagueWatch.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {leagueWatch.slice(0, 3).map((p) => (
+              <HealthWatchRow
+                key={p.player_id}
+                p={p}
+                onPlayerClick={onPlayerClick}
+                onTeamClick={onTeamClick}
+                showStats={true}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-center px-3 py-6 rounded-xl border border-white/5 bg-white/[0.02]">
+            <p className="text-xs text-white/55 italic">
+              {mode === "played"
+                ? "No notable league absences on this slate."
+                : "No notable league absences before lock."}
+            </p>
+          </div>
+        )}
+      </motion.div>
+    </div>
   );
 }
 
@@ -1043,6 +1207,13 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           </div>
         )}
 
+        {slide.payload.kind === "health_watch" && (
+          <HealthWatchSlide
+            payload={slide.payload.data}
+            onPlayerClick={onPlayerClick}
+            onTeamClick={onTeamClick}
+          />
+        )}
         {slide.payload.kind === "outro" && (
           <div className="h-full flex flex-col items-center justify-center text-center gap-5">
             <div className="text-amber-400">
