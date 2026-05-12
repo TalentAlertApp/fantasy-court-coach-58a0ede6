@@ -79,6 +79,7 @@ const ACTION_BY_TYPE: Record<BallersIQInsightType, ReadonlyArray<NonNullable<Bal
   VALUE:   ["ADD", "WATCH", "HOLD"],
   FORM:    ["WATCH", "HOLD", "BENCH"],
   MARKET:  ["ADD", "DROP", "WATCH"],
+  HEALTH:  ["BENCH", "WATCH", "HOLD"],
 };
 
 /** Words that signal an active risk flag (used to verify riskLevel). */
