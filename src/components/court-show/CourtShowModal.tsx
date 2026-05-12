@@ -163,6 +163,10 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
         game_boxscore_url: full.game_boxscore_url,
         game_charts_url: full.game_charts_url,
         game_playbyplay_url: full.game_playbyplay_url,
+        youtube_recap_id: (full as any).youtube_recap_id ?? null,
+        tipoff_utc: full.tipoff_utc ?? null,
+        gw: full.gw ?? null,
+        day: full.day ?? null,
       });
     }
   };
