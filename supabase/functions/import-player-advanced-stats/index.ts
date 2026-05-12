@@ -37,7 +37,8 @@ function toNumOrNull(v: unknown): number | null {
  * Body shape:
  * {
  *   rows: Array<{ id: number, fgm, fga, fg_pct, tpm, tpa, tp_pct, ftm, fta, ft_pct, oreb, dreb, tov, pf, plus_minus }>,
- *   replace?: boolean   // when true, NULL out the 14 columns for any player NOT in `rows`
+ *   league_code?: "nba" | "wnba",
+ *   replace?: boolean   // when true, NULL out the 14 columns for same-league players NOT in `rows`
  * }
  */
 serve(async (req: Request) => {
@@ -52,14 +53,28 @@ serve(async (req: Request) => {
     const body = await req.json().catch(() => null);
     const rows = Array.isArray(body?.rows) ? body.rows : null;
     const replace = !!body?.replace;
+    const leagueCode = String(body?.league_code ?? "nba").toLowerCase();
     if (!rows || rows.length === 0) {
       return err("INVALID_INPUT", "rows array required");
+    }
+    if (!["nba", "wnba"].includes(leagueCode)) {
+      return err("INVALID_INPUT", `league_code must be 'nba' or 'wnba' (got '${leagueCode}')`);
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    const { data: leagueRow, error: leagueErr } = await supabase
+      .from("leagues")
+      .select("id")
+      .eq("code", leagueCode)
+      .maybeSingle();
+    if (leagueErr || !leagueRow?.id) {
+      return err("LEAGUE_NOT_FOUND", `Sport league '${leagueCode}' not found`, 404);
+    }
+    const leagueId = leagueRow.id as string;
 
     const importedIds = new Set<number>();
     let updated = 0;
@@ -115,6 +130,7 @@ serve(async (req: Request) => {
             .from("players")
             .update(patch)
             .eq("id", id)
+            .eq("league_id", leagueId)
             .select("id");
           if (error) {
             errors.push(`id=${id}: ${error.message}`);
@@ -132,7 +148,8 @@ serve(async (req: Request) => {
     if (replace) {
       const { data: allIds, error: allIdsErr } = await supabase
         .from("players")
-        .select("id");
+        .select("id")
+        .eq("league_id", leagueId);
       if (allIdsErr) {
         errors.push(`load all ids: ${allIdsErr.message}`);
       } else {
@@ -152,7 +169,8 @@ serve(async (req: Request) => {
               pf: null, plus_minus: null,
               updated_at: new Date().toISOString(),
             })
-            .in("id", chunk);
+            .in("id", chunk)
+            .eq("league_id", leagueId);
           if (error) {
             errors.push(`null-out batch ${i}: ${error.message}`);
           } else {
@@ -163,6 +181,8 @@ serve(async (req: Request) => {
     }
 
     return ok({
+      league_code: leagueCode,
+      league_id: leagueId,
       updated,
       skipped,
       nulled_out: nulledOut,

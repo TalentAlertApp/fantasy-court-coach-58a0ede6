@@ -50,6 +50,7 @@ export async function apiFetch<T extends z.ZodTypeAny>(
     "roster-current", "roster-save", "roster-auto-pick",
     "transactions-simulate", "transactions-commit",
     "schedule", "schedule-impact", "game-boxscore",
+    "import-player-advanced-stats",
     "ai-coach", "ai-",
   ];
   const pathBase = path.split("?")[0];

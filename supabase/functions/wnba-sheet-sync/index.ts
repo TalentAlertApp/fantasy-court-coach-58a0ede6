@@ -499,14 +499,12 @@ async function syncAdvancedStats(token: string, sb: ReturnType<typeof makeSb>, l
     throw new Error(`AdvStats HEADER_MISMATCH (got: ${header.slice(0, 5).join("|")})`);
   }
   const data = rows.slice(1).filter((r) => String(r[0] ?? "").trim() !== "");
-  const importedIds = new Set<number>();
   let updated = 0; let skipped = 0;
   const errors: string[] = [];
 
   for (const r of data) {
     const id = intOrNull(r[0]);
     if (!id || id <= 0) { skipped++; continue; }
-    importedIds.add(id);
     const patch = {
       fgm: intOrNull(r[3]),  fga: intOrNull(r[4]),  fg_pct: numOrNull(r[5]),
       tpm: intOrNull(r[6]),  tpa: intOrNull(r[7]),  tp_pct: numOrNull(r[8]),
@@ -522,29 +520,10 @@ async function syncAdvancedStats(token: string, sb: ReturnType<typeof makeSb>, l
     else skipped++;
   }
 
-  // NULL out advanced columns for WNBA players not present in the sheet
-  const { data: allWnba } = await sb.from("players").select("id").eq("league_id", leagueId);
-  const targets = (allWnba ?? [])
-    .map((p: { id: number }) => p.id)
-    .filter((id: number) => !importedIds.has(id));
-  let nulled = 0;
-  for (let i = 0; i < targets.length; i += 200) {
-    const chunk = targets.slice(i, i + 200);
-    const { error } = await sb.from("players").update({
-      fgm: null, fga: null, fg_pct: null,
-      tpm: null, tpa: null, tp_pct: null,
-      ftm: null, fta: null, ft_pct: null,
-      oreb: null, dreb: null, tov: null, pf: null, plus_minus: null,
-      updated_at: new Date().toISOString(),
-    }).in("id", chunk).eq("league_id", leagueId);
-    if (!error) nulled += chunk.length;
-    else errors.push(`null-out ${i}: ${error.message}`);
-  }
-
   return {
     tab: "Players_AdvStats_Season_Accum",
     rows_read: data.length,
-    upserted: updated, skipped, nulled_out: nulled, errors,
+    upserted: updated, skipped, nulled_out: 0, errors,
   };
 }
 
