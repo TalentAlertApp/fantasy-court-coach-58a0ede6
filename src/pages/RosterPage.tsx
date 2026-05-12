@@ -630,65 +630,162 @@ export default function RosterPage() {
                 <Badge className="rounded-xl text-xs px-2.5 py-0.5 font-heading">BC:{bcStarters}</Badge>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setScheduleOpen((v) => !v)}
-                variant={scheduleOpen ? "default" : "outline"}
-                size="sm"
-                className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : "hover:bg-sky-400/10 hover:text-sky-400 hover:border-sky-400/60"}`}
-                title="Toggle schedule preview"
-              >
-                <CalendarDays className="h-3.5 w-3.5 mr-1" />Schedule
-              </Button>
-              <Button
-                onClick={() => setAdvisorOpen((v) => !v)}
-                variant={advisorOpen ? "default" : "outline"}
-                size="sm"
-                disabled={!biqAdvisor}
-                className={`w-40 justify-center rounded-xl font-heading uppercase text-xs ring-1 ring-amber-400/40 ${advisorOpen ? "bg-amber-400 text-amber-950 hover:bg-amber-400/90" : "hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
-                title="Ballers.IQ Lineup Advisor"
-              >
-                <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="dark:hidden !h-3.5 !w-3.5 mr-1" />
-                <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="hidden dark:block !h-3.5 !w-3.5 mr-1" />
-                Lineup Advisor
-              </Button>
-              {starters.length + bench.length < 10 && (
-                <Button
-                  onClick={() => handleAddPlayer()}
-                  variant="outline"
-                  size="sm"
-                  className="w-32 justify-center rounded-xl font-heading uppercase text-xs"
-                  title="Add a player to your roster"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" />Add
-                </Button>
-              )}
-              <Button
-                onClick={handleAutoPick}
-                variant="outline"
-                size="sm"
-                disabled={autoPicking}
-                className="w-32 justify-center rounded-xl font-heading uppercase text-xs hover:bg-violet-400/10 hover:text-violet-400 hover:border-violet-400/60"
-                title="Auto-pick a full roster"
-              >
-                {autoPicking ? <RefreshCw className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Wand2 className="h-3.5 w-3.5 mr-1" />}
-                Auto-pick
-              </Button>
-              <Button
-                onClick={handleOptimize}
-                variant="outline"
-                size="sm"
-                className="w-40 justify-center rounded-xl font-heading uppercase text-xs hover:bg-yellow-400 hover:text-black hover:border-yellow-400 dark:hover:bg-orange-500 dark:hover:text-white dark:hover:border-orange-500"
-                title="Auto-optimize lineup for maximum FP"
-              >
-                <Zap className="h-4 w-4 mr-1" />Optimize
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-xl font-heading uppercase text-xs text-destructive border-destructive/30 hover:bg-destructive/10" title="Remove all players from roster">
-                    <RotateCcw className="h-4 w-4 mr-1" />Reset
+            <div className="flex items-center gap-1.5">
+              {/* Schedule (icon only) */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setScheduleOpen((v) => !v)}
+                    variant={scheduleOpen ? "default" : "outline"}
+                    size="icon"
+                    aria-label="Schedule"
+                    className={`h-9 w-9 rounded-xl ${scheduleOpen ? "bg-accent text-accent-foreground hover:bg-accent/90" : "bg-muted/40 hover:bg-sky-400/10 hover:text-sky-400 hover:border-sky-400/60"}`}
+                  >
+                    <CalendarDays className="h-4 w-4" />
                   </Button>
-                </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Schedule preview</TooltipContent>
+              </Tooltip>
+
+              {/* Lineup Advisor (icon only) */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={() => setAdvisorOpen((v) => !v)}
+                    variant={advisorOpen ? "default" : "outline"}
+                    size="icon"
+                    disabled={!biqAdvisor}
+                    aria-label="Lineup Advisor"
+                    className={`h-9 w-9 rounded-xl ring-1 ring-amber-400/40 ${advisorOpen ? "bg-amber-400 text-amber-950 hover:bg-amber-400/90" : "bg-muted/40 hover:bg-amber-400/10 hover:text-amber-400 hover:border-amber-400/60"}`}
+                  >
+                    <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="dark:hidden !h-4 !w-4" />
+                    <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="hidden dark:block !h-4 !w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Ballers.IQ Lineup Advisor</TooltipContent>
+              </Tooltip>
+
+              {starters.length + bench.length < 10 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => handleAddPlayer()}
+                      variant="outline"
+                      size="icon"
+                      aria-label="Add player"
+                      className="h-9 w-9 rounded-xl bg-muted/40 hover:bg-muted"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Add a player to your roster</TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Chips & quick actions dropdown */}
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label="Chips and quick actions"
+                        className="h-9 w-9 rounded-xl bg-muted/40 hover:bg-fuchsia-400/10 hover:text-fuchsia-400 hover:border-fuchsia-400/60"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Chips & quick actions</TooltipContent>
+                </Tooltip>
+                <DropdownMenuContent align="end" className="w-72 rounded-xl">
+                  <DropdownMenuLabel className="font-heading text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Season chips
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    disabled={!!allStarUsed}
+                    onSelect={() => navigate("/transactions?chip=all_star")}
+                    className="flex items-start gap-3 py-2.5 cursor-pointer"
+                  >
+                    <Star className="h-4 w-4 mt-0.5 text-amber-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading text-xs uppercase tracking-wide flex items-center gap-2">
+                        All-Star Boost
+                        {allStarUsed && <span className="text-[10px] text-muted-foreground normal-case font-normal">· Used GW{allStarUsed.gw}</span>}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                        +2 transfers this gameweek. Apply on Transactions →
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={!!wildcardUsed}
+                    onSelect={() => navigate("/transactions?chip=wildcard")}
+                    className="flex items-start gap-3 py-2.5 cursor-pointer"
+                  >
+                    <Wand2 className="h-4 w-4 mt-0.5 text-fuchsia-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading text-xs uppercase tracking-wide flex items-center gap-2">
+                        Wildcard
+                        {wildcardUsed && <span className="text-[10px] text-muted-foreground normal-case font-normal">· Used GW{wildcardUsed.gw}</span>}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                        Unlimited transfers this gameweek. Apply on Transactions →
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="font-heading text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Quick actions
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    disabled={autoPicking}
+                    onSelect={() => handleAutoPick()}
+                    className="flex items-start gap-3 py-2.5 cursor-pointer"
+                  >
+                    {autoPicking ? <RefreshCw className="h-4 w-4 mt-0.5 animate-spin shrink-0" /> : <Brain className="h-4 w-4 mt-0.5 text-violet-400 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading text-xs uppercase tracking-wide">Auto-Pick Roster</div>
+                      <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                        Smart-fill empty slots respecting salary cap & FC/BC.
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={() => handleOptimize()}
+                    className="flex items-start gap-3 py-2.5 cursor-pointer"
+                  >
+                    <Zap className="h-4 w-4 mt-0.5 text-yellow-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-heading text-xs uppercase tracking-wide">Optimize Lineup</div>
+                      <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                        Greedy bench/starter swap to maximize FP5.
+                      </div>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Separator orientation="vertical" className="h-6 mx-0.5" />
+
+              {/* Reset (icon only, destructive) */}
+              <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label="Reset roster"
+                        className="h-9 w-9 rounded-xl text-destructive border-destructive/30 bg-muted/40 hover:bg-destructive/10"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Remove all players from roster</TooltipContent>
+                </Tooltip>
                 <AlertDialogContent className="rounded-xl">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Reset Roster?</AlertDialogTitle>
