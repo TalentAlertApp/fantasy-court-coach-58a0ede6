@@ -6,6 +6,7 @@ import type { TradeValidationResult } from "@/hooks/useTradeValidation";
 import { HealthStatusIcon } from "@/components/health";
 import type { PlayerHealth } from "@/lib/health";
 import { isHealthUnavailable } from "@/lib/health";
+import type { ReactNode } from "react";
 
 export interface TradeChipPlayer {
   id: number;
@@ -37,6 +38,7 @@ interface TradeWorkbenchProps {
   addMode?: boolean;
   /** Roster size displayed in the header pill, e.g. "9/10". */
   rosterSize?: number;
+  filtersToggle?: ReactNode;
 }
 
 function PlayerChip({
@@ -129,6 +131,7 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
     reportOpen,
     addMode = false,
     rosterSize,
+    filtersToggle,
   } = props;
 
   const freed = validation.freedSalary;
@@ -232,6 +235,9 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
               )
             )}
           </div>
+        )}
+        {filtersToggle && (
+          <div className={hasChips || isDirectAdd ? "" : "ml-auto"}>{filtersToggle}</div>
         )}
       </div>
 
