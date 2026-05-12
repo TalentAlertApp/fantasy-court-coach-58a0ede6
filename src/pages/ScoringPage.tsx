@@ -873,8 +873,25 @@ function YourTeamView({
                   const oppLogo = getTeamLogo(p.opp);
                   const playerTeamLogo = getTeamLogo(p.team);
                   const isAway = p.home_away === "A";
+                  const h = healthByPlayerId.get(p.player_id) ?? null;
+                  const fpNum = Number(p.fp) || 0;
+                  const mpNum = Number(p.mp) || 0;
+                  const isDNP = fpNum === 0 && mpNum === 0;
+                  const dnpNote =
+                    isDNP && h
+                      ? isHealthUnavailable(h)
+                        ? `DNP — OUT${h.injury_type ? ` (${h.injury_type})` : ""}`
+                        : isHealthRisky(h)
+                        ? `DNP — Injury report (${getHealthLabel(h)})`
+                        : null
+                      : null;
+                  const rowTint = isDNP && h && isHealthUnavailable(h)
+                    ? "bg-red-500/[0.04]"
+                    : isDNP && h && isHealthRisky(h)
+                    ? "bg-amber-400/[0.04]"
+                    : "";
                   return (
-                    <tr key={p.player_id} className="border-b border-border/30 hover:bg-muted/30 transition-colors group">
+                    <tr key={p.player_id} className={`border-b border-border/30 hover:bg-muted/30 transition-colors group ${rowTint}`}>
                       <td className="px-3 py-2">
                         <Badge variant={isFc ? "destructive" : "default"} className="text-[8px] px-1.5 py-0 rounded h-4">{p.fc_bc}</Badge>
                       </td>
@@ -887,7 +904,22 @@ function YourTeamView({
                               <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">{p.name.substring(0, 2)}</div>
                             )}
                           </div>
-                          <span className="text-sm font-heading font-bold cursor-pointer hover:underline" onClick={() => onPlayerModal(p.player_id)}>{p.name}</span>
+                          <div className="flex flex-col min-w-0">
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-sm font-heading font-bold cursor-pointer hover:underline" onClick={() => onPlayerModal(p.player_id)}>{p.name}</span>
+                              {h && <HealthStatusIcon health={h} size="xs" title={`${getHealthLabel(h)}${h.injury_type ? ` — ${h.injury_type}` : ""}`} />}
+                            </span>
+                            {dnpNote && (
+                              <span
+                                className={`text-[9px] font-heading uppercase tracking-wider ${
+                                  isHealthUnavailable(h) ? "text-red-500/90" : "text-amber-400/90"
+                                }`}
+                                title={getHealthLabel(h)}
+                              >
+                                {dnpNote}
+                              </span>
+                            )}
+                          </div>
                           {playerTeamLogo && (
                             <img src={playerTeamLogo} alt={p.team}
                               className="absolute right-0 h-10 w-10 opacity-10 group-hover:opacity-25 transition-all group-hover:scale-110 cursor-pointer"
