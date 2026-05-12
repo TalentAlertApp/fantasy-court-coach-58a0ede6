@@ -498,6 +498,15 @@ export default function PlayersPage() {
       setInZone((prev) => prev.filter((x) => x !== playerId));
       return;
     }
+    const target = playerById.get(playerId);
+    if (target) {
+      const h = normalizePlayerHealth(target);
+      if (isHealthUnavailable(h)) {
+        toast.warning(`${target.core.name} is currently unavailable (${getHealthLabel(h)}).`);
+      } else if (isHealthRisky(h)) {
+        toast.message(`${target.core.name}: availability risk — ${getHealthLabel(h)}.`);
+      }
+    }
     if (addMode && outZone.length === 0) {
       // Direct ADD path — stage and let user click Report/Confirm via workbench.
       // We add to IN zone so the workbench previews the same metrics.
