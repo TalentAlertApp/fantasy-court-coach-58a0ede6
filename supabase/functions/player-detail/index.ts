@@ -228,6 +228,13 @@ Deno.serve(async (req: Request) => {
         away_pts: sched?.away_pts ?? 0,
         home_team: sched?.home_team ?? "",
         away_team: sched?.away_team ?? "",
+        tipoff_utc: sched?.tipoff_utc ?? null,
+        status: sched?.status ?? "FINAL",
+        game_recap_url: sched?.game_recap_url ?? h.game_recap_url ?? null,
+        game_boxscore_url: sched?.game_boxscore_url ?? h.game_boxscore_url ?? null,
+        game_charts_url: sched?.game_charts_url ?? h.game_charts_url ?? null,
+        game_playbyplay_url: sched?.game_playbyplay_url ?? h.game_playbyplay_url ?? null,
+        youtube_recap_id: sched?.youtube_recap_id ?? null,
       };
     });
 
