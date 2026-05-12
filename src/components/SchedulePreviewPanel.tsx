@@ -3,7 +3,7 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-rea
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
-import { getCurrentGameday } from "@/lib/deadlines";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { getVenue } from "@/lib/nba-venues";
@@ -20,7 +20,11 @@ interface BodyProps {
 
 /** Headless body — GW selector + day chips + matchup list. No collapsible wrapper. */
 export function SchedulePreviewBody({ rosterTeams, defaultGw, variant = "panel" }: BodyProps) {
-  const initial = useMemo(() => getCurrentGameday(), []);
+  const { deadlines } = useLeagueDeadlines();
+  const initial = useMemo(() => {
+    const d = getCurrentGamedayFrom(deadlines);
+    return { gw: d?.gw ?? 1, day: d?.day ?? 1 };
+  }, [deadlines]);
   const [gw, setGw] = useState<number>(defaultGw ?? initial.gw);
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
 
@@ -206,7 +210,11 @@ export function SchedulePreviewCollapsible({
     if (openProp === undefined) setInternalOpen(v);
   };
 
-  const initial = useMemo(() => getCurrentGameday(), []);
+  const { deadlines } = useLeagueDeadlines();
+  const initial = useMemo(() => {
+    const d = getCurrentGamedayFrom(deadlines);
+    return { gw: d?.gw ?? 1 };
+  }, [deadlines]);
   const triggerGw = defaultGw ?? initial.gw;
 
   const dark = variant === "dark";
