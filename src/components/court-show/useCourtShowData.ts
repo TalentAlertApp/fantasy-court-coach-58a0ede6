@@ -8,6 +8,7 @@ import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import type { Deadline } from "@/lib/deadlines";
+import { normalizePlayerHealth, isHealthUnavailable } from "@/lib/health";
 import type {
   CourtShowData,
   CourtShowSlideItem,
