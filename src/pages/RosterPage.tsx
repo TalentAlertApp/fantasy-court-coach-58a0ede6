@@ -564,25 +564,195 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-1.5 ml-auto">
             <button
               type="button"
               onClick={() => setAiCoachOpen(true)}
               aria-label="Open Ballers.IQ"
               title="Open Ballers.IQ"
-              className="group relative inline-flex items-center justify-center w-32 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 text-xs font-heading uppercase ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] transition-all dark:bg-black"
+              className="group relative inline-flex items-center justify-center w-32 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 text-xs font-heading uppercase ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] transition-all dark:bg-black mr-1"
             >
               <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
               <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
             </button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setWishlistOpen(true)}
-              className="w-32 justify-center rounded-xl font-heading uppercase text-xs"
-            >
-              <Heart className="h-3.5 w-3.5 mr-1" />Wishlist
-            </Button>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setWishlistOpen(true)}
+                  aria-label="Wishlist"
+                  className="header-icon-btn"
+                >
+                  <Heart className="header-icon" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Wishlist</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setScheduleOpen((v) => !v)}
+                  aria-label="Schedule preview"
+                  data-active={scheduleOpen ? "true" : undefined}
+                  className="header-icon-btn"
+                >
+                  <CalendarDays className="header-icon" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Schedule preview</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setAdvisorOpen((v) => !v)}
+                  disabled={!biqAdvisor}
+                  aria-label="Ballers.IQ Lineup Advisor"
+                  data-active={advisorOpen ? "true" : undefined}
+                  className="header-icon-btn disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="header-icon dark:hidden" />
+                  <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="header-icon hidden dark:block" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Ballers.IQ Lineup Advisor</TooltipContent>
+            </Tooltip>
+
+            {/* Season Chips (own icon) */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Season chips"
+                      className="header-icon-btn"
+                    >
+                      <Sparkles className="header-icon" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Season chips</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-72 rounded-xl">
+                <DropdownMenuLabel className="font-heading text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Season chips
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  disabled={!!allStarUsed}
+                  onSelect={() => navigate("/transactions?chip=all_star")}
+                  className="flex items-start gap-3 py-2.5 cursor-pointer"
+                >
+                  <Star className="h-4 w-4 mt-0.5 text-amber-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading text-xs uppercase tracking-wide flex items-center gap-2">
+                      All-Star Boost
+                      {allStarUsed && <span className="text-[10px] text-muted-foreground normal-case font-normal">· Used GW{allStarUsed.gw}</span>}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                      +2 transfers this gameweek. Apply on Transactions →
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!!wildcardUsed}
+                  onSelect={() => navigate("/transactions?chip=wildcard")}
+                  className="flex items-start gap-3 py-2.5 cursor-pointer"
+                >
+                  <Wand2 className="h-4 w-4 mt-0.5 text-fuchsia-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading text-xs uppercase tracking-wide flex items-center gap-2">
+                      Wildcard
+                      {wildcardUsed && <span className="text-[10px] text-muted-foreground normal-case font-normal">· Used GW{wildcardUsed.gw}</span>}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                      Unlimited transfers this gameweek. Apply on Transactions →
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Quick Actions (own icon) */}
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Quick actions"
+                      className="header-icon-btn"
+                    >
+                      <Zap className="header-icon" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Quick actions</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-72 rounded-xl">
+                <DropdownMenuLabel className="font-heading text-[11px] uppercase tracking-wider text-muted-foreground">
+                  Quick actions
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  disabled={autoPicking}
+                  onSelect={() => handleAutoPick()}
+                  className="flex items-start gap-3 py-2.5 cursor-pointer"
+                >
+                  {autoPicking ? <RefreshCw className="h-4 w-4 mt-0.5 animate-spin shrink-0" /> : <Brain className="h-4 w-4 mt-0.5 text-violet-400 shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading text-xs uppercase tracking-wide">Auto-Pick Roster</div>
+                    <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                      Smart-fill empty slots respecting salary cap & FC/BC.
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => handleOptimize()}
+                  className="flex items-start gap-3 py-2.5 cursor-pointer"
+                >
+                  <Zap className="h-4 w-4 mt-0.5 text-yellow-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-heading text-xs uppercase tracking-wide">Optimize Lineup</div>
+                    <div className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                      Greedy bench/starter swap to maximize FP5.
+                    </div>
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Separator orientation="vertical" className="h-6 mx-1 bg-primary-foreground/15" />
+
+            <AlertDialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Reset roster"
+                      className="header-icon-btn is-reset"
+                    >
+                      <RotateCcw className="header-icon" />
+                    </button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Remove all players from roster</TooltipContent>
+              </Tooltip>
+              <AlertDialogContent className="rounded-xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Roster?</AlertDialogTitle>
+                  <AlertDialogDescription>This will remove all 10 players from your roster. You'll need to re-select them.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReset} className="bg-destructive text-destructive-foreground">Reset</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>
