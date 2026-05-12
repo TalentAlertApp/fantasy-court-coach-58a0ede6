@@ -207,14 +207,13 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
   }
   const data = rows.slice(1).filter((r) => r.length > 0 && String(r[1] ?? "").trim() !== "");
 
-  // Preserve existing salary (we never overwrite from sheet)
+  // SALARY (column G / r[6]) is intentionally never read from the sheet and never
+  // written by this sync. Existing DB values are preserved by omitting `salary`
+  // from the upsert payload; new rows fall back to the column default.
   const ids = data.map((r) => intOrZero(r[1])).filter((n) => n > 0);
   const { data: existing } = await sb
-    .from("players").select("id, salary, name").eq("league_id", leagueId)
+    .from("players").select("id, name").eq("league_id", leagueId)
     .in("id", ids.length ? ids : [-1]);
-  const existingSalary = new Map<number, number>(
-    (existing ?? []).map((p: { id: number; salary: number | null }) => [p.id, Number(p.salary ?? 0)]),
-  );
   const existingName = new Map<number, string>(
     (existing ?? []).map((p: { id: number; name: string | null }) => [p.id, String(p.name ?? "")]),
   );
@@ -243,8 +242,7 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
         name,
         team: String(r[4] ?? "").trim(),
         fc_bc: String(r[5] ?? "FC").trim().toUpperCase() === "BC" ? "BC" : "FC",
-        // salary intentionally NOT touched: preserve existing or default 0 for new rows
-        salary: existingSalary.get(id) ?? 0,
+        // r[6] = $ (salary) — DELIBERATELY NOT INCLUDED. Do not add it back.
         jersey: intOrZero(r[7]),
         college: nullable(r[8]),
         weight: intOrZero(r[9]),

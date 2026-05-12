@@ -92,7 +92,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? (recapOpen && panelsOpen ? "max-w-6xl" : "max-w-2xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
+      <DialogContent className={`${played ? (recapOpen && panelsOpen ? "max-w-7xl" : "max-w-2xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
@@ -144,7 +144,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
               )}
             </div>
-            <div className="text-center">
+            <div className="relative text-center">
               {played ? (
                 <span className="font-mono font-black text-3xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
               ) : (
@@ -155,6 +155,18 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   </span>
                   <span className="font-heading uppercase tracking-[0.22em] text-[10px] font-bold text-foreground">Scheduled</span>
                 </span>
+              )}
+              {recapOpen && embedSrc && (
+                <button
+                  type="button"
+                  onClick={() => setPanelsOpen((v) => !v)}
+                  aria-pressed={panelsOpen}
+                  aria-label={panelsOpen ? "Hide team scoring panels" : "Show team scoring panels"}
+                  title={panelsOpen ? "Hide team scoring" : "Show team scoring"}
+                  className={`absolute left-1/2 -translate-x-1/2 -bottom-3 transition-all hover:scale-110 ${panelsOpen ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                >
+                  <Columns2 className="h-4 w-4" />
+                </button>
               )}
             </div>
             {/* Home — name on left of watermark */}
@@ -192,18 +204,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <ExternalLink className="h-3.5 w-3.5" /> {leagueName}
               </a>
-            )}
-            {recapOpen && embedSrc && (
-              <button
-                type="button"
-                onClick={() => setPanelsOpen((v) => !v)}
-                aria-pressed={panelsOpen}
-                aria-label={panelsOpen ? "Hide team scoring panels" : "Show team scoring panels"}
-                title={panelsOpen ? "Hide team scoring" : "Show team scoring"}
-                className={`ml-1 transition-all hover:scale-110 ${panelsOpen ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-              >
-                <Columns2 className="h-4 w-4" />
-              </button>
             )}
           </div>
           {game.game_recap_url && played && (
@@ -262,7 +262,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               style={{ height: embedHeight }}
             >
               <div className="h-full overflow-y-auto">
-                <GameBoxScoreTable game={game} filterTeam={game.away_team} setFilterTeam={() => {}} maxBodyHeightClass="max-h-none" />
+                <GameBoxScoreTable game={game} filterTeam={game.away_team} setFilterTeam={() => {}} maxBodyHeightClass="max-h-none" density="compact" />
               </div>
             </div>
             <div className="relative z-10" style={{ height: embedHeight }}>
@@ -279,7 +279,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               style={{ height: embedHeight }}
             >
               <div className="h-full overflow-y-auto">
-                <GameBoxScoreTable game={game} filterTeam={game.home_team} setFilterTeam={() => {}} maxBodyHeightClass="max-h-none" />
+                <GameBoxScoreTable game={game} filterTeam={game.home_team} setFilterTeam={() => {}} maxBodyHeightClass="max-h-none" density="compact" />
               </div>
             </div>
           </div>
