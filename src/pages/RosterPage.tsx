@@ -454,6 +454,25 @@ export default function RosterPage() {
       });
       return;
     }
+    // Health gate — block OUT, warn risky. Open confirm dialog instead of committing immediately.
+    const target = [...starters, ...bench].find((p) => p.core.id === playerId);
+    if (target) {
+      const h = normalizePlayerHealth(target);
+      if (shouldBlockCaptain(h) || shouldWarnCaptain(h)) {
+        setCaptainConfirm({
+          playerId,
+          playerName: target.core.name,
+          level: shouldBlockCaptain(h) ? "block" : "warn",
+          message: getCaptainHealthWarning(h, target.core.name) ?? "",
+        });
+        return;
+      }
+    }
+    commitCaptain(playerId);
+  };
+
+  const commitCaptain = (playerId: number) => {
+    if (!roster) return;
     setCaptainId(playerId);
     playSfx("swoosh");
     const starterIds = [...(roster.starters ?? [])];
