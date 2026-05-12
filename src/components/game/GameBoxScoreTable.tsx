@@ -38,6 +38,8 @@ interface Props {
   maxBodyHeightClass?: string;
   /** Visual density. `compact` shrinks columns and typography for side-by-side use. */
   density?: "default" | "compact";
+  /** When true, the table fills its parent's height and distributes rows evenly (no inner scroll). */
+  fillHeight?: boolean;
 }
 
 export default function GameBoxScoreTable({
@@ -46,6 +48,7 @@ export default function GameBoxScoreTable({
   setFilterTeam: externalSetFilterTeam,
   maxBodyHeightClass = "max-h-[50vh]",
   density = "default",
+  fillHeight = false,
 }: Props) {
   const { data, isLoading } = useGameBoxscoreQuery(game.game_id);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
@@ -60,8 +63,11 @@ export default function GameBoxScoreTable({
   const visibleTriBadges = externallyFiltered
     ? [externalFilterTeam as string]
     : [game.away_team, game.home_team];
+  const visibleSortColumns = compact
+    ? SORT_COLUMNS.filter((c) => c.key !== "salary" && c.key !== "value")
+    : SORT_COLUMNS;
   const gridCols = compact
-    ? "grid-cols-[minmax(0,1fr)_repeat(9,28px)]"
+    ? "grid-cols-[minmax(0,1fr)_repeat(7,28px)]"
     : "grid-cols-[minmax(0,1fr)_repeat(9,36px)]";
   const numCellCls = compact ? "text-[11px]" : "text-[13px]";
 
@@ -102,7 +108,7 @@ export default function GameBoxScoreTable({
   };
 
   return (
-    <div className="relative bg-muted/20">
+    <div className={`relative bg-muted/20 ${fillHeight ? "flex flex-col h-full" : ""}`}>
       <img
         src={watermarkLogo}
         alt=""
@@ -144,7 +150,7 @@ export default function GameBoxScoreTable({
             BC
           </button></>)}
         </div>
-        {SORT_COLUMNS.map(({ key, label, highlight }) => (
+        {visibleSortColumns.map(({ key, label, highlight }) => (
           <button
             key={key}
             onClick={() => handleSort(key)}
@@ -156,7 +162,7 @@ export default function GameBoxScoreTable({
           </button>
         ))}
       </div>
-      <div className={`relative z-[1] ${maxBodyHeightClass} overflow-y-auto`}>
+      <div className={`relative z-[1] ${fillHeight ? "flex-1 min-h-0 flex flex-col overflow-hidden" : `${maxBodyHeightClass} overflow-y-auto`}`}>
         {sorted.map((p) => {
           const isFc = p.fc_bc === "FC";
           const teamLogo = logoFor(p.team);
@@ -164,7 +170,7 @@ export default function GameBoxScoreTable({
             <div
               key={p.player_id}
               onClick={() => setOpenPlayerId(p.player_id)}
-              className={`grid ${gridCols} gap-0 ${compact ? "px-1.5 py-0.5" : "px-2 py-1"} ${numCellCls} items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors`}
+              className={`grid ${gridCols} gap-0 ${compact ? "px-1.5" : "px-2 py-1"} ${!compact ? "" : (fillHeight ? "" : "py-0.5")} ${numCellCls} items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors even:bg-muted/10 ${fillHeight ? "flex-1 min-h-0" : ""}`}
             >
               <div className="flex items-center gap-2 pr-2 min-w-0">
                 <Avatar className={`${compact ? "h-5 w-5" : "h-6 w-6"} shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
@@ -172,13 +178,17 @@ export default function GameBoxScoreTable({
                   <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <span className={`${numCellCls} font-semibold truncate`}>{p.name}</span>
-                {teamLogo && (
+                {teamLogo && !compact && (
                   <img src={teamLogo} alt={p.team} className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0 object-contain`} />
                 )}
               </div>
               <span className={`text-right font-mono ${numCellCls} font-bold`}>{p.fp}</span>
-              <span className={`text-right font-mono ${numCellCls} text-red-500`}>{(p as any).salary ?? 0}</span>
-              <span className={`text-right font-mono ${numCellCls} text-red-500`}>{p.value.toFixed(1)}</span>
+              {!compact && (
+                <>
+                  <span className={`text-right font-mono ${numCellCls} text-red-500`}>{(p as any).salary ?? 0}</span>
+                  <span className={`text-right font-mono ${numCellCls} text-red-500`}>{p.value.toFixed(1)}</span>
+                </>
+              )}
               <span className={`text-right font-mono ${numCellCls} text-muted-foreground`}>{p.mp}</span>
               <span className={`text-right font-mono ${numCellCls}`}>{p.ps}</span>
               <span className={`text-right font-mono ${numCellCls}`}>{p.ast}</span>
