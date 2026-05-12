@@ -1,3 +1,4 @@
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky } from "@/lib/health";
 import type { z } from "zod";
 import type { GameBoxscorePlayerSchema, PlayerListItemSchema } from "@/lib/contracts";
 
@@ -50,7 +51,7 @@ export function buildOutstandingBlurb(
 /** Pick the highest season-FP player on a given team from the league players list. */
 export function pickWatchLeader(items: ListPlayer[], team: string): ListPlayer | null {
   const team_players = items.filter(
-    (p) => p.core.team === team && p.flags.injury !== "OUT",
+    (p) => p.core.team === team && !isHealthUnavailable(normalizePlayerHealth(p)),
   );
   if (team_players.length === 0) return null;
   return team_players.reduce(
@@ -69,7 +70,7 @@ export function describeWatch(p: ListPlayer): string {
   if (delta >= 3) return `trending up at ${fp5} FP5 (V5 ${v5})`;
   if (delta <= -7) return `due for a bounce-back, season ${fp} FP`;
   if (delta <= -3) return `cooling off lately, ${fp5} FP5 vs ${fp} season`;
-  if (p.flags.injury) return `questionable but locked in at ${fp} FP/g`;
+  if (isHealthRisky(normalizePlayerHealth(p))) return `questionable but locked in at ${fp} FP/g`;
   return `humming at ${fp} FP/g (V5 ${v5})`;
 }
 

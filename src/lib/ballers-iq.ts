@@ -11,6 +11,7 @@
 
 export type BallersIQContext = "lineup" | "player" | "game_night" | "recap";
 import { gateBallersIQ as _gateBallersIQ } from "./ballers-iq/quality";
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
 export type BallersIQAction =
   | "START" | "BENCH" | "CAPTAIN" | "ADD" | "DROP" | "WATCH" | "HOLD" | null;
 export type BallersIQRisk = "LOW" | "MEDIUM" | "HIGH" | null;
@@ -178,7 +179,8 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
 
   // Risk Radar — starters with injury, no game tonight, or sliding minutes
   const risky = starters.filter((x) => {
-    const hasInjury = !!x.p.injury && x.p.injury.toUpperCase() !== "ACTIVE";
+    const _h = normalizePlayerHealth(x.p);
+    const hasInjury = isHealthUnavailable(_h) || isHealthRisky(_h);
     const noGame = todayTeams.size > 0 && x.p.team
       ? !todayTeams.has(String(x.p.team).toUpperCase())
       : false;
@@ -194,8 +196,9 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
           ? `${risky[0].p.name} is a lineup risk tonight.`
           : `${risky.length} starters carry risk tonight.`,
       bullets: risky.slice(0, 3).map((x) => {
-        if (x.p.injury && x.p.injury.toUpperCase() !== "ACTIVE")
-          return `${x.p.name}: ${x.p.injury}.`;
+        const _h = normalizePlayerHealth(x.p);
+        if (isHealthUnavailable(_h) || isHealthRisky(_h))
+          return `${x.p.name}: ${getHealthLabel(_h)}.`;
         if (todayTeams.size && x.p.team && !todayTeams.has(String(x.p.team).toUpperCase()))
           return `${x.p.name}: no game tonight.`;
         return `${x.p.name}: minutes sliding (${num(x.p.delta_mpg).toFixed(1)} MPG).`;
@@ -269,7 +272,8 @@ function buildPlayerInsights(payload: BIQPayload): BallersIQResponse {
   const dMpg = num(p.delta_mpg);
   const fp5 = num(p.fp_pg5);
   const value5 = num(p.value5);
-  const hasInjury = !!p.injury && p.injury.toUpperCase() !== "ACTIVE";
+  const _ph = normalizePlayerHealth(p);
+  const hasInjury = isHealthUnavailable(_ph) || isHealthRisky(_ph);
 
   let action: BallersIQAction = "HOLD";
   let risk: BallersIQRisk = "LOW";
@@ -279,7 +283,7 @@ function buildPlayerInsights(payload: BIQPayload): BallersIQResponse {
   if (hasInjury) {
     action = "BENCH";
     risk = "HIGH";
-    headline = `${p.injury} — manage exposure.`;
+    headline = `${getHealthLabel(_ph)} — manage exposure.`;
     confidence = 0.8;
   } else if (dFp >= 4 && dMpg >= 0) {
     action = "START";

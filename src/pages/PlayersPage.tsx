@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useTeam } from "@/contexts/TeamContext";
@@ -33,6 +34,7 @@ import { commitTransaction } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
 import { useLeague } from "@/contexts/LeagueContext";
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -56,6 +58,19 @@ export default function PlayersPage() {
   const [inZone, setInZone] = useState<number[]>([]);
   const [chipAllStar, setChipAllStar] = useState(false);
   const [chipWildcard, setChipWildcard] = useState(false);
+  // Pre-arm chip via URL param (?chip=all_star|wildcard) coming from /MY ROSTER quick-actions.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const c = searchParams.get("chip");
+    if (c === "all_star") setChipAllStar(true);
+    if (c === "wildcard") setChipWildcard(true);
+    if (c) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("chip");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -793,7 +808,8 @@ export default function PlayersPage() {
                               const sal = Number(p.core.salary ?? 0);
                               const dfp = Number((p as any).last5?.delta_fp ?? 0);
                               const fp5 = Number((p as any).last5?.fp5 ?? 0);
-                              const inj = (p.core as any)?.injury;
+                              const _h = normalizePlayerHealth(p);
+                              const inj = isHealthUnavailable(_h) || isHealthRisky(_h);
                               // Drop Risk wins, then Value Add, then Stream — at most one badge.
                               if (inj || dfp <= -4) {
                                 return (
@@ -803,7 +819,7 @@ export default function PlayersPage() {
                                         Drop Risk
                                       </span>
                                     </TooltipTrigger>
-                                    <TooltipContent className="text-[10px]">{inj ? `Injury: ${inj}` : `Form drop Δ${dfp.toFixed(1)} FP`}</TooltipContent>
+                                    <TooltipContent className="text-[10px]">{inj ? getHealthTooltipText(_h) : `Form drop Δ${dfp.toFixed(1)} FP`}</TooltipContent>
                                   </Tooltip>
                                 );
                               }

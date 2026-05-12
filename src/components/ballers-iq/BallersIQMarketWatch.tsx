@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "./BallersIQBrand";
 import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat } from "lucide-react";
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
 
 interface MarketPlayer {
   id: number;
@@ -62,8 +63,16 @@ export default function BallersIQMarketWatch({
     ).filter((p) => num(p.value5) < 1.6);
 
     // Drop Risks (from roster) — injury OR negative form trend
-    const dropRisks = topByMetric(rosterPlayers.filter((p) => p.injury || num(p.delta_fp) < -3 || num(p.delta_mpg) < -4),
-      (p) => Math.abs(num(p.delta_fp)) + (p.injury ? 5 : 0), 3);
+    const _hh = (p: MarketPlayer) => normalizePlayerHealth(p);
+    const _injured = (p: MarketPlayer) => {
+      const h = _hh(p);
+      return isHealthUnavailable(h) || isHealthRisky(h);
+    };
+    const dropRisks = topByMetric(
+      rosterPlayers.filter((p) => _injured(p) || num(p.delta_fp) < -3 || num(p.delta_mpg) < -4),
+      (p) => Math.abs(num(p.delta_fp)) + (_injured(p) ? 5 : 0),
+      3,
+    );
 
     // Sell High — roster players overperforming form vs season
     const sellHigh = topByMetric(rosterPlayers.filter((p) => num(p.delta_fp) > 3 && num(p.salary) >= 6),
@@ -128,7 +137,13 @@ export default function BallersIQMarketWatch({
           rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
           onPick={onPickPlayer} />
         <Lane label="Drop Risks" icon={<AlertTriangle className="h-3 w-3 text-red-400" />} tone="red"
-          rows={data.dropRisks.map((p) => ({ id: p.id, name: p.name, meta: p.injury ? `${p.injury}` : `Δ${num(p.delta_fp).toFixed(1)} FP` }))}
+          rows={data.dropRisks.map((p) => {
+            const h = normalizePlayerHealth(p);
+            const meta = (isHealthUnavailable(h) || isHealthRisky(h))
+              ? getHealthLabel(h)
+              : `Δ${num(p.delta_fp).toFixed(1)} FP`;
+            return { id: p.id, name: p.name, meta };
+          })}
           onPick={onPickPlayer} />
         <Lane label="Buy Low" icon={<TrendingDown className="h-3 w-3 text-sky-400" />} tone="sky"
           rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}

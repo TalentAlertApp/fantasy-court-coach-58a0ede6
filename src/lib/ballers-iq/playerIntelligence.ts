@@ -3,6 +3,7 @@ import type {
   BIQSalaryEfficiency, BIQFormSignal, BIQRiskRadar, BIQTeamDifficulty,
 } from "./types";
 import { clamp, mergeBasis, safeNum, scale100, tricodeEq, labelByThreshold, normalizeTo100 } from "./utils";
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
 
 export function calculateBIQRating(
   player: BIQPlayer,
@@ -69,7 +70,8 @@ export function calculateCaptainEdge(
   const ceilingProxy = Math.max(fp5, safeNum(player.fp_pg_t)) + safeNum(player.stocks5) * 2;
   const matchup = clamp(safeNum(context?.matchupDifficulty, 50), 0, 100);
   const hasGame = context?.hasGame !== false;
-  const injured = !!player.injury && player.injury.toUpperCase() !== "ACTIVE";
+  const _h = normalizePlayerHealth(player);
+  const injured = isHealthUnavailable(_h) || isHealthRisky(_h);
 
   const reasons: string[] = [];
   const flags: string[] = [];
@@ -81,7 +83,7 @@ export function calculateCaptainEdge(
       (100 - matchup) * 0.20,
   );
 
-  if (injured) { score = Math.max(0, score - 35); flags.push(player.injury!); }
+  if (injured) { score = Math.max(0, score - 35); flags.push(getHealthLabel(_h)); }
   if (!hasGame) { score = Math.max(0, score - 50); flags.push("no_upcoming_game"); }
   if (mpg5 > 0 && mpg5 < 24) { score = Math.max(0, score - 10); flags.push("low_minutes"); }
 
@@ -207,8 +209,11 @@ export function calculateRiskRadar(
 ): BIQRiskRadar {
   const flags: string[] = [];
   let score = 0;
-  if (player.injury && player.injury.toUpperCase() !== "ACTIVE") {
-    flags.push(player.injury); score += 35;
+  {
+    const _h2 = normalizePlayerHealth(player);
+    if (isHealthUnavailable(_h2) || isHealthRisky(_h2)) {
+      flags.push(getHealthLabel(_h2)); score += 35;
+    }
   }
   if (safeNum(player.delta_mpg) <= -3) { flags.push("minutes_down"); score += 15; }
   if (safeNum(player.delta_fp) <= -4) { flags.push("fp_down"); score += 15; }
