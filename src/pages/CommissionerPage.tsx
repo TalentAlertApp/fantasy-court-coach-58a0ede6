@@ -28,6 +28,7 @@ import { Progress } from "@/components/ui/progress";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import MissingRecapsPanel from "@/components/commissioner/MissingRecapsPanel";
+import WnbaSheetSyncPanel from "@/components/commissioner/WnbaSheetSyncPanel";
 import nbaLogoSrc from "@/assets/nba-logo.svg";
 import wnbaLogoSrc from "@/assets/wnba-logo.png";
 
