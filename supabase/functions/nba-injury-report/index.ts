@@ -3,6 +3,7 @@
 // Public endpoint (no JWT). Cached for 30 minutes.
 
 import { DOMParser } from "https://deno.land/x/deno_dom/deno-dom-wasm.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 interface InjuryRecord {
   player_name: string;
@@ -185,6 +186,85 @@ const STATUS_ORDER: Record<string, number> = {
   "Personal": 6, "Suspended": 7, "G-League": 8,
 };
 
+function normalizeName(s: string): string {
+  return (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function buildInjuryLabel(rec: InjuryRecord): string {
+  const status = rec.status?.trim() || "Out";
+  const type = rec.injury_type?.trim();
+  if (type && type !== "—" && type.length <= 40) return `${status} — ${type}`;
+  return status;
+}
+
+// Throttle DB writes across rapid clicks (per cold start).
+let lastPersistAt = 0;
+const PERSIST_THROTTLE_MS = 25 * 60 * 1000;
+
+async function persistInjuriesToPlayers(
+  injuries: InjuryRecord[],
+): Promise<{ matched: number; cleared: number; skipped?: boolean } | null> {
+  const now = Date.now();
+  if (now - lastPersistAt < PERSIST_THROTTLE_MS) {
+    return { matched: 0, cleared: 0, skipped: true };
+  }
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+
+  const sb = createClient(url, key);
+  // Resolve NBA league id
+  const { data: league } = await sb.from("leagues").select("id").eq("code", "nba").maybeSingle();
+  if (!league?.id) return null;
+  const leagueId = league.id as string;
+
+  const { data: players } = await sb
+    .from("players")
+    .select("id, name, injury")
+    .eq("league_id", leagueId);
+  if (!players) return null;
+
+  const byName = new Map<string, { id: number; injury: string | null }>();
+  for (const p of players as Array<{ id: number; name: string; injury: string | null }>) {
+    if (p.name) byName.set(normalizeName(p.name), { id: p.id, injury: p.injury });
+  }
+
+  const matchedIds = new Set<number>();
+  const updates: Array<{ id: number; label: string }> = [];
+  for (const rec of injuries) {
+    const hit = byName.get(normalizeName(rec.player_name));
+    if (!hit) continue;
+    if (matchedIds.has(hit.id)) continue;
+    matchedIds.add(hit.id);
+    const label = buildInjuryLabel(rec);
+    if (hit.injury !== label) updates.push({ id: hit.id, label });
+  }
+
+  // Clear stale injuries for players no longer in the report.
+  const toClear: number[] = [];
+  for (const [, info] of byName) {
+    if (!matchedIds.has(info.id) && info.injury != null && info.injury !== "") {
+      toClear.push(info.id);
+    }
+  }
+
+  // Apply updates one-by-one (small N, keeps SQL simple)
+  await Promise.all(
+    updates.map((u) =>
+      sb.from("players").update({ injury: u.label }).eq("id", u.id),
+    ),
+  );
+  if (toClear.length) {
+    await sb.from("players").update({ injury: null }).in("id", toClear);
+  }
+  lastPersistAt = now;
+  return { matched: updates.length, cleared: toClear.length };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -214,11 +294,20 @@ Deno.serve(async (req: Request) => {
       byTeam[key].push(r);
     }
 
+    // Persist matched injuries to players.injury (throttled).
+    let persisted: { matched: number; cleared: number; skipped?: boolean } | null = null;
+    try {
+      persisted = await persistInjuriesToPlayers(injuries);
+    } catch (e) {
+      console.error("persistInjuriesToPlayers failed:", e);
+    }
+
     return new Response(
       JSON.stringify({
         generated_at: new Date().toISOString(),
         total_players: injuries.length,
         sources_failed: errors.length ? errors : undefined,
+        persisted,
         by_team: byTeam,
         all: injuries,
       }),
