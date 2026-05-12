@@ -848,6 +848,14 @@ export default function PlayersPage() {
                             </Avatar>
                             <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
+                            {_rowHealth.status && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex"><HealthStatusIcon health={_rowHealth} size="xs" /></span>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-[10px]">{getHealthTooltipText(_rowHealth)}</TooltipContent>
+                              </Tooltip>
+                            )}
                             {(() => {
                               const v5 = Number((p as any).last5?.value5 ?? 0);
                               const sal = Number(p.core.salary ?? 0);
