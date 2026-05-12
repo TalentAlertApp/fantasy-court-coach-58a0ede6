@@ -792,9 +792,22 @@ export default function PlayersPage() {
                       eligibilityCtx,
                     );
                     const canAdd = elig.ok || isInInZone;
+                    const _rowHealth = normalizePlayerHealth(p);
+                    const _rowOut = isHealthUnavailable(_rowHealth);
+                    const _rowRisk = isHealthRisky(_rowHealth);
 
                     return (
-                      <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
+                      <TableRow
+                        key={p.core.id}
+                        className={`cursor-pointer hover:bg-accent/30 group ${
+                          _rowOut
+                            ? "bg-red-500/5 hover:bg-red-500/10"
+                            : _rowRisk
+                              ? "bg-amber-500/5 hover:bg-amber-500/10"
+                              : ""
+                        }`}
+                        onClick={() => setSelectedPlayerId(p.core.id)}
+                      >
                         <td className="px-1 py-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
