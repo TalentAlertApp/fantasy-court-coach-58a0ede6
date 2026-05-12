@@ -1,76 +1,61 @@
-## Scope
+## What is actually broken
 
-Four polish/fix items. No business-logic changes.
+- **Injury persistence:** the Edge Function is matching players correctly, but every update fails because `players.injury` has a database check constraint that only accepts `OUT`, `Q`, or `DTD`. The function is trying to write labels like `Out — Calf`, so Postgres rejects all 117 updates. Aaron Gordon remains `null` because the update never commits.
+- **Game Detail modal:** the app is already mostly using `GameDetailModal`, but Player Modal history also has a separate older “Game Box Score” dialog and the history payload does not include recap link fields from `schedule_games`, so the green `Tv2` recap affordance cannot reliably show there.
+- **Roster header:** Quick Actions is still amber/yellow, too close to the light-theme background; Ballers.IQ wordmark theme assets are reversed from the requested visual result.
+- **Collapsed sidebar:** CSS rules were added, but the collapsed column still has inconsistent structural padding/axis alignment between logo, nav, and footer controls.
 
----
+## Implementation plan
 
-### 1. Sidebar — actually center collapsed icons
+1. **Repair injury persistence at the source**
+   - Add a database migration to replace `players_injury_check` with a constraint that accepts normalized app health codes: `OUT`, `Q`, `DTD`, `GTD`, `PROB`.
+   - Update `supabase/functions/nba-injury-report/index.ts` so it writes only the normalized code to `players.injury`, never rich labels like `Out — Calf`.
+   - Preserve rich details without breaking the constraint by keeping them in the injury report response and, where safe, in `players.note` only if needed and non-destructive.
+   - Return accurate persistence stats: matched players, changed rows, cleared rows, and update errors.
 
-`src/index.css` (collapsed nav block ~ line 358–367) and `src/components/layout/AppLayout.tsx`.
+2. **Make app queries immediately reflect injury updates**
+   - Ensure `players-list`, `player-detail`, and roster fallback data expose `core.injury` consistently in addition to `flags.injury`, because several UI paths read `core.injury`.
+   - Keep health normalization centralized through `src/lib/health.ts`; no direct UI should depend on raw injury labels as the primary source.
 
-- Force the collapsed `.nav-item` to be a 40×40 flex box centered on the 60 px sidebar (`width: 40px; margin: 0 auto;` instead of `width: 100%`), keep `gap: 0.45rem`.
-- Make the active `::before` indicator a **centered horizontal underline** (or a dot) instead of a vertical bar pinned to the left edge — that bar is what visually pulls icons off-center in image-501.
-- Set the brand block (`px-4 py-5` div with the league logo) to use `justify-center` when collapsed so the NBA logo lines up on the same vertical axis as the nav icons + footer icons.
-- Apply the same `40 px square + mx-auto` rule to the bottom Sign-Out / Theme / Collapse buttons (`.theme-toggle`) when collapsed so the whole column is one neat axis.
+3. **Unify played-game modal behavior**
+   - Use `GameDetailModal` as the canonical played-game modal for roster game slots and Player Modal history clicks.
+   - Remove or stop using the older Player Modal “Game Box Score” dialog path for game-level opening, keeping player click-through behavior via the shared box score table.
+   - Enrich `player-detail` history rows with `game_boxscore_url`, `game_charts_url`, `game_playbyplay_url`, `game_recap_url`, `youtube_recap_id`, and `tipoff_utc` from `schedule_games`.
+   - Extend `GameDetailModal` so recap embed works from either `youtube_recap_id` or a YouTube URL, while NBA.com recap links remain external when no YouTube ID exists.
+   - Add `youtube_recap_id` to the frontend game types and schedule hooks used by roster slots and schedule previews.
 
-### 2. Game Detail modal — embedded recap + venue
+4. **Fix roster header icon polish**
+   - Change Quick Actions from amber/yellow to a theme-safe distinct color with a clear hover state in both light and dark themes.
+   - Swap Ballers.IQ wordmark asset usage so the light and dark theme PNGs are reversed as requested, keeping the transparent pill and hover surge.
+   - Keep Reset unchanged except for existing destructive styling and no surge.
 
-`src/components/GameDetailModal.tsx`.
+5. **Fix collapsed sidebar alignment for real**
+   - Refactor collapsed sidebar structure so the logo, nav icons, sign-out, theme, and expand controls all use the same fixed-width centered rail.
+   - Remove the residual left/right padding and active/hover offset effects only in collapsed mode.
+   - Increase vertical spacing between collapsed nav icons while preserving the existing expanded sidebar look.
 
-- **Venue in header (no extra height):** Render `venue.name` as a tiny chip on the same row as the GW/Day + tipoff badges (line 95–107). It re-uses the existing row, so header height does not grow.
-- **Inline recap player:**
-  - Only show a new green Tv2 icon-button (same green styling as the existing "Watch Recap on NBA.com" link, but icon-only) **directly under the score**, when `game.game_recap_url` exists. Hide it when not.
-  - Clicking it sets a local `recapOpen` state. While true, the bottom panel (currently `<GameBoxScoreTable>` for played games) is replaced by an embedded video container that fills exactly that area (same height as the table — measured via `useRef` on the table wrapper, persisted in state, applied as `min-height` to the embed) with a small "× Close" pill in the top-right that returns to the box-score view.
-  - Embed strategy: convert YouTube `watch?v=ID` / `youtu.be/ID` URLs to `https://www.youtube.com/embed/ID?autoplay=1` and render via `<iframe allow="autoplay; encrypted-media" allowFullScreen>`. For non-YouTube URLs, fall back to opening in a new tab (keep the existing external link as a secondary action).
-  - The existing "Watch Recap on NBA.com" pill row stays for played games where users prefer the source site, but is hidden while the embed is open.
-- No layout changes for scheduled games.
+6. **Validation**
+   - Read back Aaron Gordon from Supabase after the migration/function change to confirm `players.injury = 'OUT'` can persist.
+   - Call or inspect the injury Edge Function logs to confirm update errors are gone.
+   - Verify the two example games (`SAS at DEN`, `PHI at SAS`) carry recap video IDs/links into the shared modal.
+   - Run targeted checks for TypeScript/import issues through the normal harness, and use browser/preview inspection for collapsed sidebar alignment and modal behavior.
 
-### 3. Injury persistence not landing on `players.injury`
+## Files expected to change
 
-Confirmed via DB read: Aaron Gordon (id 203932, NBA) has `injury = NULL` despite the report listing him OUT. The edge function's writer is the suspect.
+- `supabase/functions/nba-injury-report/index.ts`
+- `supabase/functions/player-detail/index.ts`
+- Supabase migration for `players_injury_check`
+- `src/lib/contracts.ts`
+- `src/components/GameDetailModal.tsx`
+- `src/components/PlayerModal.tsx`
+- `src/hooks/useUpcomingByTeam.ts`
+- `src/hooks/useScheduleWeekGames.ts`
+- `src/hooks/useStandingsContext.ts`
+- `src/pages/RosterPage.tsx`
+- `src/components/layout/AppLayout.tsx`
+- `src/index.css`
 
-`supabase/functions/nba-injury-report/index.ts` and `supabase/functions/wnba-injury-report/index.ts`.
-
-- Drop the **25-minute in-memory throttle** (`lastPersistAt` / `PERSIST_THROTTLE_MS`). It only protects per-cold-start and is the most likely cause of "first run wrote nothing visible / next runs were skipped". Replace with a tiny per-request guard (skip only if `injuries.length === 0`).
-- Add structured `console.log` lines around persist (`matched`, `cleared`, sample of unmatched names) so future regressions are obvious in edge logs.
-- Verify name matching: keep current `normalizeName` (NFD + lowercase). Add a fallback that also tries `last-name + first-initial` only when an exact match fails, to catch CBS's `"A. DavisAnthony Davis"` residue.
-- Re-deploy both functions (NBA + WNBA) so the new code is the one running when the user clicks "Refresh injury report".
-- Client side: `InjuryReportModal` already invalidates `["players"]` and `["roster-current"]` when `persisted.matched > 0`. Also invalidate when `persisted.cleared > 0` (already covered) and when `persisted` is missing — defensive fallback so a deploy lag doesn't leave stale cache.
-- Acceptance: after one click on "Injury Report" → refresh, `SELECT injury FROM players WHERE name='Aaron Gordon'` returns `'Out — …'`, and the player modal / Roster Court & List show his OUT badge.
-
-### 4. /MY ROSTER header icons — color & Ballers.IQ button polish
-
-`src/index.css` (`.header-icon-btn` block ~ line 322–356) and `src/pages/RosterPage.tsx` (header row ~ line 571–740).
-
-- Add per-icon accent color modifiers on `.header-icon-btn`:
-  - `.is-wishlist` → rose (`text-rose-400/70` → hover `text-rose-400`)
-  - `.is-schedule` → sky (`text-sky-400/70` → hover `text-sky-400`)
-  - `.is-advisor` → amber (matches Ballers.IQ accent)
-  - `.is-chips` → violet
-  - `.is-quick` → yellow (Zap)
-  - `.is-reset` → keep destructive red (already done)
-  - All keep the existing `scale(1.18)` surge + glow on hover; only the color tokens change. Works in light + dark via HSL tokens.
-- Apply the matching class on each header button in `RosterPage.tsx`.
-- **Ballers.IQ button (line 571–576):**
-  - Increase the wordmark PNG to `!h-6` (was `!h-4`) and add internal padding so the PNG visually fills the pill.
-  - Remove the opaque background — set the button to `bg-transparent`.
-  - Replace the current border with `border-amber-400/60 hover:border-amber-400` and add a subtle amber glow ring on hover (`hover:shadow-[0_0_16px_-4px_hsl(var(--accent)/0.55)]`).
-  - Add the same `scale(1.04)` surge on hover (button-level), and `scale(1.06)` on the inner PNG so it feels alive.
-  - Verified in both dark + light via the existing `dark:hidden` / `hidden dark:block` PNG swap.
-
----
-
-## Out of scope
-
-- WNBA Google Sheets sync (postponed by user).
-- Bottom Action Bar / deadline strip.
-- Team Modal / Teams page health surfaces.
-- Any change to scoring formulas or roster constraints.
-
-## Verification
-
-- TypeScript build passes.
-- Manual: collapsed sidebar — icons centered on the same vertical axis as the league logo and footer icons.
-- Manual: open a played game with `game_recap_url` set → green Tv2 icon under score → click → embed fills the box-score area → close returns to box score.
-- Manual: click Injury Report → refresh → DB shows `players.injury` populated for Aaron Gordon → roster modal shows OUT.
-- Manual: roster header in light + dark — each icon has its own tint; Ballers.IQ pill is transparent with amber border that glows on hover.
+<lov-actions>
+<lov-open-history>View History</lov-open-history>
+<lov-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</lov-link>
+</lov-actions>
