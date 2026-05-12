@@ -17,7 +17,7 @@ export type BallersIQAction =
 export type BallersIQRisk = "LOW" | "MEDIUM" | "HIGH" | null;
 export type BallersIQInsightType =
   | "CAPTAIN" | "LINEUP" | "PLAYER" | "GAME"
-  | "RECAP" | "RISK" | "VALUE" | "FORM" | "MARKET";
+  | "RECAP" | "RISK" | "VALUE" | "FORM" | "MARKET" | "HEALTH";
 
 export interface BallersIQInsight {
   type: BallersIQInsightType;
@@ -116,13 +116,20 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
 
   // Captain Edge — highest fp_pg5 starter
   if (starters.length) {
-    const ranked = [...starters].sort(
+    // Exclude OUT players from captain consideration entirely.
+    const captainPool = starters.filter((x) => !isHealthUnavailable(normalizePlayerHealth(x.p)));
+    const ranked = [...(captainPool.length ? captainPool : starters)].sort(
       (a, b) => num(b.p.fp_pg5) - num(a.p.fp_pg5)
     );
     const top = ranked[0];
     const second = ranked[1];
     const gap = top && second ? num(top.p.fp_pg5) - num(second.p.fp_pg5) : 0;
-    const confidence = Math.max(0.55, Math.min(0.95, 0.6 + gap / 30));
+    const _topHealth = normalizePlayerHealth(top.p);
+    const captainRisky = isHealthRisky(_topHealth);
+    const confidence = Math.max(
+      0.45,
+      Math.min(0.95, 0.6 + gap / 30 - (captainRisky ? 0.15 : 0)),
+    );
     insights.push({
       type: "CAPTAIN",
       title: "Captain Edge",
@@ -133,11 +140,12 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
           ? `Edge of ${gap.toFixed(1)} over ${second.p.name}.`
           : "Clear top fantasy option this week.",
         top.is_captain ? "Already armbanded — hold." : "Switch the armband to lock the bonus.",
+        ...(captainRisky ? [`⚠ Health: ${getHealthLabel(_topHealth)} — confirm status before lock.`] : []),
       ],
       playerIds: [top.p.id],
       confidence,
       action: "CAPTAIN",
-      riskLevel: "LOW",
+      riskLevel: captainRisky ? "MEDIUM" : "LOW",
     });
   }
 
@@ -177,36 +185,62 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
     });
   }
 
-  // Risk Radar — starters with injury, no game tonight, or sliding minutes
-  const risky = starters.filter((x) => {
+  // Health Risk — explicit, separate from form/availability risk.
+  const healthScan = rosterPlayers.map((x) => ({ ...x, h: normalizePlayerHealth(x.p) }));
+  const healthOuts = healthScan.filter((x) => isHealthUnavailable(x.h));
+  const healthRisks = healthScan.filter((x) => isHealthRisky(x.h));
+  if (healthOuts.length || healthRisks.length) {
+    const startersAffected = [...healthOuts, ...healthRisks].filter((x) => isStarter(x.slot));
+    const benchAffected = [...healthOuts, ...healthRisks].filter((x) => !isStarter(x.slot));
+    const ordered = [...startersAffected, ...benchAffected].slice(0, 4);
+    const lineFor = (x: typeof healthScan[number]): string => {
+      const tag = x.h.status === "OUT"
+        ? "Bench immediately — unavailable"
+        : x.h.status === "PROB"
+          ? "Minor flag — playable but monitor"
+          : "Monitor before lock — avoid captain unless cleared";
+      const role = isStarter(x.slot) ? "Starter" : "Bench";
+      return `${x.p.name} (${role}, ${getHealthLabel(x.h)}): ${tag}.`;
+    };
+    insights.push({
+      type: "HEALTH",
+      title: "Health Risk",
+      headline: `Health: ${healthOuts.length} OUT, ${healthRisks.length} risk.`,
+      bullets: ordered.map(lineFor),
+      playerIds: ordered.map((x) => x.p.id),
+      confidence: 0.85,
+      action: healthOuts.some((x) => isStarter(x.slot)) ? "BENCH" : "WATCH",
+      riskLevel: healthOuts.length ? "HIGH" : "MEDIUM",
+    });
+  }
+
+  // Form Risk — starters losing minutes / no game tonight (no health overlap).
+  const formRisky = starters.filter((x) => {
     const _h = normalizePlayerHealth(x.p);
-    const hasInjury = isHealthUnavailable(_h) || isHealthRisky(_h);
+    if (isHealthUnavailable(_h) || isHealthRisky(_h)) return false;
     const noGame = todayTeams.size > 0 && x.p.team
       ? !todayTeams.has(String(x.p.team).toUpperCase())
       : false;
     const minutesSlip = num(x.p.delta_mpg) <= -3;
-    return hasInjury || noGame || minutesSlip;
+    return noGame || minutesSlip;
   });
-  if (risky.length) {
+  if (formRisky.length) {
     insights.push({
       type: "RISK",
-      title: "Risk Radar",
+      title: "Form Risk",
       headline:
-        risky.length === 1
-          ? `${risky[0].p.name} is a lineup risk tonight.`
-          : `${risky.length} starters carry risk tonight.`,
-      bullets: risky.slice(0, 3).map((x) => {
-        const _h = normalizePlayerHealth(x.p);
-        if (isHealthUnavailable(_h) || isHealthRisky(_h))
-          return `${x.p.name}: ${getHealthLabel(_h)}.`;
+        formRisky.length === 1
+          ? `${formRisky[0].p.name} carries lineup risk tonight.`
+          : `${formRisky.length} starters carry form/availability risk.`,
+      bullets: formRisky.slice(0, 3).map((x) => {
         if (todayTeams.size && x.p.team && !todayTeams.has(String(x.p.team).toUpperCase()))
           return `${x.p.name}: no game tonight.`;
         return `${x.p.name}: minutes sliding (${num(x.p.delta_mpg).toFixed(1)} MPG).`;
       }),
-      playerIds: risky.map((x) => x.p.id),
+      playerIds: formRisky.map((x) => x.p.id),
       confidence: 0.7,
       action: "BENCH",
-      riskLevel: risky.length >= 2 ? "HIGH" : "MEDIUM",
+      riskLevel: formRisky.length >= 2 ? "HIGH" : "MEDIUM",
     });
   }
 
