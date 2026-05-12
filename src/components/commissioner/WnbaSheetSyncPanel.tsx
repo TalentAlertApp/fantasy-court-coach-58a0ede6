@@ -31,6 +31,11 @@ export default function WnbaSheetSyncPanel() {
     try {
       const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
         body: { mode: "inspect" },
+        headers: {
+          "x-admin-secret": (typeof window !== "undefined"
+            ? localStorage.getItem("nba_admin_secret")
+            : "") ?? "",
+        },
       });
       if (error) throw error;
       if (!data?.ok) throw new Error(data?.error?.message ?? "Unknown error");
