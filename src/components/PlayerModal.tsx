@@ -631,6 +631,18 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         />
       )}
 
+      {/* Health details modal */}
+      {data && (
+        <HealthDetailsModal
+          open={healthOpen}
+          onOpenChange={setHealthOpen}
+          playerName={data.player.core.name}
+          team={data.player.core.team}
+          playerPhoto={data.player.core.photo}
+          health={playerHealth}
+        />
+      )}
+
       {/* Compare modal */}
       {data && compareOpen && (
         <PlayerCompareModal
