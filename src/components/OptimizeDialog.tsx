@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { OptimizerResult } from "@/lib/optimizer";
 import { useLeague } from "@/contexts/LeagueContext";
+import { HealthStatusIcon } from "@/components/health";
 
 interface OptimizeDialogProps {
   open: boolean;
@@ -37,15 +38,30 @@ export default function OptimizeDialog({ open, onOpenChange, result, onApply, ap
                 <div className="space-y-2">
                   {result.swaps.map((s, i) => (
                     <div key={i} className="flex items-center justify-between bg-muted rounded-lg p-3 border">
-                      <div className="text-sm font-body">
-                        <span className="text-destructive font-semibold">↓ {s.starterPlayer.name}</span>
-                        <span className="mx-2 text-muted-foreground">→</span>
-                        <span className="text-green-600 font-semibold">↑ {s.benchPlayer.name}</span>
+                      <div className="text-sm font-body flex items-center gap-1.5 flex-wrap">
+                        <span className="text-destructive font-semibold inline-flex items-center gap-1">
+                          ↓ {s.starterPlayer.name}
+                          <HealthStatusIcon health={s.starterPlayer.health ?? null} size="xs" />
+                        </span>
+                        <span className="mx-1 text-muted-foreground">→</span>
+                        <span className="text-green-600 font-semibold inline-flex items-center gap-1">
+                          ↑ {s.benchPlayer.name}
+                          <HealthStatusIcon health={s.benchPlayer.health ?? null} size="xs" />
+                        </span>
                       </div>
                       <span className="text-sm font-mono text-green-600 font-bold">+{s.deltaFp5.toFixed(1)} FP5</span>
                     </div>
                   ))}
                 </div>
+                {result.explanations && result.explanations.length > 0 && (
+                  <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2 space-y-1">
+                    {result.explanations.map((line, i) => (
+                      <div key={i} className="text-[11px] text-amber-200/90 font-body">
+                        • {line}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="text-center">
                   <p className="text-xs text-muted-foreground font-heading uppercase">Total Improvement</p>
                   <p className="text-2xl font-heading font-bold text-green-600">+{result.totalDeltaFp5.toFixed(1)} FP5</p>

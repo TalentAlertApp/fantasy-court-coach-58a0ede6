@@ -2,7 +2,21 @@
  * Deterministic lineup optimizer.
  * Greedy swap: for each bench/starter pair, check if swapping increases total FP5
  * while maintaining salary cap and FC/BC constraints.
+ *
+ * Health-aware: a player's effective FP5 used for ranking is
+ *   adjustedFp5 = fp5 + getOptimizerHealthPenalty(health)
+ * so OUT players are pushed to the bench (-999), Q/GTD get a moderate penalty,
+ * DTD a small one, PROB none. This preserves all original constraints
+ * (salary cap, FC/BC minimums) — only the comparison metric changes.
  */
+
+import {
+  type PlayerHealth,
+  getOptimizerHealthPenalty,
+  isHealthUnavailable,
+  isHealthRisky,
+  getHealthLabel,
+} from "@/lib/health";
 
 export interface OptimizerPlayer {
   id: number;
@@ -11,12 +25,18 @@ export interface OptimizerPlayer {
   fc_bc: "FC" | "BC";
   salary: number;
   fp5: number;
+  /** Normalized health record. When omitted, treated as fully clear. */
+  health?: PlayerHealth | null;
+  /** Legacy upstream injury string — kept for backwards compatibility. */
+  injury?: string | null;
 }
 
 export interface OptimizerSwap {
   benchPlayer: OptimizerPlayer;
   starterPlayer: OptimizerPlayer;
   deltaFp5: number;
+  /** Human-readable reason populated when health influenced the swap. */
+  reason?: string | null;
 }
 
 export interface OptimizerResult {
@@ -24,6 +44,8 @@ export interface OptimizerResult {
   totalDeltaFp5: number;
   newStarters: number[];
   newBench: number[];
+  /** Compact narrative lines explaining health-driven decisions. */
+  explanations: string[];
 }
 
 function countPositions(players: OptimizerPlayer[]) {
@@ -35,6 +57,20 @@ function countPositions(players: OptimizerPlayer[]) {
   return { fc, bc };
 }
 
+function adjFp(p: OptimizerPlayer): number {
+  return p.fp5 + getOptimizerHealthPenalty(p.health ?? null);
+}
+
+function healthReason(starter: OptimizerPlayer, bench: OptimizerPlayer): string | null {
+  if (isHealthUnavailable(starter.health)) {
+    return `Moved to bench: ${starter.name} — ${getHealthLabel(starter.health)}`;
+  }
+  if (isHealthRisky(starter.health) && !isHealthRisky(bench.health) && !isHealthUnavailable(bench.health)) {
+    return `Risk penalty applied: ${starter.name} — ${getHealthLabel(starter.health)}`;
+  }
+  return null;
+}
+
 export function optimizeLineup(
   starters: OptimizerPlayer[],
   bench: OptimizerPlayer[],
@@ -43,6 +79,7 @@ export function optimizeLineup(
   const currentStarters = [...starters];
   const currentBench = [...bench];
   const swaps: OptimizerSwap[] = [];
+  const explanations: string[] = [];
   let improved = true;
 
   while (improved) {
@@ -53,7 +90,7 @@ export function optimizeLineup(
       for (let bi = 0; bi < currentBench.length; bi++) {
         const starter = currentStarters[si];
         const benchP = currentBench[bi];
-        const delta = benchP.fp5 - starter.fp5;
+        const delta = adjFp(benchP) - adjFp(starter);
         if (delta <= 0) continue;
 
         // Check constraints after swap
@@ -72,11 +109,14 @@ export function optimizeLineup(
     if (bestSwap) {
       const starterOut = currentStarters[bestSwap.si];
       const benchIn = currentBench[bestSwap.bi];
+      const reason = healthReason(starterOut, benchIn);
       swaps.push({
         benchPlayer: benchIn,
         starterPlayer: starterOut,
         deltaFp5: bestSwap.delta,
+        reason,
       });
+      if (reason) explanations.push(reason);
       currentStarters[bestSwap.si] = benchIn;
       currentBench[bestSwap.bi] = starterOut;
       improved = true;
@@ -88,5 +128,6 @@ export function optimizeLineup(
     totalDeltaFp5: swaps.reduce((sum, s) => sum + s.deltaFp5, 0),
     newStarters: currentStarters.map(p => p.id),
     newBench: currentBench.map(p => p.id),
+    explanations,
   };
 }
