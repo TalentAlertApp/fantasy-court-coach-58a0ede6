@@ -67,7 +67,7 @@ export default function GameBoxScoreTable({
     ? SORT_COLUMNS.filter((c) => c.key !== "salary" && c.key !== "value")
     : SORT_COLUMNS;
   const gridCols = compact
-    ? "grid-cols-[minmax(0,1fr)_repeat(7,28px)]"
+    ? "grid-cols-[minmax(0,1fr)_repeat(7,24px)]"
     : "grid-cols-[minmax(0,1fr)_repeat(9,36px)]";
   const numCellCls = compact ? "text-[11px]" : "text-[13px]";
 
@@ -162,7 +162,7 @@ export default function GameBoxScoreTable({
           </button>
         ))}
       </div>
-      <div className={`relative z-[1] ${fillHeight ? "flex-1 min-h-0 flex flex-col overflow-hidden" : `${maxBodyHeightClass} overflow-y-auto`}`}>
+      <div className={`relative z-[1] ${fillHeight ? "flex-1 min-h-0 overflow-y-auto" : `${maxBodyHeightClass} overflow-y-auto`}`}>
         {sorted.map((p) => {
           const isFc = p.fc_bc === "FC";
           const teamLogo = logoFor(p.team);
@@ -170,7 +170,7 @@ export default function GameBoxScoreTable({
             <div
               key={p.player_id}
               onClick={() => setOpenPlayerId(p.player_id)}
-              className={`grid ${gridCols} gap-0 ${compact ? "px-1.5" : "px-2 py-1"} ${!compact ? "" : (fillHeight ? "" : "py-0.5")} ${numCellCls} items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors even:bg-muted/10 ${fillHeight ? "flex-1 min-h-0" : ""}`}
+              className={`grid ${gridCols} gap-0 ${compact ? "px-1.5 py-1" : "px-2 py-1"} ${numCellCls} items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors even:bg-muted/10`}
             >
               <div className="flex items-center gap-2 pr-2 min-w-0">
                 <Avatar className={`${compact ? "h-5 w-5" : "h-6 w-6"} shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
