@@ -330,6 +330,11 @@ export function useCourtShowData(gw: number, day: number) {
       .slice(0, 3)
       .map((v) => ({ ...v, label: valueLabel(v) }));
 
+    // Health Watch — placed BEFORE Best Value Plays on played days.
+    if (healthWatchSlide && healthWatchMode === "played") {
+      slides.push(healthWatchSlide);
+    }
+
     if (valueRanked.length) {
       slides.push({
         kind: "value",
