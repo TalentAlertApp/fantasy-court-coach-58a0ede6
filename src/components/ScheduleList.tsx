@@ -1153,6 +1153,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         const isExpanded = expandedId === g.game_id;
         const hasYoutubeRecap = !!g.youtube_recap_id;
         const venue = getVenue(g.home_team);
+        const gh = computeGameHealth(g.away_team, g.home_team);
+        const showInjuryBtn =
+          isScheduled || gh.rosterOut.length > 0 || gh.rosterRisk.length > 0;
 
         return (
           <Collapsible
