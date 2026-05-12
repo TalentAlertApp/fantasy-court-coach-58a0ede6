@@ -139,16 +139,10 @@ function buildInjuryLabel(rec: InjuryRecord): string {
   return status;
 }
 
-let lastPersistAt = 0;
-const PERSIST_THROTTLE_MS = 25 * 60 * 1000;
-
 async function persistInjuriesToPlayers(
   injuries: InjuryRecord[],
 ): Promise<{ matched: number; cleared: number; skipped?: boolean } | null> {
-  const now = Date.now();
-  if (now - lastPersistAt < PERSIST_THROTTLE_MS) {
-    return { matched: 0, cleared: 0, skipped: true };
-  }
+  if (!injuries.length) return { matched: 0, cleared: 0, skipped: true };
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) return null;
@@ -165,15 +159,32 @@ async function persistInjuriesToPlayers(
   if (!players) return null;
 
   const byName = new Map<string, { id: number; injury: string | null }>();
+  const byLastFirstInitial = new Map<string, { id: number; injury: string | null }>();
   for (const p of players as Array<{ id: number; name: string; injury: string | null }>) {
-    if (p.name) byName.set(normalizeName(p.name), { id: p.id, injury: p.injury });
+    if (!p.name) continue;
+    const n = normalizeName(p.name);
+    byName.set(n, { id: p.id, injury: p.injury });
+    const parts = n.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const k = `${parts[0][0]}.${parts[parts.length - 1]}`;
+      if (!byLastFirstInitial.has(k)) byLastFirstInitial.set(k, { id: p.id, injury: p.injury });
+    }
   }
 
   const matchedIds = new Set<number>();
   const updates: Array<{ id: number; label: string }> = [];
+  const unmatched: string[] = [];
   for (const rec of injuries) {
-    const hit = byName.get(normalizeName(rec.player_name));
-    if (!hit) continue;
+    const norm = normalizeName(rec.player_name);
+    let hit = byName.get(norm);
+    if (!hit) {
+      const parts = norm.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        const k = `${parts[0][0]}.${parts[parts.length - 1]}`;
+        hit = byLastFirstInitial.get(k);
+      }
+    }
+    if (!hit) { unmatched.push(rec.player_name); continue; }
     if (matchedIds.has(hit.id)) continue;
     matchedIds.add(hit.id);
     const label = buildInjuryLabel(rec);
@@ -193,7 +204,10 @@ async function persistInjuriesToPlayers(
   if (toClear.length) {
     await sb.from("players").update({ injury: null }).in("id", toClear);
   }
-  lastPersistAt = now;
+  console.log(
+    `[wnba-injury-report] persist: matched=${matchedIds.size} updates=${updates.length} cleared=${toClear.length} unmatched=${unmatched.length}` +
+    (unmatched.length ? ` sample=${unmatched.slice(0, 5).join("|")}` : ""),
+  );
   return { matched: updates.length, cleared: toClear.length };
 }
 

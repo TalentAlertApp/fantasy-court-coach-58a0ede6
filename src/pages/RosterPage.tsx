@@ -570,10 +570,10 @@ export default function RosterPage() {
               onClick={() => setAiCoachOpen(true)}
               aria-label="Open Ballers.IQ"
               title="Open Ballers.IQ"
-              className="group relative inline-flex items-center justify-center w-32 rounded-xl border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 text-xs font-heading uppercase ring-1 ring-amber-400/40 hover:ring-amber-400/80 shadow-[0_4px_18px_-8px_hsl(45_90%_55%/0.55)] transition-all dark:bg-black mr-1"
+              className="biq-header-pill w-32"
             >
-              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-4 w-auto" />
-              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-4 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-6 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-6 w-auto" />
             </button>
 
             <Tooltip>
@@ -582,7 +582,7 @@ export default function RosterPage() {
                   type="button"
                   onClick={() => setWishlistOpen(true)}
                   aria-label="Wishlist"
-                  className="header-icon-btn"
+                  className="header-icon-btn is-wishlist"
                 >
                   <Heart className="header-icon" />
                 </button>
@@ -597,7 +597,7 @@ export default function RosterPage() {
                   onClick={() => setScheduleOpen((v) => !v)}
                   aria-label="Schedule preview"
                   data-active={scheduleOpen ? "true" : undefined}
-                  className="header-icon-btn"
+                  className="header-icon-btn is-schedule"
                 >
                   <CalendarDays className="header-icon" />
                 </button>
@@ -613,7 +613,7 @@ export default function RosterPage() {
                   disabled={!biqAdvisor}
                   aria-label="Ballers.IQ Lineup Advisor"
                   data-active={advisorOpen ? "true" : undefined}
-                  className="header-icon-btn disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="header-icon-btn is-advisor disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="header-icon dark:hidden" />
                   <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="header-icon hidden dark:block" />
@@ -630,7 +630,7 @@ export default function RosterPage() {
                     <button
                       type="button"
                       aria-label="Season chips"
-                      className="header-icon-btn"
+                      className="header-icon-btn is-chips"
                     >
                       <Sparkles className="header-icon" />
                     </button>
@@ -685,7 +685,7 @@ export default function RosterPage() {
                     <button
                       type="button"
                       aria-label="Quick actions"
-                      className="header-icon-btn"
+                      className="header-icon-btn is-quick"
                     >
                       <Zap className="header-icon" />
                     </button>

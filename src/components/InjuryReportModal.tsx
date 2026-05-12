@@ -306,7 +306,10 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
       // Edge function persists matched injuries to players.injury — refresh caches
       // so badges, Ballers.IQ, and roster views pick up the change immediately.
       const persisted = (injuryData as any)?.persisted;
-      if (persisted && (persisted.matched > 0 || persisted.cleared > 0)) {
+      // Always invalidate after a successful refresh — cheap, and guarantees
+      // badges + roster views pick up newly-persisted injuries even if the
+      // edge function deploy lags behind or `persisted` is missing.
+      if (!persisted || persisted.matched > 0 || persisted.cleared > 0) {
         queryClient.invalidateQueries({ queryKey: ["players"] });
         queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       }
