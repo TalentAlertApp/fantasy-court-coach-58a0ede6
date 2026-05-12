@@ -6,7 +6,7 @@ import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer } from "./types";
 import { HealthStatusBadge, HealthStatusIcon } from "@/components/health";
-import { getHealthLabel, isHealthUnavailable } from "@/lib/health";
+import { isHealthUnavailable } from "@/lib/health";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
