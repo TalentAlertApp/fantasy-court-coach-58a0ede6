@@ -586,7 +586,7 @@ function HealthWatchRow({
           </p>
         )}
       </div>
-      <HealthStatusBadge health={p.health} size="xs" />
+      <HealthStatusBadge health={p.health} compact showProbable />
     </motion.div>
   );
 }
