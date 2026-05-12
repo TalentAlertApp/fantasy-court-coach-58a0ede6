@@ -340,7 +340,7 @@ export function useCourtShowData(gw: number, day: number) {
 
     // ── Captain Radar ─────────────────────────────────────────────────
     const captains: CaptainPick[] = (playersData?.items ?? [])
-      .filter((p: any) => teamsOnSlate.has(p.core.team) && !p.core?.injury)
+      .filter((p: any) => teamsOnSlate.has(p.core.team) && !isHealthUnavailable(normalizePlayerHealth(p)))
       .filter((p: any) => (p.last5?.fp5 ?? 0) >= 30 && (p.last5?.mpg5 ?? 0) >= 28)
       .map((p: any) => {
         const fp5 = p.last5?.fp5 ?? 0;
