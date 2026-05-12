@@ -408,6 +408,11 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                   game_playbyplay_url: h.game_playbyplay_url ?? null,
                                   game_recap_url: h.game_recap_url ?? null,
                                   nba_game_url: h.nba_game_url ?? null,
+                                  youtube_recap_id: h.youtube_recap_id ?? null,
+                                  gw: h.gw ?? null,
+                                  day: h.day ?? null,
+                                  tipoff_utc: h.tipoff_utc ?? null,
+                                  status: h.status ?? "FINAL",
                                   played: true,
                                 })}
                               >
