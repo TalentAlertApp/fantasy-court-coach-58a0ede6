@@ -286,7 +286,7 @@ export default function CommissionerPage() {
   const [replaceGames, setReplaceGames] = useState(true);
   const [replaceSchedule, setReplaceSchedule] = useState(true);
   const [isImportingAdv, setIsImportingAdv] = useState(false);
-  const [replaceAdv, setReplaceAdv] = useState(true);
+  const [replaceAdv, setReplaceAdv] = useState(false);
   const [lastAdvResult, setLastAdvResult] = useState<{ updated: number; total: number; nulled_out?: number } | null>(null);
   const [advPreview, setAdvPreview] = useState<Array<Record<string, any>> | null>(null);
   const [advPendingPayload, setAdvPendingPayload] = useState<Array<Record<string, any>> | null>(null);
@@ -769,7 +769,7 @@ export default function CommissionerPage() {
             errors: z.array(z.string()).optional(),
           }),
         }),
-        { method: "POST", body: JSON.stringify({ rows: advPendingPayload, replace: replaceAdv }) },
+        { method: "POST", body: JSON.stringify({ rows: advPendingPayload, replace: replaceAdv, league_code: leagueCode }) },
       );
       if (result.ok) {
         setLastAdvResult({ updated: result.data.updated, total: result.data.total, nulled_out: result.data.nulled_out });
@@ -1088,7 +1088,7 @@ export default function CommissionerPage() {
               <div className="flex items-center gap-2">
                 <Switch id="replace-adv" checked={replaceAdv} onCheckedChange={setReplaceAdv} />
                 <Label htmlFor="replace-adv" className="text-sm">
-                  Full replace <span className="text-muted-foreground">(NULL stats for players not in file)</span>
+                  Full replace <span className="text-muted-foreground">(NULL stats only for selected-league players not in file)</span>
                 </Label>
               </div>
               <input
