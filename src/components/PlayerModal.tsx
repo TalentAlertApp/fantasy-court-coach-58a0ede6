@@ -22,6 +22,8 @@ import BallersIQPlayerVerdict from "@/components/ballers-iq/BallersIQPlayerVerdi
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import BallersIQShareCardModal from "@/components/ballers-iq/share/BallersIQShareCardModal";
 import type { ShareCardContext } from "@/components/ballers-iq/share/formatBallersIQShareText";
+import { HealthStatusIcon, HealthDetailsModal } from "@/components/health";
+import { normalizePlayerHealth, getHealthLabel } from "@/lib/health";
 import { Share2 } from "lucide-react";
 
 function BreakdownCard({ data }: { data: any }) {
@@ -104,6 +106,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [shareCardOpen, setShareCardOpen] = useState(false);
+  const [healthOpen, setHealthOpen] = useState(false);
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
@@ -134,6 +137,14 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
 
   const teamLogo = data ? getTeamLogo(data.player.core.team) : undefined;
   const wishlisted = playerId ? isInWishlist(playerId) : false;
+  const playerHealth = data ? normalizePlayerHealth(data.player) : null;
+  const healthTooltip = !playerHealth?.status
+    ? "Health"
+    : playerHealth.status === "OUT"
+    ? `OUT — ${playerHealth.injury_type ?? playerHealth.reason ?? "unavailable"}`
+    : playerHealth.status === "PROB"
+    ? "Probable — monitor updates"
+    : `Availability risk — ${playerHealth.injury_type ?? playerHealth.reason ?? getHealthLabel(playerHealth)}`;
   const { league } = useLeague();
   const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
@@ -209,6 +220,22 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
+                    {playerHealth?.status && (
+                      <button
+                        onClick={() => setHealthOpen(true)}
+                        className={`h-8 w-8 inline-flex items-center justify-center rounded-full ring-1 ring-inset transition-colors ${
+                          playerHealth.status === "OUT"
+                            ? "bg-red-500/15 hover:bg-red-500/25 ring-red-500/40 text-red-500"
+                            : playerHealth.status === "PROB"
+                            ? "bg-muted hover:bg-muted/80 ring-border text-muted-foreground"
+                            : "bg-amber-500/15 hover:bg-amber-500/25 ring-amber-500/40 text-amber-500"
+                        }`}
+                        title={healthTooltip}
+                        aria-label={healthTooltip}
+                      >
+                        <HealthStatusIcon health={playerHealth} size="sm" />
+                      </button>
+                    )}
                     <button
                       onClick={() => setCompareOpen(true)}
                       className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 ring-1 ring-inset ring-primary/30 text-primary transition-colors"
