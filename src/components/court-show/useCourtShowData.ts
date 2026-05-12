@@ -6,7 +6,8 @@ import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useLeagueId } from "@/hooks/useLeagueId";
-import { DEADLINES } from "@/lib/deadlines";
+import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
+import type { Deadline } from "@/lib/deadlines";
 import type {
   CourtShowData,
   CourtShowSlideItem,
@@ -20,8 +21,8 @@ import type {
   OutstandingGameRow,
 } from "./types";
 
-function buildWeekDayDate(gw: number, day: number): string {
-  const d = DEADLINES.find((x) => x.gw === gw && x.day === day);
+function buildWeekDayDate(deadlines: Deadline[], gw: number, day: number): string {
+  const d = deadlines.find((x) => x.gw === gw && x.day === day);
   if (!d) return "";
   return new Date(d.deadline_utc).toISOString().slice(0, 10);
 }
@@ -56,6 +57,7 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: rosterData } = useRosterQuery();
   const { data: leagueId } = useLeagueId();
+  const { deadlines } = useLeagueDeadlines();
   const queryClient = useQueryClient();
 
   const games = scheduleData?.games ?? [];
