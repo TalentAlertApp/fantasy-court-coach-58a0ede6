@@ -327,6 +327,13 @@ export const PlayerHistoryItemSchema = z
     away_pts: IntSchema,
     home_team: z.string(),
     away_team: z.string(),
+    tipoff_utc: NullableIsoDateTimeSchema.optional(),
+    status: z.string().optional(),
+    game_recap_url: z.string().nullable().optional(),
+    game_boxscore_url: z.string().nullable().optional(),
+    game_charts_url: z.string().nullable().optional(),
+    game_playbyplay_url: z.string().nullable().optional(),
+    youtube_recap_id: z.string().nullable().optional(),
   })
   .strict();
 
