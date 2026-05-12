@@ -251,36 +251,33 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
         )}
         {played && recapOpen && embedSrc && (
           <div
-            className="border-t bg-black relative overflow-hidden grid transition-[grid-template-columns] duration-500 ease-out"
+            className="border-t bg-black relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{
               minHeight: embedHeight,
               gridTemplateColumns: panelsOpen ? "minmax(0,1fr) minmax(0,2fr) minmax(0,1fr)" : "0fr minmax(0,1fr) 0fr",
             }}
           >
             <div
-              className={`relative bg-background overflow-hidden transition-all duration-500 ease-out ${panelsOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
+              className={`relative bg-background overflow-hidden border-r border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${panelsOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
               style={{ height: embedHeight }}
             >
-              <div className="h-full overflow-y-auto">
-                <GameBoxScoreTable game={game} filterTeam={game.away_team} setFilterTeam={() => {}} maxBodyHeightClass="max-h-none" density="compact" />
-              </div>
+              <GameBoxScoreTable game={game} filterTeam={game.away_team} setFilterTeam={() => {}} density="compact" fillHeight />
             </div>
-            <div className="relative z-10" style={{ height: embedHeight }}>
+            <div className="relative z-10 transform-gpu" style={{ height: embedHeight }}>
               <iframe
                 src={embedSrc}
                 title="Game Recap"
-                className="absolute inset-0 w-full h-full"
+                className="absolute inset-0 w-full h-full transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                style={{ opacity: 1 }}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
               />
             </div>
             <div
-              className={`relative bg-background overflow-hidden transition-all duration-500 ease-out ${panelsOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
+              className={`relative bg-background overflow-hidden border-l border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${panelsOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
               style={{ height: embedHeight }}
             >
-              <div className="h-full overflow-y-auto">
-                <GameBoxScoreTable game={game} filterTeam={game.home_team} setFilterTeam={() => {}} maxBodyHeightClass="max-h-none" density="compact" />
-              </div>
+              <GameBoxScoreTable game={game} filterTeam={game.home_team} setFilterTeam={() => {}} density="compact" fillHeight />
             </div>
           </div>
         )}

@@ -253,6 +253,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         game_playbyplay_url: g.game_playbyplay_url,
                         game_recap_url: g.game_recap_url,
                         nba_game_url: g.nba_game_url,
+                        youtube_recap_id: (g as any).youtube_recap_id ?? null,
                         played: true,
                       });
                       return (
@@ -343,6 +344,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         game_playbyplay_url: g.game_playbyplay_url,
                         game_recap_url: g.game_recap_url,
                         nba_game_url: g.nba_game_url,
+                        youtube_recap_id: (g as any).youtube_recap_id ?? null,
                         gw: g.gw, day: g.day,
                         tipoff_utc: g.tipoff_utc,
                         played: false,

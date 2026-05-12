@@ -1,44 +1,47 @@
-## 1) Game Played modal — `src/components/GameDetailModal.tsx`
+# Plan
 
-**a) Move the panel-toggle icon below the score, without changing header height**
-- Remove the `Columns2` button from the action row (BoxScore / Charts / PbP / NBA).
-- Render it inside the center column of the score grid (the `132 - 137` block), absolutely positioned just under the score (`absolute left-1/2 -translate-x-1/2 -bottom-1`) so the header's vertical box stays the same.
-- Keep behavior unchanged: only visible while `recapOpen && embedSrc`; toggles `panelsOpen`; same aria/title; same `Columns2` icon.
+## 1) TeamModal → GameDetailModal: missing `youtube_recap_id`
 
-**b) Fix the right-side (home) table showing the away team badge**
-- Root cause: `GameBoxScoreTable` always renders badges in `[away, home]` order from `game.away_team, game.home_team`, regardless of `filterTeam`. So the right panel (filtered to home) still shows away first.
-- Fix locally in `GameBoxScoreTable` header: when an external `filterTeam` is provided AND it equals one of the two tricodes, render only that team's badge (so the right panel shows the home badge, the left panel shows the away badge). Hover title/aria already use the tricode — no extra work needed there.
-- No change to filter behavior in the standalone (no-recap) usage where `filterTeam` is `null`.
+**Root cause:** `TeamModal.tsx` builds `setSelectedGame({...})` in two places (Last games and Upcoming, lines ~244 and ~334) without forwarding `youtube_recap_id`. The underlying query already does `select("*")` from `schedule_games`, so the field is in `g`. `GameDetailModal` then can't render the embedded YouTube recap and falls back to the external link. `PlayerModal` already passes it correctly — that's why it works there.
 
-**c) Tighter typography + tighter columns in the side tables; widen modal**
-- Add a new optional prop to `GameBoxScoreTable`: `density?: "default" | "compact"` (default `"default"`).
-- In `compact` mode:
-  - Grid template: `grid-cols-[minmax(0,1fr)_repeat(9,28px)]` (was 36px).
-  - Header row: `text-[10px]`, `py-1`, `px-1.5`.
-  - Body rows: `text-[11px]`, `py-0.5`, `px-1.5`, avatar `h-5 w-5`, team logo `h-3.5 w-3.5`, name `text-[11px]`.
-  - Numeric cells `text-[11px]`.
-  - Hide the FC/BC filter chips in compact mode (no room; the filter is unnecessary for a single-team panel).
-- Pass `density="compact"` from `GameDetailModal` to both side `GameBoxScoreTable` instances.
-- Widen the modal when panels are open: change `max-w-6xl` → `max-w-7xl` in the `DialogContent` className condition.
+**Fix:** add `youtube_recap_id: g.youtube_recap_id ?? null` to both `openDetail` payloads in `src/components/TeamModal.tsx`. No other changes.
 
-**Out of scope**
-- The standalone (no-recap) boxscore styling stays untouched.
-- No changes to data hooks, salary calculations, or filter logic on the standalone view.
+## 2) Game Played modal — compact side tables + smoother video transition
 
-## 2) WNBA sheet sync — never read or persist salary
+File: `src/components/game/GameBoxScoreTable.tsx` (compact density only) and `src/components/GameDetailModal.tsx` (transition + height plumbing).
 
-File: `supabase/functions/wnba-sheet-sync/index.ts`, `syncPlayers` mode.
+### a) Compact table redesign (only when `density="compact"`)
 
-Current behavior already skips the `$` column from the sheet and writes back the existing DB salary. Harden it further so no salary value can ever be sourced from the sheet:
+- **Columns shown:** Player · FP · MP · PS · A · R · B · S. Hide `$` and `V` columns entirely (they remain in default density).
+- **Grid:** `grid-cols-[minmax(0,1fr)_repeat(7,28px)]` instead of `repeat(9,...)`. Update the `SORT_COLUMNS` rendering to filter out `salary` and `value` when `compact`.
+- **Player row:**
+  - Keep avatar + name (name already there — confirmed line 174).
+  - Remove the per-row `teamLogo` `<img>` (lines 175–177) when `compact`.
+  - Keep the team-badge filter chip in the header (single badge, already correct via `visibleTriBadges`).
+- **Fill full vertical height (no inner scroll):**
+  - Add a new prop `fillHeight?: boolean` to `GameBoxScoreTable`. When true: outer wrapper becomes `flex flex-col h-full`; body becomes `flex-1 min-h-0 overflow-hidden` and rows get `flex-1` with `min-h-0` so they distribute equally to fill the available height. Avatar size scales with row but stays bounded (`h-5 w-5`). Drop `maxBodyHeightClass` when `fillHeight`.
+  - In `GameDetailModal`, pass `fillHeight` to both side tables and remove the inner `overflow-y-auto` wrapper around them.
+- **Premium polish:** zebra rows via `even:bg-muted/10`, slightly bolder FP column, subtle right-border on the left panel / left-border on the right panel to frame the video.
 
-- Remove the `existingSalary` Map and the existing-salary `select`.
-- Remove `salary` from the upsert payload entirely (omit the key). Supabase upsert without the column leaves existing rows' `salary` untouched; new rows fall back to the DB column default (`0`), which is then managed by the existing in-app salary recalculation flow.
-- Keep the explicit comment in the header parsing block stating column G (`$`) is intentionally ignored, and add an assertion comment that no code path reads `row[6]`.
-- No changes to schedule / game-data / advanced-stats modes (they don't touch salary today).
+### b) Softer video transition
+
+Current behavior: grid `transition-[grid-template-columns] duration-500` snaps the iframe width abruptly (the iframe content rescales hard). Make it feel softer:
+
+- Bump duration to `duration-700` and switch easing to `ease-[cubic-bezier(0.22,1,0.36,1)]` (a gentle "out-expo"-ish curve) on the grid container.
+- Add `transition-opacity duration-300` on the iframe wrapper and dip opacity to `0.85` for the first half of the slide (via a small CSS class toggled by `panelsOpen` state transition) to mask the rescale jolt; restore to 1.
+- Wrap the iframe in a div with `transform-gpu` so the browser composites the resize cleanly.
+- Side-panel inner content keeps its current slide+fade but extended to `duration-700` to match.
+
+### Out of scope
+- Default-density boxscore styling.
+- Mobile-specific layout (modal already widens at desktop only).
+- Any data, salary, or scoring logic.
 
 ## Verification
+- Open a played WNBA game from a team modal → header shows green "Watch Recap" with embedded video on click; toggle icon appears below score.
+- Toggle panels: side tables fill the video's full height with no inner scroll, show only Player/FP/MP/PS/A/R/B/S, no per-row team badges.
+- Video resize feels smooth (no snap), and panels glide in/out in sync.
 
-- Open a played game → header height matches before; toggle icon now sits under the score.
-- Click toggle → side tables slide out; right panel shows the home badge, left panel shows the away badge; hover tooltip on each badge reads "Filter by {TRI}" with the correct tricode.
-- Side-table content (names, numbers, columns) fits without horizontal scroll at viewport ≥ 1280px.
-- In Commissioner → WNBA Sync → Sync Player Database: existing players' salaries remain unchanged after sync; newly inserted players appear with `salary = 0` until the salary-recalc flow runs.
+## Technical notes
+- `GameBoxScoreTable` props add: `fillHeight?: boolean`. When `density="compact"`, also auto-skip `salary`/`value` SORT_COLUMNS via `SORT_COLUMNS.filter(c => !compact || (c.key !== "salary" && c.key !== "value"))`.
+- `GameDetailModal` passes `fillHeight` and removes the wrapping `<div className="h-full overflow-y-auto">` around side `GameBoxScoreTable`s; sets `style={{ height: embedHeight }}` directly on the table's outer div via parent.
