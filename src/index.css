@@ -390,17 +390,19 @@
   .biq-header-pill:hover img { transform: scale(1.06); }
 
   /* Sidebar collapsed: more breathing room between nav icons */
-  .sidebar.collapsed nav { gap: 0.45rem; }
+  .sidebar.collapsed nav { gap: 0.6rem; align-items: center; }
   .sidebar.collapsed .nav-item {
     width: 40px;
     height: 40px;
     padding: 0;
-    margin: 0 auto;
+    margin: 0;
     border-radius: 10px;
   }
   .sidebar.collapsed .nav-item .nav-item-icon { @apply h-[18px] w-[18px]; }
   /* Brand + footer share the same centered axis as nav icons. */
-  .sidebar.collapsed .theme-toggle { width: 40px; height: 40px; margin: 0 auto; border-radius: 10px; }
+  .sidebar.collapsed .theme-toggle { width: 40px; height: 40px; margin: 0; border-radius: 10px; padding: 0; }
+  /* Disable hover translate so the column stays optically centered. */
+  .sidebar.collapsed .nav-item:hover { transform: none; }
 }
 
 @keyframes fade-in {
