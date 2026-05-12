@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { useNBAStandings } from "@/hooks/useNBAStandings";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import type { StandingRow } from "@/types/standings";
 
 interface SchedRow {
@@ -48,7 +49,7 @@ const DIV_ABBR: Record<string, string> = {
   Southwest: "SW",
 };
 
-async function fetchAllScheduleGames(): Promise<SchedRow[]> {
+async function fetchAllScheduleGames(leagueId: string): Promise<SchedRow[]> {
   // Paginate to bypass the 1k row default cap.
   const all: SchedRow[] = [];
   const PAGE = 1000;
@@ -58,6 +59,7 @@ async function fetchAllScheduleGames(): Promise<SchedRow[]> {
     const { data, error } = await supabase
       .from("schedule_games")
       .select("home_team,away_team,home_pts,away_pts,status,tipoff_utc,game_id,game_boxscore_url,game_charts_url,game_playbyplay_url,game_recap_url,nba_game_url")
+      .eq("league_id", leagueId)
       .order("tipoff_utc", { ascending: true })
       .range(from, from + PAGE - 1);
     if (error) throw error;
@@ -70,9 +72,11 @@ async function fetchAllScheduleGames(): Promise<SchedRow[]> {
 }
 
 export function useStandingsContext() {
+  const { data: leagueId } = useLeagueId();
   const { data: games = [], isLoading } = useQuery({
-    queryKey: ["standings-context-schedule"],
-    queryFn: fetchAllScheduleGames,
+    queryKey: ["standings-context-schedule", leagueId],
+    enabled: !!leagueId,
+    queryFn: () => fetchAllScheduleGames(leagueId!),
     staleTime: 5 * 60_000,
   });
 
