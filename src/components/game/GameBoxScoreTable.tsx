@@ -36,6 +36,8 @@ interface Props {
   setFilterTeam?: (t: string | null) => void;
   /** Override the scroll body height. Defaults to 50vh. */
   maxBodyHeightClass?: string;
+  /** Visual density. `compact` shrinks columns and typography for side-by-side use. */
+  density?: "default" | "compact";
 }
 
 export default function GameBoxScoreTable({
@@ -43,6 +45,7 @@ export default function GameBoxScoreTable({
   filterTeam: externalFilterTeam,
   setFilterTeam: externalSetFilterTeam,
   maxBodyHeightClass = "max-h-[50vh]",
+  density = "default",
 }: Props) {
   const { data, isLoading } = useGameBoxscoreQuery(game.game_id);
   const [sortKey, setSortKey] = useState<SortKey>("fp");
@@ -52,6 +55,15 @@ export default function GameBoxScoreTable({
   const [internalFilterTeam, setInternalFilterTeam] = useState<string | null>(null);
   const filterTeam = externalFilterTeam !== undefined ? externalFilterTeam : internalFilterTeam;
   const setFilterTeam = externalSetFilterTeam ?? setInternalFilterTeam;
+  const compact = density === "compact";
+  const externallyFiltered = externalFilterTeam !== undefined && externalFilterTeam !== null;
+  const visibleTriBadges = externallyFiltered
+    ? [externalFilterTeam as string]
+    : [game.away_team, game.home_team];
+  const gridCols = compact
+    ? "grid-cols-[minmax(0,1fr)_repeat(9,28px)]"
+    : "grid-cols-[minmax(0,1fr)_repeat(9,36px)]";
+  const numCellCls = compact ? "text-[11px]" : "text-[13px]";
 
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
@@ -97,9 +109,9 @@ export default function GameBoxScoreTable({
         aria-hidden
         className="pointer-events-none absolute inset-0 m-auto h-48 w-48 opacity-[0.05] select-none"
       />
-      <div className="relative z-[1] grid grid-cols-[minmax(0,1fr)_repeat(9,36px)] gap-0 px-2 py-1.5 text-xs font-heading uppercase text-muted-foreground border-b bg-muted/40">
-        <div className="pr-2 flex items-center gap-2 flex-wrap h-7">
-          {[game.away_team, game.home_team].map((tri) => {
+      <div className={`relative z-[1] grid ${gridCols} gap-0 ${compact ? "px-1.5 py-1 text-[10px]" : "px-2 py-1.5 text-xs"} font-heading uppercase text-muted-foreground border-b bg-muted/40`}>
+        <div className={`pr-2 flex items-center ${compact ? "gap-1.5" : "gap-2"} flex-wrap h-7`}>
+          {visibleTriBadges.map((tri) => {
             const tlogo = logoFor(tri);
             if (!tlogo) return null;
             const active = filterTeam === tri;
@@ -112,12 +124,12 @@ export default function GameBoxScoreTable({
                 title={`Filter by ${tri}`}
                 className={`shrink-0 transition-all ${active ? "opacity-100 scale-110 drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]" : "opacity-50 hover:opacity-100 hover:scale-105"}`}
               >
-                <img src={tlogo} alt="" className="h-6 w-6 object-contain" />
+                <img src={tlogo} alt="" className={`${compact ? "h-5 w-5" : "h-6 w-6"} object-contain`} />
               </button>
             );
           })}
           <span>Player</span>
-          <button
+          {!compact && (<><button
             onClick={() => setFilterFcBc(filterFcBc === "FC" ? null : "FC")}
             className={`inline-flex items-center gap-1 h-6 px-2 rounded-lg border text-[10px] font-bold transition-colors ${filterFcBc === "FC" ? "bg-destructive text-destructive-foreground border-destructive" : "border-border hover:bg-muted"}`}
           >
@@ -130,13 +142,13 @@ export default function GameBoxScoreTable({
           >
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
             BC
-          </button>
+          </button></>)}
         </div>
         {SORT_COLUMNS.map(({ key, label, highlight }) => (
           <button
             key={key}
             onClick={() => handleSort(key)}
-            className={`text-right hover:text-foreground transition-colors cursor-pointer text-xs ${
+            className={`text-right hover:text-foreground transition-colors cursor-pointer ${compact ? "text-[10px]" : "text-xs"} ${
               sortKey === key ? "font-bold text-foreground" : ""
             } ${highlight ? "text-red-500 font-bold" : ""}`}
           >
@@ -152,27 +164,27 @@ export default function GameBoxScoreTable({
             <div
               key={p.player_id}
               onClick={() => setOpenPlayerId(p.player_id)}
-              className="grid grid-cols-[minmax(0,1fr)_repeat(9,36px)] gap-0 px-2 py-1 text-[13px] items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors"
+              className={`grid ${gridCols} gap-0 ${compact ? "px-1.5 py-0.5" : "px-2 py-1"} ${numCellCls} items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors`}
             >
               <div className="flex items-center gap-2 pr-2 min-w-0">
-                <Avatar className={`h-6 w-6 shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
+                <Avatar className={`${compact ? "h-5 w-5" : "h-6 w-6"} shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
                   {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
                   <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
-                <span className="text-[13px] font-semibold truncate">{p.name}</span>
+                <span className={`${numCellCls} font-semibold truncate`}>{p.name}</span>
                 {teamLogo && (
-                  <img src={teamLogo} alt={p.team} className="h-4 w-4 shrink-0 object-contain" />
+                  <img src={teamLogo} alt={p.team} className={`${compact ? "h-3.5 w-3.5" : "h-4 w-4"} shrink-0 object-contain`} />
                 )}
               </div>
-              <span className="text-right font-mono text-[13px] font-bold">{p.fp}</span>
-              <span className="text-right font-mono text-[13px] text-red-500">{(p as any).salary ?? 0}</span>
-              <span className="text-right font-mono text-[13px] text-red-500">{p.value.toFixed(1)}</span>
-              <span className="text-right font-mono text-[13px] text-muted-foreground">{p.mp}</span>
-              <span className="text-right font-mono text-[13px]">{p.ps}</span>
-              <span className="text-right font-mono text-[13px]">{p.ast}</span>
-              <span className="text-right font-mono text-[13px]">{p.reb}</span>
-              <span className="text-right font-mono text-[13px]">{p.blk}</span>
-              <span className="text-right font-mono text-[13px]">{p.stl}</span>
+              <span className={`text-right font-mono ${numCellCls} font-bold`}>{p.fp}</span>
+              <span className={`text-right font-mono ${numCellCls} text-red-500`}>{(p as any).salary ?? 0}</span>
+              <span className={`text-right font-mono ${numCellCls} text-red-500`}>{p.value.toFixed(1)}</span>
+              <span className={`text-right font-mono ${numCellCls} text-muted-foreground`}>{p.mp}</span>
+              <span className={`text-right font-mono ${numCellCls}`}>{p.ps}</span>
+              <span className={`text-right font-mono ${numCellCls}`}>{p.ast}</span>
+              <span className={`text-right font-mono ${numCellCls}`}>{p.reb}</span>
+              <span className={`text-right font-mono ${numCellCls}`}>{p.blk}</span>
+              <span className={`text-right font-mono ${numCellCls}`}>{p.stl}</span>
             </div>
           );
         })}
