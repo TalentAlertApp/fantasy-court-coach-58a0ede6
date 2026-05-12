@@ -956,6 +956,7 @@ export default function RosterPage() {
             playersById={new Map(allPlayers.map((p) => [p.core.id, {
               id: p.core.id, name: p.core.name, team: p.core.team,
               photo: p.core.photo, fc_bc: p.core.fc_bc, salary: p.core.salary,
+              health: normalizePlayerHealth(p),
             }]))}
             onConfirm={confirmAutoPick}
             isApplying={autoPickApplying}
