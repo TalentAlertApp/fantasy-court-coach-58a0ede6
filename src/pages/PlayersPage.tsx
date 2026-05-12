@@ -35,6 +35,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
 import { useLeague } from "@/contexts/LeagueContext";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
+import type { HealthFilter } from "@/components/FiltersPanel";
+import { HealthStatusIcon } from "@/components/health";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -77,6 +79,7 @@ export default function PlayersPage() {
   const [committing, setCommitting] = useState(false);
   const [rosterSheetOpen, setRosterSheetOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("ALL");
 
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
@@ -124,6 +127,7 @@ export default function PlayersPage() {
             salary: 0,
             fc_bc: "FC",
             photo: null as string | null,
+            health: null,
           };
         }
         return {
@@ -133,6 +137,7 @@ export default function PlayersPage() {
         salary: p.core.salary,
         fc_bc: p.core.fc_bc,
         photo: p.core.photo ?? null,
+        health: normalizePlayerHealth(p),
         };
       });
   }, [rosterIdList, playerById, allPlayersFull.length]);
@@ -155,6 +160,7 @@ export default function PlayersPage() {
       salary: p.core.salary,
       fc_bc: p.core.fc_bc,
       photo: p.core.photo ?? null,
+      health: normalizePlayerHealth(p),
     };
   };
   const rosterStarters = useMemo(
@@ -244,13 +250,14 @@ export default function PlayersPage() {
           fc_bc: p!.fc_bc as "FC" | "BC",
           salary: p!.salary,
           photo: p!.photo,
+          health: p!.health ?? null,
         })),
     [outZone, rosterPlayers],
   );
   const inChips = useMemo(
     () =>
       inZone
-        .map((id) => allPlayers.find((p) => p.core.id === id))
+        .map((id) => playerById.get(id))
         .filter(Boolean)
         .map((p) => ({
           id: p!.core.id,
@@ -259,8 +266,9 @@ export default function PlayersPage() {
           fc_bc: p!.core.fc_bc as "FC" | "BC",
           salary: p!.core.salary,
           photo: p!.core.photo ?? null,
+          health: normalizePlayerHealth(p),
         })),
-    [inZone, allPlayers],
+    [inZone, playerById],
   );
 
   const outPlayersFull = useMemo(
@@ -399,6 +407,20 @@ export default function PlayersPage() {
     }
     items = items.filter((p) => p.core.salary <= maxSalary);
     if (team !== "ALL") items = items.filter((p) => p.core.team === team);
+    if (healthFilter !== "ALL") {
+      items = items.filter((p) => {
+        const h = normalizePlayerHealth(p);
+        const s = h.status;
+        switch (healthFilter) {
+          case "AVAILABLE": return s === null || s === "PROB";
+          case "RISK":      return s !== null;
+          case "OUT":       return s === "OUT";
+          case "QDG":       return s === "Q" || s === "DTD" || s === "GTD";
+          case "PROB":      return s === "PROB";
+          default:          return true;
+        }
+      });
+    }
     items.sort((a, b) => {
       const getVal = (p: PlayerListItem): number => {
         const gp = p.season.gp || 1;
@@ -413,12 +435,13 @@ export default function PlayersPage() {
       return sortDir === "desc" ? getVal(b) - getVal(a) : getVal(a) - getVal(b);
     });
     return items;
-  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league]);
+  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league, healthFilter]);
 
   // When the league changes, drop a stale team filter (e.g. "ATL" carried
   // from NBA into WNBA where "ATL" exists but pointing back into NBA-only
   // codepaths is confusing). Just reset to ALL on league change.
   useEffect(() => { setTeam("ALL"); }, [league]);
+  useEffect(() => { setCurrentPage(1); }, [healthFilter]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
@@ -474,6 +497,15 @@ export default function PlayersPage() {
     if (inZone.includes(playerId)) {
       setInZone((prev) => prev.filter((x) => x !== playerId));
       return;
+    }
+    const target = playerById.get(playerId);
+    if (target) {
+      const h = normalizePlayerHealth(target);
+      if (isHealthUnavailable(h)) {
+        toast.warning(`${target.core.name} is currently unavailable (${getHealthLabel(h)}).`);
+      } else if (isHealthRisky(h)) {
+        toast.message(`${target.core.name}: availability risk — ${getHealthLabel(h)}.`);
+      }
     }
     if (addMode && outZone.length === 0) {
       // Direct ADD path — stage and let user click Report/Confirm via workbench.
@@ -760,9 +792,22 @@ export default function PlayersPage() {
                       eligibilityCtx,
                     );
                     const canAdd = elig.ok || isInInZone;
+                    const _rowHealth = normalizePlayerHealth(p);
+                    const _rowOut = isHealthUnavailable(_rowHealth);
+                    const _rowRisk = isHealthRisky(_rowHealth);
 
                     return (
-                      <TableRow key={p.core.id} className="cursor-pointer hover:bg-accent/30 group" onClick={() => setSelectedPlayerId(p.core.id)}>
+                      <TableRow
+                        key={p.core.id}
+                        className={`cursor-pointer hover:bg-accent/30 group ${
+                          _rowOut
+                            ? "bg-red-500/5 hover:bg-red-500/10"
+                            : _rowRisk
+                              ? "bg-amber-500/5 hover:bg-amber-500/10"
+                              : ""
+                        }`}
+                        onClick={() => setSelectedPlayerId(p.core.id)}
+                      >
                         <td className="px-1 py-1">
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -803,6 +848,14 @@ export default function PlayersPage() {
                             </Avatar>
                             <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
+                            {_rowHealth.status && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-flex"><HealthStatusIcon health={_rowHealth} size="xs" /></span>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-[10px]">{getHealthTooltipText(_rowHealth)}</TooltipContent>
+                              </Tooltip>
+                            )}
                             {(() => {
                               const v5 = Number((p as any).last5?.value5 ?? 0);
                               const sal = Number(p.core.salary ?? 0);
@@ -915,6 +968,8 @@ export default function PlayersPage() {
                 onTeamChange={setTeam}
                 perfMode={perfMode}
                 onPerfModeChange={setPerfMode}
+                health={healthFilter}
+                onHealthChange={setHealthFilter}
               />
             </div>
           )}

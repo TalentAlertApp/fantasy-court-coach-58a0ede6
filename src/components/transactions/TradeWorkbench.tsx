@@ -3,6 +3,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, AlertTriangle, CheckCircle2, FileText, Check, RotateCcw } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { TradeValidationResult } from "@/hooks/useTradeValidation";
+import { HealthStatusIcon } from "@/components/health";
+import type { PlayerHealth } from "@/lib/health";
+import { isHealthUnavailable } from "@/lib/health";
 
 export interface TradeChipPlayer {
   id: number;
@@ -11,6 +14,7 @@ export interface TradeChipPlayer {
   fc_bc: "FC" | "BC";
   salary: number;
   photo: string | null;
+  health?: PlayerHealth | null;
 }
 
 interface TradeWorkbenchProps {
@@ -46,13 +50,17 @@ function PlayerChip({
 }) {
   const isOut = variant === "out";
   const logo = getTeamLogo(p.team);
+  const playerOut = isHealthUnavailable(p.health);
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-lg pl-1 pr-2 h-9 text-[11px] font-heading uppercase border-2 ${
         isOut
           ? "bg-destructive/10 border-destructive/40 text-destructive"
+          : playerOut
+            ? "bg-emerald-500/10 border-red-500/50 text-red-500"
           : "bg-emerald-500/10 border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
       }`}
+      title={playerOut ? `${p.name} is currently unavailable` : undefined}
     >
       <span className="text-[9px] opacity-70 mr-0.5">{isOut ? "OUT" : "IN"}</span>
       <Avatar className="h-7 w-7 shrink-0">
@@ -61,6 +69,7 @@ function PlayerChip({
       </Avatar>
       {logo && <img src={logo} alt="" className="h-4 w-4" />}
       <span className="font-bold tracking-tight max-w-[110px] truncate">{p.name}</span>
+      <HealthStatusIcon health={p.health ?? null} size="xs" />
       <span className="font-mono opacity-70">${p.salary}M</span>
       <button
         type="button"
