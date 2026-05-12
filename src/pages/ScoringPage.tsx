@@ -520,6 +520,17 @@ function YourTeamView({
   const currentGw = weeks.length > 0 ? weeks[weeks.length - 1].gw : 1;
   const txnDates = new Set(transactions.map((t: any) => t.created_at?.substring(0, 10)));
 
+  // Health lookup for subtle DNP / availability context (no scoring change).
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const healthByPlayerId = useMemo(() => {
+    const map = new Map<number, PlayerHealth>();
+    for (const p of (playersData?.items ?? []) as any[]) {
+      const h = normalizePlayerHealth(p?.core);
+      if (h.status) map.set(p.core.id, h);
+    }
+    return map;
+  }, [playersData]);
+
   const timelineData = game_days.map((gd: ScoringGameDay, i: number) => ({
     label: `W${gd.gw}D${gd.day}`,
     fp: gd.total_fp,
