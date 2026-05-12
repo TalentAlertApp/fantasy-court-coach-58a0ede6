@@ -626,14 +626,71 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   }, [boxscoreQueries, finalGameIds]);
 
   // Prefetch players list for "Players to Watch" on scheduled games.
-  const hasScheduled = viewMode === "list" && games.some((g) => !isGameFinal(g.status) && !isGameLive(g.status));
   const { data: playersData } = useQuery({
     queryKey: ["players", { limit: 1000 }],
     queryFn: () => fetchPlayers({ limit: 1000 }),
     staleTime: 60_000,
-    enabled: hasScheduled,
+    enabled: games.length > 0,
   });
   const playerItems: any[] = (playersData as any)?.items ?? [];
+
+  // ---------- Roster-aware health context for matchups ----------
+  const { data: rosterData } = useRosterQuery();
+  const rosterIds = useMemo(() => {
+    const set = new Set<number>();
+    const slots = (rosterData as any)?.roster ?? (rosterData as any)?.slots ?? [];
+    if (Array.isArray(slots)) {
+      for (const s of slots) {
+        const pid = s?.player_id ?? s?.player?.id ?? s?.id;
+        if (typeof pid === "number") set.add(pid);
+      }
+    }
+    return set;
+  }, [rosterData]);
+
+  type AffectedPlayer = {
+    id: number;
+    name: string;
+    team: string;
+    photo?: string | null;
+    health: PlayerHealth;
+  };
+  type GameHealth = {
+    rosterOut: AffectedPlayer[];
+    rosterRisk: AffectedPlayer[];
+    teamInjuriesCount: number;
+  };
+
+  const healthByTeam = useMemo(() => {
+    const map = new Map<string, AffectedPlayer[]>();
+    for (const p of playerItems) {
+      const c = p?.core;
+      if (!c?.team) continue;
+      const h = normalizePlayerHealth(c);
+      if (!h.status) continue;
+      const arr = map.get(c.team) ?? [];
+      arr.push({ id: c.id, name: c.name, team: c.team, photo: c.photo, health: h });
+      map.set(c.team, arr);
+    }
+    return map;
+  }, [playerItems]);
+
+  const computeGameHealth = (awayTeam: string, homeTeam: string): GameHealth => {
+    const out: GameHealth = { rosterOut: [], rosterRisk: [], teamInjuriesCount: 0 };
+    for (const team of [awayTeam, homeTeam]) {
+      const arr = healthByTeam.get(team) ?? [];
+      for (const item of arr) {
+        if (rosterIds.has(item.id)) {
+          if (isHealthUnavailable(item.health)) out.rosterOut.push(item);
+          else if (isHealthRisky(item.health)) out.rosterRisk.push(item);
+          else out.teamInjuriesCount++;
+        } else {
+          out.teamInjuriesCount++;
+        }
+      }
+    }
+    return out;
+  };
 
   if (games.length === 0) {
     return (
