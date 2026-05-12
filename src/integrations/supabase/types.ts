@@ -771,6 +771,41 @@ export type Database = {
         }
         Relationships: []
       }
+      team_chips: {
+        Row: {
+          chip: string
+          gw: number
+          id: string
+          league_id: string
+          team_id: string
+          used_at: string
+        }
+        Insert: {
+          chip: string
+          gw: number
+          id?: string
+          league_id: string
+          team_id: string
+          used_at?: string
+        }
+        Update: {
+          chip?: string
+          gw?: number
+          id?: string
+          league_id?: string
+          team_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_chips_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_settings: {
         Row: {
           created_at: string

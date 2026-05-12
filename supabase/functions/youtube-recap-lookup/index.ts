@@ -67,6 +67,13 @@ serve(async (req: Request) => {
     const idsParam = url.searchParams.get("ids");
     const idsList = idsParam ? idsParam.split(",").map(s => s.trim()).filter(Boolean).slice(0, 100) : null;
     const limit = Math.min(parseInt(limitParam || "50"), 100); // max 100 per invocation
+    // League filter: nba | wnba | both (default both). Scopes the candidate set
+    // so a quota-limited run never wastes calls on the wrong league. When the
+    // user passes a single game_id or ids list, the league filter is ignored
+    // because those calls are already explicit.
+    const leagueParam = (url.searchParams.get("league") || "both").toLowerCase();
+    const leagueFilter: "nba" | "wnba" | "both" =
+      leagueParam === "nba" || leagueParam === "wnba" ? leagueParam : "both";
     // Relaxed mode = explicit user-driven refresh (single game_id OR ids list).
     // Widens the YouTube date window and lowers the minScore so manual retries
     // can pick up recaps that were posted late or with non-standard titles.
@@ -76,6 +83,22 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Resolve league_id list when scoped. We map by leagues.code so we don't
+    // hard-code uuids.
+    let allowedLeagueIds: string[] | null = null;
+    if (!targetGameId && (!idsList || idsList.length === 0) && leagueFilter !== "both") {
+      const { data: lgs } = await supabase
+        .from("leagues")
+        .select("id, code")
+        .in("code", [leagueFilter]);
+      allowedLeagueIds = (lgs ?? []).map((l: any) => l.id as string);
+      if (allowedLeagueIds.length === 0) {
+        return new Response(JSON.stringify({
+          ok: true, data: { processed: 0, found: 0, remaining: 0, message: `No league with code=${leagueFilter}` },
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
 
     // Build the candidate game list.
     //   - target a single game when game_id is provided (per-card refresh)
@@ -91,6 +114,7 @@ serve(async (req: Request) => {
       q = q.in("game_id", idsList);
     } else {
       if (!replaceMode) q = q.is("youtube_recap_id", null);
+      if (allowedLeagueIds) q = q.in("league_id", allowedLeagueIds);
       q = q.limit(limit);
     }
     const { data: games, error: fetchErr } = await q;
@@ -114,12 +138,17 @@ serve(async (req: Request) => {
     }
 
     let found = 0;
+    // Per-league counters so callers can see exactly which league consumed quota.
+    const perLeague = { nba: { processed: 0, found: 0 }, wnba: { processed: 0, found: 0 } };
+    let quotaExhausted = false;
     const errors: string[] = [];
 
     for (const game of games) {
       try {
         const leagueCode = leagueCodeById.get((game as any).league_id) ?? "nba";
         const isWnba = leagueCode === "wnba";
+        const bucket = isWnba ? perLeague.wnba : perLeague.nba;
+        bucket.processed += 1;
         const fullMap = isWnba ? WNBA_TEAM_FULL_NAME : TEAM_FULL_NAME;
         const cityMap = isWnba ? WNBA_TEAM_CITY : TEAM_CITY;
         const awayFull = fullMap[game.away_team] ?? game.away_team;
@@ -162,6 +191,7 @@ serve(async (req: Request) => {
           const errBody = await ytRes.text();
           if (ytRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
+            quotaExhausted = true;
             break;
           }
           errors.push(`YouTube API error for ${game.game_id}: ${ytRes.status}`);
@@ -208,6 +238,7 @@ serve(async (req: Request) => {
             videoId = scoreItems(fbItems, relaxed ? (isWnba ? 2 : 3) : (isWnba ? 4 : 5)).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
+            quotaExhausted = true;
             break;
           }
         }
@@ -222,6 +253,7 @@ serve(async (req: Request) => {
             errors.push(`DB update failed for ${game.game_id}: ${updateErr.message}`);
           } else {
             found++;
+            bucket.found += 1;
           }
         }
         // In replace mode, if we explicitly want to drop a stale id even when
@@ -245,7 +277,12 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       ok: true,
-      data: { processed: games.length, found, remaining: count ?? 0, errors: errors.length ? errors : undefined },
+      data: {
+        processed: games.length, found, remaining: count ?? 0,
+        per_league: perLeague,
+        quota_exhausted: quotaExhausted,
+        errors: errors.length ? errors : undefined,
+      },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (e: any) {

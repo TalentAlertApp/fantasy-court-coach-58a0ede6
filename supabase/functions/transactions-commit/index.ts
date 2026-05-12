@@ -24,6 +24,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
  */
 
 const GW_TRANSFER_CAP = 2;
+const ALLOWED_CHIPS = new Set(["all_star", "wildcard"]);
 
 Deno.serve(async (req) => {
   const corsRes = handleCors(req);
@@ -49,6 +50,11 @@ Deno.serve(async (req) => {
     const ins: number[] = Array.isArray(body?.ins)
       ? body.ins.map((n: any) => Number(n)).filter((n: number) => Number.isFinite(n) && n > 0)
       : [];
+    // Optional chip activation. all_star = +2 to GW cap. wildcard = bypass cap.
+    // Each chip can be used once per team per season (enforced via team_chips
+    // unique constraint). Unknown values are ignored.
+    const rawChip = typeof body?.chip === "string" ? body.chip.toLowerCase() : "";
+    const chip: "all_star" | "wildcard" | null = ALLOWED_CHIPS.has(rawChip) ? (rawChip as any) : null;
 
     if (!Number.isFinite(gw) || !Number.isFinite(day)) {
       return errorResponse("INVALID_BODY", "gw and day are required numbers");
@@ -88,6 +94,22 @@ Deno.serve(async (req) => {
     const teamLeagueId: string | null = teamRow?.sport_league_id ?? null;
     if (!teamLeagueId) {
       return errorResponse("TEAM_LEAGUE_MISSING", "Team has no sport league assigned", null, 400);
+    }
+
+    // If a chip is being activated, make sure it has not been used yet.
+    if (chip) {
+      const { data: usedRow } = await userClient
+        .from("team_chips")
+        .select("id, gw, used_at")
+        .eq("team_id", team_id)
+        .eq("chip", chip)
+        .maybeSingle();
+      if (usedRow) {
+        return errorResponse(
+          "CHIP_ALREADY_USED",
+          `${chip === "wildcard" ? "Wildcard" : "All-Star"} chip was already used (GW${usedRow.gw}). Each chip is one-time use per season.`,
+        );
+      }
     }
 
     // 1. Load current roster (RLS-scoped) and team settings
@@ -232,10 +254,18 @@ Deno.serve(async (req) => {
     const usedThisGw = (gwTxns ?? []).length;
     // Each IN counts as one transfer (covers ADD mode where outs.length === 0).
     const transferCount = ins.length;
-    if (usedThisGw + transferCount > GW_TRANSFER_CAP) {
+    // Effective cap depends on the chip in play:
+    //   wildcard  -> bypass entirely
+    //   all_star  -> +2 over the base cap
+    //   default   -> base cap
+    const effectiveCap =
+      chip === "wildcard" ? Number.POSITIVE_INFINITY :
+      chip === "all_star" ? GW_TRANSFER_CAP + 2 :
+      GW_TRANSFER_CAP;
+    if (usedThisGw + transferCount > effectiveCap) {
       return errorResponse(
         "GW_CAP_REACHED",
-        `GW${gw} transfer cap reached: ${usedThisGw}/${GW_TRANSFER_CAP} used, this trade would add ${transferCount}`,
+        `GW${gw} transfer cap reached: ${usedThisGw}/${effectiveCap === Infinity ? "∞" : effectiveCap} used, this trade would add ${transferCount}`,
       );
     }
 
@@ -333,6 +363,17 @@ Deno.serve(async (req) => {
     while (bench.length < 5) bench.push(0);
     const captain = (newRoster ?? []).find((r: any) => r.is_captain);
 
+    // 8. Consume the chip (best-effort): writing AFTER the trade succeeded
+    //    means a failed commit doesn't burn the chip. Unique constraint on
+    //    (team_id, chip) prevents double-use under race conditions.
+    let chipUsed: { chip: string; gw: number } | null = null;
+    if (chip) {
+      const { error: chipErr } = await userClient
+        .from("team_chips")
+        .insert({ team_id, league_id: teamLeagueId, gw, chip });
+      if (!chipErr) chipUsed = { chip, gw };
+    }
+
     return okResponse({
       roster: {
         gw,
@@ -353,6 +394,7 @@ Deno.serve(async (req) => {
         updated_at: new Date().toISOString(),
         team_id,
       },
+      chip_used: chipUsed,
       transactions: insertedTxns.map((t: any) => ({
         id: String(t.id),
         created_at: t.created_at,

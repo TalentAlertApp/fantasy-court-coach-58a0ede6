@@ -234,6 +234,7 @@ export async function simulateTransactions(body: {
 /** POST /transactions-commit */
 export async function commitTransaction(body: {
   gw: number; day: number; outs: number[]; ins: number[];
+  chip?: "all_star" | "wildcard" | null;
 }, teamId?: string) {
   return unwrap(await apiFetch(appendTeam("transactions-commit", teamId), TransactionsCommitResponseSchema, {
     method: "POST", body: JSON.stringify(body),

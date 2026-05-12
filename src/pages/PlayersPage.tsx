@@ -27,6 +27,7 @@ import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
 import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
+import { useTeamChips } from "@/hooks/useTeamChips";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
 import { commitTransaction } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -167,6 +168,13 @@ export default function PlayersPage() {
   const gwCap = chipWildcard ? 999 : chipAllStar ? baseGwCap + 2 : baseGwCap;
   const { data: gwTx } = useGameweekTransfers(selectedTeamId, gw);
   const gwUsed = gwTx?.used ?? 0;
+  const { data: usedChips } = useTeamChips(selectedTeamId);
+  const allStarUsed = !!usedChips?.find((c) => c.chip === "all_star");
+  const wildcardUsed = !!usedChips?.find((c) => c.chip === "wildcard");
+  // Reset toggles automatically when a chip becomes consumed (e.g. server
+  // confirmed the commit) so the local UI stays in sync.
+  useEffect(() => { if (allStarUsed) setChipAllStar(false); }, [allStarUsed]);
+  useEffect(() => { if (wildcardUsed) setChipWildcard(false); }, [wildcardUsed]);
 
   const capResetLabel = useMemo(() => {
     const next = leagueDeadlines.find((d) => d.gw === gw + 1);
@@ -322,18 +330,33 @@ export default function PlayersPage() {
   const handleCommit = async () => {
     if (!selectedTeamId) { toast.error("Select a team first"); return; }
     if (!validation.isValid) { toast.error(validation.reasons[0] ?? "Trade invalid"); return; }
+    const activeChip: "all_star" | "wildcard" | null =
+      chipWildcard ? "wildcard" : chipAllStar ? "all_star" : null;
+    if (activeChip) {
+      const label = activeChip === "wildcard" ? "Wildcard" : "All-Star";
+      const ok = window.confirm(
+        `Use the ${label} chip for GW${gw}? Each chip can only be used ONCE per season.`,
+      );
+      if (!ok) return;
+    }
     setCommitting(true);
     try {
       await commitTransaction(
-        { gw, day, outs: outZone, ins: inZone },
+        { gw, day, outs: outZone, ins: inZone, chip: activeChip },
         selectedTeamId,
       );
       const verb = outZone.length === 0 ? "added" : "swapped";
       const n = Math.max(inZone.length, outZone.length);
       toast.success(`${n} player${n === 1 ? "" : "s"} ${verb}`);
+      if (activeChip) {
+        toast.info(`${activeChip === "wildcard" ? "Wildcard" : "All-Star"} chip consumed for GW${gw}.`);
+        setChipAllStar(false);
+        setChipWildcard(false);
+      }
       resetTrade();
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["team-chips"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Commit failed");
     } finally {
@@ -552,19 +575,21 @@ export default function PlayersPage() {
           size="sm"
           variant={chipAllStar ? "default" : "outline"}
           className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-          onClick={() => setChipAllStar((v) => !v)}
-          title="All-Star chip — boosts trade cap"
+          onClick={() => { if (allStarUsed) return; setChipAllStar((v) => !v); }}
+          disabled={allStarUsed}
+          title={allStarUsed ? `All-Star chip already used (GW${usedChips?.find(c=>c.chip==='all_star')?.gw})` : "All-Star chip — +2 transfers this GW (one-time)"}
         >
-          <Sparkles className="h-3.5 w-3.5" />All-Star
+          <Sparkles className="h-3.5 w-3.5" />All-Star{allStarUsed ? " · Used" : ""}
         </Button>
         <Button
           size="sm"
           variant={chipWildcard ? "default" : "outline"}
           className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-          onClick={() => setChipWildcard((v) => !v)}
-          title="Wildcard chip — unlimited transfers"
+          onClick={() => { if (wildcardUsed) return; setChipWildcard((v) => !v); }}
+          disabled={wildcardUsed}
+          title={wildcardUsed ? `Wildcard chip already used (GW${usedChips?.find(c=>c.chip==='wildcard')?.gw})` : "Wildcard chip — unlimited transfers this GW (one-time)"}
         >
-          <RefreshCw className="h-3.5 w-3.5" />Wildcard
+          <RefreshCw className="h-3.5 w-3.5" />Wildcard{wildcardUsed ? " · Used" : ""}
         </Button>
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
