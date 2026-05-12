@@ -62,6 +62,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
         <TableHead className="text-center w-16 font-heading uppercase tracking-wider text-[10px]">HT</TableHead>
         <TableHead className="w-44 font-heading uppercase tracking-wider text-[10px]">College</TableHead>
         <TableHead className="text-center w-20 font-heading uppercase tracking-wider text-[10px]">FC/BC</TableHead>
+        <TableHead className="text-center w-14 font-heading uppercase tracking-wider text-[10px]" title="Health status">Health</TableHead>
         <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Salary</TableHead>
         <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">FP5</TableHead>
         <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Value5</TableHead>
