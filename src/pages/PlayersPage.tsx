@@ -35,6 +35,8 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
 import { useLeague } from "@/contexts/LeagueContext";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
+import type { HealthFilter } from "@/components/FiltersPanel";
+import { HealthStatusIcon } from "@/components/health";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -77,6 +79,7 @@ export default function PlayersPage() {
   const [committing, setCommitting] = useState(false);
   const [rosterSheetOpen, setRosterSheetOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
+  const [healthFilter, setHealthFilter] = useState<HealthFilter>("ALL");
 
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
@@ -124,6 +127,7 @@ export default function PlayersPage() {
             salary: 0,
             fc_bc: "FC",
             photo: null as string | null,
+            health: null,
           };
         }
         return {
@@ -133,6 +137,7 @@ export default function PlayersPage() {
         salary: p.core.salary,
         fc_bc: p.core.fc_bc,
         photo: p.core.photo ?? null,
+        health: normalizePlayerHealth(p),
         };
       });
   }, [rosterIdList, playerById, allPlayersFull.length]);
@@ -155,6 +160,7 @@ export default function PlayersPage() {
       salary: p.core.salary,
       fc_bc: p.core.fc_bc,
       photo: p.core.photo ?? null,
+      health: normalizePlayerHealth(p),
     };
   };
   const rosterStarters = useMemo(
@@ -244,13 +250,14 @@ export default function PlayersPage() {
           fc_bc: p!.fc_bc as "FC" | "BC",
           salary: p!.salary,
           photo: p!.photo,
+          health: p!.health ?? null,
         })),
     [outZone, rosterPlayers],
   );
   const inChips = useMemo(
     () =>
       inZone
-        .map((id) => allPlayers.find((p) => p.core.id === id))
+        .map((id) => playerById.get(id))
         .filter(Boolean)
         .map((p) => ({
           id: p!.core.id,
@@ -259,8 +266,9 @@ export default function PlayersPage() {
           fc_bc: p!.core.fc_bc as "FC" | "BC",
           salary: p!.core.salary,
           photo: p!.core.photo ?? null,
+          health: normalizePlayerHealth(p),
         })),
-    [inZone, allPlayers],
+    [inZone, playerById],
   );
 
   const outPlayersFull = useMemo(
@@ -399,6 +407,20 @@ export default function PlayersPage() {
     }
     items = items.filter((p) => p.core.salary <= maxSalary);
     if (team !== "ALL") items = items.filter((p) => p.core.team === team);
+    if (healthFilter !== "ALL") {
+      items = items.filter((p) => {
+        const h = normalizePlayerHealth(p);
+        const s = h.status;
+        switch (healthFilter) {
+          case "AVAILABLE": return s === null || s === "PROB";
+          case "RISK":      return s !== null;
+          case "OUT":       return s === "OUT";
+          case "QDG":       return s === "Q" || s === "DTD" || s === "GTD";
+          case "PROB":      return s === "PROB";
+          default:          return true;
+        }
+      });
+    }
     items.sort((a, b) => {
       const getVal = (p: PlayerListItem): number => {
         const gp = p.season.gp || 1;
