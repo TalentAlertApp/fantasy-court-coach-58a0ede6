@@ -27,6 +27,7 @@ import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
 import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
+import { useTeamChips } from "@/hooks/useTeamChips";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
 import { commitTransaction } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -167,6 +168,13 @@ export default function PlayersPage() {
   const gwCap = chipWildcard ? 999 : chipAllStar ? baseGwCap + 2 : baseGwCap;
   const { data: gwTx } = useGameweekTransfers(selectedTeamId, gw);
   const gwUsed = gwTx?.used ?? 0;
+  const { data: usedChips } = useTeamChips(selectedTeamId);
+  const allStarUsed = !!usedChips?.find((c) => c.chip === "all_star");
+  const wildcardUsed = !!usedChips?.find((c) => c.chip === "wildcard");
+  // Reset toggles automatically when a chip becomes consumed (e.g. server
+  // confirmed the commit) so the local UI stays in sync.
+  useEffect(() => { if (allStarUsed) setChipAllStar(false); }, [allStarUsed]);
+  useEffect(() => { if (wildcardUsed) setChipWildcard(false); }, [wildcardUsed]);
 
   const capResetLabel = useMemo(() => {
     const next = leagueDeadlines.find((d) => d.gw === gw + 1);
@@ -322,18 +330,33 @@ export default function PlayersPage() {
   const handleCommit = async () => {
     if (!selectedTeamId) { toast.error("Select a team first"); return; }
     if (!validation.isValid) { toast.error(validation.reasons[0] ?? "Trade invalid"); return; }
+    const activeChip: "all_star" | "wildcard" | null =
+      chipWildcard ? "wildcard" : chipAllStar ? "all_star" : null;
+    if (activeChip) {
+      const label = activeChip === "wildcard" ? "Wildcard" : "All-Star";
+      const ok = window.confirm(
+        `Use the ${label} chip for GW${gw}? Each chip can only be used ONCE per season.`,
+      );
+      if (!ok) return;
+    }
     setCommitting(true);
     try {
       await commitTransaction(
-        { gw, day, outs: outZone, ins: inZone },
+        { gw, day, outs: outZone, ins: inZone, chip: activeChip },
         selectedTeamId,
       );
       const verb = outZone.length === 0 ? "added" : "swapped";
       const n = Math.max(inZone.length, outZone.length);
       toast.success(`${n} player${n === 1 ? "" : "s"} ${verb}`);
+      if (activeChip) {
+        toast.info(`${activeChip === "wildcard" ? "Wildcard" : "All-Star"} chip consumed for GW${gw}.`);
+        setChipAllStar(false);
+        setChipWildcard(false);
+      }
       resetTrade();
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
+      queryClient.invalidateQueries({ queryKey: ["team-chips"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Commit failed");
     } finally {
