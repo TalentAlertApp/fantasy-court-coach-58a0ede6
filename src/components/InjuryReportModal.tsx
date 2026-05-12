@@ -244,12 +244,19 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
   const { data: rosterData } = useRosterQuery();
   const rosterIds = useMemo(() => {
     const set = new Set<number>();
-    const slots = (rosterData as any)?.roster ?? (rosterData as any)?.slots ?? [];
-    if (Array.isArray(slots)) {
-      for (const s of slots) {
-        const pid = s?.player_id ?? s?.player?.id ?? s?.id;
-        if (typeof pid === "number") set.add(pid);
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    const collect = (arr: any): void => {
+      if (!Array.isArray(arr)) return;
+      for (const s of arr) {
+        const pid = typeof s === "number" ? s : (s?.player_id ?? s?.player?.id ?? s?.id);
+        if (typeof pid === "number" && pid > 0) set.add(pid);
       }
+    };
+    if (r) {
+      collect(r.starters);
+      collect(r.bench);
+      collect(r.slots);
+      if (typeof r.captain_id === "number" && r.captain_id > 0) set.add(r.captain_id);
     }
     return set;
   }, [rosterData]);
