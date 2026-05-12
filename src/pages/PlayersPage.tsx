@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Sparkles, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Sparkles, RefreshCw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -641,6 +641,22 @@ export default function PlayersPage() {
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
         </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="outline"
+              className="rounded-xl h-8 w-8"
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-label={filtersOpen ? "Collapse filters" : "Expand filters"}
+            >
+              {filtersOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="text-xs">
+            {filtersOpen ? "Collapse filters" : "Expand filters"}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {isLoading ? (
@@ -734,17 +750,6 @@ export default function PlayersPage() {
               )}
 
               <div className="relative flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
-              {!filtersOpen && (
-                <button
-                  type="button"
-                  onClick={() => setFiltersOpen(true)}
-                  className="absolute top-1.5 right-1.5 z-30 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
-                  aria-label="Expand filters"
-                  title="Expand filters"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              )}
               {/* Fixed header (separate table) */}
               <div className="shrink-0 border-b bg-background">
                 <Table className="table-fixed">
@@ -947,15 +952,6 @@ export default function PlayersPage() {
           {/* RIGHT — Filters (retractable, − collapses inside the card) */}
           {filtersOpen && (
             <div className="w-56 flex-shrink-0 self-start relative">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen(false)}
-                className="absolute top-1.5 right-1.5 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md border border-border bg-background hover:bg-accent text-foreground/70 hover:text-foreground transition-colors shadow-sm"
-                aria-label="Collapse filters"
-                title="Collapse filters"
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </button>
               <FiltersPanel
                 fcBc={fcBc}
                 onFcBcChange={setFcBc}
