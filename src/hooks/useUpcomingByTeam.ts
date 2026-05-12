@@ -22,6 +22,7 @@ export interface UpcomingGame {
   pbpUrl?: string | null;
   recapUrl?: string | null;
   nbaGameUrl?: string | null;
+  youtubeRecapId?: string | null;
 }
 
 export type UpcomingByTeam = Record<string, UpcomingGame[]>;
@@ -55,7 +56,7 @@ export function useUpcomingByTeam() {
 
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("game_id, gw, day, home_team, away_team, home_pts, away_pts, tipoff_utc, status, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url")
+        .select("game_id, gw, day, home_team, away_team, home_pts, away_pts, tipoff_utc, status, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
         .eq("league_id", leagueId!)
         .gte("tipoff_utc", startStr)
         .lte("tipoff_utc", endStr + "T23:59:59Z")
@@ -88,6 +89,7 @@ export function useUpcomingByTeam() {
           pbpUrl: (g as any).game_playbyplay_url,
           recapUrl: (g as any).game_recap_url,
           nbaGameUrl: (g as any).nba_game_url,
+          youtubeRecapId: (g as any).youtube_recap_id,
         };
         if (!map[home]) map[home] = [];
         if (!map[away]) map[away] = [];
