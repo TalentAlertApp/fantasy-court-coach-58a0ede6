@@ -211,24 +211,28 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                   <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => setCompareOpen(true)}
-                      className="p-1.5 hover:text-primary transition-colors"
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-primary/10 hover:bg-primary/20 ring-1 ring-inset ring-primary/30 text-primary transition-colors"
                       title="Compare"
                     >
-                      <BarChart3 className="h-4 w-4 text-primary" />
+                      <BarChart3 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => playerId && toggleWishlist(playerId)}
-                      className="p-1.5 hover:text-destructive transition-colors"
+                      className={`h-8 w-8 inline-flex items-center justify-center rounded-full ring-1 ring-inset transition-colors ${
+                        wishlisted
+                          ? "bg-destructive/15 hover:bg-destructive/25 ring-destructive/40 text-destructive"
+                          : "bg-rose-500/10 hover:bg-rose-500/20 ring-rose-500/30 text-rose-500 dark:text-rose-300"
+                      }`}
                       title={wishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                     >
-                      <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : "text-muted-foreground"}`} />
+                      <Heart className={`h-4 w-4 ${wishlisted ? "fill-current" : ""}`} />
                     </button>
                     <button
                       onClick={() => setShareCardOpen(true)}
-                      className="p-1.5 hover:text-amber-400 transition-colors"
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-inset ring-amber-500/30 text-amber-600 dark:text-amber-300 transition-colors"
                       title="Create Ballers.IQ Share Card"
                     >
-                      <Share2 className="h-4 w-4 text-amber-400/80" />
+                      <Share2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
