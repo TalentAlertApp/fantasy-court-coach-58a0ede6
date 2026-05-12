@@ -1325,6 +1325,13 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             </CollapsibleTrigger>
             <CollapsibleContent>
               <div className={`bg-card border border-t-0 border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-b-xl overflow-hidden`}>
+                {isExpanded && (gh.rosterOut.length > 0 || gh.rosterRisk.length > 0) && (
+                  <MatchupHealthStrip
+                    gh={gh}
+                    isFinal={isFinal}
+                    onPlayerClick={setSelectedPlayerId}
+                  />
+                )}
                 {isExpanded && isFinal && (
                   <GameBoxScore
                     gameId={g.game_id}
