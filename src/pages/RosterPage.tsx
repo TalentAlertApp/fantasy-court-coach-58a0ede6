@@ -573,8 +573,9 @@ export default function RosterPage() {
               title="Open Ballers.IQ"
               className="biq-header-pill w-32"
             >
-              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="dark:hidden !h-6 w-auto" />
-              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="hidden dark:block !h-6 w-auto" />
+              {/* Swapped per design: dark wordmark on light theme, light wordmark on dark theme. */}
+              <BallersIQBrand variant="wordmark" forceTheme="dark" transparent className="dark:hidden !h-6 w-auto" />
+              <BallersIQBrand variant="wordmark" forceTheme="light" transparent className="hidden dark:block !h-6 w-auto" />
             </button>
 
             <Tooltip>
