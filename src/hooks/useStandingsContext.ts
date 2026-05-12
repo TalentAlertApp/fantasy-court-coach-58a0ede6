@@ -19,6 +19,7 @@ interface SchedRow {
   game_playbyplay_url?: string | null;
   game_recap_url?: string | null;
   nba_game_url?: string | null;
+  youtube_recap_id?: string | null;
 }
 
 export interface Last5Detail {
@@ -38,6 +39,7 @@ export interface Last5Detail {
   game_playbyplay_url?: string | null;
   game_recap_url?: string | null;
   nba_game_url?: string | null;
+  youtube_recap_id?: string | null;
 }
 
 const DIV_ABBR: Record<string, string> = {
