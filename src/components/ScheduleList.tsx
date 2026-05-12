@@ -1051,16 +1051,15 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   <Tv2 className="h-4 w-4" />
                 </span>
               )}
-                {!isFinal && !isLive && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setInjuryPair({ a: g.away_team, b: g.home_team }); }}
-                    className="text-muted-foreground hover:text-destructive transition-colors p-0.5"
-                    title={`Injury Report — ${g.away_team} & ${g.home_team}`}
-                    aria-label="Open injury report for these teams"
-                  >
-                    <Bandage className="h-4 w-4" />
-                  </button>
+                {showInjuryBtn && (
+                  <GameInjuryButton
+                    awayTeam={g.away_team}
+                    homeTeam={g.home_team}
+                    rosterOut={gh.rosterOut.length}
+                    rosterRisk={gh.rosterRisk.length}
+                    teamInjuriesCount={gh.teamInjuriesCount}
+                    onClick={() => setInjuryPair({ a: g.away_team, b: g.home_team })}
+                  />
                 )}
               <GameActionIcon icon={Table2} url={g.game_boxscore_url} label="Box Score" />
               <GameActionIcon icon={BarChart3} url={g.game_charts_url} label="Charts" />
