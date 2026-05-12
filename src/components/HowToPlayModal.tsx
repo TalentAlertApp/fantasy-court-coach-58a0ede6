@@ -85,11 +85,11 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                   </div>
                   <div>
                     <p className="font-semibold text-foreground">All-Star Chip (1× per season)</p>
-                    <p>For one gameweek, the salary cap is <strong>unlimited</strong>. You can bring in any player regardless of cost. Use it during high-impact weeks!</p>
+                    <p>For one gameweek, your transfer cap is raised by <strong>+2</strong> (from 2 to 4). One-time use per season, locked in the moment you commit a trade with the chip active.</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">Wildcard (3× per season)</p>
-                    <p>Make <strong>unlimited free transfers</strong> for one gameweek — no point deductions. Perfect for reshaping your squad after injuries or schedule changes.</p>
+                    <p className="font-semibold text-foreground">Wildcard (1× per season)</p>
+                    <p>Make <strong>unlimited transfers</strong> for one gameweek — the GW cap is bypassed entirely. One-time use per season.</p>
                   </div>
                 </AccordionContent>
               </AccordionItem>
