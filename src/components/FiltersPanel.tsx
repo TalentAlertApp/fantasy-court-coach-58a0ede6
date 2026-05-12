@@ -20,12 +20,17 @@ interface FiltersPanelProps {
   onTeamChange?: (v: string) => void;
   perfMode?: "pg" | "total";
   onPerfModeChange?: (v: "pg" | "total") => void;
+  health?: HealthFilter;
+  onHealthChange?: (v: HealthFilter) => void;
 }
+
+export type HealthFilter = "ALL" | "AVAILABLE" | "RISK" | "OUT" | "QDG" | "PROB";
 
 export default function FiltersPanel({
   fcBc, onFcBcChange, search, onSearchChange, maxSalary, onMaxSalaryChange,
   maxSalaryLimit = 50, team, onTeamChange,
   perfMode, onPerfModeChange,
+  health, onHealthChange,
 }: FiltersPanelProps) {
   const { league, teams } = useLeagueTeams();
   const sortedTeams = useMemo(
@@ -112,6 +117,22 @@ export default function FiltersPanel({
           <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Max Salary: ${maxSalary}</Label>
           <Slider value={[maxSalary]} onValueChange={([v]) => onMaxSalaryChange(v)} min={0} max={maxSalaryLimit} step={0.5} />
         </div>
+        {onHealthChange && (
+          <div>
+            <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">Health</Label>
+            <Select value={health ?? "ALL"} onValueChange={(v) => onHealthChange(v as HealthFilter)}>
+              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All</SelectItem>
+                <SelectItem value="AVAILABLE">Available only</SelectItem>
+                <SelectItem value="RISK">Injury / Risk</SelectItem>
+                <SelectItem value="OUT">Out</SelectItem>
+                <SelectItem value="QDG">Q · DTD · GTD</SelectItem>
+                <SelectItem value="PROB">Probable</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* NBA FANTASY branding at bottom */}
