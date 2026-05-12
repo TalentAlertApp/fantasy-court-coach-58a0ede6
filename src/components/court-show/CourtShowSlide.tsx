@@ -1207,9 +1207,6 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           </div>
         )}
 
-        {slide.payload.kind === "outro" && (
-          null
-        ) && null}
         {slide.payload.kind === "health_watch" && (
           <HealthWatchSlide
             payload={slide.payload.data}
