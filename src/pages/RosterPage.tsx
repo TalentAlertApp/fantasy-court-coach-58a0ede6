@@ -31,6 +31,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
+import { normalizePlayerHealth } from "@/lib/health";
 import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, RefreshCw, Heart, CalendarDays, X, Wand2, Sparkles, Star, Brain } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
@@ -338,6 +339,8 @@ export default function RosterPage() {
     const toOpt = (p: PlayerListItem): OptimizerPlayer => ({
       id: p.core.id, name: p.core.name, team: p.core.team,
       fc_bc: p.core.fc_bc, salary: p.core.salary, fp5: p.last5.fp5,
+      health: normalizePlayerHealth(p),
+      injury: p.flags?.injury ?? null,
     });
     const result = optimizeLineup(
       starters.map(toOpt), bench.map(toOpt),
