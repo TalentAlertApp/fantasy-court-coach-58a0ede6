@@ -376,6 +376,7 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
       game_playbyplay_url: g.game_playbyplay_url ?? null,
       game_recap_url: g.game_recap_url ?? null,
       nba_game_url: g.nba_game_url ?? null,
+      youtube_recap_id: (g as any).youtube_recap_id ?? null,
     });
   };
 
