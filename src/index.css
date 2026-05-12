@@ -314,6 +314,57 @@
     color: hsl(var(--accent));
     box-shadow: 0 0 16px -4px hsl(var(--accent) / 0.4);
   }
+
+  /* ============================================================
+     Premium header icon-button (used on /MY ROSTER header row)
+     Transparent, no colored ring, subtle hover surge + glow.
+     ============================================================ */
+  .header-icon-btn {
+    @apply relative inline-flex items-center justify-center h-9 w-9
+           rounded-xl bg-transparent border border-transparent
+           text-foreground/70 transition-all duration-200 ease-out;
+  }
+  .header-icon-btn:hover {
+    color: hsl(var(--foreground));
+    background: hsl(var(--foreground) / 0.04);
+    border-color: hsl(var(--foreground) / 0.10);
+    box-shadow: 0 6px 18px -10px hsl(var(--accent) / 0.45);
+  }
+  .header-icon-btn:focus-visible {
+    outline: none;
+    border-color: hsl(var(--accent) / 0.55);
+    box-shadow: 0 0 0 2px hsl(var(--accent) / 0.25);
+  }
+  .header-icon-btn .header-icon {
+    @apply h-[18px] w-[18px] transition-transform duration-200 ease-out;
+  }
+  .header-icon-btn:hover .header-icon { transform: scale(1.18); }
+  .header-icon-btn[data-active="true"] {
+    color: hsl(var(--accent));
+    background: hsl(var(--accent) / 0.10);
+    border-color: hsl(var(--accent) / 0.25);
+  }
+  /* Reset variant: destructive tint, no surge */
+  .header-icon-btn.is-reset {
+    color: hsl(var(--destructive) / 0.85);
+  }
+  .header-icon-btn.is-reset:hover {
+    color: hsl(var(--destructive));
+    background: hsl(var(--destructive) / 0.08);
+    border-color: hsl(var(--destructive) / 0.25);
+  }
+  .header-icon-btn.is-reset:hover .header-icon { transform: none; }
+
+  /* Sidebar collapsed: more breathing room between nav icons */
+  .sidebar.collapsed nav { gap: 0.45rem; }
+  .sidebar.collapsed .nav-item {
+    width: 100%;
+    height: 40px;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+  }
+  .sidebar.collapsed .nav-item .nav-item-icon { @apply h-[18px] w-[18px]; }
 }
 
 @keyframes fade-in {
