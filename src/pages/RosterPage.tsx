@@ -33,7 +33,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
 import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, RefreshCw, Heart, CalendarDays, X, Wand2, Sparkles, Star, Brain } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useTeamChips } from "@/hooks/useTeamChips";
 import { normalizePlayerHealth, shouldBlockCaptain, shouldWarnCaptain, getCaptainHealthWarning } from "@/lib/health";
