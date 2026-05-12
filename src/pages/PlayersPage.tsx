@@ -435,12 +435,13 @@ export default function PlayersPage() {
       return sortDir === "desc" ? getVal(b) - getVal(a) : getVal(a) - getVal(b);
     });
     return items;
-  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league]);
+  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league, healthFilter]);
 
   // When the league changes, drop a stale team filter (e.g. "ATL" carried
   // from NBA into WNBA where "ATL" exists but pointing back into NBA-only
   // codepaths is confusing). Just reset to ALL on league change.
   useEffect(() => { setTeam("ALL"); }, [league]);
+  useEffect(() => { setCurrentPage(1); }, [healthFilter]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
