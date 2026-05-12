@@ -37,6 +37,10 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
   const [nbaBlocked, setNbaBlocked] = useState(false);
   const { league } = useLeague();
   const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
+  // WNBA.com sends X-Frame-Options: SAMEORIGIN on its game pages, so an
+  // inline <iframe> always renders blank. Force outbound for WNBA when there
+  // is no YouTube embed available.
+  const forceOutbound = league === "wnba";
 
   // Case 1: YouTube embed available — best inline experience
   if (youtubeRecapId) {
@@ -66,7 +70,7 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
   }
 
   // Case 2: NBA.com URL only — try inline iframe with graceful fallback
-  if (url && nbaExpanded && !nbaBlocked) {
+  if (url && nbaExpanded && !nbaBlocked && !forceOutbound) {
     return (
       <div className="relative w-full h-full rounded-xl overflow-hidden bg-black">
         <iframe
@@ -102,7 +106,12 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        setNbaExpanded(true);
+        if (forceOutbound) {
+          // WNBA.com cannot be iframed — open in a new tab instead.
+          window.open(url, "_blank", "noopener,noreferrer");
+        } else {
+          setNbaExpanded(true);
+        }
       }}
       className="group relative flex w-full h-full flex-col items-center justify-center gap-3 rounded-xl bg-gradient-to-br from-card via-muted/40 to-card border overflow-hidden hover:border-green-500/50 transition-colors"
     >
@@ -113,7 +122,7 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
           {homeLogo && <img src={homeLogo} alt="" className="w-14 h-14 object-contain drop-shadow" />}
         </div>
         <p className="text-sm font-heading font-bold uppercase tracking-wider text-foreground/90 group-hover:text-green-500 transition-colors">
-          Watch Recap
+          {forceOutbound ? `Watch Recap on ${recapHost} ↗` : "Watch Recap"}
         </p>
       </div>
     </button>
