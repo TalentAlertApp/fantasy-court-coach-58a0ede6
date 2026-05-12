@@ -575,19 +575,21 @@ export default function PlayersPage() {
           size="sm"
           variant={chipAllStar ? "default" : "outline"}
           className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipAllStar ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-          onClick={() => setChipAllStar((v) => !v)}
-          title="All-Star chip — boosts trade cap"
+          onClick={() => { if (allStarUsed) return; setChipAllStar((v) => !v); }}
+          disabled={allStarUsed}
+          title={allStarUsed ? `All-Star chip already used (GW${usedChips?.find(c=>c.chip==='all_star')?.gw})` : "All-Star chip — +2 transfers this GW (one-time)"}
         >
-          <Sparkles className="h-3.5 w-3.5" />All-Star
+          <Sparkles className="h-3.5 w-3.5" />All-Star{allStarUsed ? " · Used" : ""}
         </Button>
         <Button
           size="sm"
           variant={chipWildcard ? "default" : "outline"}
           className={`rounded-xl h-8 font-heading uppercase text-[10px] gap-1.5 ${chipWildcard ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}`}
-          onClick={() => setChipWildcard((v) => !v)}
-          title="Wildcard chip — unlimited transfers"
+          onClick={() => { if (wildcardUsed) return; setChipWildcard((v) => !v); }}
+          disabled={wildcardUsed}
+          title={wildcardUsed ? `Wildcard chip already used (GW${usedChips?.find(c=>c.chip==='wildcard')?.gw})` : "Wildcard chip — unlimited transfers this GW (one-time)"}
         >
-          <RefreshCw className="h-3.5 w-3.5" />Wildcard
+          <RefreshCw className="h-3.5 w-3.5" />Wildcard{wildcardUsed ? " · Used" : ""}
         </Button>
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
