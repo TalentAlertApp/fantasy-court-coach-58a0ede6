@@ -34,6 +34,7 @@ import { commitTransaction } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
 import { useLeague } from "@/contexts/LeagueContext";
+import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -807,7 +808,8 @@ export default function PlayersPage() {
                               const sal = Number(p.core.salary ?? 0);
                               const dfp = Number((p as any).last5?.delta_fp ?? 0);
                               const fp5 = Number((p as any).last5?.fp5 ?? 0);
-                              const inj = (p.core as any)?.injury;
+                              const _h = normalizePlayerHealth(p);
+                              const inj = isHealthUnavailable(_h) || isHealthRisky(_h);
                               // Drop Risk wins, then Value Add, then Stream — at most one badge.
                               if (inj || dfp <= -4) {
                                 return (
@@ -817,7 +819,7 @@ export default function PlayersPage() {
                                         Drop Risk
                                       </span>
                                     </TooltipTrigger>
-                                    <TooltipContent className="text-[10px]">{inj ? `Injury: ${inj}` : `Form drop Δ${dfp.toFixed(1)} FP`}</TooltipContent>
+                                    <TooltipContent className="text-[10px]">{inj ? getHealthTooltipText(_h) : `Form drop Δ${dfp.toFixed(1)} FP`}</TooltipContent>
                                   </Tooltip>
                                 );
                               }
