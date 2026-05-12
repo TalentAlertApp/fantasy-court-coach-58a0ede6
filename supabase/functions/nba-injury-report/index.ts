@@ -263,17 +263,27 @@ async function persistInjuriesToPlayers(
     }
   }
 
-  // Apply updates one-by-one (small N, keeps SQL simple)
-  await Promise.all(
+  // Apply updates one-by-one (small N, keeps SQL simple). Log first error.
+  let updateErrors = 0;
+  let firstErr: string | null = null;
+  const results = await Promise.all(
     updates.map((u) =>
       sb.from("players").update({ injury: u.label }).eq("id", u.id),
     ),
   );
+  for (const r of results) {
+    if ((r as any)?.error) {
+      updateErrors++;
+      if (!firstErr) firstErr = JSON.stringify((r as any).error);
+    }
+  }
   if (toClear.length) {
-    await sb.from("players").update({ injury: null }).in("id", toClear);
+    const cr = await sb.from("players").update({ injury: null }).in("id", toClear);
+    if ((cr as any)?.error && !firstErr) firstErr = JSON.stringify((cr as any).error);
   }
   console.log(
-    `[nba-injury-report] persist: matched=${matchedIds.size} updates=${updates.length} cleared=${toClear.length} unmatched=${unmatched.length}` +
+    `[nba-injury-report] persist: matched=${matchedIds.size} updates=${updates.length} cleared=${toClear.length} unmatched=${unmatched.length} updateErrors=${updateErrors}` +
+    (firstErr ? ` firstErr=${firstErr}` : "") +
     (unmatched.length ? ` sample=${unmatched.slice(0, 5).join("|")}` : ""),
   );
   return { matched: updates.length, cleared: toClear.length };
