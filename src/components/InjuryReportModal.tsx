@@ -22,6 +22,7 @@ import { useLeague } from "@/contexts/LeagueContext";
 import { cn } from "@/lib/utils";
 import PlayerModal from "@/components/PlayerModal";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface InjuryRecord {
   player_name: string;
@@ -225,6 +226,7 @@ function relativeTime(iso: string): string {
 export default function InjuryReportModal({ open, onOpenChange, initialTeams }: InjuryReportModalProps) {
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
   const { isWnba } = useLeague();
+  const queryClient = useQueryClient();
   const getTeamByTricode = useCallback(
     (tc: string) => LEAGUE_TEAMS.find((t) => t.tricode === tc),
     [LEAGUE_TEAMS]
@@ -301,12 +303,19 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
       setRosterMap(map);
       setPayload(injuryData as InjuryPayload);
       writeCache(injuryData as InjuryPayload);
+      // Edge function persists matched injuries to players.injury — refresh caches
+      // so badges, Ballers.IQ, and roster views pick up the change immediately.
+      const persisted = (injuryData as any)?.persisted;
+      if (persisted && (persisted.matched > 0 || persisted.cleared > 0)) {
+        queryClient.invalidateQueries({ queryKey: ["players"] });
+        queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+      }
     } catch (e: any) {
       setError(e?.message ?? "Failed to load injury report");
     } finally {
       setLoading(false);
     }
-  }, [isWnba]);
+  }, [isWnba, queryClient]);
 
   useEffect(() => {
     if (open && !payload && !loading) {
