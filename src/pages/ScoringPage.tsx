@@ -19,6 +19,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import BallersIQRecapBlock from "@/components/ballers-iq/BallersIQRecapBlock";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import {
+  normalizePlayerHealth,
+  isHealthUnavailable,
+  isHealthRisky,
+  getHealthLabel,
+  type PlayerHealth,
+} from "@/lib/health";
+import { HealthStatusIcon } from "@/components/health";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import AICoachModal from "@/components/AICoachModal";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
