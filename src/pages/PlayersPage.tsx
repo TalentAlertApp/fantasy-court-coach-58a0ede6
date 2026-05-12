@@ -947,6 +947,8 @@ export default function PlayersPage() {
                 onTeamChange={setTeam}
                 perfMode={perfMode}
                 onPerfModeChange={setPerfMode}
+                health={healthFilter}
+                onHealthChange={setHealthFilter}
               />
             </div>
           )}
