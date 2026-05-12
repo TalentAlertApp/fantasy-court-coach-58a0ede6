@@ -913,6 +913,35 @@ export default function RosterPage() {
             open={gameDetail !== null}
             onOpenChange={(o) => !o && setGameDetail(null)}
           />
+          <AlertDialog open={!!captainConfirm} onOpenChange={(o) => { if (!o) setCaptainConfirm(null); }}>
+            <AlertDialogContent className="rounded-xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {captainConfirm?.level === "block" ? "Captain Not Recommended" : "Availability Risk"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {captainConfirm?.level === "block"
+                    ? `${captainConfirm?.playerName} is listed OUT/unavailable. Captaining him is not recommended.`
+                    : `${captainConfirm?.message || "This player has an availability risk. Check status before lock."}`}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (captainConfirm) {
+                      const pid = captainConfirm.playerId;
+                      setCaptainConfirm(null);
+                      commitCaptain(pid);
+                    }
+                  }}
+                  className={captainConfirm?.level === "block" ? "bg-destructive text-destructive-foreground" : ""}
+                >
+                  Captain anyway
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <AutoPickConfirmModal
             open={autoPickOpen}
             onOpenChange={(o) => { setAutoPickOpen(o); if (!o) setAutoPickProposal(null); }}
