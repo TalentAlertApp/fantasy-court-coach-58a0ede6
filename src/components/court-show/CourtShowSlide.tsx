@@ -1208,6 +1208,16 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         )}
 
         {slide.payload.kind === "outro" && (
+          null
+        ) && null}
+        {slide.payload.kind === "health_watch" && (
+          <HealthWatchSlide
+            payload={slide.payload.data}
+            onPlayerClick={onPlayerClick}
+            onTeamClick={onTeamClick}
+          />
+        )}
+        {slide.payload.kind === "outro" && (
           <div className="h-full flex flex-col items-center justify-center text-center gap-5">
             <div className="text-amber-400">
               <Clock className="h-10 w-10 mx-auto" />
