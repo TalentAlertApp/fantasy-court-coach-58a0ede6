@@ -85,6 +85,12 @@ export default function RosterPage() {
 
   const [viewMode, setViewMode] = useState<"court" | "list">("court");
   const [captainId, setCaptainId] = useState<number>(0);
+  const [captainConfirm, setCaptainConfirm] = useState<{
+    playerId: number;
+    playerName: string;
+    level: "block" | "warn";
+    message: string;
+  } | null>(null);
   const [optimizeOpen, setOptimizeOpen] = useState(false);
   const [optimizerResult, setOptimizerResult] = useState<OptimizerResult | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
