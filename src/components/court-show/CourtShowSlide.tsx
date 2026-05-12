@@ -393,7 +393,7 @@ function OutstandingSlide({
             <InlineTeamMark tri={g.home_team} side="right" onClick={onTeamClick} />
           </div>
         </button>
-        <div className="flex-1 min-h-0 overflow-y-auto mt-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mt-3 border-b border-white/10">
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
               <col />
@@ -403,7 +403,7 @@ function OutstandingSlide({
               <col className="w-[34px]" />
               <col className="w-[44px]" />
             </colgroup>
-            <thead className="text-white/60 uppercase tracking-wider text-[9px] sticky top-0 z-10 shadow-[0_1px_0_0_rgba(255,255,255,0.08)] [&>tr>th]:bg-[#0b1220]">
+            <thead className="text-white/60 uppercase tracking-wider text-[9px]">
               <tr>
                 <th className="text-left font-heading font-black py-1.5">Player</th>
                 <th className="text-right font-mono py-1.5">MIN</th>
@@ -413,6 +413,18 @@ function OutstandingSlide({
                 <th className="text-right font-mono py-1.5 text-amber-400">FP</th>
               </tr>
             </thead>
+          </table>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="w-full text-[11px] table-fixed">
+            <colgroup>
+              <col />
+              <col className="w-[38px]" />
+              <col className="w-[34px]" />
+              <col className="w-[34px]" />
+              <col className="w-[34px]" />
+              <col className="w-[44px]" />
+            </colgroup>
             <tbody>
               {payload.topRows.map((r) => (
                 <tr
