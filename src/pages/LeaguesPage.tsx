@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon } from "lucide-react";
+import { Swords, Plus, KeyRound, Crown, LayoutDashboard, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague }
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import courtBg from "@/assets/court-bg.png";
 
 function formulaString(rules: ScoringRule[]): string {
   const parts = rules
