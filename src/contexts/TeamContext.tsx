@@ -160,7 +160,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
 
   const { selectedLeagueId } = useFantasyLeague();
-  const teamsInSelectedLeague: TeamRecord[] = selectedLeagueId
+  // If teams expose a league_id, filter; otherwise fall back to all teams so
+  // pages that pre-date the FantasyLeague split keep working.
+  const teamsHaveLeagueId = teams.some((t: any) => t.league_id !== undefined);
+  const teamsInSelectedLeague: TeamRecord[] = (selectedLeagueId && teamsHaveLeagueId)
     ? teams.filter((t: any) => t.league_id === selectedLeagueId)
     : teams;
 
