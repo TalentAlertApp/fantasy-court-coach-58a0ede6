@@ -37,7 +37,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Separator } from "@/components/ui/separator";
 import { useTeamChips } from "@/hooks/useTeamChips";
 import { useDeadlineStatus } from "@/hooks/useDeadlineStatus";
-import RosterChipsBar from "@/components/RosterChipsBar";
 import { normalizePlayerHealth, shouldBlockCaptain, shouldWarnCaptain, getCaptainHealthWarning } from "@/lib/health";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
@@ -651,9 +650,16 @@ export default function RosterPage() {
                     <button
                       type="button"
                       aria-label="Season chips"
-                      className="header-icon-btn is-chips"
+                      className="header-icon-btn is-chips relative"
                     >
                       <Sparkles className="header-icon" />
+                      {(allStarUsed || wildcardUsed) && (
+                        <span
+                          aria-hidden
+                          className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-primary"
+                          title="Season chip active"
+                        />
+                      )}
                     </button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
@@ -871,13 +877,6 @@ export default function RosterPage() {
 
           {/* ── Layout ── */}
           <div className="min-w-0 flex-1 relative">
-            <RosterChipsBar
-              teamId={selectedTeamId}
-              gw={currentGameday.gw}
-              day={currentGameday.day}
-              starters={starters.map((p) => ({ id: p.core.id, name: p.core.name, team: p.core.team }))}
-              lineupLocked={!!deadlineStatus?.locked}
-            />
             {/* Schedule preview — absolute overlay, never pushes the court */}
             {scheduleOpen && (
               <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-[520px] overflow-hidden animate-accordion-down">
