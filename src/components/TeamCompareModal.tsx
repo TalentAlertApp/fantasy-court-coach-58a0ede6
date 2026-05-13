@@ -200,8 +200,13 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                   <div className="rounded-xl border border-dashed border-border/60 bg-card/40 px-4 py-6 text-center text-xs text-muted-foreground font-heading uppercase tracking-wider">
                     Season hasn't started yet
                   </div>
-                ) : standingsLoading || !aRow || !bRow ? (
+                ) : standingsLoading ? (
                   <Skeleton className="h-40" />
+                ) : !aRow || !bRow ? (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-card/40 px-4 py-6 text-center text-xs text-muted-foreground space-y-1">
+                    <div className="font-heading uppercase tracking-wider">No standings yet</div>
+                    <div className="text-[11px]">Standings &amp; form will appear once results come in.</div>
+                  </div>
                 ) : (
                   <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/60 px-4 py-3">
                     <img
