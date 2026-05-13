@@ -661,6 +661,73 @@ export type Database = {
           },
         ]
       }
+      scoring_daily_team_totals: {
+        Row: {
+          calculated_at: string
+          captain_bonus: number
+          chip_bonus: number
+          day: number
+          fantasy_league_id: string
+          game_date: string
+          gw: number
+          id: string
+          player_breakdown: Json
+          scoring_system_id: string
+          team_id: string
+          total_fp: number
+        }
+        Insert: {
+          calculated_at?: string
+          captain_bonus?: number
+          chip_bonus?: number
+          day: number
+          fantasy_league_id: string
+          game_date: string
+          gw: number
+          id?: string
+          player_breakdown?: Json
+          scoring_system_id: string
+          team_id: string
+          total_fp?: number
+        }
+        Update: {
+          calculated_at?: string
+          captain_bonus?: number
+          chip_bonus?: number
+          day?: number
+          fantasy_league_id?: string
+          game_date?: string
+          gw?: number
+          id?: string
+          player_breakdown?: Json
+          scoring_system_id?: string
+          team_id?: string
+          total_fp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scoring_daily_team_totals_fantasy_league_id_fkey"
+            columns: ["fantasy_league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scoring_daily_team_totals_scoring_system_id_fkey"
+            columns: ["scoring_system_id"]
+            isOneToOne: false
+            referencedRelation: "scoring_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scoring_daily_team_totals_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scoring_rules: {
         Row: {
           applies_to: string
