@@ -83,16 +83,23 @@ Deno.serve(async (req) => {
     const teamIds = teams.map(t => t.id);
     const { data: rosters, error: rErr } = await sb
       .from("roster")
-      .select("team_id, player_id, is_captain")
+      .select("team_id, gw, day, player_id, is_captain")
       .in("team_id", teamIds);
     if (rErr) throw rErr;
 
-    // Build team -> [{player_id, is_captain}]
-    const rosterByTeam: Record<string, Array<{ player_id: number; is_captain: boolean }>> = {};
+    // Build team -> Map<"gw.day", {playerIds, captainId}> + per-team union of player ids
+    type DayEntry = { playerIds: Set<number>; captainId: number | null };
+    const rosterByTeamDay: Record<string, Map<string, DayEntry>> = {};
+    const playerIdsByTeam: Record<string, Set<number>> = {};
     const allPlayerIds = new Set<number>();
     for (const r of (rosters ?? []) as any[]) {
-      if (!rosterByTeam[r.team_id]) rosterByTeam[r.team_id] = [];
-      rosterByTeam[r.team_id].push({ player_id: r.player_id, is_captain: !!r.is_captain });
+      const map = (rosterByTeamDay[r.team_id] ??= new Map());
+      const key = `${r.gw}.${r.day}`;
+      let entry = map.get(key);
+      if (!entry) { entry = { playerIds: new Set(), captainId: null }; map.set(key, entry); }
+      entry.playerIds.add(r.player_id);
+      if (r.is_captain) entry.captainId = r.player_id;
+      (playerIdsByTeam[r.team_id] ??= new Set()).add(r.player_id);
       allPlayerIds.add(r.player_id);
     }
 
@@ -132,24 +139,75 @@ Deno.serve(async (req) => {
       logsByPlayer[l.player_id].push(l);
     }
 
+    // 5b. Snapshot fast-path: load any pre-computed totals
+    const { data: snapRows } = await sb
+      .from("scoring_daily_team_totals")
+      .select("team_id, gw, day, total_fp, calculated_at")
+      .in("team_id", teamIds)
+      .eq("fantasy_league_id", leagueId);
+    const snapByTeam = new Map<string, Array<{ gw: number; day: number; total_fp: number; calculated_at: string }>>();
+    for (const s of (snapRows ?? []) as any[]) {
+      const arr = snapByTeam.get(s.team_id) ?? [];
+      arr.push({ gw: s.gw, day: s.day, total_fp: Number(s.total_fp), calculated_at: s.calculated_at });
+      snapByTeam.set(s.team_id, arr);
+    }
+    const capMult = captainMultiplier(rules);
+
     // 6. Compute per-team aggregates
     const teamRows = teams.map(team => {
-      const ros = rosterByTeam[team.id] ?? [];
-      const captainSet = new Set(ros.filter(r => r.is_captain).map(r => r.player_id));
+      // Snapshot fast-path
+      const snaps = snapByTeam.get(team.id);
+      if (snaps && snaps.length) {
+        const fpByGw: Record<number, number> = {};
+        const fpByGwDay: Record<string, number> = {};
+        let totalFp = 0;
+        let latestUpdated = team.created_at;
+        for (const s of snaps) {
+          totalFp += s.total_fp;
+          fpByGw[s.gw] = (fpByGw[s.gw] ?? 0) + s.total_fp;
+          const key = `${s.gw}.${String(s.day).padStart(2, "0")}`;
+          fpByGwDay[key] = (fpByGwDay[key] ?? 0) + s.total_fp;
+          if (s.calculated_at && s.calculated_at > latestUpdated) latestUpdated = s.calculated_at;
+        }
+        const weekValues = Object.values(fpByGw);
+        const bestWeek = weekValues.length ? Math.max(...weekValues) : 0;
+        const worstWeek = weekValues.length ? Math.min(...weekValues) : 0;
+        const avgWeek = weekValues.length ? totalFp / weekValues.length : 0;
+        return {
+          team_id: team.id,
+          team_name: team.name,
+          owner_id: team.owner_id,
+          owner_label: team.owner_label,
+          created_at: team.created_at,
+          total_fp: Math.round(totalFp * 10) / 10,
+          current_week_fp: Math.round((fpByGw[currentGw] ?? 0) * 10) / 10,
+          latest_day_fp: Math.round((fpByGwDay[latestKey] ?? 0) * 10) / 10,
+          avg_fp_per_gw: Math.round(avgWeek * 10) / 10,
+          best_week_fp: Math.round(bestWeek * 10) / 10,
+          worst_week_fp: Math.round(worstWeek * 10) / 10,
+          updated_at: latestUpdated,
+        };
+      }
 
-      // Aggregate FP per (gw,day) for THIS team
+      // Live path with per-(gw, day) captain
+      const dayMap = rosterByTeamDay[team.id] ?? new Map<string, DayEntry>();
+      const playerSet = playerIdsByTeam[team.id] ?? new Set<number>();
+
       const fpByGwDay: Record<string, number> = {};
       const fpByGw: Record<number, number> = {};
       let totalFp = 0;
       let latestUpdated = team.created_at;
 
-      for (const r of ros) {
-        const logs = logsByPlayer[r.player_id] ?? [];
+      for (const playerId of playerSet) {
+        const logs = logsByPlayer[playerId] ?? [];
         for (const log of logs) {
           const sched = schedMap[log.game_id];
           if (!sched) continue;
+          const dayKey = `${sched.gw}.${sched.day}`;
+          const dayEntry = dayMap.get(dayKey);
+          if (!dayEntry || !dayEntry.playerIds.has(playerId)) continue;
           const baseFp = computeFpFromRules(log, rules);
-          const fp = captainSet.has(log.player_id) ? baseFp * 2 : baseFp;
+          const fp = dayEntry.captainId === playerId ? baseFp * capMult : baseFp;
           totalFp += fp;
           const key = `${sched.gw}.${String(sched.day).padStart(2, "0")}`;
           fpByGwDay[key] = (fpByGwDay[key] ?? 0) + fp;
