@@ -483,9 +483,10 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   onTeamClick: (tricode: string) => void;
 }) {
   const { data, isLoading } = useAllTeamsForm(true);
+  const { league } = useLeague();
 
-  const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam) : [], [data, awayTeam]);
-  const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam) : [], [data, homeTeam]);
+  const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam, league) : [], [data, awayTeam, league]);
+  const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam, league) : [], [data, homeTeam, league]);
 
   if (isLoading) return <div className="p-3"><Skeleton className="h-16" /></div>;
   if (!data) return null;
@@ -504,7 +505,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
       <div className="grid grid-cols-2 gap-4">
         {teamsArr.map(({ team, standings }) => {
           const logo = getTeamLogo(team.tricode);
-          const meta = NBA_TEAM_META[team.tricode];
+          const meta = getLeagueMeta(league)[team.tricode];
 
           return (
             <div key={team.tricode} className="space-y-2">
@@ -534,7 +535,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
+                <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} league={league} />
                 <div className="bg-card/60 rounded-lg border p-2">
                   <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
                   <div className="space-y-1">
