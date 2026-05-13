@@ -389,10 +389,12 @@ export default function LeaguesPage() {
 
 function DiscoverPanel({
   myLeagueIds,
+  view,
   onOpen,
   onJoined,
 }: {
   myLeagueIds: Set<string>;
+  view: "list" | "cards";
   onOpen: (id: string) => void;
   onJoined: (id: string) => void;
 }) {
@@ -508,6 +510,12 @@ function DiscoverPanel({
         </Select>
       </div>
 
+      <div className="flex items-center justify-end -mt-1">
+        <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-muted-foreground">
+          {accumulated.length}{data?.has_more ? "+" : ""} {accumulated.length === 1 ? "league" : "leagues"}
+        </span>
+      </div>
+
       {isLoading && accumulated.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
           Loading public leagues…
@@ -519,18 +527,33 @@ function DiscoverPanel({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accumulated.map((l) => (
-              <PublicLeagueCard
-                key={l.id}
-                league={l}
-                isMember={myLeagueIds.has(l.id)}
-                joining={joiningId === l.id}
-                onJoin={() => handleJoin(l)}
-                onOpen={() => onOpen(l.id)}
-              />
-            ))}
-          </div>
+          {view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accumulated.map((l) => (
+                <PublicLeagueCard
+                  key={l.id}
+                  league={l}
+                  isMember={myLeagueIds.has(l.id)}
+                  joining={joiningId === l.id}
+                  onJoin={() => handleJoin(l)}
+                  onOpen={() => onOpen(l.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+              {accumulated.map((l) => (
+                <PublicLeagueListRow
+                  key={l.id}
+                  league={l}
+                  isMember={myLeagueIds.has(l.id)}
+                  joining={joiningId === l.id}
+                  onJoin={() => handleJoin(l)}
+                  onOpen={() => onOpen(l.id)}
+                />
+              ))}
+            </div>
+          )}
           {data?.has_more && (
             <div className="flex justify-center">
               <Button
