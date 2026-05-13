@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe } from "lucide-react";
+import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -157,6 +157,7 @@ export default function LeaguesPage() {
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "cards">("list");
 
   async function handleJoinSubmit() {
     const code = joinCode.trim().toUpperCase();
@@ -209,6 +210,7 @@ export default function LeaguesPage() {
   }, [fantasyLeagues]);
 
   const myCustom = sortedLeagues.filter((l) => !isMainLeague(l.id));
+  const mineCount = sortedLeagues.length;
 
   const handleOpen = (id: string) => {
     setSelectedLeagueId(id);
@@ -288,14 +290,37 @@ export default function LeaguesPage() {
       </div>
 
       <Tabs defaultValue="mine" className="w-full">
-        <TabsList>
-          <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
-            <Trophy className="h-3.5 w-3.5 mr-1" /> My Leagues
-          </TabsTrigger>
-          <TabsTrigger value="discover" className="font-heading uppercase tracking-wider text-[10px]">
-            <Globe className="h-3.5 w-3.5 mr-1" /> Discover
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <TabsList>
+            <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
+              <Trophy className="h-3.5 w-3.5 mr-1" /> My Leagues
+              <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
+            </TabsTrigger>
+            <TabsTrigger value="discover" className="font-heading uppercase tracking-wider text-[10px]">
+              <Globe className="h-3.5 w-3.5 mr-1" /> Discover
+            </TabsTrigger>
+          </TabsList>
+          <div className="inline-flex items-center rounded-md border border-border bg-card/60 p-0.5">
+            <Button
+              size="sm"
+              variant={view === "list" ? "default" : "ghost"}
+              onClick={() => setView("list")}
+              className="h-7 px-2 font-heading uppercase tracking-wider text-[9px]"
+              aria-label="List view"
+            >
+              <ListIcon className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant={view === "cards" ? "default" : "ghost"}
+              onClick={() => setView("cards")}
+              className="h-7 px-2 font-heading uppercase tracking-wider text-[9px]"
+              aria-label="Card view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
 
         <TabsContent value="mine" className="mt-4">
       {isLoading ? (
@@ -304,19 +329,35 @@ export default function LeaguesPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedLeagues.map((l) => (
-              <LeagueCard
-                key={l.id}
-                league={l}
-                isMain={isMainLeague(l.id)}
-                isMine={!!user && l.owner_id === user.id}
-                onOpen={() => handleOpen(l.id)}
-                onCreateTeam={() => handleCreateTeam(l.id)}
-                onSettings={() => handleSettings(l.id)}
-              />
-            ))}
-          </div>
+          {view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sortedLeagues.map((l) => (
+                <LeagueCard
+                  key={l.id}
+                  league={l}
+                  isMain={isMainLeague(l.id)}
+                  isMine={!!user && l.owner_id === user.id}
+                  onOpen={() => handleOpen(l.id)}
+                  onCreateTeam={() => handleCreateTeam(l.id)}
+                  onSettings={() => handleSettings(l.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+              {sortedLeagues.map((l) => (
+                <LeagueListRow
+                  key={l.id}
+                  league={l}
+                  isMain={isMainLeague(l.id)}
+                  isMine={!!user && l.owner_id === user.id}
+                  onOpen={() => handleOpen(l.id)}
+                  onCreateTeam={() => handleCreateTeam(l.id)}
+                  onSettings={() => handleSettings(l.id)}
+                />
+              ))}
+            </div>
+          )}
 
           {myCustom.length === 0 && (
             <div className="rounded-xl border border-dashed border-border bg-card/40 p-8 text-center space-y-3">
@@ -336,6 +377,7 @@ export default function LeaguesPage() {
         <TabsContent value="discover" className="mt-4">
           <DiscoverPanel
             myLeagueIds={myLeagueIds}
+            view={view}
             onOpen={(id) => { setSelectedLeagueId(id); navigate("/scoring"); }}
             onJoined={(id) => { setSelectedLeagueId(id); }}
           />
@@ -347,10 +389,12 @@ export default function LeaguesPage() {
 
 function DiscoverPanel({
   myLeagueIds,
+  view,
   onOpen,
   onJoined,
 }: {
   myLeagueIds: Set<string>;
+  view: "list" | "cards";
   onOpen: (id: string) => void;
   onJoined: (id: string) => void;
 }) {
@@ -466,6 +510,12 @@ function DiscoverPanel({
         </Select>
       </div>
 
+      <div className="flex items-center justify-end -mt-1">
+        <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-muted-foreground">
+          {accumulated.length}{data?.has_more ? "+" : ""} {accumulated.length === 1 ? "league" : "leagues"}
+        </span>
+      </div>
+
       {isLoading && accumulated.length === 0 ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
           Loading public leagues…
@@ -477,18 +527,33 @@ function DiscoverPanel({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accumulated.map((l) => (
-              <PublicLeagueCard
-                key={l.id}
-                league={l}
-                isMember={myLeagueIds.has(l.id)}
-                joining={joiningId === l.id}
-                onJoin={() => handleJoin(l)}
-                onOpen={() => onOpen(l.id)}
-              />
-            ))}
-          </div>
+          {view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {accumulated.map((l) => (
+                <PublicLeagueCard
+                  key={l.id}
+                  league={l}
+                  isMember={myLeagueIds.has(l.id)}
+                  joining={joiningId === l.id}
+                  onJoin={() => handleJoin(l)}
+                  onOpen={() => onOpen(l.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+              {accumulated.map((l) => (
+                <PublicLeagueListRow
+                  key={l.id}
+                  league={l}
+                  isMember={myLeagueIds.has(l.id)}
+                  joining={joiningId === l.id}
+                  onJoin={() => handleJoin(l)}
+                  onOpen={() => onOpen(l.id)}
+                />
+              ))}
+            </div>
+          )}
           {data?.has_more && (
             <div className="flex justify-center">
               <Button
@@ -577,6 +642,106 @@ function PublicLeagueCard({
             </Button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }: {
+  league: FantasyLeague;
+  isMine: boolean;
+  isMain: boolean;
+  onOpen: () => void;
+  onCreateTeam: () => void;
+  onSettings: () => void;
+}) {
+  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  return (
+    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+      <img
+        src={logo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+      />
+      <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
+        <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-sm font-heading font-bold uppercase tracking-wider truncate">{league.name}</h3>
+            {isMine && !isMain && (
+              <Crown className="h-3 w-3 text-accent shrink-0" aria-label="Commissioner" />
+            )}
+            {isMain && (
+              <span className="text-[8.5px] font-heading uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-full px-1.5">Main</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+            <span>{league.sport}</span>
+            <span>·</span>
+            <span>{league.memberCount} teams</span>
+            <span>·</span>
+            <span>{league.myTeamCount} mine</span>
+            <StatusPill status={league.status} />
+          </div>
+        </div>
+      </div>
+      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+        <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+          <Sparkles className="h-3 w-3 mr-1" /> Open
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onCreateTeam} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+          <UserPlus className="h-3 w-3 mr-1" /> Team
+        </Button>
+        {isMine && !isMain && (
+          <Button size="sm" variant="outline" onClick={onSettings} className="h-7 font-heading uppercase tracking-wider text-[9px]" aria-label="Settings">
+            <SettingsIcon className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
+  league: PublicLeague;
+  isMember: boolean;
+  joining: boolean;
+  onJoin: () => void;
+  onOpen: () => void;
+}) {
+  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  return (
+    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+      <img
+        src={logo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+      />
+      <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
+        <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-heading font-bold uppercase tracking-wider truncate">{league.name}</h3>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+            <span>{league.sport}</span>
+            <span>·</span>
+            <span>{league.team_count} teams</span>
+            <StatusPill status={league.status} />
+          </div>
+        </div>
+      </div>
+      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+        {isMember ? (
+          <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+            <Sparkles className="h-3 w-3 mr-1" /> Open
+          </Button>
+        ) : (
+          <Button size="sm" onClick={onJoin} disabled={joining} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+            {joining ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <UserPlus className="h-3 w-3 mr-1" />}
+            Join
+          </Button>
+        )}
       </div>
     </div>
   );

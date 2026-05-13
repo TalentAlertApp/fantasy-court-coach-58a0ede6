@@ -6,7 +6,7 @@ import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer } from "./types";
 import { HealthStatusBadge, HealthStatusIcon } from "@/components/health";
-import { isHealthUnavailable } from "@/lib/health";
+import { isHealthUnavailable, getHealthLabel } from "@/lib/health";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
@@ -592,11 +592,18 @@ function HealthWatchRow({
             <span className="text-[10px] font-mono text-white/45">· ${p.salary.toFixed(1)}M</span>
           )}
         </div>
-        {p.reason && (
-          <p className="mt-0.5 text-[10px] text-white/55 truncate" title={p.reason}>
-            {p.reason}
-          </p>
-        )}
+        {(() => {
+          const fullLabel = getHealthLabel(p.health);
+          const shortCodes = new Set(["Q", "OUT", "DTD", "GTD", "PROB"]);
+          const raw = (p.reason ?? "").trim();
+          const display = !raw || shortCodes.has(raw.toUpperCase()) ? fullLabel : raw;
+          if (!display) return null;
+          return (
+            <p className="mt-0.5 text-[10px] text-white/55 truncate" title={display}>
+              {display}
+            </p>
+          );
+        })()}
       </div>
       <HealthStatusBadge health={p.health} compact showProbable />
     </motion.div>
