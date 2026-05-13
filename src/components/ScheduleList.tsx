@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 import TeamCompareModal from "@/components/TeamCompareModal";
@@ -34,6 +35,17 @@ import {
   type PlayerHealth,
 } from "@/lib/health";
 import { HealthStatusIcon } from "@/components/health";
+
+/* ---------- League-aware team meta (conference) ---------- */
+type LeagueCode = "nba" | "wnba";
+const WNBA_META: Record<string, { conference: "East" | "West" }> = Object.fromEntries(
+  WNBA_TEAMS.map((t) => [t.tricode, { conference: t.conference === "Eastern" ? "East" : "West" }]),
+);
+function getLeagueMeta(league: LeagueCode): Record<string, { conference: "East" | "West" }> {
+  return league === "wnba"
+    ? WNBA_META
+    : (NBA_TEAM_META as unknown as Record<string, { conference: "East" | "West" }>);
+}
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
