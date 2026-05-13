@@ -1,0 +1,1 @@
+UPDATE schedule_games SET youtube_recap_id = NULL WHERE game_id = '22501155';
