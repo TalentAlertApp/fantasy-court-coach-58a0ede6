@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { fetchRosterCurrent } from "@/lib/api";
 import { useTeam } from "@/contexts/TeamContext";
 
@@ -13,5 +13,6 @@ export function useRosterQuery() {
     queryFn: () => fetchRosterCurrent(selectedTeamId ?? undefined),
     staleTime: 30_000,
     enabled: isReady && idIsValid,
+    placeholderData: keepPreviousData,
   });
 }
