@@ -184,7 +184,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
           </div>
-          <div className="flex items-center justify-center gap-1.5 py-0 flex-wrap">
+          <div className="flex items-center justify-center gap-1.5 -mt-2 py-0 flex-wrap">
             {game.game_boxscore_url && (
               <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <Table2 className="h-3.5 w-3.5" /> BoxScore
@@ -207,7 +207,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             )}
           </div>
           {game.game_recap_url && played && (
-            <div className="flex justify-center pt-0">
+            <div className="flex justify-center pt-1.5">
               {embedSrc ? (
                 <button
                   type="button"
@@ -232,7 +232,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
           {game.game_recap_url && !played && (
-            <div className="flex justify-center pt-0">
+            <div className="flex justify-center pt-1.5">
               <a
                 href={game.game_recap_url}
                 target="_blank"
