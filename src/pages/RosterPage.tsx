@@ -36,6 +36,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useTeamChips } from "@/hooks/useTeamChips";
+import { useDeadlineStatus } from "@/hooks/useDeadlineStatus";
+import RosterChipsBar from "@/components/RosterChipsBar";
 import { normalizePlayerHealth, shouldBlockCaptain, shouldWarnCaptain, getCaptainHealthWarning } from "@/lib/health";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
@@ -79,6 +81,7 @@ export default function RosterPage() {
   const { data: usedChips } = useTeamChips(selectedTeamId);
   const allStarUsed = usedChips?.find((c) => c.chip === "all_star");
   const wildcardUsed = usedChips?.find((c) => c.chip === "wildcard");
+  const { data: deadlineStatus } = useDeadlineStatus(selectedTeamId);
   const { data: rosterData, isLoading: rosterLoading, isError: rosterIsError, isSuccess: rosterSuccess, refetch: refetchRoster } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
