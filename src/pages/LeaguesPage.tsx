@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
@@ -358,13 +358,13 @@ function DiscoverPanel({
   });
 
   // reset accumulator on filter change
-  useMemo(() => {
+  useEffect(() => {
     setAccumulated([]);
     setPage(1);
   }, [sport, search, sort]);
 
   // append items as pages load
-  useMemo(() => {
+  useEffect(() => {
     if (!data?.items) return;
     setAccumulated((prev) => {
       if (page === 1) return data.items;
