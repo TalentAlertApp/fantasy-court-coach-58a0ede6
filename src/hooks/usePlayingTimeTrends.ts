@@ -54,6 +54,18 @@ export function usePlayingTimeTrends() {
       if (!latest) {
         return { increased: [], decreased: [], updatedAt: new Date().toISOString(), latestDate: null };
       }
+      // Determine the dataset span. In early-season scenarios (e.g. fresh
+      // WNBA campaign) the full season fits inside 7 days, so a fixed 7-day
+      // window would compare the same games to themselves and return zero
+      // deltas. In that case we split each player's games chronologically
+      // (first half = baseline, second half = recent) instead.
+      let earliest = latest;
+      for (const l of allLogs) {
+        if (l.game_date && l.game_date < earliest) earliest = l.game_date;
+      }
+      const spanDays = (new Date(latest).getTime() - new Date(earliest).getTime()) / 86400000;
+      const useHalfSplit = spanDays < 14;
+
       const latestDate = new Date(latest);
       const sevenDaysAgo = new Date(latestDate);
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -63,18 +75,39 @@ export function usePlayingTimeTrends() {
       const seasonAgg: Record<number, { totalMp: number; gp: number }> = {};
       const recentAgg: Record<number, { totalMp: number; gp: number }> = {};
 
-      for (const l of allLogs) {
-        const pid = l.player_id;
-        const mp = Number(l.mp);
-
-        if (!seasonAgg[pid]) seasonAgg[pid] = { totalMp: 0, gp: 0 };
-        seasonAgg[pid].totalMp += mp;
-        seasonAgg[pid].gp += 1;
-
-        if (l.game_date && l.game_date >= cutoff) {
-          if (!recentAgg[pid]) recentAgg[pid] = { totalMp: 0, gp: 0 };
-          recentAgg[pid].totalMp += mp;
-          recentAgg[pid].gp += 1;
+      if (useHalfSplit) {
+        // Group logs per player, sort by date, and split in half.
+        const byPid: Record<number, { mp: number; date: string | null }[]> = {};
+        for (const l of allLogs) {
+          (byPid[l.player_id] ||= []).push({ mp: Number(l.mp), date: l.game_date });
+        }
+        for (const [pidStr, list] of Object.entries(byPid)) {
+          const pid = Number(pidStr);
+          list.sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+          const mid = Math.floor(list.length / 2);
+          const first = list.slice(0, Math.max(1, mid));
+          const second = list.slice(Math.max(1, mid));
+          seasonAgg[pid] = {
+            totalMp: first.reduce((s, x) => s + x.mp, 0),
+            gp: first.length,
+          };
+          recentAgg[pid] = {
+            totalMp: second.reduce((s, x) => s + x.mp, 0),
+            gp: second.length,
+          };
+        }
+      } else {
+        for (const l of allLogs) {
+          const pid = l.player_id;
+          const mp = Number(l.mp);
+          if (!seasonAgg[pid]) seasonAgg[pid] = { totalMp: 0, gp: 0 };
+          seasonAgg[pid].totalMp += mp;
+          seasonAgg[pid].gp += 1;
+          if (l.game_date && l.game_date >= cutoff) {
+            if (!recentAgg[pid]) recentAgg[pid] = { totalMp: 0, gp: 0 };
+            recentAgg[pid].totalMp += mp;
+            recentAgg[pid].gp += 1;
+          }
         }
       }
 
@@ -101,7 +134,8 @@ export function usePlayingTimeTrends() {
       for (const p of players) {
         const recent = recentAgg[p.id];
         const season = seasonAgg[p.id];
-        if (!recent || recent.gp < 1 || !season || season.gp < 3) continue;
+        const minSeasonGp = useHalfSplit ? 1 : 3;
+        if (!recent || recent.gp < 1 || !season || season.gp < minSeasonGp) continue;
 
         const avg7d = recent.totalMp / recent.gp;
         const seasonAvg = season.totalMp / season.gp;

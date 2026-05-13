@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const MAIN_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
+export const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
+export const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
+export const MAIN_LEAGUE_IDS = new Set<string>([MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID]);
+export function isMainLeague(id: string): boolean {
+  return MAIN_LEAGUE_IDS.has(id);
+}
 
 export type RosterRuleSet = {
   id: string;
@@ -108,13 +114,13 @@ async function fetchFantasyLeagues(userId: string | null): Promise<FantasyLeague
     const memberLeagueIds = new Set((myMemberships ?? []).map((m: any) => m.league_id));
     leagues = leagues.filter(
       (l) =>
-        l.id === MAIN_LEAGUE_ID ||
+        MAIN_LEAGUE_IDS.has(l.id) ||
         l.owner_id === userId ||
         teamLeagueIds.has(l.id) ||
         memberLeagueIds.has(l.id),
     );
   } else {
-    leagues = leagues.filter((l) => l.id === MAIN_LEAGUE_ID);
+    leagues = leagues.filter((l) => MAIN_LEAGUE_IDS.has(l.id));
   }
 
   // 3. Pull scoring rules + counts

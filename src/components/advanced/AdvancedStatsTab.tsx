@@ -33,13 +33,21 @@ export default function AdvancedStatsTab({ onPlayerClick, onTeamClick }: Props) 
 
   const items = useMemo(() => ((data as any)?.items ?? []) as any[], [data]);
 
+  // Auto-clamp the minGp threshold so early-season datasets (e.g. fresh WNBA)
+  // still surface leaders. Capped at the user-set 20 baseline.
+  const maxGp = useMemo(() => items.reduce((m, p) => Math.max(m, p?.season?.gp ?? 0), 0), [items]);
+  const effectiveMinGp = useMemo(() => {
+    if (maxGp <= 0) return minGp;
+    return Math.min(minGp, Math.max(1, Math.floor(maxGp * 0.5)));
+  }, [minGp, maxGp]);
+
   const filtered = useMemo(() => {
     return items.filter((p) => {
       if (fcBc !== "ALL" && p.core.fc_bc !== fcBc) return false;
-      if (p.season.gp < minGp) return false;
+      if (p.season.gp < effectiveMinGp) return false;
       return true;
     });
-  }, [items, fcBc, minGp]);
+  }, [items, fcBc, effectiveMinGp]);
 
   const shootingRows: LeaderRow[] = useMemo(() => {
     return filtered

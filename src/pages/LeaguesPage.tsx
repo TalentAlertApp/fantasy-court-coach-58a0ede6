@@ -13,7 +13,7 @@ import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
-import { MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
+import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague } from "@/hooks/useFantasyLeagues";
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -191,14 +191,15 @@ export default function LeaguesPage() {
   }
 
   const sortedLeagues = useMemo(() => {
-    const main = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_ID);
+    const nbaMain = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_NBA_ID);
+    const wnbaMain = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_WNBA_ID);
     const rest = fantasyLeagues
-      .filter((l) => l.id !== MAIN_LEAGUE_ID)
+      .filter((l) => !isMainLeague(l.id))
       .sort((a, b) => a.name.localeCompare(b.name));
-    return main ? [main, ...rest] : rest;
+    return [nbaMain, wnbaMain, ...rest].filter(Boolean) as typeof fantasyLeagues;
   }, [fantasyLeagues]);
 
-  const myCustom = sortedLeagues.filter((l) => l.id !== MAIN_LEAGUE_ID);
+  const myCustom = sortedLeagues.filter((l) => !isMainLeague(l.id));
 
   const handleOpen = (id: string) => {
     setSelectedLeagueId(id);
@@ -296,7 +297,7 @@ export default function LeaguesPage() {
               <LeagueCard
                 key={l.id}
                 league={l}
-                isMain={l.id === MAIN_LEAGUE_ID}
+                isMain={isMainLeague(l.id)}
                 isMine={!!user && l.owner_id === user.id}
                 onOpen={() => handleOpen(l.id)}
                 onCreateTeam={() => handleCreateTeam(l.id)}
