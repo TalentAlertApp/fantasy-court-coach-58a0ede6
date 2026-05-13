@@ -343,32 +343,30 @@ export default function CreateLeaguePage() {
         {step === 4 && (
           <div className="space-y-5">
             <SectionHeader title="Roster rules" subtitle="Budget, bench size, and team caps" />
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Budget cap</Label>
-                <Switch checked={budgetCapEnabled} onCheckedChange={setBudgetCapEnabled} />
-              </div>
-              {budgetCapEnabled && (
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">$</span>
-                  <Input type="number" min={1} value={budgetCap} onChange={(e) => setBudgetCap(Number(e.target.value))} className="w-32" />
-                  <span className="text-xs text-muted-foreground">million</span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Budget cap</Label>
+                  <Switch checked={budgetCapEnabled} onCheckedChange={setBudgetCapEnabled} />
                 </div>
-              )}
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-              <Label>Bench size</Label>
-              <Input type="number" min={3} max={8} value={benchCount} onChange={(e) => setBenchCount(Number(e.target.value))} className="w-24" />
-              <p className="text-xs text-muted-foreground">Total roster = 5 starters + bench</p>
-            </div>
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Max players from same NBA/WNBA team</Label>
-                <Switch checked={maxPerTeamEnabled} onCheckedChange={setMaxPerTeamEnabled} />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground text-xs">$</span>
+                  <Input type="number" min={1} disabled={!budgetCapEnabled} value={budgetCap} onChange={(e) => setBudgetCap(Number(e.target.value))} className="h-8 text-sm" />
+                  <span className="text-[10px] text-muted-foreground">M</span>
+                </div>
               </div>
-              {maxPerTeamEnabled && (
-                <Input type="number" min={1} max={5} value={maxPerTeam} onChange={(e) => setMaxPerTeam(Number(e.target.value))} className="w-24" />
-              )}
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <Label className="text-xs">Bench size</Label>
+                <Input type="number" min={3} max={8} value={benchCount} onChange={(e) => setBenchCount(Number(e.target.value))} className="h-8 text-sm" />
+                <p className="text-[10px] text-muted-foreground">5 starters + bench</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Max per real team</Label>
+                  <Switch checked={maxPerTeamEnabled} onCheckedChange={setMaxPerTeamEnabled} />
+                </div>
+                <Input type="number" min={1} max={5} disabled={!maxPerTeamEnabled} value={maxPerTeam} onChange={(e) => setMaxPerTeam(Number(e.target.value))} className="h-8 text-sm" />
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">All settings can be changed later while the league is in Draft.</p>
           </div>
@@ -407,49 +405,29 @@ export default function CreateLeaguePage() {
         {step === 6 && (
           <div className="space-y-5">
             <SectionHeader title="Chips & transfers" subtitle="Power-ups and transfer budget" />
-            <ChipRow
-              label="Captain — one player scores double every game day"
-              enabled={captainEnabled}
-              onToggle={setCaptainEnabled}
-            >
-              <Label className="text-xs text-muted-foreground">Multiplier</Label>
-              <Input type="number" step={0.5} min={1} max={3} value={chipCaptainMult} onChange={(e) => setChipCaptainMult(Number(e.target.value))} className="w-20" />
-            </ChipRow>
-            <ChipRow
-              label="Wildcard — make unlimited transfers in one game week"
-              enabled={wildcardEnabled}
-              onToggle={setWildcardEnabled}
-            >
-              <Label className="text-xs text-muted-foreground">Per season</Label>
-              <select
-                className="rounded-md border border-border bg-background h-9 px-2 text-sm"
-                value={wildcardCount}
-                onChange={(e) => setWildcardCount(Number(e.target.value) as 1 | 2)}
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </select>
-            </ChipRow>
-            <ChipRow
-              label="All-Star — boost one player for a full game week"
-              enabled={allStarEnabled}
-              onToggle={setAllStarEnabled}
-            >
-              <Label className="text-xs text-muted-foreground">Count</Label>
-              <select
-                className="rounded-md border border-border bg-background h-9 px-2 text-sm"
-                value={allStarCount}
-                onChange={(e) => setAllStarCount(Number(e.target.value) as 1 | 2)}
-              >
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-              </select>
-              <Label className="text-xs text-muted-foreground">Multiplier</Label>
-              <Input type="number" step={0.5} min={1} max={5} value={allStarMultiplier} onChange={(e) => setAllStarMultiplier(Number(e.target.value))} className="w-20" />
-            </ChipRow>
-            <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-2">
-              <Label>Free transfers per game week</Label>
-              <Input type="number" min={1} max={5} value={transferCap} onChange={(e) => setTransferCap(Number(e.target.value))} className="w-24" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <ChipRow label="Captain — double FP every game day" enabled={captainEnabled} onToggle={setCaptainEnabled}>
+                <Label className="text-[10px] text-muted-foreground">Mult</Label>
+                <Input type="number" step={0.5} min={1} max={3} value={chipCaptainMult} onChange={(e) => setChipCaptainMult(Number(e.target.value))} className="w-16 h-8" />
+              </ChipRow>
+              <ChipRow label="Wildcard — unlimited transfers in one GW" enabled={wildcardEnabled} onToggle={setWildcardEnabled}>
+                <Label className="text-[10px] text-muted-foreground">/season</Label>
+                <select className="rounded-md border border-border bg-background h-8 px-2 text-sm" value={wildcardCount} onChange={(e) => setWildcardCount(Number(e.target.value) as 1 | 2)}>
+                  <option value={1}>1</option><option value={2}>2</option>
+                </select>
+              </ChipRow>
+              <ChipRow label="All-Star — boost one player for a full GW" enabled={allStarEnabled} onToggle={setAllStarEnabled}>
+                <Label className="text-[10px] text-muted-foreground">/season</Label>
+                <select className="rounded-md border border-border bg-background h-8 px-2 text-sm" value={allStarCount} onChange={(e) => setAllStarCount(Number(e.target.value) as 1 | 2)}>
+                  <option value={1}>1</option><option value={2}>2</option>
+                </select>
+                <Label className="text-[10px] text-muted-foreground">Mult</Label>
+                <Input type="number" step={0.5} min={1} max={5} value={allStarMultiplier} onChange={(e) => setAllStarMultiplier(Number(e.target.value))} className="w-16 h-8" />
+              </ChipRow>
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2 flex flex-col">
+                <Label className="text-xs">Free transfers per game week</Label>
+                <Input type="number" min={1} max={5} value={transferCap} onChange={(e) => setTransferCap(Number(e.target.value))} className="w-24 h-8" />
+              </div>
             </div>
           </div>
         )}
@@ -537,12 +515,12 @@ function ChipRow({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
+    <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-semibold">{label}</div>
+        <div className="text-xs font-semibold leading-snug">{label}</div>
         <Switch checked={enabled} onCheckedChange={onToggle} />
       </div>
-      {enabled && <div className="flex items-center gap-3 flex-wrap">{children}</div>}
+      {enabled && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>
   );
 }
