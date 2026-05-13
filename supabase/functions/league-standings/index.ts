@@ -3,7 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
-import { computeFpFromRules, fetchScoringRules, fetchLeagueScoringSystemId, captainMultiplier, type ScoringRule } from "../_shared/scoring.ts";
+import { computeFpFromRules, fetchScoringRules, fetchLeagueScoringSystemId, fetchLeagueCaptainMultiplier, type ScoringRule } from "../_shared/scoring.ts";
 
 const DEFAULT_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
 const PAGE_SIZE = 1000;
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       arr.push({ gw: s.gw, day: s.day, total_fp: Number(s.total_fp), calculated_at: s.calculated_at });
       snapByTeam.set(s.team_id, arr);
     }
-    const capMult = captainMultiplier(rules);
+    const capMult = await fetchLeagueCaptainMultiplier(sb, leagueId, rules);
 
     // 6. Compute per-team aggregates
     const teamRows = teams.map(team => {
