@@ -701,15 +701,14 @@ function PublicLeagueCard({
             </div>
           </div>
         )}
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="flex items-center gap-1.5 pt-2">
           {isMember ? (
-            <Button size="sm" onClick={onOpen} className="font-heading uppercase tracking-wider text-[10px]">
-              <Sparkles className="h-3.5 w-3.5 mr-1" /> Open
+            <Button size="icon" onClick={onOpen} className="h-8 w-8" aria-label="Open league" title="Open league">
+              <LayoutDashboard className="h-4 w-4" />
             </Button>
           ) : (
-            <Button size="sm" onClick={onJoin} disabled={joining} className="font-heading uppercase tracking-wider text-[10px]">
-              {joining ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
-              Join
+            <Button size="icon" onClick={onJoin} disabled={joining} className="h-8 w-8" aria-label="Join league" title="Join league">
+              {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
             </Button>
           )}
         </div>
@@ -730,10 +729,17 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
   return (
     <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
       <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/95 via-card/80 to-card/95" />
+      <img
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.10] select-none"
       />
       <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
         <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
@@ -758,15 +764,18 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
         </div>
       </div>
       <div className="relative z-10 flex items-center gap-1.5 shrink-0">
-        <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-          <Sparkles className="h-3 w-3 mr-1" /> Open
+        <Button size="icon" onClick={onOpen} className="h-7 w-7" aria-label="Open league" title="Open league">
+          <LayoutDashboard className="h-3.5 w-3.5" />
         </Button>
-        <Button size="sm" variant="secondary" onClick={onCreateTeam} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-          <UserPlus className="h-3 w-3 mr-1" /> Team
+        <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-7 w-7" aria-label="Create team" title="Create team">
+          <UserPlus className="h-3.5 w-3.5" />
         </Button>
+        {isMine && !isMain && league.join_code && (
+          <CopyCodeButton code={league.join_code} compact />
+        )}
         {isMine && !isMain && (
-          <Button size="sm" variant="outline" onClick={onSettings} className="h-7 font-heading uppercase tracking-wider text-[9px]" aria-label="Settings">
-            <SettingsIcon className="h-3 w-3" />
+          <Button size="icon" variant="outline" onClick={onSettings} className="h-7 w-7" aria-label="Settings" title="Settings">
+            <SettingsIcon className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
@@ -785,10 +794,17 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
   return (
     <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
       <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/95 via-card/80 to-card/95" />
+      <img
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.10] select-none"
       />
       <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
         <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
@@ -804,13 +820,12 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
       </div>
       <div className="relative z-10 flex items-center gap-1.5 shrink-0">
         {isMember ? (
-          <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-            <Sparkles className="h-3 w-3 mr-1" /> Open
+          <Button size="icon" onClick={onOpen} className="h-7 w-7" aria-label="Open league" title="Open league">
+            <LayoutDashboard className="h-3.5 w-3.5" />
           </Button>
         ) : (
-          <Button size="sm" onClick={onJoin} disabled={joining} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-            {joining ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <UserPlus className="h-3 w-3 mr-1" />}
-            Join
+          <Button size="icon" onClick={onJoin} disabled={joining} className="h-7 w-7" aria-label="Join league" title="Join league">
+            {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
           </Button>
         )}
       </div>
