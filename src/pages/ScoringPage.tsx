@@ -115,7 +115,16 @@ export default function ScoringPage() {
         teamCounts={Object.fromEntries(
           (fantasyLeagues ?? []).map((l) => [
             l.id,
-            userTeams.filter((t: any) => t.league_id === l.id).length,
+            // Sport-aware count to match the sidebar team switcher and the
+            // server-side standings filter. Custom leagues match by league_id;
+            // system Main Leagues match by sport (since teams attached to a
+            // single sport may carry the sport's league_id rather than the
+            // fantasy main-league pseudo id).
+            (l.id === "00000000-0000-0000-0000-000000000010" ||
+              l.id === "00000000-0000-0000-0000-000000000011" ||
+              l.id === "00000000-0000-0000-0000-000000000012")
+              ? userTeams.filter((t: any) => (t.league_code ?? "nba") === l.sport).length
+              : userTeams.filter((t: any) => t.league_id === l.id).length,
           ]),
         )}
       />
