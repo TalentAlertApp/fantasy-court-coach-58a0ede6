@@ -186,6 +186,7 @@ export default function ScoringPage() {
             refetch={standingsQuery.refetch}
             currentUserId={user?.id ?? null}
             selectedTeamId={selectedTeamId}
+            leagueName={selectedLeague?.name ?? null}
             onSelectMyTeam={(teamId) => {
               setSelectedTeamId(teamId);
               setTab("team");
@@ -303,12 +304,13 @@ type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
 
 // ══════════════════════════════ LEAGUE VIEW ══════════════════════════════
 function LeagueView({
-  data, isLoading, isError, refetch, currentUserId, selectedTeamId, onSelectMyTeam,
+  data, isLoading, isError, refetch, currentUserId, selectedTeamId, onSelectMyTeam, leagueName,
 }: {
   data: ReturnType<typeof useLeagueStandings>["data"];
   isLoading: boolean; isError: boolean; refetch: () => void;
   currentUserId: string | null; selectedTeamId: string | null;
   onSelectMyTeam: (teamId: string) => void;
+  leagueName: string | null;
 }) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<StandSortKey>("rank");
