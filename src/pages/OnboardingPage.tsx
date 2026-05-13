@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { useFirstRunGate } from "@/hooks/useFirstRunGate";
@@ -9,6 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import OnboardingHero from "@/components/onboarding/OnboardingHero";
 import NameStep from "@/components/onboarding/NameStep";
 import DraftStep from "@/components/onboarding/DraftStep";
+import ChooseLeagueStep from "@/components/onboarding/ChooseLeagueStep";
 import {
   getOnboardingState,
   setOnboardingState,
@@ -21,6 +22,8 @@ type Step = OnboardingStep;
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const preselectedLeagueId = (location.state as { leagueId?: string } | null)?.leagueId ?? null;
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId } = useTeam();
   const { shouldOnboard, ready } = useFirstRunGate();
@@ -33,6 +36,8 @@ export default function OnboardingPage() {
   const [creating, setCreating] = useState(false);
   const [createdTeamName, setCreatedTeamName] = useState(initial?.teamName ?? "");
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(initial?.teamId ?? null);
+  const [pendingName, setPendingName] = useState<string>("");
+  const [pendingMainSport, setPendingMainSport] = useState<"nba" | "wnba">("nba");
 
   const setStep = (next: Step, extra?: { teamId?: string; teamName?: string }) => {
     setStepRaw(next);
@@ -77,16 +82,23 @@ export default function OnboardingPage() {
     }
   }, [ready, shouldOnboard, navigate]);
 
-  const handleCreateTeam = async (name: string, leagueCode: "nba" | "wnba" = "nba") => {
+  const submitTeam = async (
+    name: string,
+    args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba" }
+  ) => {
     setCreating(true);
     try {
-      const res = await createTeam({ name, league_code: leagueCode });
+      const res = await createTeam({
+        name,
+        league_code: args.leagueCode,
+        fantasy_league_id: args.fantasyLeagueId,
+      });
       const teamId = res.team.id;
       setSelectedTeamId(teamId);
       setCreatedTeamId(teamId);
       setCreatedTeamName(res.team.name);
-      // Refresh teams list so the gate sees the new ownership
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
+      await queryClient.invalidateQueries({ queryKey: ["fantasy-leagues"] });
       setStep("draft", { teamId, teamName: res.team.name });
     } catch (e: any) {
       toast({
@@ -97,6 +109,28 @@ export default function OnboardingPage() {
     } finally {
       setCreating(false);
     }
+  };
+
+  // NameStep submits with a leagueCode (kept for backward-compat); we capture
+  // the name and either skip to draft (if a league is preselected) or go to
+  // the Choose League step.
+  const handleNameSubmit = async (name: string, leagueCode: "nba" | "wnba") => {
+    setPendingName(name);
+    setPendingMainSport(leagueCode);
+    if (preselectedLeagueId) {
+      // Pre-selected from LeaguesPage — skip the league chooser
+      await submitTeam(name, { fantasyLeagueId: preselectedLeagueId, leagueCode });
+    } else {
+      setStep("league");
+    }
+  };
+
+  const handleLeagueSubmit = async (args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba" }) => {
+    if (!pendingName) {
+      setStep("name");
+      return;
+    }
+    await submitTeam(pendingName, args);
   };
 
   const handleSkip = () => {
@@ -167,7 +201,14 @@ export default function OnboardingPage() {
       {step === "name" && (
         <NameStep
           onBack={() => setStep("hero")}
-          onSubmit={handleCreateTeam}
+          onSubmit={handleNameSubmit}
+          submitting={creating}
+        />
+      )}
+      {step === "league" && (
+        <ChooseLeagueStep
+          onBack={() => setStep("name")}
+          onSubmit={handleLeagueSubmit}
           submitting={creating}
         />
       )}
