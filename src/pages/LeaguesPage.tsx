@@ -655,8 +655,15 @@ function PublicLeagueCard({
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card/90 to-card p-5 hover:border-accent/40 transition-colors">
-      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.08] rotate-12 select-none blur-[0.5px]" />
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
+      <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-card/95 via-card/85 to-card/95" />
+      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]" />
       <div className="relative z-10 space-y-3">
         <div>
           <h3 className="text-lg font-heading font-bold uppercase tracking-wider">{league.name}</h3>
