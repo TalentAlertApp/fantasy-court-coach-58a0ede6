@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { useNBAStandings } from "@/hooks/useNBAStandings";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import type { StandingRow } from "@/types/standings";
 
 interface SchedRow {
@@ -75,6 +76,7 @@ async function fetchAllScheduleGames(leagueId: string): Promise<SchedRow[]> {
 
 export function useStandingsContext() {
   const { data: leagueId } = useLeagueId();
+  const { teams: leagueTeams } = useLeagueTeams();
   const { data: games = [], isLoading } = useQuery({
     queryKey: ["standings-context-schedule", leagueId],
     enabled: !!leagueId,
@@ -82,7 +84,7 @@ export function useStandingsContext() {
     staleTime: 5 * 60_000,
   });
 
-  const standings = useNBAStandings(games);
+  const standings = useNBAStandings(games, leagueTeams);
 
   const last5ByTeam = useMemo(() => {
     const finals = games

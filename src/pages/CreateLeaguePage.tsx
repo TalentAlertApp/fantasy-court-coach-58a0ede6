@@ -433,9 +433,9 @@ export default function CreateLeaguePage() {
         )}
 
         {step === 7 && (
-          <div className="space-y-5">
+          <div className="space-y-3">
             <SectionHeader title="Review & create" subtitle="One last look before going live" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <SummaryCard title="Identity" tone="primary">
                 <SummaryRow k="Name" v={name} />
                 <SummaryRow k="Sport" v={sport.toUpperCase()} />
@@ -527,9 +527,9 @@ function ChipRow({
 
 function SummaryRow({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1.5 border-b border-border/40 last:border-b-0">
-      <div className="text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground shrink-0">{k}</div>
-      <div className={cn("text-sm font-medium text-right break-words", mono && "font-mono text-xs")}>{v}</div>
+    <div className="flex items-baseline justify-between gap-2 py-1 border-b border-border/40 last:border-b-0">
+      <div className="text-[9px] font-heading uppercase tracking-[0.16em] text-muted-foreground shrink-0">{k}</div>
+      <div className={cn("text-xs font-medium text-right break-words", mono && "font-mono text-[11px]")}>{v}</div>
     </div>
   );
 }
@@ -540,8 +540,8 @@ function SummaryCard({ title, tone, children }: { title: string; tone: "primary"
     tone === "accent" ? "border-accent/30 bg-gradient-to-br from-accent/10 via-card to-card" :
     "border-border bg-card";
   return (
-    <div className={cn("rounded-xl border p-4 space-y-1", toneClass)}>
-      <div className="text-[10px] font-heading uppercase tracking-[0.22em] text-muted-foreground mb-2">{title}</div>
+    <div className={cn("rounded-xl border p-3 space-y-1", toneClass)}>
+      <div className="text-[10px] font-heading uppercase tracking-[0.22em] text-foreground/80 mb-1.5 font-bold">{title}</div>
       {children}
     </div>
   );
