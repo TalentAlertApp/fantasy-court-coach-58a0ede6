@@ -1191,3 +1191,55 @@ function PulseTable({
     </div>
   );
 }
+
+// ══════════════════════════════ FANTASY LEAGUE SELECTOR ══════════════════════════════
+function FantasyLeagueSelector({
+  leagues,
+  selectedLeague,
+  onSelect,
+  teamCounts,
+}: {
+  leagues: Array<{ id: string; name: string; sport: "nba" | "wnba" }>;
+  selectedLeague: { id: string; name: string; sport: "nba" | "wnba" } | null;
+  onSelect: (id: string) => void;
+  teamCounts: Record<string, number>;
+}) {
+  if (!selectedLeague) return null;
+  const logoFor = (sport: "nba" | "wnba") => (sport === "wnba" ? wnbaLogo : nbaLogo);
+  const onlyOne = leagues.length <= 1;
+
+  if (onlyOne) {
+    return (
+      <div className="flex items-center gap-2 px-1">
+        <img src={logoFor(selectedLeague.sport)} alt="" className="h-5 w-5 object-contain" />
+        <span className="font-heading uppercase text-xs tracking-[0.2em] text-foreground/80">
+          {selectedLeague.name}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <img src={logoFor(selectedLeague.sport)} alt="" className="h-5 w-5 object-contain" />
+      <Select value={selectedLeague.id} onValueChange={onSelect}>
+        <SelectTrigger className="h-9 w-auto min-w-[220px] rounded-lg bg-card border-border font-heading text-xs uppercase tracking-[0.15em]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {leagues.map((l) => (
+            <SelectItem key={l.id} value={l.id} className="font-heading text-xs uppercase">
+              <span className="flex items-center gap-2 pr-2">
+                <img src={logoFor(l.sport)} alt="" className="h-4 w-4 object-contain" />
+                <span className="truncate">{l.name}</span>
+                <span className="ml-auto text-[10px] text-muted-foreground tracking-[0.15em]">
+                  {teamCounts[l.id] ?? 0} {teamCounts[l.id] === 1 ? "team" : "teams"}
+                </span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
