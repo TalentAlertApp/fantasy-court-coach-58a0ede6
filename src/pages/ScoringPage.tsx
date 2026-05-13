@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus, ChevronDown } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -12,7 +12,6 @@ import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPuls
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
-import { MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
