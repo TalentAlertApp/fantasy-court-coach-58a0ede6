@@ -3,7 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
-import { computeFpFromRules, fetchScoringRules, fetchLeagueScoringSystemId, type ScoringRule } from "../_shared/scoring.ts";
+import { computeFpFromRules, fetchScoringRules, fetchLeagueScoringSystemId, captainMultiplier, type ScoringRule } from "../_shared/scoring.ts";
 
 const DEFAULT_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
 const PAGE_SIZE = 1000;
