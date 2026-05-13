@@ -10,6 +10,8 @@ import courtBg from "@/assets/court-bg.png";
 import PlayerModal from "@/components/PlayerModal";
 import { useWishlist } from "@/hooks/useWishlist";
 import { getCourtFormation } from "@/lib/court-layout";
+import { useLeague } from "@/contexts/LeagueContext";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 
 function formatShortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -122,6 +124,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
   const { data, isLoading } = useTeamOfTheWeek(gw);
   const formation = data?.players ? getFormation(data.players) : [];
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
+  const { league } = useLeague();
 
   return (
     <>
@@ -149,6 +152,9 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
                 backgroundPosition: "center",
               }}
             >
+              <div className="absolute top-3 right-3 z-20 bg-black/40 rounded-full p-1.5 backdrop-blur-sm">
+                <LeagueLogoBadge league={league} size="md" className="[&_img]:h-8 [&_img]:w-8" />
+              </div>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                 <span className="text-white/10 text-xl font-heading font-bold uppercase tracking-[0.3em]">
                   Team of the Week
