@@ -17,6 +17,7 @@ import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague }
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import globeEarth from "@/assets/globe-earth.svg";
 import courtBg from "@/assets/court-bg.png";
 
 function formulaString(rules: ScoringRule[]): string {
