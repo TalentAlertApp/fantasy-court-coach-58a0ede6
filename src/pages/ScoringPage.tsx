@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -11,6 +11,8 @@ import { useLeagueStandings } from "@/hooks/useLeagueStandings";
 import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPulse";
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -42,10 +44,10 @@ const TAB_LS_KEY = "nba_scoring_tab";
 export default function ScoringPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { teams: userTeams, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
+  const { teams: userTeams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
+  const { leagues: fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId, sportCode } = useFantasyLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
-  const activeLeagueCode: "nba" | "wnba" = (selectedTeam as any)?.league_code === "wnba" ? "wnba" : "nba";
-  const activeSportLeagueId = (selectedTeam as any)?.sport_league_id ?? null;
+  const activeLeagueCode: "nba" | "wnba" = sportCode;
   const headerLogo = activeLeagueCode === "wnba" ? wnbaLogo : nbaLogo;
 
   const [tab, setTab] = useState<TabValue>(() => {
@@ -54,8 +56,8 @@ export default function ScoringPage() {
   });
   useEffect(() => { try { localStorage.setItem(TAB_LS_KEY, tab); } catch {} }, [tab]);
 
-  const standingsQuery = useLeagueStandings(undefined, activeSportLeagueId);
-  const historyQuery = useScoringHistory();
+  const standingsQuery = useLeagueStandings(selectedLeagueId);
+  const historyQuery = useScoringHistory(selectedLeagueId);
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
   const [playerModalId, setPlayerModalId] = useState<number | null>(null);
@@ -64,8 +66,18 @@ export default function ScoringPage() {
   const [sortCol, setSortCol] = useState<SortCol>("gw");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  // RLS already scopes to current user, so userTeams is the user's teams.
-  const myTeams = userTeams;
+  // Scope team selector to teams in the currently-selected fantasy league.
+  const myTeams = teamsInSelectedLeague;
+
+  // When the selected league changes, ensure the selectedTeamId belongs to it.
+  useEffect(() => {
+    if (!teamReady) return;
+    if (myTeams.length === 0) return;
+    if (!selectedTeamId || !myTeams.some((t: any) => t.id === selectedTeamId)) {
+      setSelectedTeamId(myTeams[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLeagueId, myTeams.length, teamReady]);
 
   return (
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
