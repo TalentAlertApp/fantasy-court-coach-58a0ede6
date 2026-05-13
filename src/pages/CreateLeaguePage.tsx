@@ -493,8 +493,11 @@ export default function CreateLeaguePage() {
       <div className="flex items-center justify-between">
         <Button
           variant="secondary"
-          onClick={() => setStep((s) => Math.max(1, s - 1))}
-          disabled={step === 1 || isLoading}
+          onClick={() => {
+            if (step === 1) navigate("/leagues");
+            else setStep((s) => Math.max(1, s - 1));
+          }}
+          disabled={isLoading}
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
