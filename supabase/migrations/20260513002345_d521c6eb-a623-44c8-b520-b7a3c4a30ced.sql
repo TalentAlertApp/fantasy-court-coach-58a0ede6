@@ -1,0 +1,1 @@
+UPDATE public.schedule_games SET youtube_recap_id='w3SH2RdpAQE' WHERE game_id='22501163';
