@@ -1065,6 +1065,7 @@ export type Database = {
           gw: number
           id: string
           league_id: string
+          metadata: Json
           team_id: string
           used_at: string
         }
@@ -1073,6 +1074,7 @@ export type Database = {
           gw: number
           id?: string
           league_id: string
+          metadata?: Json
           team_id: string
           used_at?: string
         }
@@ -1081,6 +1083,7 @@ export type Database = {
           gw?: number
           id?: string
           league_id?: string
+          metadata?: Json
           team_id?: string
           used_at?: string
         }

@@ -85,3 +85,32 @@ export async function fetchLeagueScoringSystemId(
   if (error) throw error;
   return data?.scoring_system_id ?? "00000000-0000-0000-0000-000000000001";
 }
+
+/**
+ * Resolve the captain multiplier for a fantasy league.
+ * Prefers chip_rule_sets.captain_multiplier (commissioner-tunable), falls back
+ * to scoring_rules (applies_to='captain') and finally to 2.0.
+ */
+export async function fetchLeagueCaptainMultiplier(
+  sb: any,
+  fantasyLeagueId: string | null | undefined,
+  scoringRules: ScoringRule[] = [],
+): Promise<number> {
+  if (fantasyLeagueId) {
+    const { data: lg } = await sb
+      .from("leagues")
+      .select("chip_rule_set_id")
+      .eq("id", fantasyLeagueId)
+      .maybeSingle();
+    if (lg?.chip_rule_set_id) {
+      const { data: crs } = await sb
+        .from("chip_rule_sets")
+        .select("captain_multiplier, captain_enabled")
+        .eq("id", lg.chip_rule_set_id)
+        .maybeSingle();
+      if (crs?.captain_enabled === false) return 1;
+      if (crs?.captain_multiplier != null) return Number(crs.captain_multiplier);
+    }
+  }
+  return captainMultiplier(scoringRules);
+}

@@ -2,6 +2,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
+import { canTransfer } from "../_shared/deadlines.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -23,7 +24,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
  *   5. Return the updated roster snapshot + the inserted transaction rows.
  */
 
-const GW_TRANSFER_CAP = 2;
+const DEFAULT_GW_TRANSFER_CAP = 2;
 const ALLOWED_CHIPS = new Set(["all_star", "wildcard"]);
 
 Deno.serve(async (req) => {
@@ -55,6 +56,7 @@ Deno.serve(async (req) => {
     // unique constraint). Unknown values are ignored.
     const rawChip = typeof body?.chip === "string" ? body.chip.toLowerCase() : "";
     const chip: "all_star" | "wildcard" | null = ALLOWED_CHIPS.has(rawChip) ? (rawChip as any) : null;
+    const chipPlayerId = Number(body?.chip_player_id ?? 0);
 
     if (!Number.isFinite(gw) || !Number.isFinite(day)) {
       return errorResponse("INVALID_BODY", "gw and day are required numbers");
@@ -90,10 +92,39 @@ Deno.serve(async (req) => {
 
     // Resolve team's sport league once for all subsequent writes.
     const { data: teamRow } = await userClient
-      .from("teams").select("sport_league_id").eq("id", team_id).maybeSingle();
+      .from("teams").select("sport_league_id, league_id").eq("id", team_id).maybeSingle();
     const teamLeagueId: string | null = teamRow?.sport_league_id ?? null;
+    const fantasyLeagueId: string | null = teamRow?.league_id ?? null;
     if (!teamLeagueId) {
       return errorResponse("TEAM_LEAGUE_MISSING", "Team has no sport league assigned", null, 400);
+    }
+
+    // Resolve effective transfer cap + chip rule set from the fantasy league.
+    let GW_TRANSFER_CAP = DEFAULT_GW_TRANSFER_CAP;
+    let allStarMultiplier = 2;
+    if (fantasyLeagueId) {
+      const { data: lg } = await userClient
+        .from("leagues")
+        .select("transfer_cap, chip_rule_set_id")
+        .eq("id", fantasyLeagueId)
+        .maybeSingle();
+      if (lg?.transfer_cap != null) GW_TRANSFER_CAP = Number(lg.transfer_cap);
+      if (lg?.chip_rule_set_id) {
+        const { data: crs } = await userClient
+          .from("chip_rule_sets")
+          .select("all_star_multiplier")
+          .eq("id", lg.chip_rule_set_id)
+          .maybeSingle();
+        if (crs?.all_star_multiplier != null) allStarMultiplier = Number(crs.all_star_multiplier);
+      }
+    }
+
+    // Server-side transfer deadline enforcement (wildcard bypasses).
+    if (chip !== "wildcard") {
+      const tx = await canTransfer(userClient, team_id);
+      if (!tx.allowed) {
+        return errorResponse("TRANSFER_LOCKED", tx.reason ?? "Transfers are locked.", null, 403);
+      }
     }
 
     // If a chip is being activated, make sure it has not been used yet.
@@ -368,9 +399,12 @@ Deno.serve(async (req) => {
     //    (team_id, chip) prevents double-use under race conditions.
     let chipUsed: { chip: string; gw: number } | null = null;
     if (chip) {
+      const meta = chip === "all_star"
+        ? { player_id: chipPlayerId || null, multiplier: allStarMultiplier }
+        : {};
       const { error: chipErr } = await userClient
         .from("team_chips")
-        .insert({ team_id, league_id: teamLeagueId, gw, chip });
+        .insert({ team_id, league_id: teamLeagueId, gw, chip, metadata: meta });
       if (!chipErr) chipUsed = { chip, gw };
     }
 

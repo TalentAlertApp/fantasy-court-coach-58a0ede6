@@ -36,6 +36,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { useTeamChips } from "@/hooks/useTeamChips";
+import { useDeadlineStatus } from "@/hooks/useDeadlineStatus";
+import RosterChipsBar from "@/components/RosterChipsBar";
 import { normalizePlayerHealth, shouldBlockCaptain, shouldWarnCaptain, getCaptainHealthWarning } from "@/lib/health";
 import AICoachModal from "@/components/AICoachModal";
 import WishlistModal from "@/components/WishlistModal";
@@ -79,6 +81,7 @@ export default function RosterPage() {
   const { data: usedChips } = useTeamChips(selectedTeamId);
   const allStarUsed = usedChips?.find((c) => c.chip === "all_star");
   const wildcardUsed = usedChips?.find((c) => c.chip === "wildcard");
+  const { data: deadlineStatus } = useDeadlineStatus(selectedTeamId);
   const { data: rosterData, isLoading: rosterLoading, isError: rosterIsError, isSuccess: rosterSuccess, refetch: refetchRoster } = useRosterQuery();
   const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const { data: upcomingByTeam } = useUpcomingByTeam();
@@ -565,6 +568,22 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
+          {deadlineStatus && (
+            <Badge
+              className={`rounded-lg text-[10px] font-heading uppercase tracking-wide ${
+                deadlineStatus.locked
+                  ? "bg-destructive/20 text-destructive border border-destructive/40"
+                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              }`}
+              title={deadlineStatus.reason ?? ""}
+            >
+              {deadlineStatus.locked
+                ? `🔴 Lineup locked${deadlineStatus.reason ? " · " + deadlineStatus.reason.replace(/^Lineup locked — ?/, "") : ""}`
+                : deadlineStatus.nextDeadline
+                  ? `🟢 Lineup open · locks ${new Date(deadlineStatus.nextDeadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                  : "🟢 Lineup open"}
+            </Badge>
+          )}
           <div className="flex items-center gap-1.5 ml-auto">
             <button
               type="button"
@@ -852,6 +871,13 @@ export default function RosterPage() {
 
           {/* ── Layout ── */}
           <div className="min-w-0 flex-1 relative">
+            <RosterChipsBar
+              teamId={selectedTeamId}
+              gw={currentGameday.gw}
+              day={currentGameday.day}
+              starters={starters.map((p) => ({ id: p.core.id, name: p.core.name, team: p.core.team }))}
+              lineupLocked={!!deadlineStatus?.locked}
+            />
             {/* Schedule preview — absolute overlay, never pushes the court */}
             {scheduleOpen && (
               <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-[520px] overflow-hidden animate-accordion-down">

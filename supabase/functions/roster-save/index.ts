@@ -2,6 +2,7 @@ import { handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
+import { isLineupLocked } from "../_shared/deadlines.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -13,6 +14,11 @@ Deno.serve(async (req) => {
   try {
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { team_id, team_name } = await resolveTeam(req, sb);
+    // Server-side deadline enforcement: block roster writes after lock.
+    const lock = await isLineupLocked(sb, team_id);
+    if (lock.locked) {
+      return errorResponse("LINEUP_LOCKED", lock.reason ?? "Lineup is locked.", null, 403);
+    }
     const body = await req.json();
     const { gw, day, starters, bench, captain_id } = body;
 

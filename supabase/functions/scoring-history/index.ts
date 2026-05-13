@@ -6,7 +6,7 @@ import {
   computeFpFromRules,
   fetchScoringRules,
   fetchLeagueScoringSystemId,
-  captainMultiplier,
+  fetchLeagueCaptainMultiplier,
 } from "../_shared/scoring.ts";
 
 const DEFAULT_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
@@ -38,7 +38,25 @@ Deno.serve(async (req) => {
     const fantasyLeagueId = fantasyLeagueOverride ?? (teamRow as any)?.league_id ?? DEFAULT_LEAGUE_ID;
     const systemId = await fetchLeagueScoringSystemId(sb, fantasyLeagueId);
     const scoringRules = await fetchScoringRules(sb, systemId);
-    const capMult = captainMultiplier(scoringRules);
+    const capMult = await fetchLeagueCaptainMultiplier(sb, fantasyLeagueId, scoringRules);
+
+    // Load chip activations for this team so All-Star bonuses can be applied.
+    const { data: chipRows } = await sb
+      .from("team_chips")
+      .select("chip, gw, metadata")
+      .eq("team_id", team_id);
+    const allStarByGw = new Map<number, { player_id: number; multiplier: number }>();
+    for (const c of (chipRows ?? []) as any[]) {
+      if (c.chip === "all_star") {
+        const meta = c.metadata ?? {};
+        if (meta?.player_id) {
+          allStarByGw.set(Number(c.gw), {
+            player_id: Number(meta.player_id),
+            multiplier: Number(meta.multiplier ?? 2),
+          });
+        }
+      }
+    }
 
     // 1. Pull FULL per-(gw, day) roster history for this team
     const { data: rosterRows, error: rErr } = await sb
@@ -160,6 +178,7 @@ Deno.serve(async (req) => {
       if (eligibleLogs.length === 0) continue;
 
       let dayCaptainBonus = 0;
+      const allStar = allStarByGw.get(Number(gw));
       const players = eligibleLogs.map((log: any) => {
         const p = playerMap[log.player_id] || {};
         const sched = schedMap[log.game_id];
@@ -176,7 +195,9 @@ Deno.serve(async (req) => {
         );
         const isCap = dayRoster?.captainId === log.player_id;
         const captainBonus = isCap ? baseFp * (capMult - 1) : 0;
-        const computedFp = baseFp + captainBonus;
+        const isAllStar = !!allStar && allStar.player_id === Number(log.player_id);
+        const allStarBonus = isAllStar ? baseFp * (allStar!.multiplier - 1) : 0;
+        const computedFp = baseFp + captainBonus + allStarBonus;
         if (isCap) dayCaptainBonus += captainBonus;
         return {
           player_id: log.player_id,
