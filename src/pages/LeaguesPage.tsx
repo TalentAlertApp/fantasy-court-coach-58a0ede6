@@ -273,16 +273,19 @@ export default function LeaguesPage() {
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
-        <Trophy
+        <Swords
           aria-hidden
           className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 h-24 w-24 opacity-[0.08] rotate-12 select-none text-accent"
         />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
+          <div className="flex items-center gap-3">
+            <Swords aria-hidden className="h-7 w-7 text-accent shrink-0" />
+            <div>
             <h1 className="text-2xl font-heading font-bold uppercase tracking-wider">My Leagues</h1>
             <p className="text-xs text-muted-foreground uppercase tracking-[0.18em] font-heading mt-1">
               Fantasy competitions
             </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
@@ -336,7 +339,7 @@ export default function LeaguesPage() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList>
             <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
-              <Trophy className="h-3.5 w-3.5 mr-1" /> My Leagues
+              <Swords className="h-3.5 w-3.5 mr-1" /> My Leagues
               <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
             </TabsTrigger>
             <TabsTrigger value="discover" className="font-heading uppercase tracking-wider text-[10px]">
