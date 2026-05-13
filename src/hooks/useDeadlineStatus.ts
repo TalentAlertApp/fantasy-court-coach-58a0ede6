@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 
 export interface DeadlineStatus {
   locked: boolean;
@@ -21,15 +21,14 @@ export function useDeadlineStatus(teamId?: string | null) {
     staleTime: 30_000,
     refetchInterval: 60_000,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("deadline-status", {
-        method: "GET" as any,
-        // edge function reads team_id from query string
-        body: undefined,
-        headers: {},
-        // @ts-expect-error – supabase-js v2 supports query via path append
+      const url = `${SUPABASE_URL}/functions/v1/deadline-status?team_id=${encodeURIComponent(teamId!)}`;
+      const res = await fetch(url, {
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_PUBLISHABLE_KEY },
       });
-      if (error) throw error;
-      const payload = (data?.data ?? data) as any;
+      if (!res.ok) throw new Error(`deadline-status ${res.status}`);
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error?.message || "Failed");
+      const payload = json.data ?? {};
       return {
         locked: !!payload?.locked,
         reason: payload?.reason ?? null,
