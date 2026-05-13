@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      chip_rule_sets: {
+        Row: {
+          all_star_count: number
+          all_star_enabled: boolean
+          all_star_multiplier: number
+          captain_enabled: boolean
+          captain_multiplier: number
+          created_at: string
+          id: string
+          is_template: boolean
+          name: string
+          owner_id: string | null
+          reset_period: string
+          wildcard_count: number
+          wildcard_enabled: boolean
+        }
+        Insert: {
+          all_star_count?: number
+          all_star_enabled?: boolean
+          all_star_multiplier?: number
+          captain_enabled?: boolean
+          captain_multiplier?: number
+          created_at?: string
+          id?: string
+          is_template?: boolean
+          name: string
+          owner_id?: string | null
+          reset_period?: string
+          wildcard_count?: number
+          wildcard_enabled?: boolean
+        }
+        Update: {
+          all_star_count?: number
+          all_star_enabled?: boolean
+          all_star_multiplier?: number
+          captain_enabled?: boolean
+          captain_multiplier?: number
+          created_at?: string
+          id?: string
+          is_template?: boolean
+          name?: string
+          owner_id?: string | null
+          reset_period?: string
+          wildcard_count?: number
+          wildcard_enabled?: boolean
+        }
+        Relationships: []
+      }
       court_show_intelligence: {
         Row: {
           cards: Json
@@ -41,6 +89,45 @@ export type Database = {
           headline?: string | null
           league_id?: string
           mode?: string
+        }
+        Relationships: []
+      }
+      deadline_rule_sets: {
+        Row: {
+          created_at: string
+          deadline_type: string
+          fixed_time: string | null
+          fixed_weekday: number | null
+          id: string
+          is_template: boolean
+          minutes_before_game: number
+          name: string
+          owner_id: string | null
+          timezone: string
+        }
+        Insert: {
+          created_at?: string
+          deadline_type?: string
+          fixed_time?: string | null
+          fixed_weekday?: number | null
+          id?: string
+          is_template?: boolean
+          minutes_before_game?: number
+          name: string
+          owner_id?: string | null
+          timezone?: string
+        }
+        Update: {
+          created_at?: string
+          deadline_type?: string
+          fixed_time?: string | null
+          fixed_weekday?: number | null
+          id?: string
+          is_template?: boolean
+          minutes_before_game?: number
+          name?: string
+          owner_id?: string | null
+          timezone?: string
         }
         Relationships: []
       }
@@ -118,41 +205,124 @@ export type Database = {
           },
         ]
       }
-      leagues: {
+      league_members: {
         Row: {
-          code: string
-          created_at: string
           id: string
-          is_active: boolean
-          kind: string
-          name: string
-          scoring_system_id: string
-          sport: string | null
-          updated_at: string
+          joined_at: string
+          league_id: string
+          role: string
+          user_id: string
         }
         Insert: {
-          code: string
-          created_at?: string
           id?: string
-          is_active?: boolean
-          kind?: string
-          name: string
-          scoring_system_id: string
-          sport?: string | null
-          updated_at?: string
+          joined_at?: string
+          league_id: string
+          role?: string
+          user_id: string
         }
         Update: {
-          code?: string
-          created_at?: string
           id?: string
-          is_active?: boolean
-          kind?: string
-          name?: string
-          scoring_system_id?: string
-          sport?: string | null
-          updated_at?: string
+          joined_at?: string
+          league_id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "league_members_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leagues: {
+        Row: {
+          chip_rule_set_id: string | null
+          code: string
+          created_at: string
+          deadline_rule_set_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          join_code: string | null
+          kind: string
+          max_teams: number
+          name: string
+          owner_id: string | null
+          roster_rule_set_id: string | null
+          scoring_system_id: string
+          sport: string | null
+          status: string
+          transfer_cap: number
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          chip_rule_set_id?: string | null
+          code: string
+          created_at?: string
+          deadline_rule_set_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          join_code?: string | null
+          kind?: string
+          max_teams?: number
+          name: string
+          owner_id?: string | null
+          roster_rule_set_id?: string | null
+          scoring_system_id: string
+          sport?: string | null
+          status?: string
+          transfer_cap?: number
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          chip_rule_set_id?: string | null
+          code?: string
+          created_at?: string
+          deadline_rule_set_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          join_code?: string | null
+          kind?: string
+          max_teams?: number
+          name?: string
+          owner_id?: string | null
+          roster_rule_set_id?: string | null
+          scoring_system_id?: string
+          sport?: string | null
+          status?: string
+          transfer_cap?: number
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leagues_crs_fk"
+            columns: ["chip_rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "chip_rule_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leagues_drs_fk"
+            columns: ["deadline_rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "deadline_rule_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leagues_rrs_fk"
+            columns: ["roster_rule_set_id"]
+            isOneToOne: false
+            referencedRelation: "roster_rule_sets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leagues_scoring_system_id_fkey"
             columns: ["scoring_system_id"]
@@ -596,6 +766,51 @@ export type Database = {
           },
         ]
       }
+      roster_rule_sets: {
+        Row: {
+          bc_slots: number
+          bench_count: number
+          budget_cap: number | null
+          created_at: string
+          fc_slots: number
+          id: string
+          is_template: boolean
+          max_players_per_team: number | null
+          name: string
+          owner_id: string | null
+          starters_count: number
+          total_players: number
+        }
+        Insert: {
+          bc_slots?: number
+          bench_count?: number
+          budget_cap?: number | null
+          created_at?: string
+          fc_slots?: number
+          id?: string
+          is_template?: boolean
+          max_players_per_team?: number | null
+          name: string
+          owner_id?: string | null
+          starters_count?: number
+          total_players?: number
+        }
+        Update: {
+          bc_slots?: number
+          bench_count?: number
+          budget_cap?: number | null
+          created_at?: string
+          fc_slots?: number
+          id?: string
+          is_template?: boolean
+          max_players_per_team?: number | null
+          name?: string
+          owner_id?: string | null
+          starters_count?: number
+          total_players?: number
+        }
+        Relationships: []
+      }
       schedule_games: {
         Row: {
           away_pts: number
@@ -784,7 +999,9 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          is_template: boolean
           name: string
+          owner_id: string | null
           sport: string
           updated_at: string
         }
@@ -793,7 +1010,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_template?: boolean
           name: string
+          owner_id?: string | null
           sport?: string
           updated_at?: string
         }
@@ -802,7 +1021,9 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          is_template?: boolean
           name?: string
+          owner_id?: string | null
           sport?: string
           updated_at?: string
         }
@@ -864,6 +1085,13 @@ export type Database = {
           used_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "team_chips_league_fk"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "team_chips_team_id_fkey"
             columns: ["team_id"]
