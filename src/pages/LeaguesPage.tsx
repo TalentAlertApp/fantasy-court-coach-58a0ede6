@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon } from "lucide-react";
+import { Swords, Plus, KeyRound, Crown, LayoutDashboard, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague }
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import courtBg from "@/assets/court-bg.png";
 
 function formulaString(rules: ScoringRule[]): string {
   const parts = rules
@@ -59,12 +60,22 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   const chips = league.chipRules;
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card/90 to-card p-5 hover:border-accent/40 transition-colors">
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
+      <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-card/95 via-card/85 to-card/95"
+      />
       <img
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.08] rotate-12 select-none blur-[0.5px]"
+        className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]"
       />
       {isMine && !isMain && (
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-accent">
@@ -130,21 +141,53 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Button size="sm" onClick={onOpen} className="font-heading uppercase tracking-wider text-[10px]">
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Open
+        <div className="flex flex-wrap items-center gap-1.5 pt-2">
+          <Button size="icon" onClick={onOpen} className="h-8 w-8" aria-label="Open league" title="Open league">
+            <LayoutDashboard className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="secondary" onClick={onCreateTeam} className="font-heading uppercase tracking-wider text-[10px]">
-            <UserPlus className="h-3.5 w-3.5 mr-1" /> Create Team
+          <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-8 w-8" aria-label="Create team" title="Create team">
+            <UserPlus className="h-4 w-4" />
           </Button>
+          {isMine && !isMain && league.join_code && (
+            <CopyCodeButton code={league.join_code} />
+          )}
           {isMine && !isMain && (
-            <Button size="sm" variant="outline" onClick={onSettings} className="font-heading uppercase tracking-wider text-[10px]">
-              <SettingsIcon className="h-3.5 w-3.5 mr-1" /> Settings
+            <Button size="icon" variant="outline" onClick={onSettings} className="h-8 w-8" aria-label="Settings" title="Settings">
+              <SettingsIcon className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function CopyCodeButton({ code, compact }: { code: string; compact?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  async function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      toast.success(`Invite code copied: ${code}`);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Couldn't copy code");
+    }
+  }
+  const sz = compact ? "h-7 w-7" : "h-8 w-8";
+  const ic = compact ? "h-3.5 w-3.5" : "h-4 w-4";
+  return (
+    <Button
+      size="icon"
+      variant="outline"
+      onClick={handleCopy}
+      className={sz}
+      aria-label={`Copy invite code ${code}`}
+      title={`Copy invite code (${code})`}
+    >
+      {copied ? <CheckCircle2 className={`${ic} text-emerald-400`} /> : <Copy className={ic} />}
+    </Button>
   );
 }
 
@@ -230,16 +273,19 @@ export default function LeaguesPage() {
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
-        <Trophy
+        <Swords
           aria-hidden
           className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 h-24 w-24 opacity-[0.08] rotate-12 select-none text-accent"
         />
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
+          <div className="flex items-center gap-3">
+            <Swords aria-hidden className="h-7 w-7 text-accent shrink-0" />
+            <div>
             <h1 className="text-2xl font-heading font-bold uppercase tracking-wider">My Leagues</h1>
             <p className="text-xs text-muted-foreground uppercase tracking-[0.18em] font-heading mt-1">
               Fantasy competitions
             </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
@@ -293,7 +339,7 @@ export default function LeaguesPage() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList>
             <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
-              <Trophy className="h-3.5 w-3.5 mr-1" /> My Leagues
+              <Swords className="h-3.5 w-3.5 mr-1" /> My Leagues
               <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
             </TabsTrigger>
             <TabsTrigger value="discover" className="font-heading uppercase tracking-wider text-[10px]">
@@ -472,18 +518,43 @@ function DiscoverPanel({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
-        <div className="flex items-center gap-1">
-          {(["all", "nba", "wnba"] as const).map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={sport === s ? "default" : "outline"}
-              onClick={() => setSport(s)}
-              className="font-heading uppercase tracking-wider text-[10px]"
-            >
-              {s === "all" ? "All" : s.toUpperCase()}
-            </Button>
-          ))}
+        <div className="flex items-center gap-3 pl-1 pr-2">
+          {(["all", "nba", "wnba"] as const).map((s) => {
+            const active = sport === s;
+            const baseCls = "shrink-0 cursor-pointer transition-all duration-200 select-none";
+            const dimCls = active ? "opacity-100 scale-110" : "opacity-50 hover:opacity-90 scale-90";
+            if (s === "all") {
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSport(s)}
+                  aria-label="All sports"
+                  title="All sports"
+                  className={`${baseCls} ${dimCls} flex items-center justify-center`}
+                >
+                  <Globe className={`${active ? "h-7 w-7 text-accent" : "h-5 w-5 text-muted-foreground"}`} />
+                </button>
+              );
+            }
+            const src = s === "wnba" ? wnbaLogo : nbaLogo;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSport(s)}
+                aria-label={s.toUpperCase()}
+                title={s.toUpperCase()}
+                className={`${baseCls} ${dimCls}`}
+              >
+                <img
+                  src={src}
+                  alt={s.toUpperCase()}
+                  className={`${active ? "h-9" : "h-6"} w-auto object-contain transition-all duration-200`}
+                />
+              </button>
+            );
+          })}
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -584,8 +655,15 @@ function PublicLeagueCard({
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card/90 to-card p-5 hover:border-accent/40 transition-colors">
-      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.08] rotate-12 select-none blur-[0.5px]" />
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
+      <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-card/95 via-card/85 to-card/95" />
+      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]" />
       <div className="relative z-10 space-y-3">
         <div>
           <h3 className="text-lg font-heading font-bold uppercase tracking-wider">{league.name}</h3>
@@ -630,15 +708,14 @@ function PublicLeagueCard({
             </div>
           </div>
         )}
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="flex items-center gap-1.5 pt-2">
           {isMember ? (
-            <Button size="sm" onClick={onOpen} className="font-heading uppercase tracking-wider text-[10px]">
-              <Sparkles className="h-3.5 w-3.5 mr-1" /> Open
+            <Button size="icon" onClick={onOpen} className="h-8 w-8" aria-label="Open league" title="Open league">
+              <LayoutDashboard className="h-4 w-4" />
             </Button>
           ) : (
-            <Button size="sm" onClick={onJoin} disabled={joining} className="font-heading uppercase tracking-wider text-[10px]">
-              {joining ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
-              Join
+            <Button size="icon" onClick={onJoin} disabled={joining} className="h-8 w-8" aria-label="Join league" title="Join league">
+              {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
             </Button>
           )}
         </div>
@@ -659,10 +736,17 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
   return (
     <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
       <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/95 via-card/80 to-card/95" />
+      <img
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.10] select-none"
       />
       <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
         <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
@@ -687,15 +771,18 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
         </div>
       </div>
       <div className="relative z-10 flex items-center gap-1.5 shrink-0">
-        <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-          <Sparkles className="h-3 w-3 mr-1" /> Open
+        <Button size="icon" onClick={onOpen} className="h-7 w-7" aria-label="Open league" title="Open league">
+          <LayoutDashboard className="h-3.5 w-3.5" />
         </Button>
-        <Button size="sm" variant="secondary" onClick={onCreateTeam} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-          <UserPlus className="h-3 w-3 mr-1" /> Team
+        <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-7 w-7" aria-label="Create team" title="Create team">
+          <UserPlus className="h-3.5 w-3.5" />
         </Button>
+        {isMine && !isMain && league.join_code && (
+          <CopyCodeButton code={league.join_code} compact />
+        )}
         {isMine && !isMain && (
-          <Button size="sm" variant="outline" onClick={onSettings} className="h-7 font-heading uppercase tracking-wider text-[9px]" aria-label="Settings">
-            <SettingsIcon className="h-3 w-3" />
+          <Button size="icon" variant="outline" onClick={onSettings} className="h-7 w-7" aria-label="Settings" title="Settings">
+            <SettingsIcon className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
@@ -714,10 +801,17 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
   return (
     <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
       <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card/95 via-card/80 to-card/95" />
+      <img
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.10] select-none"
       />
       <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
         <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
@@ -733,13 +827,12 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
       </div>
       <div className="relative z-10 flex items-center gap-1.5 shrink-0">
         {isMember ? (
-          <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-            <Sparkles className="h-3 w-3 mr-1" /> Open
+          <Button size="icon" onClick={onOpen} className="h-7 w-7" aria-label="Open league" title="Open league">
+            <LayoutDashboard className="h-3.5 w-3.5" />
           </Button>
         ) : (
-          <Button size="sm" onClick={onJoin} disabled={joining} className="h-7 font-heading uppercase tracking-wider text-[9px]">
-            {joining ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <UserPlus className="h-3 w-3 mr-1" />}
-            Join
+          <Button size="icon" onClick={onJoin} disabled={joining} className="h-7 w-7" aria-label="Join league" title="Join league">
+            {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
           </Button>
         )}
       </div>

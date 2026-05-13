@@ -12,6 +12,7 @@ import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPuls
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { isMainLeague } from "@/hooks/useFantasyLeagues";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -97,9 +98,7 @@ export default function ScoringPage() {
           }}
         />
         <div className="relative flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-[hsl(var(--nba-yellow))]/15 ring-1 ring-[hsl(var(--nba-yellow))]/40 flex items-center justify-center">
-            <Activity className="h-5 w-5 text-[hsl(var(--nba-yellow))]" />
-          </div>
+          <Activity aria-hidden className="h-7 w-7 text-[hsl(var(--nba-yellow))] shrink-0" />
           <div>
             <h1 className="text-2xl font-heading font-black uppercase tracking-wider leading-none">Scoring</h1>
             <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-heading mt-1">
@@ -117,7 +116,14 @@ export default function ScoringPage() {
         teamCounts={Object.fromEntries(
           (fantasyLeagues ?? []).map((l) => [
             l.id,
-            userTeams.filter((t: any) => t.league_id === l.id).length,
+            // Sport-aware count to match the sidebar team switcher and the
+            // server-side standings filter. Custom leagues match by league_id;
+            // system Main Leagues match by sport (since teams attached to a
+            // single sport may carry the sport's league_id rather than the
+            // fantasy main-league pseudo id).
+            isMainLeague(l.id)
+              ? userTeams.filter((t: any) => (t.league_code ?? "nba") === l.sport).length
+              : userTeams.filter((t: any) => t.league_id === l.id).length,
           ]),
         )}
       />
@@ -1220,10 +1226,14 @@ function FantasyLeagueSelector({
 
   return (
     <div className="flex items-center gap-2 px-1">
-      <img src={logoFor(selectedLeague.sport)} alt="" className="h-5 w-5 object-contain" />
       <Select value={selectedLeague.id} onValueChange={onSelect}>
         <SelectTrigger className="h-9 w-auto min-w-[220px] rounded-lg bg-card border-border font-heading text-xs uppercase tracking-[0.15em]">
-          <SelectValue />
+          <SelectValue>
+            <span className="flex items-center gap-2">
+              <img src={logoFor(selectedLeague.sport)} alt="" className="h-4 w-4 object-contain" />
+              <span className="truncate">{selectedLeague.name}</span>
+            </span>
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {leagues.map((l) => (
