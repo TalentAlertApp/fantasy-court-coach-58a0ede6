@@ -871,6 +871,13 @@ export default function RosterPage() {
 
           {/* ── Layout ── */}
           <div className="min-w-0 flex-1 relative">
+            <RosterChipsBar
+              teamId={selectedTeamId}
+              gw={currentGameday.gw}
+              day={currentGameday.day}
+              starters={starters.map((p) => ({ id: p.core.id, name: p.core.name, team: p.core.team }))}
+              lineupLocked={!!deadlineStatus?.locked}
+            />
             {/* Schedule preview — absolute overlay, never pushes the court */}
             {scheduleOpen && (
               <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-[520px] overflow-hidden animate-accordion-down">
