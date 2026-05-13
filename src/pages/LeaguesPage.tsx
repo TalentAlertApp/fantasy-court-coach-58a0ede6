@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users } from "lucide-react";
+import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
 import { MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -146,8 +149,43 @@ export default function LeaguesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fantasyLeagues, setSelectedLeagueId, isLoading } = useFantasyLeague();
+  const qc = useQueryClient();
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
+  const [joining, setJoining] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+
+  async function handleJoinSubmit() {
+    const code = joinCode.trim().toUpperCase();
+    if (!code) return;
+    setJoining(true);
+    setJoinError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("leagues-join", {
+        body: { join_code: code },
+      });
+      let env = data as { ok?: boolean; data?: { league_id: string; league_name: string }; error?: { code?: string; message?: string } } | null;
+      if (error) {
+        try {
+          const ctx = await (error as unknown as { context?: { json?: () => Promise<any> } }).context?.json?.();
+          if (ctx) env = ctx;
+        } catch { /* noop */ }
+      }
+      if (!env?.ok || !env.data) {
+        setJoinError(env?.error?.message ?? error?.message ?? "Unable to join this league.");
+        return;
+      }
+      await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+      setSelectedLeagueId(env.data.league_id);
+      toast.success(`Joined ${env.data.league_name}! Create a team to join the competition.`);
+      setJoinOpen(false);
+      setJoinCode("");
+    } catch (e) {
+      setJoinError(e instanceof Error ? e.message : "Join failed");
+    } finally {
+      setJoining(false);
+    }
+  }
 
   const sortedLeagues = useMemo(() => {
     const main = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_ID);
@@ -184,7 +222,7 @@ export default function LeaguesPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Dialog open={joinOpen} onOpenChange={setJoinOpen}>
+            <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="font-heading uppercase tracking-wider text-[10px]">
                   <KeyRound className="h-3.5 w-3.5 mr-1" /> Join with code
@@ -196,17 +234,31 @@ export default function LeaguesPage() {
                 </DialogHeader>
                 <div className="space-y-3">
                   <Input
-                    placeholder="Invite code"
+                    placeholder="INVITE CODE"
                     value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value)}
-                    className="uppercase tracking-wider"
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleJoinSubmit(); }}
+                    className="font-mono uppercase tracking-[0.3em]"
+                    maxLength={8}
+                    autoFocus
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Join via invite code — coming soon.
-                  </p>
+                  {joinError ? (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive flex items-start gap-2">
+                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>{joinError}</span>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Enter the 8-character invite code shared by the commissioner.
+                    </p>
+                  )}
                 </div>
                 <DialogFooter>
-                  <Button variant="secondary" onClick={() => setJoinOpen(false)}>Close</Button>
+                  <Button variant="secondary" onClick={() => setJoinOpen(false)} disabled={joining}>Cancel</Button>
+                  <Button onClick={handleJoinSubmit} disabled={joining || joinCode.trim().length === 0}>
+                    {joining ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                    Join
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
