@@ -357,7 +357,8 @@ function useAllTeamsForm(enabled: boolean) {
       }
 
       // Include every team in the active league so conference standings are full.
-      const allTricodes = new Set<string>([...Object.keys(NBA_TEAM_META), ...Object.keys(acc)]);
+      const leagueMeta = getLeagueMeta(league);
+      const allTricodes = new Set<string>([...Object.keys(leagueMeta), ...Object.keys(acc)]);
       for (const tricode of allTricodes) {
         const t = acc[tricode];
         if (!t) {
