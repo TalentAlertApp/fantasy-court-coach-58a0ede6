@@ -568,6 +568,22 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
+          {deadlineStatus && (
+            <Badge
+              className={`rounded-lg text-[10px] font-heading uppercase tracking-wide ${
+                deadlineStatus.locked
+                  ? "bg-destructive/20 text-destructive border border-destructive/40"
+                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+              }`}
+              title={deadlineStatus.reason ?? ""}
+            >
+              {deadlineStatus.locked
+                ? `🔴 Lineup locked${deadlineStatus.reason ? " · " + deadlineStatus.reason.replace(/^Lineup locked — ?/, "") : ""}`
+                : deadlineStatus.nextDeadline
+                  ? `🟢 Lineup open · locks ${new Date(deadlineStatus.nextDeadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                  : "🟢 Lineup open"}
+            </Badge>
+          )}
           <div className="flex items-center gap-1.5 ml-auto">
             <button
               type="button"
