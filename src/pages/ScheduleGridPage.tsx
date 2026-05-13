@@ -225,7 +225,7 @@ export default function ScheduleGridPage() {
                       }`}
                     >
                       <div className="font-bold">{wd.dayOfWeek}</div>
-                      <div className="text-[9px] opacity-70 font-mono">{wd.dayNum}/{wd.monthShort}</div>
+                      <div className="text-[9px] opacity-70 font-mono">{wd.dayNum}/{wd.monthShort.toUpperCase()} • {gw}.{wd.day}</div>
                     </th>
                   ))}
                 </tr>
