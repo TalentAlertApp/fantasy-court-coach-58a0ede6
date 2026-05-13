@@ -110,6 +110,19 @@ export default function ScoringPage() {
         </div>
       </div>
 
+      {/* League selector */}
+      <FantasyLeagueSelector
+        leagues={fantasyLeagues}
+        selectedLeague={selectedLeague}
+        onSelect={setSelectedLeagueId}
+        teamCounts={Object.fromEntries(
+          (fantasyLeagues ?? []).map((l) => [
+            l.id,
+            userTeams.filter((t: any) => t.league_id === l.id).length,
+          ]),
+        )}
+      />
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
         <div className="flex items-center gap-3 flex-wrap">
