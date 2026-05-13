@@ -409,11 +409,12 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   return <GameDetailModal game={detail} open={open} onOpenChange={onOpenChange} />;
 }
 
-function computeConfStandings(data: Record<string, TeamFormData>, tricode: string): { tricode: string; rank: number; w: number; l: number; gp: number; pctStr: string; gb: string }[] {
-  const meta = NBA_TEAM_META[tricode];
+function computeConfStandings(data: Record<string, TeamFormData>, tricode: string, league: LeagueCode): { tricode: string; rank: number; w: number; l: number; gp: number; pctStr: string; gb: string }[] {
+  const leagueMeta = getLeagueMeta(league);
+  const meta = leagueMeta[tricode];
   if (!meta || !data) return [];
   const conference = meta.conference;
-  const allTeams = Object.keys(NBA_TEAM_META).filter(t => NBA_TEAM_META[t].conference === conference);
+  const allTeams = Object.keys(leagueMeta).filter(t => leagueMeta[t].conference === conference);
   const rows = allTeams.map(t => {
     const d = data[t];
     const w = d?.w ?? 0;
@@ -433,12 +434,13 @@ function computeConfStandings(data: Record<string, TeamFormData>, tricode: strin
   return ranked.slice(start, start + 5);
 }
 
-function ConferenceTable({ standings, teamTricode, onTeamClick }: {
+function ConferenceTable({ standings, teamTricode, onTeamClick, league }: {
   standings: ReturnType<typeof computeConfStandings>;
   teamTricode: string;
   onTeamClick: (tricode: string) => void;
+  league: LeagueCode;
 }) {
-  const meta = NBA_TEAM_META[teamTricode];
+  const meta = getLeagueMeta(league)[teamTricode];
   if (!standings.length || !meta) return null;
   return (
     <div className="bg-card/60 rounded-lg border p-2">
