@@ -351,10 +351,21 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   }
 
   if (isLoading || !a || !h) {
+    if (isLoading) {
+      return (
+        <div className="border-t bg-muted/20 px-4 py-3 space-y-2">
+          <Skeleton className="h-12" />
+          <Skeleton className="h-32" />
+        </div>
+      );
+    }
+    // Standings unavailable (e.g. early-season WNBA / no FINAL games yet).
     return (
-      <div className="border-t bg-muted/20 px-4 py-3 space-y-2">
-        <Skeleton className="h-12" />
-        <Skeleton className="h-32" />
+      <div className="border-t bg-muted/20 px-4 py-5">
+        <div className="rounded-xl border border-dashed border-border/60 bg-card/40 px-4 py-5 text-center text-xs text-muted-foreground space-y-1">
+          <div className="font-heading uppercase tracking-wider">Pre-game preview</div>
+          <div className="text-[11px]">No completed games yet — standings &amp; form will appear once results come in.</div>
+        </div>
       </div>
     );
   }
