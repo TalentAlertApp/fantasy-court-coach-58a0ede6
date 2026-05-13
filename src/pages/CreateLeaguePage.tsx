@@ -457,20 +457,28 @@ export default function CreateLeaguePage() {
         {step === 7 && (
           <div className="space-y-5">
             <SectionHeader title="Review & create" subtitle="One last look before going live" />
-            <div className="rounded-lg border border-border bg-muted/20 p-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-              <SummaryRow k="Name" v={name} />
-              <SummaryRow k="Visibility" v={visibility.replace("_", " ")} />
-              <SummaryRow k="Sport" v={sport.toUpperCase()} />
-              <SummaryRow k="Scoring preset" v={preset.replace("_", " ")} />
-              <SummaryRow k="Formula" v={formulaPreview} full />
-              <SummaryRow k="Budget cap" v={budgetCapEnabled ? `$${budgetCap}M` : "Off"} />
-              <SummaryRow k="Bench size" v={String(benchCount)} />
-              <SummaryRow k="Max per real team" v={maxPerTeamEnabled ? String(maxPerTeam) : "Off"} />
-              <SummaryRow k="Deadline" v={deadlineType === "first_game_of_day" ? "First game of day" : "Per-player lock"} />
-              <SummaryRow k="Captain chip" v={captainEnabled ? `On ×${chipCaptainMult}` : "Off"} />
-              <SummaryRow k="Wildcard chip" v={wildcardEnabled ? `On — ${wildcardCount}/season` : "Off"} />
-              <SummaryRow k="All-Star chip" v={allStarEnabled ? `On ×${allStarMultiplier} — ${allStarCount}/season` : "Off"} />
-              <SummaryRow k="Transfer cap" v={`${transferCap} / GW`} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <SummaryCard title="Identity" tone="primary">
+                <SummaryRow k="Name" v={name} />
+                <SummaryRow k="Sport" v={sport.toUpperCase()} />
+                <SummaryRow k="Visibility" v={visibility.replace("_", " ")} />
+              </SummaryCard>
+              <SummaryCard title="Scoring" tone="accent">
+                <SummaryRow k="Preset" v={preset.replace("_", " ")} />
+                <SummaryRow k="Formula" v={formulaPreview} mono />
+              </SummaryCard>
+              <SummaryCard title="Roster" tone="default">
+                <SummaryRow k="Budget cap" v={budgetCapEnabled ? `$${budgetCap}M` : "Off"} />
+                <SummaryRow k="Bench size" v={String(benchCount)} />
+                <SummaryRow k="Max per real team" v={maxPerTeamEnabled ? String(maxPerTeam) : "Off"} />
+              </SummaryCard>
+              <SummaryCard title="Deadlines & chips" tone="default">
+                <SummaryRow k="Deadline" v={deadlineType === "first_game_of_day" ? "First game of day" : "Per-player lock"} />
+                <SummaryRow k="Captain" v={captainEnabled ? `On ×${chipCaptainMult}` : "Off"} />
+                <SummaryRow k="Wildcard" v={wildcardEnabled ? `On — ${wildcardCount}/season` : "Off"} />
+                <SummaryRow k="All-Star" v={allStarEnabled ? `On ×${allStarMultiplier} — ${allStarCount}/season` : "Off"} />
+                <SummaryRow k="Transfers" v={`${transferCap} / GW`} />
+              </SummaryCard>
             </div>
             {error && (
               <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -536,11 +544,24 @@ function ChipRow({
   );
 }
 
-function SummaryRow({ k, v, full }: { k: string; v: string; full?: boolean }) {
+function SummaryRow({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (
-    <div className={cn("flex items-baseline gap-3", full && "sm:col-span-2")}>
-      <div className="text-xs uppercase tracking-wider text-muted-foreground w-36 shrink-0">{k}</div>
-      <div className="font-medium break-words">{v}</div>
+    <div className="flex items-baseline justify-between gap-3 py-1.5 border-b border-border/40 last:border-b-0">
+      <div className="text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground shrink-0">{k}</div>
+      <div className={cn("text-sm font-medium text-right break-words", mono && "font-mono text-xs")}>{v}</div>
+    </div>
+  );
+}
+
+function SummaryCard({ title, tone, children }: { title: string; tone: "primary" | "accent" | "default"; children: React.ReactNode }) {
+  const toneClass =
+    tone === "primary" ? "border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card" :
+    tone === "accent" ? "border-accent/30 bg-gradient-to-br from-accent/10 via-card to-card" :
+    "border-border bg-card";
+  return (
+    <div className={cn("rounded-xl border p-4 space-y-1", toneClass)}>
+      <div className="text-[10px] font-heading uppercase tracking-[0.22em] text-muted-foreground mb-2">{title}</div>
+      {children}
     </div>
   );
 }
