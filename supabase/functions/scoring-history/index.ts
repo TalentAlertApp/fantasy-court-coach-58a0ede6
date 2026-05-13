@@ -2,7 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { resolveTeam } from "../_shared/resolve-team.ts";
-import { computeFpFromRules, fetchScoringRules } from "../_shared/scoring.ts";
+import {
+  computeFpFromRules,
+  fetchScoringRules,
+  fetchLeagueScoringSystemId,
+  captainMultiplier,
+} from "../_shared/scoring.ts";
+
+const DEFAULT_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
 
 Deno.serve(async (req) => {
   const cors = handleCors(req);
@@ -16,24 +23,50 @@ Deno.serve(async (req) => {
 
     const { team_id } = await resolveTeam(req, sb);
 
-    // Load scoring rules from DB (single source of truth).
-    const scoringRules = await fetchScoringRules(sb);
+    // Resolve fantasy league + scoring system for this team
+    const { data: teamRow } = await sb
+      .from("teams")
+      .select("league_id")
+      .eq("id", team_id)
+      .maybeSingle();
+    const fantasyLeagueId = (teamRow as any)?.league_id ?? DEFAULT_LEAGUE_ID;
+    const systemId = await fetchLeagueScoringSystemId(sb, fantasyLeagueId);
+    const scoringRules = await fetchScoringRules(sb, systemId);
+    const capMult = captainMultiplier(scoringRules);
 
-    // 1. Get current roster player IDs
+    // 1. Pull FULL per-(gw, day) roster history for this team
     const { data: rosterRows, error: rErr } = await sb
       .from("roster")
-      .select("player_id, slot, is_captain")
+      .select("gw, day, player_id, slot, is_captain")
       .eq("team_id", team_id);
     if (rErr) throw rErr;
     if (!rosterRows || rosterRows.length === 0) {
       return okResponse({ weeks: [], game_days: [], transactions: [] });
     }
 
-    const playerIds = (rosterRows as any[]).map((r: any) => r.player_id);
-    const starterSlots = new Set(
-      (rosterRows as any[]).filter((r: any) => String(r.slot).toUpperCase() === "STARTER").map((r: any) => r.player_id)
-    );
-    const captainId = (rosterRows as any[]).find((r: any) => r.is_captain)?.player_id ?? null;
+    type DayRoster = { playerIds: Set<number>; starters: Set<number>; captainId: number | null };
+    const rosterByDay = new Map<string, DayRoster>();
+    const allPlayerIdSet = new Set<number>();
+    for (const r of rosterRows as any[]) {
+      const key = `${r.gw}.${r.day}`;
+      let entry = rosterByDay.get(key);
+      if (!entry) {
+        entry = { playerIds: new Set(), starters: new Set(), captainId: null };
+        rosterByDay.set(key, entry);
+      }
+      entry.playerIds.add(r.player_id);
+      if (String(r.slot).toUpperCase() === "STARTER") entry.starters.add(r.player_id);
+      if (r.is_captain) entry.captainId = r.player_id;
+      allPlayerIdSet.add(r.player_id);
+    }
+    const playerIds = Array.from(allPlayerIdSet);
+    // Latest captain (for response convenience / current-roster UIs)
+    const latestKey = Array.from(rosterByDay.keys()).sort((a, b) => {
+      const [ga, da] = a.split(".").map(Number);
+      const [gb, db] = b.split(".").map(Number);
+      return ga - gb || da - db;
+    }).pop();
+    const captainId = latestKey ? rosterByDay.get(latestKey)!.captainId : null;
 
     // 2. Get player info
     const { data: playersData } = await sb
@@ -112,7 +145,16 @@ Deno.serve(async (req) => {
       }
       if (gw === 0) continue; // skip if can't map
 
-      const players = logs.map((log: any) => {
+      const dayKey = `${gw}.${day}`;
+      const dayRoster = rosterByDay.get(dayKey);
+      // Only include logs for players actually rostered on this (gw, day)
+      const eligibleLogs = dayRoster
+        ? logs.filter((l: any) => dayRoster.playerIds.has(l.player_id))
+        : [];
+      if (eligibleLogs.length === 0) continue;
+
+      let dayCaptainBonus = 0;
+      const players = eligibleLogs.map((log: any) => {
         const p = playerMap[log.player_id] || {};
         const sched = schedMap[log.game_id];
         const isHome = log.home_away === "H";
@@ -122,10 +164,14 @@ Deno.serve(async (req) => {
           resultWL = won ? "W" : "L";
         }
         // Recompute FP from rules — DB-driven, ignores stale `fp` column writes.
-        const computedFp = computeFpFromRules(
+        const baseFp = computeFpFromRules(
           { pts: Number(log.pts) || 0, reb: Number(log.reb) || 0, ast: Number(log.ast) || 0, stl: Number(log.stl) || 0, blk: Number(log.blk) || 0 },
           scoringRules
         );
+        const isCap = dayRoster?.captainId === log.player_id;
+        const captainBonus = isCap ? baseFp * (capMult - 1) : 0;
+        const computedFp = baseFp + captainBonus;
+        if (isCap) dayCaptainBonus += captainBonus;
         return {
           player_id: log.player_id,
           name: p.name || "Unknown",
@@ -145,7 +191,9 @@ Deno.serve(async (req) => {
           blk: Number(log.blk) || 0,
           stl: Number(log.stl) || 0,
           nba_game_url: log.nba_game_url || sched?.nba_game_url || null,
-          is_starter: starterSlots.has(log.player_id),
+          is_starter: dayRoster?.starters.has(log.player_id) ?? false,
+          is_captain: !!isCap,
+          captain_bonus: Math.round(captainBonus * 10) / 10,
         };
       });
 
@@ -158,6 +206,7 @@ Deno.serve(async (req) => {
         day,
         game_date: dateStr,
         total_fp: Math.round(totalFp * 10) / 10,
+        captain_bonus: Math.round(dayCaptainBonus * 10) / 10,
         players,
       });
     }
@@ -181,13 +230,19 @@ Deno.serve(async (req) => {
     }
 
     const weeks = Object.entries(weekMap)
-      .map(([gw, data]) => ({
-        gw: Number(gw),
-        total_fp: Math.round((data as any).total_fp * 10) / 10,
-        best_player: (data as any).best,
-        worst_player: (data as any).worst,
-        captain_bonus: 0,
-      }))
+      .map(([gw, data]) => {
+        const gwNum = Number(gw);
+        const capBonus = gameDays
+          .filter((gd: any) => gd.gw === gwNum)
+          .reduce((s: number, gd: any) => s + (gd.captain_bonus || 0), 0);
+        return {
+          gw: gwNum,
+          total_fp: Math.round((data as any).total_fp * 10) / 10,
+          best_player: (data as any).best,
+          worst_player: (data as any).worst,
+          captain_bonus: Math.round(capBonus * 10) / 10,
+        };
+      })
       .sort((a, b) => a.gw - b.gw);
 
     // 7. Get transactions for this team
@@ -196,6 +251,38 @@ Deno.serve(async (req) => {
       .select("*")
       .eq("team_id", team_id)
       .order("created_at", { ascending: true });
+
+    // 8. Snapshot per-game-day totals (best-effort; never fail the response).
+    try {
+      const snapRows = gameDays.map((gd: any) => ({
+        fantasy_league_id: fantasyLeagueId,
+        team_id,
+        gw: gd.gw,
+        day: gd.day,
+        game_date: gd.game_date,
+        total_fp: gd.total_fp,
+        captain_bonus: gd.captain_bonus ?? 0,
+        chip_bonus: 0,
+        player_breakdown: gd.players.map((p: any) => ({
+          player_id: p.player_id,
+          name: p.name,
+          fp: p.fp,
+          is_captain: p.is_captain,
+          captain_bonus: p.captain_bonus ?? 0,
+          slot: p.is_starter ? "STARTER" : "BENCH",
+          pts: p.pts, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, mp: p.mp,
+        })),
+        scoring_system_id: systemId,
+      }));
+      if (snapRows.length) {
+        const { error: upErr } = await sb
+          .from("scoring_daily_team_totals")
+          .upsert(snapRows, { onConflict: "team_id,gw,day" });
+        if (upErr) console.error("[scoring-history snapshot upsert]", upErr);
+      }
+    } catch (e) {
+      console.error("[scoring-history snapshot]", e);
+    }
 
     return okResponse({
       weeks,
