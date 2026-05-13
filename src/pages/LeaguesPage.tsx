@@ -1,17 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
 import { MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
+import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 
@@ -206,6 +209,8 @@ export default function LeaguesPage() {
   };
   const handleSettings = (id: string) => navigate(`/leagues/${id}/settings`);
 
+  const myLeagueIds = useMemo(() => new Set(fantasyLeagues.map((l) => l.id)), [fantasyLeagues]);
+
   return (
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
       {/* Header */}
@@ -269,6 +274,17 @@ export default function LeaguesPage() {
         </div>
       </div>
 
+      <Tabs defaultValue="mine" className="w-full">
+        <TabsList>
+          <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
+            <Trophy className="h-3.5 w-3.5 mr-1" /> My Leagues
+          </TabsTrigger>
+          <TabsTrigger value="discover" className="font-heading uppercase tracking-wider text-[10px]">
+            <Globe className="h-3.5 w-3.5 mr-1" /> Discover
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="mine" className="mt-4">
       {isLoading ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
           Loading leagues…
@@ -302,6 +318,247 @@ export default function LeaguesPage() {
           )}
         </>
       )}
+        </TabsContent>
+
+        <TabsContent value="discover" className="mt-4">
+          <DiscoverPanel
+            myLeagueIds={myLeagueIds}
+            onOpen={(id) => { setSelectedLeagueId(id); navigate("/scoring"); }}
+            onJoined={(id) => { setSelectedLeagueId(id); }}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function DiscoverPanel({
+  myLeagueIds,
+  onOpen,
+  onJoined,
+}: {
+  myLeagueIds: Set<string>;
+  onOpen: (id: string) => void;
+  onJoined: (id: string) => void;
+}) {
+  const qc = useQueryClient();
+  const [sport, setSport] = useState<"all" | "nba" | "wnba">("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"active" | "newest" | "most_teams">("active");
+  const [page, setPage] = useState(1);
+  const [accumulated, setAccumulated] = useState<PublicLeague[]>([]);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
+
+  const { data, isLoading, isFetching } = usePublicLeagues({
+    sport: sport === "all" ? null : sport,
+    search,
+    page,
+    sort,
+  });
+
+  // reset accumulator on filter change
+  useEffect(() => {
+    setAccumulated([]);
+    setPage(1);
+  }, [sport, search, sort]);
+
+  // append items as pages load
+  useEffect(() => {
+    if (!data?.items) return;
+    setAccumulated((prev) => {
+      if (page === 1) return data.items;
+      const ids = new Set(prev.map((p) => p.id));
+      return [...prev, ...data.items.filter((i) => !ids.has(i.id))];
+    });
+  }, [data, page]);
+
+  function applySearch() {
+    setSearch(searchInput.trim());
+  }
+
+  async function handleJoin(league: PublicLeague) {
+    if (!league.join_code) {
+      toast.error("This league has no join code.");
+      return;
+    }
+    setJoiningId(league.id);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("leagues-join", {
+        body: { join_code: league.join_code },
+      });
+      let env = res as { ok?: boolean; data?: { league_id: string; league_name: string }; error?: { message?: string } } | null;
+      if (error) {
+        try {
+          const ctx = await (error as unknown as { context?: { json?: () => Promise<any> } }).context?.json?.();
+          if (ctx) env = ctx;
+        } catch { /* noop */ }
+      }
+      if (!env?.ok || !env.data) {
+        toast.error(env?.error?.message ?? "Unable to join.");
+        return;
+      }
+      await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+      toast.success(`Joined ${env.data.league_name}!`);
+      onJoined(env.data.league_id);
+    } finally {
+      setJoiningId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
+        <div className="flex items-center gap-1">
+          {(["all", "nba", "wnba"] as const).map((s) => (
+            <Button
+              key={s}
+              size="sm"
+              variant={sport === s ? "default" : "outline"}
+              onClick={() => setSport(s)}
+              className="font-heading uppercase tracking-wider text-[10px]"
+            >
+              {s === "all" ? "All" : s.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search leagues by name..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") applySearch(); }}
+            className="pl-8 h-9"
+          />
+        </div>
+        <Button size="sm" variant="secondary" onClick={applySearch} className="font-heading uppercase tracking-wider text-[10px]">
+          Search
+        </Button>
+        <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+          <SelectTrigger className="h-9 w-[140px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Active first</SelectItem>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="most_teams">Most teams</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {isLoading && accumulated.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
+          Loading public leagues…
+        </div>
+      ) : accumulated.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border bg-card/40 p-10 text-center space-y-2">
+          <h2 className="text-base font-heading uppercase tracking-wider font-bold">No public leagues yet</h2>
+          <p className="text-sm text-muted-foreground">Create one and set visibility to Public!</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {accumulated.map((l) => (
+              <PublicLeagueCard
+                key={l.id}
+                league={l}
+                isMember={myLeagueIds.has(l.id)}
+                joining={joiningId === l.id}
+                onJoin={() => handleJoin(l)}
+                onOpen={() => onOpen(l.id)}
+              />
+            ))}
+          </div>
+          {data?.has_more && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={isFetching}
+                className="font-heading uppercase tracking-wider text-[10px]"
+              >
+                {isFetching ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null} Load more
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PublicLeagueCard({
+  league, isMember, joining, onJoin, onOpen,
+}: {
+  league: PublicLeague;
+  isMember: boolean;
+  joining: boolean;
+  onJoin: () => void;
+  onOpen: () => void;
+}) {
+  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card/90 to-card p-5 hover:border-accent/40 transition-colors">
+      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.08] rotate-12 select-none blur-[0.5px]" />
+      <div className="relative z-10 space-y-3">
+        <div>
+          <h3 className="text-lg font-heading font-bold uppercase tracking-wider">{league.name}</h3>
+          {league.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{league.description}</p>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant="secondary" className="font-heading uppercase tracking-wider text-[9px] gap-1">
+            <Users className="h-3 w-3" /> {league.team_count} teams
+          </Badge>
+          <StatusPill status={league.status} />
+          <span className="inline-flex items-center rounded-full border border-border bg-background/40 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground">
+            {league.sport}
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Scoring</div>
+          <div className="text-xs font-mono text-foreground/90 truncate">{league.scoring_formula_short}</div>
+        </div>
+        {league.deadline_type && (
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Deadline</div>
+            <span className="inline-flex items-center rounded-md border border-border bg-background/40 px-2 py-0.5 text-[10px]">
+              {league.deadline_type.replace(/_/g, " ")}
+            </span>
+          </div>
+        )}
+        {league.chips_enabled.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Chips</div>
+            <div className="flex flex-wrap gap-1">
+              {league.chips_enabled.includes("captain") && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 px-2 py-0.5 text-[10px]">👑 Captain</span>
+              )}
+              {league.chips_enabled.includes("wildcard") && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 px-2 py-0.5 text-[10px]">🃏 Wildcard</span>
+              )}
+              {league.chips_enabled.includes("all_star") && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 text-[10px]">⭐ All-Star</span>
+              )}
+            </div>
+          </div>
+        )}
+        <div className="flex flex-wrap gap-2 pt-2">
+          {isMember ? (
+            <Button size="sm" onClick={onOpen} className="font-heading uppercase tracking-wider text-[10px]">
+              <Sparkles className="h-3.5 w-3.5 mr-1" /> Open
+            </Button>
+          ) : (
+            <Button size="sm" onClick={onJoin} disabled={joining} className="font-heading uppercase tracking-wider text-[10px]">
+              {joining ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
+              Join
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
