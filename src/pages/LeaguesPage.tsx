@@ -543,15 +543,13 @@ function DiscoverPanel({
                   onClick={() => setSport(s)}
                   aria-label="All sports"
                   title="All sports"
-                  className={`${baseCls} ${dimCls} flex items-center justify-center leading-none`}
+                  className={`${baseCls} ${dimCls}`}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={`${active ? "text-3xl" : "text-xl"} transition-all duration-200`}
-                    style={{ filter: active ? "none" : "grayscale(0.2)" }}
-                  >
-                    🌍
-                  </span>
+                  <img
+                    src={globeEarth}
+                    alt="All sports"
+                    className={`${active ? "h-6" : "h-4"} w-auto object-contain transition-all duration-200`}
+                  />
                 </button>
               );
             }
