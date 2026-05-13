@@ -175,14 +175,26 @@ function CopyCodeButton({ code, compact }: { code: string; compact?: boolean }) 
       toast.error("Couldn't copy code");
     }
   }
-  const sz = compact ? "h-7 w-7" : "h-8 w-8";
   const ic = compact ? "h-3.5 w-3.5" : "h-4 w-4";
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label={`Copy invite code ${code}`}
+        title={`Copy invite code (${code})`}
+        className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {copied ? <CheckCircle2 className={`${ic} text-emerald-400`} /> : <Copy className={ic} />}
+      </button>
+    );
+  }
   return (
     <Button
       size="icon"
       variant="outline"
       onClick={handleCopy}
-      className={sz}
+      className="h-8 w-8"
       aria-label={`Copy invite code ${code}`}
       title={`Copy invite code (${code})`}
     >
@@ -533,7 +545,7 @@ function DiscoverPanel({
                   title="All sports"
                   className={`${baseCls} ${dimCls} flex items-center justify-center`}
                 >
-                  <Globe className={`${active ? "h-7 w-7 text-accent" : "h-5 w-5 text-muted-foreground"}`} />
+                  <Globe className={`${active ? "h-5 w-5 text-accent" : "h-4 w-4 text-muted-foreground"}`} />
                 </button>
               );
             }
@@ -770,20 +782,20 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
           </div>
         </div>
       </div>
-      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
-        <Button size="icon" onClick={onOpen} className="h-7 w-7" aria-label="Open league" title="Open league">
+      <div className="relative z-10 flex items-center gap-2 shrink-0">
+        <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
           <LayoutDashboard className="h-3.5 w-3.5" />
-        </Button>
-        <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-7 w-7" aria-label="Create team" title="Create team">
+        </button>
+        <button type="button" onClick={onCreateTeam} className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Create team" title="Create team">
           <UserPlus className="h-3.5 w-3.5" />
-        </Button>
+        </button>
         {isMine && !isMain && league.join_code && (
           <CopyCodeButton code={league.join_code} compact />
         )}
         {isMine && !isMain && (
-          <Button size="icon" variant="outline" onClick={onSettings} className="h-7 w-7" aria-label="Settings" title="Settings">
+          <button type="button" onClick={onSettings} className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Settings" title="Settings">
             <SettingsIcon className="h-3.5 w-3.5" />
-          </Button>
+          </button>
         )}
       </div>
     </div>
@@ -825,15 +837,15 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
           </div>
         </div>
       </div>
-      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 shrink-0">
         {isMember ? (
-          <Button size="icon" onClick={onOpen} className="h-7 w-7" aria-label="Open league" title="Open league">
+          <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
             <LayoutDashboard className="h-3.5 w-3.5" />
-          </Button>
+          </button>
         ) : (
-          <Button size="icon" onClick={onJoin} disabled={joining} className="h-7 w-7" aria-label="Join league" title="Join league">
+          <button type="button" onClick={onJoin} disabled={joining} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 disabled:opacity-50 transition-colors" aria-label="Join league" title="Join league">
             {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
-          </Button>
+          </button>
         )}
       </div>
     </div>
