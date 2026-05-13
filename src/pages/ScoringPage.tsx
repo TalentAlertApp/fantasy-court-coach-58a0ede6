@@ -382,7 +382,7 @@ function LeagueView({
           icon={<Users className="h-4 w-4 text-primary" />}
           label="Total Teams"
           value={String(summary.total_teams)}
-          sub="In Main League"
+          sub={`In ${leagueName ?? "this league"}`}
         />
       </div>
 
