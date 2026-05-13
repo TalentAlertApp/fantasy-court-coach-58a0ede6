@@ -12,6 +12,7 @@ import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPuls
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { isMainLeague } from "@/hooks/useFantasyLeagues";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -120,9 +121,7 @@ export default function ScoringPage() {
             // system Main Leagues match by sport (since teams attached to a
             // single sport may carry the sport's league_id rather than the
             // fantasy main-league pseudo id).
-            (l.id === "00000000-0000-0000-0000-000000000010" ||
-              l.id === "00000000-0000-0000-0000-000000000011" ||
-              l.id === "00000000-0000-0000-0000-000000000012")
+            isMainLeague(l.id)
               ? userTeams.filter((t: any) => (t.league_code ?? "nba") === l.sport).length
               : userTeams.filter((t: any) => t.league_id === l.id).length,
           ]),
