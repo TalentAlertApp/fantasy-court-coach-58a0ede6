@@ -84,13 +84,32 @@ Deno.serve(async (req) => {
       allPlayerIdSet.add(r.player_id);
     }
     const playerIds = Array.from(allPlayerIdSet);
-    // Latest captain (for response convenience / current-roster UIs)
-    const latestKey = Array.from(rosterByDay.keys()).sort((a, b) => {
+    // Sorted (gw, day) keys for nearest-snapshot fallback below.
+    const sortedRosterKeys = Array.from(rosterByDay.keys()).sort((a, b) => {
       const [ga, da] = a.split(".").map(Number);
       const [gb, db] = b.split(".").map(Number);
       return ga - gb || da - db;
-    }).pop();
+    });
+    const latestKey = sortedRosterKeys[sortedRosterKeys.length - 1];
     const captainId = latestKey ? rosterByDay.get(latestKey)!.captainId : null;
+    /**
+     * Resolve a roster snapshot for any (gw, day) by falling back to the
+     * most recent snapshot at or before that point. This lets the history
+     * timeline cover the whole season even when a team only has a single
+     * roster row (current gameweek) in the DB.
+     */
+    function resolveDayRoster(gw: number, day: number): DayRoster | undefined {
+      const exact = rosterByDay.get(`${gw}.${day}`);
+      if (exact) return exact;
+      let best: DayRoster | undefined;
+      for (const k of sortedRosterKeys) {
+        const [g, d] = k.split(".").map(Number);
+        if (g < gw || (g === gw && d <= day)) best = rosterByDay.get(k);
+        else break;
+      }
+      // If the date is earlier than any known snapshot, use the earliest one.
+      return best ?? (sortedRosterKeys.length ? rosterByDay.get(sortedRosterKeys[0]) : undefined);
+    }
 
     // 2. Get player info
     const { data: playersData } = await sb
@@ -118,11 +137,7 @@ Deno.serve(async (req) => {
       if (logs.length < PAGE_SIZE) break;
     }
 
-    // 4. Map game_date -> gw/day from schedule_games
-    // Get all unique game_dates from logs
-    const uniqueDates = [...new Set(allLogs.map((l: any) => l.game_date).filter(Boolean))];
-    
-    // Fetch schedule mappings (paginated)
+    // 4. Map game_date -> gw/day from schedule_games (paginated).
     let allSchedule: any[] = [];
     for (let offset = 0; ; offset += PAGE_SIZE) {
       const { data: sched } = await sb
@@ -141,6 +156,19 @@ Deno.serve(async (req) => {
     for (const s of allSchedule as any[]) {
       schedMap[s.game_id] = s;
     }
+    // Build (Lisbon yyyy-mm-dd) -> { gw, day } so we can resolve dates that
+    // have no matching schedule_games row (older WNBA history etc.).
+    const dateToGwDay = new Map<string, { gw: number; day: number }>();
+    for (const s of allSchedule as any[]) {
+      if (!s.tipoff_utc) continue;
+      const d = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(new Date(s.tipoff_utc));
+      const cur = dateToGwDay.get(d);
+      if (!cur || s.gw < cur.gw || (s.gw === cur.gw && s.day < cur.day)) {
+        dateToGwDay.set(d, { gw: s.gw, day: s.day });
+      }
+    }
 
     // 5. Build game day data
     // Group logs by game_date
@@ -157,20 +185,19 @@ Deno.serve(async (req) => {
     const gwDayFpMap: Record<string, number> = {};
 
     for (const [dateStr, logs] of Object.entries(logsByDate)) {
-      // Find gw/day from any matching game
+      // Find gw/day from any matching game; fall back to date->gw/day map.
       let gw = 0, day = 0;
       for (const log of logs) {
         const sched = schedMap[log.game_id];
-        if (sched) {
-          gw = sched.gw;
-          day = sched.day;
-          break;
-        }
+        if (sched) { gw = sched.gw; day = sched.day; break; }
       }
-      if (gw === 0) continue; // skip if can't map
+      if (gw === 0) {
+        const fallback = dateToGwDay.get(dateStr);
+        if (fallback) { gw = fallback.gw; day = fallback.day; }
+      }
+      if (gw === 0) continue; // truly unmappable
 
-      const dayKey = `${gw}.${day}`;
-      const dayRoster = rosterByDay.get(dayKey);
+      const dayRoster = resolveDayRoster(gw, day);
       // Only include logs for players actually rostered on this (gw, day)
       const eligibleLogs = dayRoster
         ? logs.filter((l: any) => dayRoster.playerIds.has(l.player_id))
