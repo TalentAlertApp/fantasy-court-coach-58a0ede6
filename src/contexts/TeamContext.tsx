@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
+import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 
 export type TeamRecord = {
   id: string;
@@ -10,10 +11,12 @@ export type TeamRecord = {
   league_code?: "nba" | "wnba";
   sport_league_id?: string | null;
   owner_id?: string | null;
+  league_id?: string | null;
 };
 
 interface TeamContextValue {
   teams: TeamRecord[];
+  teamsInSelectedLeague: TeamRecord[];
   selectedTeamId: string | null;
   setSelectedTeamId: (id: string) => void;
   defaultTeamId: string | null;
@@ -25,6 +28,7 @@ interface TeamContextValue {
 
 const TeamContext = createContext<TeamContextValue>({
   teams: [],
+  teamsInSelectedLeague: [],
   selectedTeamId: null,
   setSelectedTeamId: () => {},
   defaultTeamId: null,
@@ -155,8 +159,16 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const selectedTeam: TeamRecord | null =
     (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
 
+  const { selectedLeagueId } = useFantasyLeague();
+  // If teams expose a league_id, filter; otherwise fall back to all teams so
+  // pages that pre-date the FantasyLeague split keep working.
+  const teamsHaveLeagueId = teams.some((t: any) => t.league_id !== undefined);
+  const teamsInSelectedLeague: TeamRecord[] = (selectedLeagueId && teamsHaveLeagueId)
+    ? teams.filter((t: any) => t.league_id === selectedLeagueId)
+    : teams;
+
   return (
-    <TeamContext.Provider value={{ teams, selectedTeamId, setSelectedTeamId, defaultTeamId, selectedTeam, isLoading, isReady, isError }}>
+    <TeamContext.Provider value={{ teams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, defaultTeamId, selectedTeam, isLoading, isReady, isError }}>
       {children}
     </TeamContext.Provider>
   );
