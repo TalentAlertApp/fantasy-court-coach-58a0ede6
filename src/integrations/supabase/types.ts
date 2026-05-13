@@ -254,6 +254,7 @@ export type Database = {
           roster_rule_set_id: string | null
           scoring_system_id: string
           sport: string | null
+          sport_league_id: string | null
           status: string
           transfer_cap: number
           updated_at: string
@@ -275,6 +276,7 @@ export type Database = {
           roster_rule_set_id?: string | null
           scoring_system_id: string
           sport?: string | null
+          sport_league_id?: string | null
           status?: string
           transfer_cap?: number
           updated_at?: string
@@ -296,6 +298,7 @@ export type Database = {
           roster_rule_set_id?: string | null
           scoring_system_id?: string
           sport?: string | null
+          sport_league_id?: string | null
           status?: string
           transfer_cap?: number
           updated_at?: string
@@ -328,6 +331,13 @@ export type Database = {
             columns: ["scoring_system_id"]
             isOneToOne: false
             referencedRelation: "scoring_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leagues_sport_league_fk"
+            columns: ["sport_league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
         ]
