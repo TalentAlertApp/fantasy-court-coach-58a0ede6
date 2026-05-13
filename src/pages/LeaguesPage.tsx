@@ -174,6 +174,15 @@ export default function LeaguesPage() {
           if (ctx) env = ctx;
         } catch { /* noop */ }
       }
+      // Treat "already member" as success — surface a friendly toast and switch
+      // the user into that league instead of bubbling up an error.
+      if (env?.error?.code === "ALREADY_MEMBER") {
+        await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+        toast.success("You're already a member of this league.");
+        setJoinOpen(false);
+        setJoinCode("");
+        return;
+      }
       if (!env?.ok || !env.data) {
         setJoinError(env?.error?.message ?? error?.message ?? "Unable to join this league.");
         return;
@@ -397,6 +406,12 @@ function DiscoverPanel({
           const ctx = await (error as unknown as { context?: { json?: () => Promise<any> } }).context?.json?.();
           if (ctx) env = ctx;
         } catch { /* noop */ }
+      }
+      if (env?.error?.code === "ALREADY_MEMBER") {
+        await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+        toast.success("You're already a member of this league.");
+        onJoined(league.id);
+        return;
       }
       if (!env?.ok || !env.data) {
         toast.error(env?.error?.message ?? "Unable to join.");
