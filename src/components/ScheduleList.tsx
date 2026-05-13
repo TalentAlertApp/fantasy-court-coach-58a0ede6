@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
 import TeamCompareModal from "@/components/TeamCompareModal";
@@ -34,6 +35,17 @@ import {
   type PlayerHealth,
 } from "@/lib/health";
 import { HealthStatusIcon } from "@/components/health";
+
+/* ---------- League-aware team meta (conference) ---------- */
+type LeagueCode = "nba" | "wnba";
+const WNBA_META: Record<string, { conference: "East" | "West" }> = Object.fromEntries(
+  WNBA_TEAMS.map((t) => [t.tricode, { conference: t.conference === "Eastern" ? "East" : "West" }]),
+);
+function getLeagueMeta(league: LeagueCode): Record<string, { conference: "East" | "West" }> {
+  return league === "wnba"
+    ? WNBA_META
+    : (NBA_TEAM_META as unknown as Record<string, { conference: "East" | "West" }>);
+}
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
 function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
@@ -296,6 +308,7 @@ interface TeamFormData {
 
 function useAllTeamsForm(enabled: boolean) {
   const { data: leagueId } = useLeagueId();
+  const { league } = useLeague();
   return useQuery({
     queryKey: ["all-teams-form", leagueId],
     enabled: enabled && !!leagueId,
@@ -345,7 +358,8 @@ function useAllTeamsForm(enabled: boolean) {
       }
 
       // Include every team in the active league so conference standings are full.
-      const allTricodes = new Set<string>([...Object.keys(NBA_TEAM_META), ...Object.keys(acc)]);
+      const leagueMeta = getLeagueMeta(league);
+      const allTricodes = new Set<string>([...Object.keys(leagueMeta), ...Object.keys(acc)]);
       for (const tricode of allTricodes) {
         const t = acc[tricode];
         if (!t) {
@@ -395,11 +409,12 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
   return <GameDetailModal game={detail} open={open} onOpenChange={onOpenChange} />;
 }
 
-function computeConfStandings(data: Record<string, TeamFormData>, tricode: string): { tricode: string; rank: number; w: number; l: number; gp: number; pctStr: string; gb: string }[] {
-  const meta = NBA_TEAM_META[tricode];
+function computeConfStandings(data: Record<string, TeamFormData>, tricode: string, league: LeagueCode): { tricode: string; rank: number; w: number; l: number; gp: number; pctStr: string; gb: string }[] {
+  const leagueMeta = getLeagueMeta(league);
+  const meta = leagueMeta[tricode];
   if (!meta || !data) return [];
   const conference = meta.conference;
-  const allTeams = Object.keys(NBA_TEAM_META).filter(t => NBA_TEAM_META[t].conference === conference);
+  const allTeams = Object.keys(leagueMeta).filter(t => leagueMeta[t].conference === conference);
   const rows = allTeams.map(t => {
     const d = data[t];
     const w = d?.w ?? 0;
@@ -419,12 +434,13 @@ function computeConfStandings(data: Record<string, TeamFormData>, tricode: strin
   return ranked.slice(start, start + 5);
 }
 
-function ConferenceTable({ standings, teamTricode, onTeamClick }: {
+function ConferenceTable({ standings, teamTricode, onTeamClick, league }: {
   standings: ReturnType<typeof computeConfStandings>;
   teamTricode: string;
   onTeamClick: (tricode: string) => void;
+  league: LeagueCode;
 }) {
-  const meta = NBA_TEAM_META[teamTricode];
+  const meta = getLeagueMeta(league)[teamTricode];
   if (!standings.length || !meta) return null;
   return (
     <div className="bg-card/60 rounded-lg border p-2">
@@ -467,9 +483,10 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
   onTeamClick: (tricode: string) => void;
 }) {
   const { data, isLoading } = useAllTeamsForm(true);
+  const { league } = useLeague();
 
-  const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam) : [], [data, awayTeam]);
-  const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam) : [], [data, homeTeam]);
+  const awayStandings = useMemo(() => data ? computeConfStandings(data, awayTeam, league) : [], [data, awayTeam, league]);
+  const homeStandings = useMemo(() => data ? computeConfStandings(data, homeTeam, league) : [], [data, homeTeam, league]);
 
   if (isLoading) return <div className="p-3"><Skeleton className="h-16" /></div>;
   if (!data) return null;
@@ -488,7 +505,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
       <div className="grid grid-cols-2 gap-4">
         {teamsArr.map(({ team, standings }) => {
           const logo = getTeamLogo(team.tricode);
-          const meta = NBA_TEAM_META[team.tricode];
+          const meta = getLeagueMeta(league)[team.tricode];
 
           return (
             <div key={team.tricode} className="space-y-2">
@@ -518,7 +535,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} />
+                <ConferenceTable standings={standings} teamTricode={team.tricode} onTeamClick={onTeamClick} league={league} />
                 <div className="bg-card/60 rounded-lg border p-2">
                   <p className="text-[9px] font-heading font-bold text-muted-foreground uppercase mb-1">Last 5 Games</p>
                   <div className="space-y-1">
