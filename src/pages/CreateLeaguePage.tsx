@@ -10,6 +10,8 @@ import { Switch } from "@/components/ui/switch";
 import { useCreateLeague, type CreateLeagueInput } from "@/hooks/useCreateLeague";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { cn } from "@/lib/utils";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 type StatKey = "pts" | "reb" | "ast" | "stl" | "blk" | "to";
 type Preset = "classic" | "guards_boost" | "bigs_boost" | "custom";
@@ -138,36 +140,50 @@ export default function CreateLeaguePage() {
   }
 
   return (
-    <div className="px-6 py-5 max-w-[900px] mx-auto space-y-5">
-      <div className="rounded-xl border border-border bg-card px-5 py-4">
-        <Link to="/leagues" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-3">
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to leagues
-        </Link>
-        <h1 className="text-2xl font-heading uppercase tracking-wider font-bold">Create League</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Step {step} of {TOTAL_STEPS}
-        </p>
-
-        {/* Step indicator pills */}
-        <div className="mt-4 flex items-center gap-2 flex-wrap">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
-            const n = i + 1;
-            const active = n === step;
-            const done = n < step;
-            return (
-              <div
-                key={n}
-                className={cn(
-                  "h-7 w-7 rounded-full text-xs font-semibold inline-flex items-center justify-center border transition",
-                  active && "bg-primary text-primary-foreground border-primary",
-                  done && !active && "bg-primary/20 text-primary border-primary/40",
-                  !active && !done && "bg-muted/40 text-muted-foreground border-border",
-                )}
-              >
-                {done ? <Check className="h-3.5 w-3.5" /> : n}
-              </div>
-            );
-          })}
+    <div className="px-6 py-5 max-w-[960px] mx-auto space-y-5">
+      {/* Premium header — onboarding-style: dark gradient card, accent chip, inline step pills */}
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card/95 to-card px-6 py-5">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 20% 20%, hsl(var(--primary)) 0, transparent 40%), radial-gradient(circle at 80% 80%, hsl(var(--accent)) 0, transparent 45%)",
+          }}
+        />
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <Link to="/leagues" className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-heading text-muted-foreground hover:text-foreground mb-2">
+              <ArrowLeft className="h-3 w-3" /> Back to leagues
+            </Link>
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-[9px] font-heading uppercase tracking-[0.22em] text-accent mb-2">
+              Ballers.IQ · League Builder
+            </div>
+            <h1 className="text-3xl font-heading uppercase tracking-wider font-bold leading-none">Create League</h1>
+            <p className="text-xs text-muted-foreground uppercase tracking-[0.18em] font-heading mt-1.5">
+              Step {step} of {TOTAL_STEPS}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
+              const n = i + 1;
+              const active = n === step;
+              const done = n < step;
+              return (
+                <div
+                  key={n}
+                  className={cn(
+                    "h-8 w-8 rounded-full text-xs font-heading font-bold inline-flex items-center justify-center border transition shadow-sm",
+                    active && "bg-primary text-primary-foreground border-primary scale-110 shadow-lg shadow-primary/30",
+                    done && !active && "bg-primary/20 text-primary border-primary/40",
+                    !active && !done && "bg-muted/40 text-muted-foreground border-border",
+                  )}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : n}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -217,23 +233,36 @@ export default function CreateLeaguePage() {
             <SectionHeader title="Player pool" subtitle="Pick which league's players you'll draft" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {([
-                { key: "nba" as const, name: "NBA", full: "National Basketball Association", count: "450+ players" },
-                { key: "wnba" as const, name: "WNBA", full: "Women's National Basketball Association", count: "140+ players" },
+                { key: "nba" as const, name: "NBA", full: "National Basketball Association", count: "450+ players", logo: nbaLogo },
+                { key: "wnba" as const, name: "WNBA", full: "Women's National Basketball Association", count: "140+ players", logo: wnbaLogo },
               ]).map((opt) => (
                 <button
                   key={opt.key}
                   type="button"
                   onClick={() => setSport(opt.key)}
                   className={cn(
-                    "rounded-xl border p-6 text-left transition",
+                    "relative overflow-hidden rounded-2xl border p-6 text-left transition group",
                     sport === opt.key
-                      ? "border-primary bg-primary/10 shadow-[0_0_0_1px_hsl(var(--primary)/0.6)]"
-                      : "border-border bg-muted/20 hover:bg-muted/30",
+                      ? "border-primary bg-gradient-to-br from-primary/15 via-primary/5 to-card shadow-[0_0_0_1px_hsl(var(--primary)/0.6),0_8px_30px_-10px_hsl(var(--primary)/0.4)]"
+                      : "border-border bg-gradient-to-br from-card via-card/90 to-card hover:border-primary/40",
                   )}
                 >
-                  <div className="text-3xl font-heading font-bold tracking-wider">{opt.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{opt.full}</div>
-                  <div className="text-xs text-muted-foreground mt-3">{opt.count}</div>
+                  <img
+                    src={opt.logo}
+                    alt=""
+                    aria-hidden
+                    className="pointer-events-none absolute -right-6 -bottom-6 h-36 w-auto opacity-[0.12] rotate-12 select-none group-hover:opacity-[0.2] transition-opacity"
+                  />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-3">
+                      <img src={opt.logo} alt={opt.name} className="h-10 w-10 object-contain" />
+                      <div className="text-3xl font-heading font-bold tracking-wider">{opt.name}</div>
+                    </div>
+                    <div className="text-sm text-muted-foreground mt-2">{opt.full}</div>
+                    <div className="inline-flex items-center mt-4 rounded-full border border-border bg-background/60 px-2.5 py-0.5 text-[10px] font-heading uppercase tracking-[0.18em] text-muted-foreground">
+                      {opt.count}
+                    </div>
+                  </div>
                 </button>
               ))}
             </div>
@@ -261,10 +290,11 @@ export default function CreateLeaguePage() {
                 </button>
               ))}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* 7 fields in 3 rows: 3-col grid of compact stat cards */}
+            <div className="grid grid-cols-3 gap-2.5">
               {(["pts", "reb", "ast", "stl", "blk"] as StatKey[]).map((k) => (
-                <div key={k} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2">
-                  <div className="text-sm font-semibold uppercase w-12">{k}</div>
+                <div key={k} className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-2.5 py-2">
+                  <div className="text-xs font-heading font-bold uppercase tracking-wider w-8 text-muted-foreground">{k}</div>
                   <Input
                     type="number"
                     step={0.5}
@@ -272,12 +302,12 @@ export default function CreateLeaguePage() {
                     max={10}
                     value={weights[k]}
                     onChange={(e) => setWeight(k, Number(e.target.value))}
-                    className="w-24"
+                    className="h-8 text-sm"
                   />
                 </div>
               ))}
-              <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2 col-span-1 sm:col-span-2">
-                <div className="text-sm font-semibold uppercase w-12">TO</div>
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/20 px-2.5 py-2">
+                <div className="text-xs font-heading font-bold uppercase tracking-wider w-8 text-muted-foreground">TO</div>
                 <Switch checked={toEnabled} onCheckedChange={(v) => { setToEnabled(v); if (!v) setWeight("to", 0); else if (weights.to === 0) setWeight("to", -1); }} />
                 <Input
                   type="number"
@@ -287,22 +317,22 @@ export default function CreateLeaguePage() {
                   disabled={!toEnabled}
                   value={weights.to}
                   onChange={(e) => setWeight("to", Number(e.target.value))}
-                  className="w-24"
+                  className="h-8 text-sm"
                 />
-                <span className="text-xs text-muted-foreground">Penalize turnovers (-5 to 0)</span>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Label className="w-44">Captain multiplier</Label>
-              <Input
-                type="number"
-                step={0.5}
-                min={1}
-                max={3}
-                value={captainMultiplier}
-                onChange={(e) => setCaptainMultiplier(Number(e.target.value))}
-                className="w-24"
-              />
+              <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-2.5 py-2 col-span-1">
+                <div className="text-xs font-heading font-bold uppercase tracking-wider text-amber-400">CAPT</div>
+                <Input
+                  type="number"
+                  step={0.5}
+                  min={1}
+                  max={3}
+                  value={captainMultiplier}
+                  onChange={(e) => setCaptainMultiplier(Number(e.target.value))}
+                  className="h-8 text-sm"
+                />
+                <span className="text-[10px] text-muted-foreground">×</span>
+              </div>
             </div>
             <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-mono">
               {formulaPreview}
