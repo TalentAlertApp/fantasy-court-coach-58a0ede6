@@ -2,7 +2,7 @@
  * Per-user onboarding resume state + session-scoped skip flag.
  */
 
-export type OnboardingStep = "hero" | "name" | "draft";
+export type OnboardingStep = "hero" | "name" | "league" | "draft";
 
 export interface OnboardingState {
   step: OnboardingStep;
@@ -52,7 +52,12 @@ export function getOnboardingState(userId: string | null | undefined): Onboardin
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
-    if (parsed.step !== "hero" && parsed.step !== "name" && parsed.step !== "draft") return null;
+    if (
+      parsed.step !== "hero" &&
+      parsed.step !== "name" &&
+      parsed.step !== "league" &&
+      parsed.step !== "draft"
+    ) return null;
     return parsed as OnboardingState;
   } catch {
     return null;
