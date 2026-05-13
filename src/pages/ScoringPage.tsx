@@ -45,7 +45,7 @@ export default function ScoringPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { teams: userTeams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
-  const { leagues: fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId, sportCode } = useFantasyLeague();
+  const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId, sportCode } = useFantasyLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
   const activeLeagueCode: "nba" | "wnba" = sportCode;
   const headerLogo = activeLeagueCode === "wnba" ? wnbaLogo : nbaLogo;
