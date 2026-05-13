@@ -53,6 +53,15 @@ Deno.serve(async (req) => {
 
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+    // Resolve league code (nba/wnba) so the AI never mixes leagues.
+    const { data: leagueRow } = await sb
+      .from("leagues")
+      .select("code, name")
+      .eq("id", league_id)
+      .maybeSingle();
+    const leagueCode = (leagueRow?.code ?? "nba").toLowerCase();
+    const leagueLabel = leagueCode === "wnba" ? "WNBA" : "NBA";
+
     if (!force) {
       const { data: existing } = await sb
         .from("court_show_intelligence")
@@ -60,7 +69,19 @@ Deno.serve(async (req) => {
         .eq("league_id", league_id).eq("gw", gw).eq("day", day)
         .maybeSingle();
       if (existing && (existing.cards as any[])?.length) {
-        return jsonResp({ cached: true, ...existing });
+        // Detect cross-league pollution (e.g. WNBA row referencing NBA tricodes).
+        const cardsArr = (existing.cards as any[]) ?? [];
+        const allTricodes = cardsArr.flatMap((c) =>
+          [c.team, c.home_team, c.away_team].filter(Boolean).map((t: string) => String(t).toUpperCase())
+        );
+        const NBA_ONLY = new Set(["ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WAS"]);
+        const WNBA_ONLY = new Set(["ATL","CHI","CON","DAL","IND","LVA","LAS","MIN","NYL","PHX","SEA","WAS","GSV","TOR"]);
+        const polluted =
+          (leagueCode === "wnba" && allTricodes.some((t) => NBA_ONLY.has(t) && !WNBA_ONLY.has(t))) ||
+          (leagueCode === "nba"  && allTricodes.some((t) => WNBA_ONLY.has(t) && !NBA_ONLY.has(t)));
+        if (!polluted) {
+          return jsonResp({ cached: true, ...existing });
+        }
       }
     }
 
@@ -103,18 +124,21 @@ Deno.serve(async (req) => {
     let headline = "GAMENIGHT INTELLIGENCE";
 
     if (LOVABLE_API_KEY) {
-      const sysPrompt = `You are Ballers.IQ — a fantasy basketball editorial AI.
-Generate exactly 4 short, punchy "index" cards for tonight's slate.
+      const sysPrompt = `You are Ballers.IQ — a fantasy basketball editorial AI for the ${leagueLabel}.
+Generate exactly 4 short, punchy "index" cards for tonight's ${leagueLabel} slate.
 Pick 4 different "kind" values from: form_index, matchup_index, schedule_index, market_index, role_stability.
 Rules:
 - Headlines under 9 words, all caps OK, NO emojis.
 - Bodies under 28 words, concrete, no L5/FP5 jargon.
 - Reference players by name + team tricode (e.g. "LeBron · LAL").
-- Use only data provided; do not invent stats.
+- Use ONLY the players, teams and games listed in the user payload — never invent names, tricodes or stats.
+- This is the ${leagueLabel}. Do NOT reference players or teams from any other league.
+- If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
 - For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
 - Also produce a single short HEADLINE (under 8 words) summarizing the night.`;
 
       const userPayload = {
+        league: leagueLabel,
         gw, day, mode,
         games: (games ?? []).map((g: any) => ({
           game_id: g.game_id, away: g.away_team, home: g.home_team,

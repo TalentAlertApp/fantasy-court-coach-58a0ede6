@@ -46,6 +46,25 @@ export default function WnbaSheetSyncPanel() {
   const run = async (mode: string, label: string) => {
     setBusyMode(mode);
     try {
+      // Combined Sync 3: schedule + game-data + advanced-stats sequentially.
+      if (mode === "sync3") {
+        const steps: Array<{ m: string; l: string }> = [
+          { m: "schedule", l: "Sync Schedule" },
+          { m: "game-data", l: "Sync Game Data" },
+          { m: "advanced-stats", l: "Sync Advanced Stats" },
+        ];
+        for (const s of steps) {
+          const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
+            body: { mode: s.m },
+            headers: { "x-admin-secret": adminSecret() },
+          });
+          if (error) throw new Error(`${s.l}: ${error.message ?? "error"}`);
+          if (!data?.ok) throw new Error(`${s.l}: ${data?.error?.message ?? "failed"}`);
+          setResults((prev) => ({ ...prev, [s.m]: data.data as SyncResult }));
+        }
+        toast.success("Schedule + Game Data + Advanced Stats synced");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
         body: { mode },
         headers: { "x-admin-secret": adminSecret() },
@@ -103,6 +122,7 @@ export default function WnbaSheetSyncPanel() {
         <Btn mode="schedule"       label="Sync Schedule"        icon={CalendarDays} />
         <Btn mode="game-data"      label="Sync Game Data"       icon={Trophy} />
         <Btn mode="advanced-stats" label="Sync Advanced Stats"  icon={BarChart3} />
+        <Btn mode="sync3"          label="Sync Schedule + Games + Advanced" icon={RefreshCw} primary />
         <Btn mode="all"            label="Sync ALL"             icon={RefreshCw} primary />
       </div>
 
