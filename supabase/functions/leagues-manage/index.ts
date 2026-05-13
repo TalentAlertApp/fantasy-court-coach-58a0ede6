@@ -29,11 +29,11 @@ async function authenticate(req: Request): Promise<{ userId: string } | Response
     global: { headers: { Authorization: authHeader } },
   });
   const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await userClient.auth.getClaims(token);
-  if (error || !data?.claims?.sub) {
+  const { data, error } = await userClient.auth.getUser(token);
+  if (error || !data?.user?.id) {
     return errorResponse("UNAUTHORIZED", "Invalid token", null, 401);
   }
-  return { userId: data.claims.sub as string };
+  return { userId: data.user.id };
 }
 
 async function loadOwnedLeague(sb: any, leagueId: string, userId: string) {
