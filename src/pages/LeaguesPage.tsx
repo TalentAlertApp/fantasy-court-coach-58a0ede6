@@ -17,6 +17,7 @@ import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague }
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import globeEarth from "@/assets/globe-earth.svg";
 import courtBg from "@/assets/court-bg.png";
 
 function formulaString(rules: ScoringRule[]): string {
@@ -543,15 +544,13 @@ function DiscoverPanel({
                   onClick={() => setSport(s)}
                   aria-label="All sports"
                   title="All sports"
-                  className={`${baseCls} ${dimCls} flex items-center justify-center leading-none`}
+                  className={`${baseCls} ${dimCls}`}
                 >
-                  <span
-                    aria-hidden="true"
-                    className={`${active ? "text-3xl" : "text-xl"} transition-all duration-200`}
-                    style={{ filter: active ? "none" : "grayscale(0.2)" }}
-                  >
-                    🌍
-                  </span>
+                  <img
+                    src={globeEarth}
+                    alt="All sports"
+                    className={`${active ? "h-6" : "h-4"} w-auto object-contain transition-all duration-200`}
+                  />
                 </button>
               );
             }
