@@ -50,8 +50,8 @@ export function formulaString(rules: ScoringRule[]): string {
   return `FP = ${parts.join(" + ")}`;
 }
 
-/** Cached fetch helpers (per cold start) */
-let _cachedRules: { ts: number; rules: ScoringRule[] } | null = null;
+/** Per-system rules cache (keyed by scoring_system_id, per cold start) */
+const _rulesCache = new Map<string, { ts: number; rules: ScoringRule[] }>();
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export async function fetchScoringRules(
@@ -59,7 +59,8 @@ export async function fetchScoringRules(
   systemId: string = "00000000-0000-0000-0000-000000000001"
 ): Promise<ScoringRule[]> {
   const now = Date.now();
-  if (_cachedRules && now - _cachedRules.ts < CACHE_TTL_MS) return _cachedRules.rules;
+  const hit = _rulesCache.get(systemId);
+  if (hit && now - hit.ts < CACHE_TTL_MS) return hit.rules;
   const { data, error } = await sb
     .from("scoring_rules")
     .select("stat_key, rule_type, weight, applies_to, is_active")
@@ -67,7 +68,7 @@ export async function fetchScoringRules(
     .eq("is_active", true);
   if (error) throw error;
   const rules = (data ?? []) as ScoringRule[];
-  _cachedRules = { ts: now, rules };
+  _rulesCache.set(systemId, { ts: now, rules });
   return rules;
 }
 
