@@ -21,6 +21,9 @@ import ScoringPage from "@/pages/ScoringPage";
 
 import CommissionerPage from "@/pages/CommissionerPage";
 import AdvancedPage from "@/pages/AdvancedPage";
+import LeaguesPage from "@/pages/LeaguesPage";
+import CreateLeaguePage from "@/pages/CreateLeaguePage";
+import LeagueSettingsPage from "@/pages/LeagueSettingsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -59,6 +62,9 @@ const App = () => (
                 <Route path="/schedule/grid" element={<ScheduleGridPage />} />
                 <Route path="/advanced" element={<AdvancedPage />} />
                 <Route path="/commissioner" element={<CommissionerPage />} />
+                <Route path="/leagues" element={<LeaguesPage />} />
+                <Route path="/leagues/create" element={<CreateLeaguePage />} />
+                <Route path="/leagues/:leagueId/settings" element={<LeagueSettingsPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
