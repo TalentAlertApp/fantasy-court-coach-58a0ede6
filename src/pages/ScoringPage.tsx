@@ -198,9 +198,15 @@ export default function ScoringPage() {
           {myTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-card border border-border rounded-xl">
               <Shield className="h-12 w-12 text-muted-foreground/30" />
-              <p className="text-muted-foreground font-heading">You don't own any teams yet</p>
-              <Button onClick={() => navigate("/onboarding")} size="sm" className="rounded-xl">
-                Create your first team
+              <p className="text-muted-foreground font-heading">
+                You don't have a team in {selectedLeague?.name ?? "this league"} yet.
+              </p>
+              <Button
+                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId } })}
+                size="sm"
+                className="rounded-xl"
+              >
+                Create a team
               </Button>
             </div>
           ) : (
