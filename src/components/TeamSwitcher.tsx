@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTeam } from "@/contexts/TeamContext";
 import { createTeam, updateTeam, deleteTeam } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,7 +14,7 @@ import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 import LeaguePickerCards from "@/components/LeaguePickerCards";
 
 export default function TeamSwitcher() {
-  const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
+  const { teams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -26,6 +27,22 @@ export default function TeamSwitcher() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Open create-team dialog when arriving via ?newTeam=1 (e.g. from /leagues "Create Team").
+  useEffect(() => {
+    if (searchParams.get("newTeam") === "1") {
+      const sp = searchParams.get("sport");
+      if (sp === "wnba" || sp === "nba") setNewLeague(sp);
+      setCreateOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("newTeam");
+      next.delete("sport");
+      next.delete("league_id");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -105,7 +122,7 @@ export default function TeamSwitcher() {
             <SelectValue placeholder="Select team" />
           </SelectTrigger>
           <SelectContent>
-            {teams.map((t: any) => (
+            {(teamsInSelectedLeague.length ? teamsInSelectedLeague : teams).map((t: any) => (
               <SelectItem key={t.id} value={t.id}>
                 <span className="flex items-center gap-1.5">
                   <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />

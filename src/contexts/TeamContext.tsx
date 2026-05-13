@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { isMainLeague } from "@/hooks/useFantasyLeagues";
 
 export type TeamRecord = {
   id: string;
@@ -159,13 +160,35 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const selectedTeam: TeamRecord | null =
     (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
 
-  const { selectedLeagueId } = useFantasyLeague();
-  // If teams expose a league_id, filter; otherwise fall back to all teams so
-  // pages that pre-date the FantasyLeague split keep working.
+  const { selectedLeagueId, selectedLeague } = useFantasyLeague();
+  // Custom fantasy leagues: teams.league_id directly references the fantasy league row.
+  // Main system leagues (NBA / WNBA): teams have league_id pointing at the SPORT league
+  // row, not the fantasy main-league pseudo id — so fall back to matching by sport.
   const teamsHaveLeagueId = teams.some((t: any) => t.league_id !== undefined);
+  const sport = selectedLeague?.sport ?? null;
   const teamsInSelectedLeague: TeamRecord[] = (selectedLeagueId && teamsHaveLeagueId)
-    ? teams.filter((t: any) => t.league_id === selectedLeagueId)
+    ? teams.filter((t: any) => {
+        if (t.league_id === selectedLeagueId) return true;
+        if (isMainLeague(selectedLeagueId) && sport && (t.league_code ?? "nba") === sport) return true;
+        return false;
+      })
     : teams;
+
+  // When the active fantasy league changes, if the currently selected team
+  // isn't in that league, switch to the first team that is.
+  useEffect(() => {
+    if (!isReady) return;
+    if (!selectedLeagueId || teamsInSelectedLeague.length === 0) return;
+    const inLeague = teamsInSelectedLeague.some((t) => t.id === selectedTeamId);
+    if (!inLeague) {
+      const next = teamsInSelectedLeague[0].id;
+      setSelectedTeamIdRaw(next);
+      try { localStorage.setItem(LS_KEY, next); } catch { /* ignore */ }
+      queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLeagueId, teamsInSelectedLeague.length]);
 
   return (
     <TeamContext.Provider value={{ teams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, defaultTeamId, selectedTeam, isLoading, isReady, isError }}>

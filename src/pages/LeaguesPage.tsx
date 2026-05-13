@@ -206,7 +206,10 @@ export default function LeaguesPage() {
     navigate("/scoring");
   };
   const handleCreateTeam = (id: string) => {
-    navigate("/welcome", { state: { leagueId: id } });
+    const target = fantasyLeagues.find((l) => l.id === id);
+    setSelectedLeagueId(id);
+    const sport = target?.sport === "wnba" ? "wnba" : "nba";
+    navigate(`/?newTeam=1&sport=${sport}&league_id=${encodeURIComponent(id)}`);
   };
   const handleSettings = (id: string) => navigate(`/leagues/${id}/settings`);
 
