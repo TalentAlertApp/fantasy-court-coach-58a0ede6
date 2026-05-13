@@ -474,7 +474,7 @@ export default function SchedulePage() {
             </div>
 
             {/* RIGHT: Last Played + Today */}
-            <div className="order-2 md:order-3 flex items-center gap-1.5 shrink-0 flex-1 justify-end">
+            <div className="order-2 md:order-3 flex items-center gap-1.5 shrink-0 flex-1 justify-end md:pl-[280px]">
               {lastPlayed && (
                 <Button variant="outline" size="sm" className="h-7 gap-1 text-xs bg-green-500/10 border-green-500/30 text-green-700 hover:bg-green-500/20 rounded-xl min-w-[120px] justify-center"
                   disabled={gw === lastPlayed.gw && day === lastPlayed.day}
