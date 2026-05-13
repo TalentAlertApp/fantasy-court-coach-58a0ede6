@@ -69,7 +69,6 @@ function TeamHeader({ tricode, side, rank, conf, onOpen, teamLookup }: { tricode
         <div className={`mt-1 flex items-center gap-1.5 ${side === "R" ? "justify-end" : ""}`}>
           {rank != null && (
             <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
-              <Trophy className="h-2.5 w-2.5 text-[hsl(var(--nba-yellow))]" />
               <span className="text-foreground font-bold">#{rank}</span>
               {conf ? <span>{conf}</span> : null}
             </span>
