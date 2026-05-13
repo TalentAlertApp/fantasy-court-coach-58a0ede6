@@ -1226,10 +1226,14 @@ function FantasyLeagueSelector({
 
   return (
     <div className="flex items-center gap-2 px-1">
-      <img src={logoFor(selectedLeague.sport)} alt="" className="h-5 w-5 object-contain" />
       <Select value={selectedLeague.id} onValueChange={onSelect}>
         <SelectTrigger className="h-9 w-auto min-w-[220px] rounded-lg bg-card border-border font-heading text-xs uppercase tracking-[0.15em]">
-          <SelectValue />
+          <SelectValue>
+            <span className="flex items-center gap-2">
+              <img src={logoFor(selectedLeague.sport)} alt="" className="h-4 w-4 object-contain" />
+              <span className="truncate">{selectedLeague.name}</span>
+            </span>
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {leagues.map((l) => (
