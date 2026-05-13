@@ -1,172 +1,55 @@
-## Prompt #1 (revised) — Historical scoring integrity + correct per-week Captain handling
+## Issues to fix
 
-Baseline acknowledged (NBA/WNBA sport leagues, Main fantasy league, leagues/teams/scoring_systems/scoring_rules/team_chips already exist; additive only; never touch unlisted files). Files in scope are exactly the four listed.
+### 1. Game Scheduled modal & Compare Teams modal show empty content
+**Files:** `src/components/NBAGameModal.tsx` (Game Scheduled, opened from TeamModal → UPCOMING), `src/components/TeamCompareModal.tsx`.
+**Cause:** When a game has `status='scheduled'`, the panels (Standings & Form, BoxScore, Charts) render empty placeholders without a fallback. The Compare modal "Standings & Form" panel renders blank when standings haven't loaded for the matchup teams.
+**Fix:** 
+- In NBAGameModal/Compare modal: detect `scheduled` games and render a "Pre-game preview" block (matchup form last 5, head-to-head, venue, tipoff) instead of empty boxscore container.
+- In TeamCompareModal: render the standings rows + form pills even when one side has 0 games yet (show "—"/"No games yet" placeholders). Ensure the panel has a non-empty default state.
 
-**Captain rule (carry-forward note for all later prompts):** the Gameday Captain is a chip used **once per gameweek**. In the data this is already encoded correctly — the `roster` table is keyed per `(team_id, gw, day, player_id)`, and `is_captain = true` exists on **at most one (gw, day) row per team per gameweek**. Captain bonus must therefore be applied **only on the specific game day where that player has `is_captain = true` for that team and gameweek** — not to every appearance of the player across the season.
+### 2. Step 6 (Chips & Transfers) and Step 4 (Roster Rules) — vertical density
+**File:** `src/pages/CreateLeaguePage.tsx`.
+- Step 4: put **Budget cap**, **Bench size**, and **Max players per team** in a 3-column grid (md+) instead of stacked full-width rows. Reduce vertical padding.
+- Step 6: place the four chip rows (Captain / Wildcard / All-Star / Free transfers) into a 2-column grid at md+ with tighter padding. Inline the multiplier/per-season inputs on the same row as the toggle.
 
-The current `scoring-history` and `league-standings` both load the roster without the `gw, day` filter and treat any captain as captain-for-everything. That's the bug behind retroactive recalculation. This prompt fixes it.
+### 3. Step 1 BACK button → /leagues
+**File:** `src/pages/CreateLeaguePage.tsx`.
+- The BACK button is currently disabled on step 1. Change behavior: on step 1, BACK navigates to `/leagues` instead of being disabled.
 
----
+### 4. CREATE TEAM from /leagues lands on /roster instead of a team-creation flow
+**File:** `src/pages/LeaguesPage.tsx` (`handleCreateTeam`).
+- Currently navigates to `/welcome` (onboarding). For Main Leagues we should route to a real team-creation entry point. Use `/welcome` with state `{ leagueId, sport, forceCreate: true }` AND, in `OnboardingPage`/`TeamPickerPage`, honor `forceCreate` so the user lands on the name+draft flow even if they already have teams. Alternatively (simpler): route to `/teams?create=1&league=<id>` and have TeamsPage open the "New Team" creation directly.
+- I'll go with the simpler route: navigate to `/teams?create=1&league_id=<id>` and trigger the existing "+ New Team" modal on mount.
 
-### Step 1 — Migration: `scoring_daily_team_totals`
+### 5 & 6. Main League "Open" loads wrong team / dropdown shows 0 teams for the other sport
+**Files:** `src/contexts/TeamContext.tsx`, `src/contexts/FantasyLeagueContext.tsx`, `src/hooks/useLeagueTeams.ts` (or the team-list query).
+**Cause:** Teams are scoped to the `leagues.id` of the **sport** league (NBA sport league id / WNBA sport league id), but the team-switcher and `/scoring` filter teams by the **fantasy** league id (Main League NBA/WNBA fantasy ids). The two id namespaces don't match, so:
+- WNBA Main League shows "0 teams" while the NBA sport teams exist.
+- Opening NBA Main League doesn't reset the active team because `TeamContext` doesn't auto-switch when the fantasy league changes.
 
-New file: `supabase/migrations/<timestamp>_scoring_daily_team_totals.sql`
+**Fix:**
+- Add a `sportCodeFor(fantasyLeagueId)` resolver via the league row's `sport` column (already present).
+- In TeamContext, filter teams by **sport** (`teams.league.code === selectedFantasyLeague.sport`) rather than by fantasy league id, OR by `team.fantasy_league_id` if/when present. For Main Leagues, the source-of-truth is the team's sport.
+- When `setSelectedLeagueId` changes the fantasy league sport, reconcile `selectedTeamId` to the first team belonging to that sport (mirrors the existing fallback pattern).
+- Result: opening NBA Main League switches the active team to an NBA team; dropdown lists 4 NBA teams under NBA Main, 0 under WNBA Main correctly.
 
-```sql
-create table public.scoring_daily_team_totals (
-  id                 uuid primary key default gen_random_uuid(),
-  fantasy_league_id  uuid not null references public.leagues(id),
-  team_id            uuid not null references public.teams(id) on delete cascade,
-  gw                 int  not null,
-  day                int  not null,
-  game_date          date not null,
-  total_fp           numeric(10,2) not null default 0,
-  captain_bonus      numeric(10,2) not null default 0,
-  chip_bonus         numeric(10,2) not null default 0,
-  player_breakdown   jsonb not null default '[]'::jsonb,
-  scoring_system_id  uuid not null references public.scoring_systems(id),
-  calculated_at      timestamptz not null default now(),
-  unique (team_id, gw, day)
-);
+### 7. /roster — remove SEASON CHIPS card; surface badge on header icon
+**Files:** `src/pages/RosterPage.tsx`, `src/components/RosterChipsBar.tsx`, the header where the Season Chips icon lives (likely `RosterPage` header).
+- Delete the SEASON CHIPS card render.
+- On the page-header sparkles/chips icon, add a small dot/count badge in the top-right when chips are active (Wildcard available or All-Star Boost active).
+- Restore court/table to their original vertical position (no extra spacing left over).
 
-alter table public.scoring_daily_team_totals enable row level security;
-
-create policy "scoring_daily_team_totals: public read"
-  on public.scoring_daily_team_totals for select using (true);
-
-create index idx_sdtt_team_gw_day on public.scoring_daily_team_totals (team_id, gw, day);
-create index idx_sdtt_league_gw   on public.scoring_daily_team_totals (fantasy_league_id, gw);
-```
-
-`player_breakdown` shape per element: `{ player_id, name, fp, is_captain, captain_bonus, slot, pts, reb, ast, stl, blk, mp }`. `is_captain` reflects whether that player was the captain **on this specific (gw, day)** — never a season-wide flag.
-
-No write policies — edge functions use the service role.
-
-### Step 2 — Per-system rules cache in `_shared/scoring.ts`
-
-Replace the single-slot cache with a Map keyed by `scoring_system_id`. TTL stays at 5 minutes.
-
-```ts
-const _rulesCache = new Map<string, { ts: number; rules: ScoringRule[] }>();
-const CACHE_TTL_MS = 5 * 60 * 1000;
-
-export async function fetchScoringRules(sb, systemId = "00000000-0000-0000-0000-000000000001") {
-  const now = Date.now();
-  const hit = _rulesCache.get(systemId);
-  if (hit && now - hit.ts < CACHE_TTL_MS) return hit.rules;
-  const { data, error } = await sb
-    .from("scoring_rules")
-    .select("stat_key, rule_type, weight, applies_to, is_active")
-    .eq("scoring_system_id", systemId)
-    .eq("is_active", true);
-  if (error) throw error;
-  const rules = (data ?? []) as ScoringRule[];
-  _rulesCache.set(systemId, { ts: now, rules });
-  return rules;
-}
-```
-Drop the old `_cachedRules`. No exported signatures change.
-
-### Step 3 — `scoring-history`: per-(gw, day) roster, correct captain, then snapshot
-
-The current function pulls one roster row set and treats `is_captain` as global. Replace with per-day resolution:
-
-1. Resolve once at the top:
-   - `team.league_id` from `teams`
-   - `scoring_system_id = await fetchLeagueScoringSystemId(sb, league_id)`
-   - `captainMult = captainMultiplier(rules)` (already exported, default 2x)
-2. Load the **full per-(gw, day) roster** for the team (not just the latest):
-   - `select gw, day, player_id, slot, is_captain from roster where team_id = ?`
-   - Build `rosterByDay = Map<"gw.day", { playerIds: Set<number>, starters: Set<number>, captainId: number|null }>`
-   - Use this map to:
-     - decide which players' logs to score on each `(gw, day)` (only players actually rostered that day),
-     - determine the captain for that exact `(gw, day)` (at most one),
-     - mark `is_starter` per day.
-   - Player IDs to fetch logs for = union across all daily rosters.
-3. Inside the per-game-day loop, for each player log on `(gw, day)`:
-   - `baseFp = computeFpFromRules(log, rules)`
-   - `isCap = (rosterByDay.get(key)?.captainId === player_id)`
-   - `captainBonus = isCap ? baseFp * (captainMult - 1) : 0`
-   - `fp = baseFp + captainBonus`
-   - Track `gd.captain_bonus += captainBonus`.
-4. Build `players[]` with `{ ..., is_captain: isCap, captain_bonus: captainBonus }` and continue producing the same response shape (per-player `fp` already includes the captain bonus on that one day, matching how `league-standings` already works).
-5. After the loop, upsert one row per game day, wrapped in try/catch (never fails the response):
-
-```ts
-try {
-  const rows = gameDays.map(gd => ({
-    fantasy_league_id: leagueId,
-    team_id,
-    gw: gd.gw,
-    day: gd.day,
-    game_date: gd.game_date,
-    total_fp: gd.total_fp,
-    captain_bonus: gd.captain_bonus,
-    chip_bonus: 0,
-    player_breakdown: gd.players.map(p => ({
-      player_id: p.player_id, name: p.name, fp: p.fp,
-      is_captain: p.is_captain, captain_bonus: p.captain_bonus ?? 0,
-      slot: p.is_starter ? "STARTER" : "BENCH",
-      pts: p.pts, reb: p.reb, ast: p.ast, stl: p.stl, blk: p.blk, mp: p.mp,
-    })),
-    scoring_system_id,
-  }));
-  if (rows.length) {
-    const { error } = await sb
-      .from("scoring_daily_team_totals")
-      .upsert(rows, { onConflict: "team_id,gw,day" });
-    if (error) console.error("[scoring-history snapshot upsert]", error);
-  }
-} catch (e) { console.error("[scoring-history snapshot]", e); }
-```
-
-Behavioural change visible to the user: captain FP is now correctly 2× **only on the captain's chosen game day** (today the page either misses or over-applies it depending on the latest captain row). This is exactly the integrity fix the prompt is asking for.
-
-### Step 4 — `league-standings`: per-day captain in live path + snapshot fast path
-
-Apply the same per-(gw, day) roster fix to the live calculation:
-
-- Replace `select team_id, player_id, is_captain from roster` with `select team_id, gw, day, player_id, is_captain from roster`.
-- Build `rosterByTeamDay: Map<team_id, Map<"gw.day", { playerIds:Set, captainId:number|null }>>`.
-- In the per-team loop, for each log iterate the player's logs and look up the captain via `rosterByTeamDay.get(team.id).get("${sched.gw}.${sched.day}")` — only score the log if that player was on the roster for that (gw, day).
-
-Then add the snapshot fast path between the existing steps 4 and 5:
-
-```ts
-const { data: snaps } = await sb
-  .from("scoring_daily_team_totals")
-  .select("team_id, gw, day, total_fp, calculated_at")
-  .in("team_id", teamIds)
-  .eq("fantasy_league_id", leagueId);
-
-const snapByTeam = new Map<string, Array<{gw:number; day:number; total_fp:number; calculated_at:string}>>();
-for (const s of (snaps ?? [])) {
-  const arr = snapByTeam.get(s.team_id) ?? [];
-  arr.push({ gw: s.gw, day: s.day, total_fp: Number(s.total_fp), calculated_at: s.calculated_at });
-  snapByTeam.set(s.team_id, arr);
-}
-```
-
-In the per-team aggregation:
-- If `snapByTeam.get(team.id)?.length` → derive `total_fp`, `current_week_fp` (sum where `gw === currentGw`), `latest_day_fp` (row matching global `latestKey`), `best_week_fp`/`worst_week_fp`/`avg_fp_per_gw` (aggregate per-gw sums), `updated_at` = max `calculated_at`.
-- Else → keep the (now corrected) live path.
-
-### Step 5 — Verification (post-deploy)
-
-- Migration applies; `scoring_daily_team_totals` exists with RLS public-read.
-- `/scoring` → League tab loads; ranks consistent with prior values for finished gameweeks (modulo captain correction).
-- `/scoring` → Your Team tab timeline still renders; the captain's per-day FP is doubled **only** on the day the captain chip was used that gameweek, every other day they appear at base FP.
-- After making a transfer or moving the captain to a different day in the current gameweek, run `scoring-history` again → snapshot rows for past gameweeks exist; the response for past gameweeks reflects what was rostered/captained on each historical (gw, day), independent of today's roster state.
+### 8. After WILDCARD activation, /transactions left "MY ROSTER" pane is empty
+**Files:** `src/components/transactions/RosterPane.tsx`, `src/pages/TransactionsPage` (or wherever wildcard mode is toggled), and the roster query hook.
+**Cause:** Activating Wildcard changes the working roster to an "empty/blank" mode for transfer planning, but the left pane reads from the active roster query which is now in wildcard-mode-empty state. We need to keep showing the **current locked-in roster** on the left as the baseline while the workbench operates on the wildcard draft on the right.
+**Fix:**
+- Snapshot the pre-wildcard roster into a memo and pass it to `RosterPane` independent of the wildcard buffer.
+- Ensure `useRosterQuery` is not invalidated to empty when wildcard activates; the wildcard state lives in the workbench/local state only.
 
 ---
 
-### Files changed (only)
-- `supabase/migrations/<timestamp>_scoring_daily_team_totals.sql` (new)
-- `supabase/functions/_shared/scoring.ts`
-- `supabase/functions/scoring-history/index.ts`
-- `supabase/functions/league-standings/index.ts`
-
-No React, no other edge functions, no schema changes outside the new table.
-
-### Note on UPSERT semantics (for later prompts)
-Spec calls for `ON CONFLICT DO UPDATE`. With per-(gw, day) roster lookup the snapshot is already built from the historical roster state stored in `roster` rows for that day — so re-running `scoring-history` after a captain change in a future gameweek does NOT mutate past snapshots' values (the inputs themselves are immutable for past days). Full "freeze past gameweeks" guard (e.g. `where gw >= currentGw`) can be a later prompt; carry the captain-once-per-week note forward to Prompts #2–#11.
+## Technical notes
+- `MAIN_LEAGUE_NBA_ID` / `MAIN_LEAGUE_WNBA_ID` already exist in `useFantasyLeagues.ts`; reuse them.
+- The fantasy league row carries a `sport` field (`'nba'|'wnba'`) — use it to map fantasy league → team sport for filtering and reconciliation.
+- No DB migration required; this is all client + minor edge-function-free logic.
+- Keep all changes UI/state only; do not touch scoring/roster business logic.
