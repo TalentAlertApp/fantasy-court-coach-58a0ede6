@@ -23,13 +23,19 @@ Deno.serve(async (req) => {
 
     const { team_id } = await resolveTeam(req, sb);
 
+    // Allow callers to override the fantasy league via query param. This is
+    // used by the league selector on /scoring so that history is scored using
+    // the selected fantasy league's scoring system.
+    const url = new URL(req.url);
+    const fantasyLeagueOverride = url.searchParams.get("fantasy_league_id");
+
     // Resolve fantasy league + scoring system for this team
     const { data: teamRow } = await sb
       .from("teams")
       .select("league_id")
       .eq("id", team_id)
       .maybeSingle();
-    const fantasyLeagueId = (teamRow as any)?.league_id ?? DEFAULT_LEAGUE_ID;
+    const fantasyLeagueId = fantasyLeagueOverride ?? (teamRow as any)?.league_id ?? DEFAULT_LEAGUE_ID;
     const systemId = await fetchLeagueScoringSystemId(sb, fantasyLeagueId);
     const scoringRules = await fetchScoringRules(sb, systemId);
     const capMult = captainMultiplier(scoringRules);

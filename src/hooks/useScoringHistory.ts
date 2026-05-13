@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
+import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 
 export interface ScoringPlayer {
@@ -47,9 +48,11 @@ export interface ScoringHistoryData {
   captain_id: number | null;
 }
 
-async function fetchScoringHistory(teamId: string): Promise<ScoringHistoryData> {
+async function fetchScoringHistory(teamId: string, fantasyLeagueId?: string | null): Promise<ScoringHistoryData> {
+  const params = new URLSearchParams({ team_id: teamId });
+  if (fantasyLeagueId) params.set("fantasy_league_id", fantasyLeagueId);
   const res = await fetch(
-    `${SUPABASE_URL}/functions/v1/scoring-history?team_id=${teamId}`,
+    `${SUPABASE_URL}/functions/v1/scoring-history?${params.toString()}`,
     {
       headers: {
         "Content-Type": "application/json",
@@ -71,11 +74,13 @@ async function fetchScoringHistory(teamId: string): Promise<ScoringHistoryData> 
   return json.data;
 }
 
-export function useScoringHistory() {
+export function useScoringHistory(fantasyLeagueId?: string | null) {
   const { selectedTeamId, isReady } = useTeam();
+  const { selectedLeagueId } = useFantasyLeague();
+  const effectiveLeagueId = fantasyLeagueId ?? selectedLeagueId ?? null;
   return useQuery({
-    queryKey: ["scoring-history", selectedTeamId],
-    queryFn: () => fetchScoringHistory(selectedTeamId!),
+    queryKey: ["scoring-history", selectedTeamId, effectiveLeagueId],
+    queryFn: () => fetchScoringHistory(selectedTeamId!, effectiveLeagueId),
     enabled: isReady && !!selectedTeamId,
     staleTime: 60_000,
   });

@@ -20,7 +20,27 @@ Deno.serve(async (req) => {
 
     const url = new URL(req.url);
     const leagueId = url.searchParams.get("league_id") ?? DEFAULT_LEAGUE_ID;
-    const sportLeagueId = url.searchParams.get("sport_league_id");
+    let sportLeagueId = url.searchParams.get("sport_league_id");
+
+    // Server-side resolution: if no sport_league_id was passed, derive it from
+    // the fantasy league's `sport` column → look up the matching kind='sport' row.
+    if (!sportLeagueId) {
+      const { data: flRow } = await sb
+        .from("leagues")
+        .select("sport")
+        .eq("id", leagueId)
+        .maybeSingle();
+      const sportCode = (flRow as any)?.sport;
+      if (sportCode) {
+        const { data: sportRow } = await sb
+          .from("leagues")
+          .select("id")
+          .eq("kind", "sport")
+          .eq("code", sportCode)
+          .maybeSingle();
+        if (sportRow?.id) sportLeagueId = sportRow.id as string;
+      }
+    }
 
     // 1. League + scoring rules
     const systemId = await fetchLeagueScoringSystemId(sb, leagueId);

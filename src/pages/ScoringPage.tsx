@@ -11,6 +11,7 @@ import { useLeagueStandings } from "@/hooks/useLeagueStandings";
 import { useTransactionsPulse, type PulseRow } from "@/hooks/useTransactionsPulse";
 import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -42,10 +43,10 @@ const TAB_LS_KEY = "nba_scoring_tab";
 export default function ScoringPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { teams: userTeams, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
+  const { teams: userTeams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
+  const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId, sportCode } = useFantasyLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
-  const activeLeagueCode: "nba" | "wnba" = (selectedTeam as any)?.league_code === "wnba" ? "wnba" : "nba";
-  const activeSportLeagueId = (selectedTeam as any)?.sport_league_id ?? null;
+  const activeLeagueCode: "nba" | "wnba" = sportCode;
   const headerLogo = activeLeagueCode === "wnba" ? wnbaLogo : nbaLogo;
 
   const [tab, setTab] = useState<TabValue>(() => {
@@ -54,8 +55,8 @@ export default function ScoringPage() {
   });
   useEffect(() => { try { localStorage.setItem(TAB_LS_KEY, tab); } catch {} }, [tab]);
 
-  const standingsQuery = useLeagueStandings(undefined, activeSportLeagueId);
-  const historyQuery = useScoringHistory();
+  const standingsQuery = useLeagueStandings(selectedLeagueId);
+  const historyQuery = useScoringHistory(selectedLeagueId);
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
   const [playerModalId, setPlayerModalId] = useState<number | null>(null);
@@ -64,8 +65,18 @@ export default function ScoringPage() {
   const [sortCol, setSortCol] = useState<SortCol>("gw");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
-  // RLS already scopes to current user, so userTeams is the user's teams.
-  const myTeams = userTeams;
+  // Scope team selector to teams in the currently-selected fantasy league.
+  const myTeams = teamsInSelectedLeague;
+
+  // When the selected league changes, ensure the selectedTeamId belongs to it.
+  useEffect(() => {
+    if (!teamReady) return;
+    if (myTeams.length === 0) return;
+    if (!selectedTeamId || !myTeams.some((t: any) => t.id === selectedTeamId)) {
+      setSelectedTeamId(myTeams[0].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedLeagueId, myTeams.length, teamReady]);
 
   return (
     <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
@@ -97,6 +108,19 @@ export default function ScoringPage() {
           </div>
         </div>
       </div>
+
+      {/* League selector */}
+      <FantasyLeagueSelector
+        leagues={fantasyLeagues}
+        selectedLeague={selectedLeague}
+        onSelect={setSelectedLeagueId}
+        teamCounts={Object.fromEntries(
+          (fantasyLeagues ?? []).map((l) => [
+            l.id,
+            userTeams.filter((t: any) => t.league_id === l.id).length,
+          ]),
+        )}
+      />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
@@ -161,6 +185,7 @@ export default function ScoringPage() {
             refetch={standingsQuery.refetch}
             currentUserId={user?.id ?? null}
             selectedTeamId={selectedTeamId}
+            leagueName={selectedLeague?.name ?? null}
             onSelectMyTeam={(teamId) => {
               setSelectedTeamId(teamId);
               setTab("team");
@@ -173,9 +198,15 @@ export default function ScoringPage() {
           {myTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-card border border-border rounded-xl">
               <Shield className="h-12 w-12 text-muted-foreground/30" />
-              <p className="text-muted-foreground font-heading">You don't own any teams yet</p>
-              <Button onClick={() => navigate("/onboarding")} size="sm" className="rounded-xl">
-                Create your first team
+              <p className="text-muted-foreground font-heading">
+                You don't have a team in {selectedLeague?.name ?? "this league"} yet.
+              </p>
+              <Button
+                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId } })}
+                size="sm"
+                className="rounded-xl"
+              >
+                Create a team
               </Button>
             </div>
           ) : (
@@ -272,12 +303,13 @@ type StandSortKey = "rank" | "total_fp" | "current_week_fp" | "latest_day_fp";
 
 // ══════════════════════════════ LEAGUE VIEW ══════════════════════════════
 function LeagueView({
-  data, isLoading, isError, refetch, currentUserId, selectedTeamId, onSelectMyTeam,
+  data, isLoading, isError, refetch, currentUserId, selectedTeamId, onSelectMyTeam, leagueName,
 }: {
   data: ReturnType<typeof useLeagueStandings>["data"];
   isLoading: boolean; isError: boolean; refetch: () => void;
   currentUserId: string | null; selectedTeamId: string | null;
   onSelectMyTeam: (teamId: string) => void;
+  leagueName: string | null;
 }) {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<StandSortKey>("rank");
@@ -351,7 +383,7 @@ function LeagueView({
           icon={<Users className="h-4 w-4 text-primary" />}
           label="Total Teams"
           value={String(summary.total_teams)}
-          sub="In Main League"
+          sub={`In ${leagueName ?? "this league"}`}
         />
       </div>
 
@@ -1155,6 +1187,58 @@ function PulseTable({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════ FANTASY LEAGUE SELECTOR ══════════════════════════════
+function FantasyLeagueSelector({
+  leagues,
+  selectedLeague,
+  onSelect,
+  teamCounts,
+}: {
+  leagues: Array<{ id: string; name: string; sport: "nba" | "wnba" }>;
+  selectedLeague: { id: string; name: string; sport: "nba" | "wnba" } | null;
+  onSelect: (id: string) => void;
+  teamCounts: Record<string, number>;
+}) {
+  if (!selectedLeague) return null;
+  const logoFor = (sport: "nba" | "wnba") => (sport === "wnba" ? wnbaLogo : nbaLogo);
+  const onlyOne = leagues.length <= 1;
+
+  if (onlyOne) {
+    return (
+      <div className="flex items-center gap-2 px-1">
+        <img src={logoFor(selectedLeague.sport)} alt="" className="h-5 w-5 object-contain" />
+        <span className="font-heading uppercase text-xs tracking-[0.2em] text-foreground/80">
+          {selectedLeague.name}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 px-1">
+      <img src={logoFor(selectedLeague.sport)} alt="" className="h-5 w-5 object-contain" />
+      <Select value={selectedLeague.id} onValueChange={onSelect}>
+        <SelectTrigger className="h-9 w-auto min-w-[220px] rounded-lg bg-card border-border font-heading text-xs uppercase tracking-[0.15em]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {leagues.map((l) => (
+            <SelectItem key={l.id} value={l.id} className="font-heading text-xs uppercase">
+              <span className="flex items-center gap-2 pr-2">
+                <img src={logoFor(l.sport)} alt="" className="h-4 w-4 object-contain" />
+                <span className="truncate">{l.name}</span>
+                <span className="ml-auto text-[10px] text-muted-foreground tracking-[0.15em]">
+                  {teamCounts[l.id] ?? 0} {teamCounts[l.id] === 1 ? "team" : "teams"}
+                </span>
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
