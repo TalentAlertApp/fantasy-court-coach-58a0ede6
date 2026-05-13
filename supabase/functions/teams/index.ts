@@ -66,26 +66,68 @@ Deno.serve(async (req) => {
     if (req.method === "POST") {
       if (!userId) return errorResponse("UNAUTHORIZED", "Sign in required");
       const body = await req.json();
-      const { name, description, league_code } = body;
+      const { name, description, league_code, fantasy_league_id } = body;
       if (!name || typeof name !== "string" || name.trim().length === 0) {
         return errorResponse("VALIDATION", "name is required");
       }
-      const code = String(league_code ?? "nba").toLowerCase();
-      if (code !== "nba" && code !== "wnba") {
-        return errorResponse("VALIDATION", "league_code must be 'nba' or 'wnba'");
-      }
       const byCode = await leaguesByCode(sb);
+      const MAIN_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
+
+      let targetLeagueId: string = MAIN_LEAGUE_ID;
+      let code: "nba" | "wnba" = "nba";
+
+      if (fantasy_league_id && typeof fantasy_league_id === "string" && fantasy_league_id !== MAIN_LEAGUE_ID) {
+        // Look up the fantasy league
+        const { data: fl, error: flErr } = await sb
+          .from("leagues")
+          .select("id, kind, status, sport, max_teams, owner_id")
+          .eq("id", fantasy_league_id)
+          .eq("kind", "fantasy")
+          .maybeSingle();
+        if (flErr) throw flErr;
+        if (!fl) return errorResponse("VALIDATION", "Fantasy league not found");
+        if (fl.status !== "draft" && fl.status !== "active") {
+          return errorResponse("VALIDATION", "League is not accepting teams");
+        }
+        // Membership check (owner or league_member)
+        if (fl.owner_id !== userId) {
+          const { data: mem } = await sb
+            .from("league_members")
+            .select("id")
+            .eq("league_id", fantasy_league_id)
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!mem) return errorResponse("UNAUTHORIZED", "You must be a member of this league.");
+        }
+        // Capacity check
+        const { count: teamCount } = await sb
+          .from("teams")
+          .select("id", { count: "exact", head: true })
+          .eq("league_id", fantasy_league_id);
+        if (typeof teamCount === "number" && teamCount >= (fl.max_teams ?? 20)) {
+          return errorResponse("VALIDATION", "This league is full.");
+        }
+        targetLeagueId = fantasy_league_id;
+        code = (fl.sport === "wnba" ? "wnba" : "nba");
+      } else {
+        // Backward compatible: Main League with optional NBA/WNBA selector
+        const c = String(league_code ?? "nba").toLowerCase();
+        if (c !== "nba" && c !== "wnba") {
+          return errorResponse("VALIDATION", "league_code must be 'nba' or 'wnba'");
+        }
+        code = c as "nba" | "wnba";
+      }
+
       const sportLeagueId = byCode[code];
-      if (!sportLeagueId) return errorResponse("INTERNAL_ERROR", `League '${code}' not configured`);
+      if (!sportLeagueId) return errorResponse("INTERNAL_ERROR", `Sport league '${code}' not configured`);
+
       const { data: team, error } = await sb
         .from("teams")
         .insert({
           name: name.trim(),
           description: description ?? null,
           owner_id: userId,
-          // All new teams join the single shared league for now.
-          // Schema is ready for multi-league later.
-          league_id: "00000000-0000-0000-0000-000000000010",
+          league_id: targetLeagueId,
           sport_league_id: sportLeagueId,
         })
         .select()
