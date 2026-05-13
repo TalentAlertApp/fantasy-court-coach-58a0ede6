@@ -308,6 +308,7 @@ interface TeamFormData {
 
 function useAllTeamsForm(enabled: boolean) {
   const { data: leagueId } = useLeagueId();
+  const { league } = useLeague();
   return useQuery({
     queryKey: ["all-teams-form", leagueId],
     enabled: enabled && !!leagueId,
