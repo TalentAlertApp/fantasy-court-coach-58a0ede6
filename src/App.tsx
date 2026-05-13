@@ -24,6 +24,7 @@ import AdvancedPage from "@/pages/AdvancedPage";
 import LeaguesPage from "@/pages/LeaguesPage";
 import CreateLeaguePage from "@/pages/CreateLeaguePage";
 import LeagueSettingsPage from "@/pages/LeagueSettingsPage";
+import JoinLeaguePage from "@/pages/JoinLeaguePage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -65,6 +66,7 @@ const App = () => (
                 <Route path="/leagues" element={<LeaguesPage />} />
                 <Route path="/leagues/create" element={<CreateLeaguePage />} />
                 <Route path="/leagues/:leagueId/settings" element={<LeagueSettingsPage />} />
+                <Route path="/join/:joinCode" element={<JoinLeaguePage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
