@@ -1,17 +1,20 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Trophy, Plus, KeyRound, Crown, Sparkles, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
 import { MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
+import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 
