@@ -97,9 +97,7 @@ export default function ScoringPage() {
           }}
         />
         <div className="relative flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-[hsl(var(--nba-yellow))]/15 ring-1 ring-[hsl(var(--nba-yellow))]/40 flex items-center justify-center">
-            <Activity className="h-5 w-5 text-[hsl(var(--nba-yellow))]" />
-          </div>
+          <Activity aria-hidden className="h-7 w-7 text-[hsl(var(--nba-yellow))] shrink-0" />
           <div>
             <h1 className="text-2xl font-heading font-black uppercase tracking-wider leading-none">Scoring</h1>
             <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-heading mt-1">
