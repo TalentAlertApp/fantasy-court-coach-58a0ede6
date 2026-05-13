@@ -27,8 +27,8 @@ async function callJoin(code: string): Promise<{ ok: boolean; data?: JoinResult;
   if (error) {
     // Try to surface server error envelope from FunctionsHttpError
     try {
-      // @ts-expect-error – context payload is non-standard
-      const ctx = await error.context?.json?.();
+      const ctx = await (error as unknown as { context?: { json?: () => Promise<any> } })
+        .context?.json?.();
       if (ctx?.error) return { ok: false, code: ctx.error.code, message: ctx.error.message };
     } catch { /* noop */ }
     return { ok: false, message: error.message };
