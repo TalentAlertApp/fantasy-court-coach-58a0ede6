@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <radialGradient id="ocean" cx="35%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#7ec8ff"/>
+      <stop offset="55%" stop-color="#1f7fd1"/>
+      <stop offset="100%" stop-color="#0a3a78"/>
+    </radialGradient>
+    <radialGradient id="shine" cx="30%" cy="25%" r="35%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="globe">
+      <circle cx="32" cy="32" r="30"/>
+    </clipPath>
+  </defs>
+  <circle cx="32" cy="32" r="30" fill="url(#ocean)"/>
+  <g clip-path="url(#globe)" fill="#3aa757">
+    <path d="M10 22c4-3 8-2 11 0s6 1 8-1 6-2 8 1-2 6-5 6-6-1-9 1-6 4-9 3-7-7-4-10z"/>
+    <path d="M30 40c3-2 7-1 10 1s7 0 9 3-3 7-7 7-8-2-10-4-5-5-2-7z"/>
+    <path d="M44 14c2-1 5 0 6 2s-1 5-3 5-5-1-5-3 0-3 2-4z"/>
+    <path d="M14 44c2-1 5 0 6 2s-1 5-4 5-6-2-6-4 2-2 4-3z"/>
+  </g>
+  <g clip-path="url(#globe)" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="0.6">
+    <ellipse cx="32" cy="32" rx="30" ry="12"/>
+    <ellipse cx="32" cy="32" rx="20" ry="30"/>
+    <line x1="2" y1="32" x2="62" y2="32"/>
+    <line x1="32" y1="2" x2="32" y2="62"/>
+  </g>
+  <circle cx="32" cy="32" r="30" fill="url(#shine)"/>
+  <circle cx="32" cy="32" r="30" fill="none" stroke="#0a2540" stroke-opacity="0.4"/>
+</svg>
