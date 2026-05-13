@@ -60,12 +60,22 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   const chips = league.chipRules;
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-card via-card/90 to-card p-5 hover:border-accent/40 transition-colors">
+    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
+      <img
+        src={courtBg}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-card/95 via-card/85 to-card/95"
+      />
       <img
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.08] rotate-12 select-none blur-[0.5px]"
+        className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]"
       />
       {isMine && !isMain && (
         <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-accent">
@@ -131,21 +141,53 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Button size="sm" onClick={onOpen} className="font-heading uppercase tracking-wider text-[10px]">
-            <Sparkles className="h-3.5 w-3.5 mr-1" /> Open
+        <div className="flex flex-wrap items-center gap-1.5 pt-2">
+          <Button size="icon" onClick={onOpen} className="h-8 w-8" aria-label="Open league" title="Open league">
+            <LayoutDashboard className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="secondary" onClick={onCreateTeam} className="font-heading uppercase tracking-wider text-[10px]">
-            <UserPlus className="h-3.5 w-3.5 mr-1" /> Create Team
+          <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-8 w-8" aria-label="Create team" title="Create team">
+            <UserPlus className="h-4 w-4" />
           </Button>
+          {isMine && !isMain && league.join_code && (
+            <CopyCodeButton code={league.join_code} />
+          )}
           {isMine && !isMain && (
-            <Button size="sm" variant="outline" onClick={onSettings} className="font-heading uppercase tracking-wider text-[10px]">
-              <SettingsIcon className="h-3.5 w-3.5 mr-1" /> Settings
+            <Button size="icon" variant="outline" onClick={onSettings} className="h-8 w-8" aria-label="Settings" title="Settings">
+              <SettingsIcon className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
     </div>
+  );
+}
+
+function CopyCodeButton({ code, compact }: { code: string; compact?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  async function handleCopy(e: React.MouseEvent) {
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      toast.success(`Invite code copied: ${code}`);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("Couldn't copy code");
+    }
+  }
+  const sz = compact ? "h-7 w-7" : "h-8 w-8";
+  const ic = compact ? "h-3.5 w-3.5" : "h-4 w-4";
+  return (
+    <Button
+      size="icon"
+      variant="outline"
+      onClick={handleCopy}
+      className={sz}
+      aria-label={`Copy invite code ${code}`}
+      title={`Copy invite code (${code})`}
+    >
+      {copied ? <CheckCircle2 className={`${ic} text-emerald-400`} /> : <Copy className={ic} />}
+    </Button>
   );
 }
 
