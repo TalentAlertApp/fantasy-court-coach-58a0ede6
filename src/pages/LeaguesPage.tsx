@@ -518,18 +518,43 @@ function DiscoverPanel({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
-        <div className="flex items-center gap-1">
-          {(["all", "nba", "wnba"] as const).map((s) => (
-            <Button
-              key={s}
-              size="sm"
-              variant={sport === s ? "default" : "outline"}
-              onClick={() => setSport(s)}
-              className="font-heading uppercase tracking-wider text-[10px]"
-            >
-              {s === "all" ? "All" : s.toUpperCase()}
-            </Button>
-          ))}
+        <div className="flex items-center gap-3 pl-1 pr-2">
+          {(["all", "nba", "wnba"] as const).map((s) => {
+            const active = sport === s;
+            const baseCls = "shrink-0 cursor-pointer transition-all duration-200 select-none";
+            const dimCls = active ? "opacity-100 scale-110" : "opacity-50 hover:opacity-90 scale-90";
+            if (s === "all") {
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setSport(s)}
+                  aria-label="All sports"
+                  title="All sports"
+                  className={`${baseCls} ${dimCls} flex items-center justify-center`}
+                >
+                  <Globe className={`${active ? "h-7 w-7 text-accent" : "h-5 w-5 text-muted-foreground"}`} />
+                </button>
+              );
+            }
+            const src = s === "wnba" ? wnbaLogo : nbaLogo;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSport(s)}
+                aria-label={s.toUpperCase()}
+                title={s.toUpperCase()}
+                className={`${baseCls} ${dimCls}`}
+              >
+                <img
+                  src={src}
+                  alt={s.toUpperCase()}
+                  className={`${active ? "h-9" : "h-6"} w-auto object-contain transition-all duration-200`}
+                />
+              </button>
+            );
+          })}
         </div>
         <div className="relative flex-1 min-w-[200px]">
           <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
