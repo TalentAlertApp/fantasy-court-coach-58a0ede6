@@ -646,3 +646,103 @@ function PublicLeagueCard({
     </div>
   );
 }
+
+function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }: {
+  league: FantasyLeague;
+  isMine: boolean;
+  isMain: boolean;
+  onOpen: () => void;
+  onCreateTeam: () => void;
+  onSettings: () => void;
+}) {
+  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  return (
+    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+      <img
+        src={logo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+      />
+      <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
+        <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-sm font-heading font-bold uppercase tracking-wider truncate">{league.name}</h3>
+            {isMine && !isMain && (
+              <Crown className="h-3 w-3 text-accent shrink-0" aria-label="Commissioner" />
+            )}
+            {isMain && (
+              <span className="text-[8.5px] font-heading uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-full px-1.5">Main</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+            <span>{league.sport}</span>
+            <span>·</span>
+            <span>{league.memberCount} teams</span>
+            <span>·</span>
+            <span>{league.myTeamCount} mine</span>
+            <StatusPill status={league.status} />
+          </div>
+        </div>
+      </div>
+      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+        <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+          <Sparkles className="h-3 w-3 mr-1" /> Open
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onCreateTeam} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+          <UserPlus className="h-3 w-3 mr-1" /> Team
+        </Button>
+        {isMine && !isMain && (
+          <Button size="sm" variant="outline" onClick={onSettings} className="h-7 font-heading uppercase tracking-wider text-[9px]" aria-label="Settings">
+            <SettingsIcon className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
+  league: PublicLeague;
+  isMember: boolean;
+  joining: boolean;
+  onJoin: () => void;
+  onOpen: () => void;
+}) {
+  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  return (
+    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+      <img
+        src={logo}
+        alt=""
+        aria-hidden
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-14 w-auto opacity-[0.06] select-none"
+      />
+      <div className="relative z-10 flex items-center gap-3 flex-1 min-w-0">
+        <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-heading font-bold uppercase tracking-wider truncate">{league.name}</h3>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+            <span>{league.sport}</span>
+            <span>·</span>
+            <span>{league.team_count} teams</span>
+            <StatusPill status={league.status} />
+          </div>
+        </div>
+      </div>
+      <div className="relative z-10 flex items-center gap-1.5 shrink-0">
+        {isMember ? (
+          <Button size="sm" onClick={onOpen} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+            <Sparkles className="h-3 w-3 mr-1" /> Open
+          </Button>
+        ) : (
+          <Button size="sm" onClick={onJoin} disabled={joining} className="h-7 font-heading uppercase tracking-wider text-[9px]">
+            {joining ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <UserPlus className="h-3 w-3 mr-1" />}
+            Join
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
