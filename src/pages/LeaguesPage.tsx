@@ -400,7 +400,7 @@ function DiscoverPanel({
       const { data: res, error } = await supabase.functions.invoke("leagues-join", {
         body: { join_code: league.join_code },
       });
-      let env = res as { ok?: boolean; data?: { league_id: string; league_name: string }; error?: { message?: string } } | null;
+      let env = res as { ok?: boolean; data?: { league_id: string; league_name: string }; error?: { code?: string; message?: string } } | null;
       if (error) {
         try {
           const ctx = await (error as unknown as { context?: { json?: () => Promise<any> } }).context?.json?.();
