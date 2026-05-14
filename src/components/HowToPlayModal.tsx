@@ -76,6 +76,10 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
 
               <AccordionItem value="chips">
                 <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
+                  🃏 Chips (placeholder-marker)
+                </AccordionTrigger>
+              </AccordionItem>
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   🃏 Chips
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-3 font-body">
