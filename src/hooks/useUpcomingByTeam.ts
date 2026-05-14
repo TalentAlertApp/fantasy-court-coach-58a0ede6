@@ -99,6 +99,7 @@ export function useUpcomingByTeam() {
       return map;
     },
     staleTime: 600_000,
+    placeholderData: undefined,
   });
 }
 
