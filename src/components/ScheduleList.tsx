@@ -754,8 +754,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   }, [boxscoreQueries, finalGameIds]);
 
   // Prefetch players list for "Players to Watch" on scheduled games.
+  const { league } = useLeague();
   const { data: playersData } = useQuery({
-    queryKey: ["players", { limit: 1000 }],
+    queryKey: ["players", league, { limit: 1000 }],
     queryFn: () => fetchPlayers({ limit: 1000 }),
     staleTime: 60_000,
     enabled: games.length > 0,
