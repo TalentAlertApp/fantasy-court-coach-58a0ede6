@@ -74,11 +74,21 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="chips">
+              <AccordionItem value="leagues">
                 <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
-                  🃏 Chips (placeholder-marker)
+                  ⚔️ Leagues
                 </AccordionTrigger>
+                <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
+                  <p>Leagues are how you compete. Each team belongs to <strong>one Main League</strong> (NBA or WNBA) where standings, prizes and bragging rights live.</p>
+                  <p><strong>Discover:</strong> browse public leagues you can join with one click. Filter by NBA / WNBA / All to find the right room.</p>
+                  <p><strong>Join with Code:</strong> private leagues are invite-only — paste the share code your commissioner sent you to jump straight in.</p>
+                  <p><strong>Create a League:</strong> open your own room, set the sport (NBA or WNBA), and share the code with friends. As commissioner you control name, visibility and members.</p>
+                  <p><strong>Multi-team:</strong> you can manage multiple teams across different leagues — switch between them at any time from the team selector in the sidebar.</p>
+                  <p><strong>Standings:</strong> updated after every gameday using your Fantasy Points (FP). The Main League view groups every team in your league for head-to-head context.</p>
+                </AccordionContent>
               </AccordionItem>
+
+              <AccordionItem value="chips">
                 <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   🃏 Chips
                 </AccordionTrigger>
