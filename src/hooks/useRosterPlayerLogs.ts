@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useTeam } from "@/contexts/TeamContext";
 
 /**
  * For the given player ids, fetch their player_game_logs in the active league
@@ -8,11 +10,13 @@ import { useLeagueId } from "@/hooks/useLeagueId";
  * Used to surface played-game FP on the roster opponent badges.
  */
 export function useRosterPlayerLogs(playerIds: number[]) {
+  const { selectedTeamId } = useTeam();
+  const { league } = useLeague();
   const { data: leagueId } = useLeagueId();
   const ids = Array.from(new Set(playerIds.filter((n) => Number.isFinite(n) && n > 0))).sort((a, b) => a - b);
   const key = ids.join(",");
   return useQuery({
-    queryKey: ["roster-player-logs", leagueId, key],
+    queryKey: ["roster-player-logs", selectedTeamId, league, leagueId, key],
     enabled: !!leagueId && ids.length > 0,
     staleTime: 120_000,
     queryFn: async (): Promise<Record<number, Record<string, { fp: number; mp: number; pts: number }>>> => {

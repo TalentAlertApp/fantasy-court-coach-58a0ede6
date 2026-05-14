@@ -436,7 +436,7 @@ export default function RosterPage() {
 
   // Query to check if a captain is already set for this GW on another day
   const { data: weeklyCaptainData } = useQuery({
-    queryKey: ["weekly-captain", selectedTeamId, currentGameday.gw],
+    queryKey: ["weekly-captain", selectedTeamId, league, currentGameday.gw],
     queryFn: async () => {
       if (!selectedTeamId) return null;
       const { data, error } = await supabase

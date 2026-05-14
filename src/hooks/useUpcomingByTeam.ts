@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCurrentGameday, DEADLINES, type Deadline } from "@/lib/deadlines";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useTeam } from "@/contexts/TeamContext";
 
 export interface UpcomingGame {
   date: string;    // YYYY-MM-DD
@@ -28,10 +30,12 @@ export interface UpcomingGame {
 export type UpcomingByTeam = Record<string, UpcomingGame[]>;
 
 export function useUpcomingByTeam() {
+  const { selectedTeamId } = useTeam();
+  const { league } = useLeague();
   const { data: leagueId } = useLeagueId();
   const { deadlines } = useLeagueDeadlines();
   return useQuery({
-    queryKey: ["upcoming-by-team", leagueId, deadlines.length],
+    queryKey: ["upcoming-by-team", selectedTeamId, league, leagueId, deadlines.length],
     enabled: !!leagueId,
     queryFn: async () => {
       // Anchor "today" on the current gameday deadline rather than wall-clock.
