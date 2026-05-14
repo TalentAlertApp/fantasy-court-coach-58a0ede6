@@ -499,7 +499,28 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             const oppLogo = getTeamLogo(oppTeam);
                             const dateStr = g.tipoff_utc ? format(new Date(g.tipoff_utc), "MMM d, HH:mm") : "TBD";
                             return (
-                              <TableRow key={i}>
+                              <TableRow
+                                key={i}
+                                className="hover:bg-accent/50 cursor-pointer"
+                                onClick={() => setSelectedGame({
+                                  game_id: g.game_id,
+                                  home_team: g.home_team,
+                                  away_team: g.away_team,
+                                  home_pts: 0,
+                                  away_pts: 0,
+                                  status: g.status ?? "SCHEDULED",
+                                  game_boxscore_url: g.game_boxscore_url ?? null,
+                                  game_charts_url: g.game_charts_url ?? null,
+                                  game_playbyplay_url: g.game_playbyplay_url ?? null,
+                                  game_recap_url: g.game_recap_url ?? null,
+                                  nba_game_url: g.nba_game_url ?? null,
+                                  youtube_recap_id: g.youtube_recap_id ?? null,
+                                  gw: g.gw ?? null,
+                                  day: g.day ?? null,
+                                  tipoff_utc: g.tipoff_utc ?? null,
+                                  played: false,
+                                })}
+                              >
                                 <TableCell className="px-1.5 py-1.5 text-xs whitespace-nowrap">{dateStr}</TableCell>
                                 <TableCell className="px-1.5 py-1.5 text-xs font-mono font-bold whitespace-nowrap">
                                   Gameweek {g.gw} - Day {g.day}
