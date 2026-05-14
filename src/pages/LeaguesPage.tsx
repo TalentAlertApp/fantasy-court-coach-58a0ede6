@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTeam } from "@/contexts/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
 import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague } from "@/hooks/useFantasyLeagues";
@@ -208,6 +209,7 @@ export default function LeaguesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fantasyLeagues, setSelectedLeagueId, isLoading } = useFantasyLeague();
+  const { teams: userTeams } = useTeam();
   const qc = useQueryClient();
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
@@ -270,12 +272,28 @@ export default function LeaguesPage() {
     return [nbaMain, wnbaMain, ...rest].filter(Boolean) as typeof fantasyLeagues;
   }, [fantasyLeagues]);
 
-  const myCustom = sortedLeagues.filter((l) => !isMainLeague(l.id));
-  const mineCount = sortedLeagues.length;
+  // Sport-aware override: Main Leagues store teams against the SPORT league_id,
+  // not the main fantasy pseudo-id, so the raw `myTeamCount` from the query is
+  // always 0. Recompute from the user's team list to match the /scoring counter
+  // and the team pill in the sidebar.
+  const leaguesWithMineCount = useMemo(
+    () =>
+      sortedLeagues.map((l) => {
+        if (!isMainLeague(l.id)) return l;
+        const sportMatched = (userTeams ?? []).filter(
+          (t: any) => (t.league_code ?? "nba") === l.sport,
+        ).length;
+        return { ...l, myTeamCount: sportMatched };
+      }),
+    [sortedLeagues, userTeams],
+  );
+
+  const myCustom = leaguesWithMineCount.filter((l) => !isMainLeague(l.id));
+  const mineCount = leaguesWithMineCount.length;
 
   const filteredMine = useMemo(() => {
     const q = mineSearch.trim().toLowerCase();
-    let arr = sortedLeagues.filter((l) => {
+    let arr = leaguesWithMineCount.filter((l) => {
       if (mineSport !== "all" && l.sport !== mineSport) return false;
       if (q && !l.name.toLowerCase().includes(q)) return false;
       return true;
@@ -284,7 +302,7 @@ export default function LeaguesPage() {
       arr = [...arr].sort((a, b) => a.name.localeCompare(b.name));
     }
     return arr;
-  }, [sortedLeagues, mineSport, mineSearch, mineSort]);
+  }, [leaguesWithMineCount, mineSport, mineSearch, mineSort]);
   const filteredMineCount = filteredMine.length;
 
   function applyMineSearch() { setMineSearch(mineSearchInput.trim()); }
