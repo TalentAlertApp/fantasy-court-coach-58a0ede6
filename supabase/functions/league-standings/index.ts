@@ -6,6 +6,9 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { computeFpFromRules, fetchScoringRules, fetchLeagueScoringSystemId, fetchLeagueCaptainMultiplier, type ScoringRule } from "../_shared/scoring.ts";
 
 const DEFAULT_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
+const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
+const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
+const MAIN_LEAGUE_IDS = new Set([MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID]);
 const PAGE_SIZE = 1000;
 
 Deno.serve(async (req) => {
@@ -47,25 +50,54 @@ Deno.serve(async (req) => {
     const rules = await fetchScoringRules(sb, systemId);
 
     // 2. Teams in the league (via SECURITY DEFINER fn so we get owner_label)
-    const { data: teamsRaw, error: tErr } = await sb.rpc("get_league_teams", { _league_id: leagueId });
-    if (tErr) throw tErr;
-    let teams = (teamsRaw ?? []) as Array<{ id: string; name: string; owner_id: string; owner_label: string; created_at: string }>;
-    // If a sport_league_id is provided, restrict standings to teams attached
-    // to that sport (NBA vs WNBA) — the fantasy league_id is shared across
-    // sports so we filter via the teams.sport_league_id column.
-    if (sportLeagueId) {
-      const teamIds = teams.map((t) => t.id);
-      if (teamIds.length > 0) {
-        const { data: tRows } = await sb
-          .from("teams")
-          .select("id, sport_league_id")
-          .in("id", teamIds);
-        const allowed = new Set(
-          (tRows ?? [])
-            .filter((r: any) => r.sport_league_id === sportLeagueId)
-            .map((r: any) => r.id),
-        );
-        teams = teams.filter((t) => allowed.has(t.id));
+    let teams: Array<{ id: string; name: string; owner_id: string; owner_label: string; created_at: string }> = [];
+    if (MAIN_LEAGUE_IDS.has(leagueId) && sportLeagueId) {
+      // Main Leagues: select all teams attached to the matching sport, regardless
+      // of which Main League pseudo-id is stored on teams.league_id.
+      const { data: tRows, error: tErr } = await sb
+        .from("teams")
+        .select("id, name, owner_id, created_at")
+        .eq("sport_league_id", sportLeagueId);
+      if (tErr) throw tErr;
+      const ownerIds = Array.from(new Set((tRows ?? []).map((r: any) => r.owner_id).filter(Boolean)));
+      const labels = new Map<string, string>();
+      if (ownerIds.length > 0) {
+        const { data: users } = await (sb as any).auth.admin.listUsers({ perPage: 1000 });
+        for (const u of (users?.users ?? [])) {
+          if (ownerIds.includes(u.id)) {
+            const email = (u.email ?? "user") as string;
+            labels.set(u.id, email.split("@")[0] || "user");
+          }
+        }
+      }
+      teams = (tRows ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        owner_id: r.owner_id,
+        owner_label: labels.get(r.owner_id) ?? "user",
+        created_at: r.created_at,
+      }));
+    } else {
+      const { data: teamsRaw, error: tErr } = await sb.rpc("get_league_teams", { _league_id: leagueId });
+      if (tErr) throw tErr;
+      teams = (teamsRaw ?? []) as typeof teams;
+      // If a sport_league_id is provided, restrict standings to teams attached
+      // to that sport (NBA vs WNBA) — the fantasy league_id is shared across
+      // sports so we filter via the teams.sport_league_id column.
+      if (sportLeagueId) {
+        const teamIds = teams.map((t) => t.id);
+        if (teamIds.length > 0) {
+          const { data: tRows } = await sb
+            .from("teams")
+            .select("id, sport_league_id")
+            .in("id", teamIds);
+          const allowed = new Set(
+            (tRows ?? [])
+              .filter((r: any) => r.sport_league_id === sportLeagueId)
+              .map((r: any) => r.id),
+          );
+          teams = teams.filter((t) => allowed.has(t.id));
+        }
       }
     }
     if (teams.length === 0) {
