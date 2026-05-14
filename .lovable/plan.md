@@ -1,55 +1,50 @@
-## Issues to fix
+## Problem
 
-### 1. Game Scheduled modal & Compare Teams modal show empty content
-**Files:** `src/components/NBAGameModal.tsx` (Game Scheduled, opened from TeamModal → UPCOMING), `src/components/TeamCompareModal.tsx`.
-**Cause:** When a game has `status='scheduled'`, the panels (Standings & Form, BoxScore, Charts) render empty placeholders without a fallback. The Compare modal "Standings & Form" panel renders blank when standings haven't loaded for the matchup teams.
-**Fix:** 
-- In NBAGameModal/Compare modal: detect `scheduled` games and render a "Pre-game preview" block (matchup form last 5, head-to-head, venue, tipoff) instead of empty boxscore container.
-- In TeamCompareModal: render the standings rows + form pills even when one side has 0 games yet (show "—"/"No games yet" placeholders). Ensure the panel has a non-empty default state.
+`HeaderTeamPill` switches `selectedTeamId`, and `/` (My Roster) updates because it queries by team id. But every other page (`/transactions`, `/teams`, `/schedule`, `/advanced`, `/leagues`) reads the league from `useLeague()`, which derives `league` from the **selected fantasy league's sport**, not the selected team:
 
-### 2. Step 6 (Chips & Transfers) and Step 4 (Roster Rules) — vertical density
-**File:** `src/pages/CreateLeaguePage.tsx`.
-- Step 4: put **Budget cap**, **Bench size**, and **Max players per team** in a 3-column grid (md+) instead of stacked full-width rows. Reduce vertical padding.
-- Step 6: place the four chip rows (Captain / Wildcard / All-Star / Free transfers) into a 2-column grid at md+ with tighter padding. Inline the multiplier/per-season inputs on the same row as the toggle.
+```ts
+// src/contexts/LeagueContext.tsx
+const league = selectedLeague && selectedLeague.id !== MAIN_LEAGUE
+  ? sportCode                       // WNBA Invitational → "wnba", stays "wnba"
+  : (selectedTeam?.league_code === "wnba" ? "wnba" : "nba");
+```
 
-### 3. Step 1 BACK button → /leagues
-**File:** `src/pages/CreateLeaguePage.tsx`.
-- The BACK button is currently disabled on step 1. Change behavior: on step 1, BACK navigates to `/leagues` instead of being disabled.
+So when the user is in a WNBA fantasy league and picks an NBA team in the header, `league` stays `"wnba"` → Players, Teams, Schedule, Advanced all keep loading WNBA data.
 
-### 4. CREATE TEAM from /leagues lands on /roster instead of a team-creation flow
-**File:** `src/pages/LeaguesPage.tsx` (`handleCreateTeam`).
-- Currently navigates to `/welcome` (onboarding). For Main Leagues we should route to a real team-creation entry point. Use `/welcome` with state `{ leagueId, sport, forceCreate: true }` AND, in `OnboardingPage`/`TeamPickerPage`, honor `forceCreate` so the user lands on the name+draft flow even if they already have teams. Alternatively (simpler): route to `/teams?create=1&league=<id>` and have TeamsPage open the "New Team" creation directly.
-- I'll go with the simpler route: navigate to `/teams?create=1&league_id=<id>` and trigger the existing "+ New Team" modal on mount.
+`TeamContext` has the inverse coupling (changing fantasy league auto-switches team to one in that league) but there is no team→league reconciliation.
 
-### 5 & 6. Main League "Open" loads wrong team / dropdown shows 0 teams for the other sport
-**Files:** `src/contexts/TeamContext.tsx`, `src/contexts/FantasyLeagueContext.tsx`, `src/hooks/useLeagueTeams.ts` (or the team-list query).
-**Cause:** Teams are scoped to the `leagues.id` of the **sport** league (NBA sport league id / WNBA sport league id), but the team-switcher and `/scoring` filter teams by the **fantasy** league id (Main League NBA/WNBA fantasy ids). The two id namespaces don't match, so:
-- WNBA Main League shows "0 teams" while the NBA sport teams exist.
-- Opening NBA Main League doesn't reset the active team because `TeamContext` doesn't auto-switch when the fantasy league changes.
+## Fix
 
-**Fix:**
-- Add a `sportCodeFor(fantasyLeagueId)` resolver via the league row's `sport` column (already present).
-- In TeamContext, filter teams by **sport** (`teams.league.code === selectedFantasyLeague.sport`) rather than by fantasy league id, OR by `team.fantasy_league_id` if/when present. For Main Leagues, the source-of-truth is the team's sport.
-- When `setSelectedLeagueId` changes the fantasy league sport, reconcile `selectedTeamId` to the first team belonging to that sport (mirrors the existing fallback pattern).
-- Result: opening NBA Main League switches the active team to an NBA team; dropdown lists 4 NBA teams under NBA Main, 0 under WNBA Main correctly.
+Add the missing direction: **when the active team's sport doesn't match the active fantasy league's sport, auto-switch the fantasy league** to one that matches the team. The header pill stays the single source of truth for "which sport am I looking at".
 
-### 7. /roster — remove SEASON CHIPS card; surface badge on header icon
-**Files:** `src/pages/RosterPage.tsx`, `src/components/RosterChipsBar.tsx`, the header where the Season Chips icon lives (likely `RosterPage` header).
-- Delete the SEASON CHIPS card render.
-- On the page-header sparkles/chips icon, add a small dot/count badge in the top-right when chips are active (Wildcard available or All-Star Boost active).
-- Restore court/table to their original vertical position (no extra spacing left over).
+### Selection rule (in `TeamContext`, after team change)
 
-### 8. After WILDCARD activation, /transactions left "MY ROSTER" pane is empty
-**Files:** `src/components/transactions/RosterPane.tsx`, `src/pages/TransactionsPage` (or wherever wildcard mode is toggled), and the roster query hook.
-**Cause:** Activating Wildcard changes the working roster to an "empty/blank" mode for transfer planning, but the left pane reads from the active roster query which is now in wildcard-mode-empty state. We need to keep showing the **current locked-in roster** on the left as the baseline while the workbench operates on the wildcard draft on the right.
-**Fix:**
-- Snapshot the pre-wildcard roster into a memo and pass it to `RosterPane` independent of the wildcard buffer.
-- Ensure `useRosterQuery` is not invalidated to empty when wildcard activates; the wildcard state lives in the workbench/local state only.
+When `selectedTeam.league_code` ≠ `selectedLeague.sport`:
+1. Prefer a fantasy league the user owns/belongs to whose `sport === selectedTeam.league_code` AND that contains this team (`team.league_id === league.id`).
+2. Else prefer any accessible fantasy league with matching sport.
+3. Else fall back to the system Main League of that sport (`MAIN_LEAGUE_ID` for NBA, the WNBA main league id for WNBA — both already exist in `useFantasyLeagues`).
 
----
+Call `setSelectedLeagueId(...)` from `FantasyLeagueContext` so all league-scoped query caches invalidate (already wired).
 
-## Technical notes
-- `MAIN_LEAGUE_NBA_ID` / `MAIN_LEAGUE_WNBA_ID` already exist in `useFantasyLeagues.ts`; reuse them.
-- The fantasy league row carries a `sport` field (`'nba'|'wnba'`) — use it to map fantasy league → team sport for filtering and reconciliation.
-- No DB migration required; this is all client + minor edge-function-free logic.
-- Keep all changes UI/state only; do not touch scoring/roster business logic.
+### Where the change goes
+
+- **`src/contexts/TeamContext.tsx`** — add a `useEffect` that watches `selectedTeam?.league_code` and `selectedLeague?.sport`; when they diverge, resolve the target fantasy league per the rule above and call `setSelectedLeagueId`.
+- No change needed in `LeagueContext` — once the fantasy league switches, `sportCode` flips and `currentLeague` is invalidated (existing code wipes all React Query caches on league change).
+- No page-level changes needed: every affected page already reads `useLeague()` / `usePlayersQuery` / `useScheduleQuery` / `useLeagueTeams` which all key on `league`.
+
+### Edge cases
+
+- **Main League selected** (mixed-sport pseudo league): already falls through to `selectedTeam.league_code` in `LeagueContext` — no reconciliation needed, leave as-is.
+- **User has no matching fantasy league** for the new team's sport: fall back to that sport's Main League (always accessible).
+- **Initial load**: only run reconciliation after `isReady && !fantasyLeagueIsLoading` so we don't fight the auto-correct that picks a populated team.
+- **Loop guard**: only trigger when sports actually differ; setting the fantasy league then triggers `TeamContext`'s existing "switch team to one in this league" effect — but since the team we just selected IS in the new league (rule #1) or matches its sport, that effect will be a no-op.
+
+### Files to edit
+
+- `src/contexts/TeamContext.tsx` (one new effect, ~20 lines)
+
+### Verification
+
+1. Start in WNBA Invitational with a WNBA team → switch header to an NBA team → `/transactions`, `/teams`, `/schedule`, `/advanced`, `/leagues` all flip to NBA data.
+2. Switch back to WNBA team → all pages flip back to WNBA.
+3. Main League stays mixed and follows the team directly (current behavior preserved).
