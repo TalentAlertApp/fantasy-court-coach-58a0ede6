@@ -407,7 +407,7 @@ export function useCourtShowData(gw: number, day: number) {
       valueRanked = rows
         .sort((a, b) => b._v - a._v)
         .slice(0, 3)
-        .map(({ _v, ...rest }) => ({ ...rest, label: valueLabel(rest) }));
+        .map(({ _v, ...rest }) => ({ ...rest, dayBased: true, label: valueLabel(rest) }));
     } else {
       // Scheduled day: original last-5 value logic
       const valuePool = (playersData?.items ?? [])
