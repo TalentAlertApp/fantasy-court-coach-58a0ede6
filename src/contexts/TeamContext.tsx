@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,6 +152,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
     localStorage.setItem(LS_KEY, id);
+    lastChangeOriginRef.current = "team";
     // Invalidate all server-data caches because the active team controls the
     // effective sport for Main League views and team-scoped API requests.
     queryClient.invalidateQueries();
@@ -161,6 +162,16 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
 
   const { selectedLeagueId, selectedLeague, fantasyLeagues, setSelectedLeagueId } = useFantasyLeague();
+  // Tracks whether the last change came from the team pill or from the
+  // fantasy-league selector. Drives asymmetric reconciliation below.
+  const lastChangeOriginRef = useRef<"team" | "league">("team");
+  const prevLeagueIdRef = useRef<string | null>(selectedLeagueId);
+  useEffect(() => {
+    if (prevLeagueIdRef.current !== selectedLeagueId) {
+      lastChangeOriginRef.current = "league";
+      prevLeagueIdRef.current = selectedLeagueId;
+    }
+  }, [selectedLeagueId]);
   // Custom fantasy leagues: teams.league_id directly references the fantasy league row.
   // Main system leagues (NBA / WNBA): teams have league_id pointing at the SPORT league
   // row, not the fantasy main-league pseudo id — so fall back to matching by sport.
@@ -174,12 +185,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       })
     : teams;
 
-  // Reconcile fantasy league when the active team's sport diverges from it.
-  // The header team pill is the source of truth — switching to an NBA team
-  // while a WNBA fantasy league is active should flip the active league so
-  // /transactions, /teams, /schedule, /advanced all follow.
+  // Reconcile fantasy league ONLY when the user changed the team pill.
+  // When the user changes the fantasy league selector instead, we let the
+  // league stand and reconcile the team to match (next effect below).
   useEffect(() => {
     if (!isReady || !selectedTeam || !selectedLeague) return;
+    if (lastChangeOriginRef.current !== "team") return;
     const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
     const leagueSport = selectedLeague.sport ?? null;
     if (isMainLeague(selectedLeague.id)) {
@@ -208,18 +219,23 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTeam?.id, selectedTeam?.league_code, selectedLeague?.id, selectedLeague?.sport, isReady, fantasyLeagues.length]);
 
-  // When the active fantasy league changes, if the currently selected team
-  // isn't in that league, switch to the first team that is.
+  // When the user changes the fantasy league, switch the team to one that
+  // matches the league's sport (preferring teams attached to the league).
   useEffect(() => {
     if (!isReady) return;
-    if (!selectedLeagueId || teamsInSelectedLeague.length === 0) return;
-    if (selectedLeague && selectedTeam) {
-      const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
-      if (selectedLeague.sport !== teamSport) return;
-    }
+    if (!selectedLeagueId || !selectedLeague) return;
+    const targetSport = (selectedLeague.sport ?? "nba") as "nba" | "wnba";
     const inLeague = teamsInSelectedLeague.some((t) => t.id === selectedTeamId);
-    if (!inLeague) {
-      const next = teamsInSelectedLeague[0].id;
+    const currentSport = (selectedTeam?.league_code ?? "nba") as "nba" | "wnba";
+    if (inLeague && currentSport === targetSport) return;
+    // Candidate ordering: teams attached to this league > teams matching sport > any team.
+    const candidates = [
+      ...teamsInSelectedLeague,
+      ...teams.filter((t: any) => (t.league_code ?? "nba") === targetSport && !teamsInSelectedLeague.some((x) => x.id === t.id)),
+      ...teams.filter((t: any) => !teamsInSelectedLeague.some((x) => x.id === t.id) && (t.league_code ?? "nba") !== targetSport),
+    ];
+    const next = candidates[0]?.id ?? null;
+    if (next && next !== selectedTeamId) {
       setSelectedTeamIdRaw(next);
       try { localStorage.setItem(LS_KEY, next); } catch { /* ignore */ }
       queryClient.invalidateQueries();
