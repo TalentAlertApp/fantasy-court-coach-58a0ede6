@@ -583,7 +583,7 @@ export default function RosterPage() {
                   : "🟢 Lineup open"}
             </Badge>
           )}
-          <div className="flex items-center gap-1.5 ml-auto rounded-lg dark:bg-[hsl(28_38%_18%/0.55)] dark:px-1.5 dark:py-1 dark:shadow-inner">
+          <div className="flex items-center gap-1.5 ml-auto rounded-lg dark:bg-[#c9a749] dark:px-1.5 dark:py-1 dark:shadow-inner">
             <button
               type="button"
               onClick={() => setAiCoachOpen(true)}
