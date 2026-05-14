@@ -62,6 +62,39 @@ export type Database = {
         }
         Relationships: []
       }
+      commissioner_sync_schedules: {
+        Row: {
+          enabled: boolean
+          include_recaps: boolean
+          job_key: string
+          last_error: string | null
+          last_run_at: string | null
+          last_status: string | null
+          run_time_lisbon: string
+          updated_at: string
+        }
+        Insert: {
+          enabled?: boolean
+          include_recaps?: boolean
+          job_key: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          run_time_lisbon?: string
+          updated_at?: string
+        }
+        Update: {
+          enabled?: boolean
+          include_recaps?: boolean
+          job_key?: string
+          last_error?: string | null
+          last_run_at?: string | null
+          last_status?: string | null
+          run_time_lisbon?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       court_show_intelligence: {
         Row: {
           cards: Json
