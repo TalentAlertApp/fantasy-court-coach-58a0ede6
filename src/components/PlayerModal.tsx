@@ -91,6 +91,7 @@ interface PlayerModalProps {
 }
 
 export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModalProps) {
+  const { league } = useLeague();
   const { data, isLoading } = useQuery({
     queryKey: ["player-detail", playerId],
     queryFn: () => fetchPlayerDetail(playerId!),
@@ -145,7 +146,6 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     : playerHealth.status === "PROB"
     ? "Probable — monitor updates"
     : `Availability risk — ${playerHealth.injury_type ?? playerHealth.reason ?? getHealthLabel(playerHealth)}`;
-  const { league } = useLeague();
   const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
 
   return (
