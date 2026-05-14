@@ -152,9 +152,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
     localStorage.setItem(LS_KEY, id);
-    // Invalidate team-scoped queries
-    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    // Invalidate all server-data caches because the active team controls the
+    // effective sport for Main League views and team-scoped API requests.
+    queryClient.invalidateQueries();
   }, [queryClient]);
 
   const selectedTeam: TeamRecord | null =
@@ -213,8 +213,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       const next = teamsInSelectedLeague[0].id;
       setSelectedTeamIdRaw(next);
       try { localStorage.setItem(LS_KEY, next); } catch { /* ignore */ }
-      queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLeagueId, teamsInSelectedLeague.length]);
