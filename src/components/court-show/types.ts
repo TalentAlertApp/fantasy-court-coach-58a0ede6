@@ -49,6 +49,9 @@ export interface ValuePlay {
   value5?: number;
   mpg5?: number;
   label?: StoryLabel;
+  /** When true the slide should label fp5/mpg5/value5 as the played-day's
+   *  numbers (FP / MIN / FP/$M) instead of the rolling last-5 metrics. */
+  dayBased?: boolean;
 }
 
 export interface RecapGame {

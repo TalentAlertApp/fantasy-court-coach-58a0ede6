@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle, Crown, Medal } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
@@ -30,6 +30,116 @@ function StoryBadge({ label }: { label?: string }) {
       "inline-flex items-center px-2 py-0.5 rounded-md border text-[9px] font-heading font-black uppercase tracking-[0.14em]",
       LABEL_STYLES[label] ?? "border-white/20 text-white/70 bg-white/5",
     )}>{label}</span>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+ * Premium podium layout used by Outstanding Performances + Best Value Plays.
+ * #1 sits centered, larger and elevated; #2 (left, silver) and #3 (right,
+ * bronze) flank it. Falls back gracefully when fewer than 3 items are passed.
+ * ────────────────────────────────────────────────────────────────────── */
+interface PodiumItem {
+  player_id: number;
+  name: string;
+  team: string;
+  photo: string | null;
+  label?: string;
+  statHeadline: string;
+  stats: [string, number | string][];
+  accent: "amber" | "emerald";
+}
+const PODIUM_TIERS = [
+  { rank: 2, ringFrom: "from-slate-200/40", ringTo: "to-slate-400/30", chipBg: "bg-slate-200", chipFg: "text-slate-900", icon: Medal },
+  { rank: 1, ringFrom: "from-amber-300/70", ringTo: "to-amber-500/50", chipBg: "bg-amber-400", chipFg: "text-black", icon: Crown },
+  { rank: 3, ringFrom: "from-orange-700/40", ringTo: "to-amber-700/30", chipBg: "bg-amber-700", chipFg: "text-amber-50", icon: Medal },
+] as const;
+
+function PodiumGrid({ items, onPlayerClick }: { items: PodiumItem[]; onPlayerClick: (id: number) => void }) {
+  // Build [#2, #1, #3] order with the items provided (1-based ranks already in items[0..2]).
+  const ordered = [items[1], items[0], items[2]];
+  return (
+    <div className="grid grid-cols-3 gap-4 md:gap-6 items-end h-full content-center">
+      {ordered.map((p, i) => {
+        const tier = PODIUM_TIERS[i];
+        if (!p) return <div key={`empty-${i}`} aria-hidden />;
+        const isFirst = tier.rank === 1;
+        const accentText = p.accent === "emerald" ? "text-emerald-300" : "text-amber-300";
+        const accentBorder = p.accent === "emerald" ? "hover:border-emerald-400/50" : "hover:border-amber-400/50";
+        const Icon = tier.icon;
+        return (
+          <motion.button
+            key={p.player_id}
+            type="button"
+            onClick={() => onPlayerClick(p.player_id)}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.12, duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
+            className={cn(
+              "group relative text-left rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] backdrop-blur-sm overflow-hidden transition-all",
+              accentBorder,
+              isFirst ? "p-6 md:p-7 scale-[1.04] shadow-[0_24px_60px_-24px_rgba(251,191,36,0.45)] ring-1 ring-amber-400/40" : "p-4 md:p-5 mb-4",
+            )}
+          >
+            {/* Podium glow under #1 */}
+            {isFirst && (
+              <div className="pointer-events-none absolute -inset-px bg-gradient-to-br from-amber-400/15 via-transparent to-transparent" />
+            )}
+            {/* Rank chip */}
+            <div className="relative flex items-center justify-between mb-3">
+              <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md font-heading font-black", tier.chipBg, tier.chipFg, isFirst ? "text-xs" : "text-[10px]")}>
+                <Icon className={cn(isFirst ? "h-3.5 w-3.5" : "h-3 w-3")} />
+                <span>#{tier.rank}</span>
+              </div>
+              {p.label && <StoryBadge label={p.label} />}
+            </div>
+
+            {/* Photo + ring */}
+            <div className="relative mx-auto mb-3 flex items-center justify-center">
+              <div className={cn("rounded-full bg-gradient-to-b p-[2px]", tier.ringFrom, tier.ringTo)}>
+                {p.photo ? (
+                  <img
+                    src={p.photo}
+                    alt={p.name}
+                    className={cn("rounded-full object-cover bg-black/40", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")}
+                  />
+                ) : (
+                  <div className={cn("rounded-full bg-white/10", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")} />
+                )}
+              </div>
+            </div>
+
+            {/* Name + team */}
+            <div className="text-center mb-2">
+              <div className={cn("font-heading font-black text-white truncate", isFirst ? "text-lg md:text-xl" : "text-sm md:text-base")}>{p.name}</div>
+              <div className="text-[10px] uppercase tracking-wider text-white/50 font-mono">{p.team}</div>
+            </div>
+
+            {/* Headline stat */}
+            <div className={cn("text-center font-heading font-black", accentText, isFirst ? "text-2xl md:text-3xl" : "text-lg")}>
+              {p.statHeadline}
+            </div>
+
+            {/* Stat strip */}
+            {p.stats.length > 0 && (
+              <div className={cn(
+                "mt-3 grid gap-1 text-center",
+                p.stats.length >= 5 ? "grid-cols-5"
+                : p.stats.length === 4 ? "grid-cols-4"
+                : p.stats.length === 3 ? "grid-cols-3"
+                : p.stats.length === 2 ? "grid-cols-2" : "grid-cols-1",
+              )}>
+                {p.stats.map(([k, v]) => (
+                  <div key={k} className="rounded-md bg-black/30 py-1.5">
+                    <div className={cn("font-mono font-bold text-white", isFirst ? "text-sm" : "text-xs")}>{v}</div>
+                    <div className="text-[8px] uppercase tracking-wider text-white/40">{k}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -976,76 +1086,47 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         )}
 
         {slide.payload.kind === "performances" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
-            {slide.payload.data.map((p, i) => (
-              <motion.div
-                key={p.player_id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.1 }}
-                className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-6 w-6 rounded-full bg-amber-400 text-black flex items-center justify-center font-heading font-black text-xs">{i + 1}</div>
-                  <Trophy className="h-3 w-3 text-amber-400" />
-                  <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">{p.fp.toFixed(1)} FP</span>
-                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
-                </div>
-                <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} />
-                <div className="grid grid-cols-5 gap-1 mt-4 text-center">
-                  {[
-                    ["PTS", p.pts], ["REB", p.reb], ["AST", p.ast], ["STL", p.stl], ["BLK", p.blk],
-                  ].filter(([, v]) => v != null).map(([k, v]) => (
-                    <div key={k as string} className="rounded-md bg-black/30 py-1.5">
-                      <div className="text-sm font-mono font-bold text-white">{v}</div>
-                      <div className="text-[8px] uppercase tracking-wider text-white/40">{k}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PodiumGrid
+            items={slide.payload.data.map((p) => ({
+              player_id: p.player_id,
+              name: p.name,
+              team: p.team,
+              photo: p.photo,
+              label: p.label,
+              statHeadline: `${p.fp.toFixed(1)} FP`,
+              accent: "amber",
+              stats: [
+                ["PTS", p.pts], ["REB", p.reb], ["AST", p.ast], ["STL", p.stl], ["BLK", p.blk],
+              ].filter(([, v]) => v != null) as [string, number][],
+            }))}
+            onPlayerClick={onPlayerClick}
+          />
         )}
 
         {slide.payload.kind === "value" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
-            {slide.payload.data.map((p, i) => (
-              <motion.div
-                key={p.player_id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.1 }}
-                className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-emerald-400/40 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="h-3 w-3 text-emerald-400" />
-                  <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
-                    {p.value5 != null ? `${p.value5.toFixed(2)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} FP5`}
-                  </span>
-                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
-                </div>
-                <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} accent="amber" />
-                <div className="mt-4 flex items-center justify-around text-center">
-                  <div>
-                    <div className="text-sm font-mono font-bold text-white">${p.salary?.toFixed(1)}M</div>
-                    <div className="text-[8px] uppercase tracking-wider text-white/40">Salary</div>
-                  </div>
-                  {p.fp5 != null && (
-                    <div>
-                      <div className="text-sm font-mono font-bold text-white">{p.fp5.toFixed(1)}</div>
-                      <div className="text-[8px] uppercase tracking-wider text-white/40">FP5</div>
-                    </div>
-                  )}
-                  {p.mpg5 != null && (
-                    <div>
-                      <div className="text-sm font-mono font-bold text-white">{p.mpg5.toFixed(0)}</div>
-                      <div className="text-[8px] uppercase tracking-wider text-white/40">MPG</div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PodiumGrid
+            items={slide.payload.data.map((p) => {
+              const fpKey = p.dayBased ? "FP" : "FP5";
+              const minKey = p.dayBased ? "MIN" : "MPG";
+              const stats: [string, number | string][] = [
+                ["$", `${p.salary?.toFixed(1)}M`],
+              ];
+              if (p.fp5 != null) stats.push([fpKey, Number(p.fp5.toFixed(1))]);
+              if (p.mpg5 != null) stats.push([minKey, Number(p.mpg5.toFixed(0))]);
+              return {
+                player_id: p.player_id,
+                name: p.name,
+                team: p.team,
+                photo: p.photo,
+                label: p.label,
+                statHeadline:
+                  p.value5 != null ? `${p.value5.toFixed(2)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} ${fpKey}`,
+                accent: "emerald",
+                stats,
+              };
+            })}
+            onPlayerClick={onPlayerClick}
+          />
         )}
 
         {slide.payload.kind === "recap" && (
@@ -1066,43 +1147,52 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   onClick={() => onGameClick(g)}
                   className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-all"
                 >
-                  {awayLogo && (
-                    <img
-                      src={awayLogo}
-                      alt=""
-                      aria-hidden
-                      className="pointer-events-none absolute -left-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
-                    />
-                  )}
-                  {homeLogo && (
-                    <img
-                      src={homeLogo}
-                      alt=""
-                      aria-hidden
-                      className="pointer-events-none absolute -right-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
-                    />
-                  )}
-                  <div className="relative flex items-center justify-between gap-3">
-                    <span
+                  <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                    {/* Away column */}
+                    <div
                       role="button"
                       onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
-                      className="font-heading font-black text-lg tracking-wider text-white hover:text-amber-300 transition-colors"
+                      className="relative h-24 flex items-center justify-center cursor-pointer"
                     >
-                      {g.away_team}
-                    </span>
+                      {awayLogo && (
+                        <img
+                          src={awayLogo}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 m-auto h-24 w-24 object-contain opacity-20 blur-[1px] select-none"
+                        />
+                      )}
+                      <span className="relative font-heading font-black text-2xl md:text-3xl tracking-wider text-white group-hover:text-amber-300 transition-colors drop-shadow">
+                        {g.away_team}
+                      </span>
+                    </div>
+
+                    {/* Center column: VS pill + tipoff */}
                     <div className="flex flex-col items-center">
                       <span className="px-2 py-0.5 rounded-md bg-amber-400 text-black text-[10px] font-heading font-black tracking-wider">VS</span>
                       {g.tipoff_utc && (
                         <span className="text-[10px] text-white/50 mt-1 font-mono">{format(new Date(g.tipoff_utc), "HH:mm")}</span>
                       )}
                     </div>
-                    <span
+
+                    {/* Home column */}
+                    <div
                       role="button"
                       onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
-                      className="font-heading font-black text-lg tracking-wider text-white hover:text-amber-300 transition-colors"
+                      className="relative h-24 flex items-center justify-center cursor-pointer"
                     >
-                      {g.home_team}
-                    </span>
+                      {homeLogo && (
+                        <img
+                          src={homeLogo}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 m-auto h-24 w-24 object-contain opacity-20 blur-[1px] select-none"
+                        />
+                      )}
+                      <span className="relative font-heading font-black text-2xl md:text-3xl tracking-wider text-white group-hover:text-amber-300 transition-colors drop-shadow">
+                        {g.home_team}
+                      </span>
+                    </div>
                   </div>
                   <div className="relative mt-3 flex items-center justify-center gap-2 flex-wrap">
                     {g.label && <StoryBadge label={g.label} />}

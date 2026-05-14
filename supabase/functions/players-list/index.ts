@@ -48,7 +48,10 @@ serve(async (req: Request) => {
     const limit = Math.min(Number(url.searchParams.get("limit")) || 200, 2000);
     const offset = Number(url.searchParams.get("offset")) || 0;
     const fcBcFilter = url.searchParams.get("fc_bc");
-    const search = url.searchParams.get("search")?.toLowerCase();
+    const rawSearch = url.searchParams.get("search");
+    const stripDiacritics = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const search = rawSearch ? stripDiacritics(rawSearch) : undefined;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -186,7 +189,10 @@ serve(async (req: Request) => {
 
     // Filter
     if (fcBcFilter) items = items.filter((p: any) => p.core.fc_bc === fcBcFilter.toUpperCase());
-    if (search) items = items.filter((p: any) => p.core.name.toLowerCase().includes(search) || p.core.team.toLowerCase().includes(search));
+    if (search) items = items.filter((p: any) =>
+      stripDiacritics(p.core.name).includes(search) ||
+      stripDiacritics(p.core.team).includes(search)
+    );
 
     const count = items.length;
     const sortKeyMap: Record<string, (p: any) => number> = {
