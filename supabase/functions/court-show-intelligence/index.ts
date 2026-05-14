@@ -62,6 +62,16 @@ Deno.serve(async (req) => {
     const leagueCode = (leagueRow?.code ?? "nba").toLowerCase();
     const leagueLabel = leagueCode === "wnba" ? "WNBA" : "NBA";
 
+    // Compute live slate mode FIRST so we can detect cache staleness below.
+    const { data: gamesPre } = await sb
+      .from("schedule_games")
+      .select("status")
+      .eq("league_id", league_id).eq("gw", gw).eq("day", day);
+    const liveFinals = (gamesPre ?? []).filter((g) => (g.status ?? "").toUpperCase().includes("FINAL"));
+    const liveUpcoming = (gamesPre ?? []).filter((g) => !(g.status ?? "").toUpperCase().includes("FINAL"));
+    const liveMode: "recap" | "matchup" | "mixed" =
+      liveFinals.length && liveUpcoming.length ? "mixed" : liveFinals.length ? "recap" : "matchup";
+
     if (!force) {
       const { data: existing } = await sb
         .from("court_show_intelligence")
@@ -79,7 +89,10 @@ Deno.serve(async (req) => {
         const polluted =
           (leagueCode === "wnba" && allTricodes.some((t) => NBA_ONLY.has(t) && !WNBA_ONLY.has(t))) ||
           (leagueCode === "nba"  && allTricodes.some((t) => WNBA_ONLY.has(t) && !NBA_ONLY.has(t)));
-        if (!polluted) {
+        // Regenerate if the slate mode changed since cache (e.g. games went FINAL
+        // and we now need recap angles instead of preview angles).
+        const modeStale = existing.mode && existing.mode !== liveMode;
+        if (!polluted && !modeStale) {
           return jsonResp({ cached: true, ...existing });
         }
       }
