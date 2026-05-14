@@ -7,6 +7,7 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
+import { useLeague } from "@/contexts/LeagueContext";
 import type { Deadline } from "@/lib/deadlines";
 import {
   normalizePlayerHealth,
@@ -65,6 +66,7 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: rosterData } = useRosterQuery();
   const { data: leagueId } = useLeagueId();
   const { deadlines } = useLeagueDeadlines();
+  const { league } = useLeague();
   const queryClient = useQueryClient();
 
   const games = scheduleData?.games ?? [];
@@ -74,7 +76,7 @@ export function useCourtShowData(gw: number, day: number) {
   );
 
   const { data: logs, isLoading: logsLoading } = useQuery({
-    queryKey: ["court-show-logs", gw, day, finalGameIds.join(",")],
+    queryKey: ["court-show-logs", league, gw, day, finalGameIds.join(",")],
     enabled: finalGameIds.length > 0,
     staleTime: 60_000,
     queryFn: async () => {
@@ -89,7 +91,7 @@ export function useCourtShowData(gw: number, day: number) {
 
   // ── Ballers.IQ AI cards (cached per league/gw/day) ───────────────────
   const { data: aiRow, isLoading: aiLoading } = useQuery({
-    queryKey: ["court-show-ai", leagueId, gw, day],
+    queryKey: ["court-show-ai", leagueId, league, gw, day],
     enabled: !!leagueId,
     staleTime: 0,
     queryFn: async () => {
