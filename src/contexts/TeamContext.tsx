@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
-import { isMainLeague } from "@/hooks/useFantasyLeagues";
+import { isMainLeague, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID } from "@/hooks/useFantasyLeagues";
 
 export type TeamRecord = {
   id: string;
@@ -160,7 +160,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const selectedTeam: TeamRecord | null =
     (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
 
-  const { selectedLeagueId, selectedLeague } = useFantasyLeague();
+  const { selectedLeagueId, selectedLeague, fantasyLeagues, setSelectedLeagueId } = useFantasyLeague();
   // Custom fantasy leagues: teams.league_id directly references the fantasy league row.
   // Main system leagues (NBA / WNBA): teams have league_id pointing at the SPORT league
   // row, not the fantasy main-league pseudo id — so fall back to matching by sport.
@@ -173,6 +173,35 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         return false;
       })
     : teams;
+
+  // Reconcile fantasy league when the active team's sport diverges from it.
+  // The header team pill is the source of truth — switching to an NBA team
+  // while a WNBA fantasy league is active should flip the active league so
+  // /transactions, /teams, /schedule, /advanced all follow.
+  useEffect(() => {
+    if (!isReady || !selectedTeam || !selectedLeague) return;
+    const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
+    const leagueSport = selectedLeague.sport ?? null;
+    // Main League is mixed-sport — LeagueContext already follows the team there.
+    if (isMainLeague(selectedLeague.id)) return;
+    if (!leagueSport || leagueSport === teamSport) return;
+
+    // 1. Prefer a non-main fantasy league with matching sport that contains this team.
+    let target = fantasyLeagues.find(
+      (l) => !isMainLeague(l.id) && l.sport === teamSport && (selectedTeam.league_id === l.id),
+    );
+    // 2. Else any non-main fantasy league with matching sport.
+    if (!target) target = fantasyLeagues.find((l) => !isMainLeague(l.id) && l.sport === teamSport);
+    // 3. Else the system Main League for that sport.
+    if (!target) {
+      const mainId = teamSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+      target = fantasyLeagues.find((l) => l.id === mainId);
+    }
+    if (target && target.id !== selectedLeague.id) {
+      setSelectedLeagueId(target.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTeam?.id, selectedTeam?.league_code, selectedLeague?.id, selectedLeague?.sport, isReady, fantasyLeagues.length]);
 
   // When the active fantasy league changes, if the currently selected team
   // isn't in that league, switch to the first team that is.
