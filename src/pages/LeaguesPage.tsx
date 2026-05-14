@@ -214,6 +214,11 @@ export default function LeaguesPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "cards">("list");
+  // "Mine" tab filters — mirrors the Discover panel layout
+  const [mineSport, setMineSport] = useState<"all" | "nba" | "wnba">("all");
+  const [mineSearchInput, setMineSearchInput] = useState("");
+  const [mineSearch, setMineSearch] = useState("");
+  const [mineSort, setMineSort] = useState<"active" | "name">("active");
 
   async function handleJoinSubmit() {
     const code = joinCode.trim().toUpperCase();
@@ -267,6 +272,22 @@ export default function LeaguesPage() {
 
   const myCustom = sortedLeagues.filter((l) => !isMainLeague(l.id));
   const mineCount = sortedLeagues.length;
+
+  const filteredMine = useMemo(() => {
+    const q = mineSearch.trim().toLowerCase();
+    let arr = sortedLeagues.filter((l) => {
+      if (mineSport !== "all" && l.sport !== mineSport) return false;
+      if (q && !l.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if (mineSort === "name") {
+      arr = [...arr].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return arr;
+  }, [sortedLeagues, mineSport, mineSearch, mineSort]);
+  const filteredMineCount = filteredMine.length;
+
+  function applyMineSearch() { setMineSearch(mineSearchInput.trim()); }
 
   const handleOpen = (id: string) => {
     setSelectedLeagueId(id);
@@ -382,6 +403,78 @@ export default function LeaguesPage() {
         </div>
 
         <TabsContent value="mine" className="mt-4">
+      {/* Filter bar — mirrors Discover */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3 mb-3">
+        <div className="flex items-center gap-3 pl-1 pr-2">
+          {(["all", "nba", "wnba"] as const).map((s) => {
+            const active = mineSport === s;
+            const baseCls = "shrink-0 cursor-pointer transition-all duration-200 select-none";
+            const dimCls = active ? "opacity-100 scale-110" : "opacity-50 hover:opacity-90 scale-90";
+            if (s === "all") {
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setMineSport(s)}
+                  aria-label="All sports"
+                  title="All sports"
+                  className={`${baseCls} ${dimCls}`}
+                >
+                  <img
+                    src={globeEarth}
+                    alt="All sports"
+                    className={`${active ? "h-6" : "h-4"} w-auto object-contain transition-all duration-200`}
+                  />
+                </button>
+              );
+            }
+            const src = s === "wnba" ? wnbaLogo : nbaLogo;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setMineSport(s)}
+                aria-label={s.toUpperCase()}
+                title={s.toUpperCase()}
+                className={`${baseCls} ${dimCls}`}
+              >
+                <img
+                  src={src}
+                  alt={s.toUpperCase()}
+                  className={`${active ? "h-9" : "h-6"} w-auto object-contain transition-all duration-200`}
+                />
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search leagues by name..."
+            value={mineSearchInput}
+            onChange={(e) => setMineSearchInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") applyMineSearch(); }}
+            className="pl-8 h-9"
+          />
+        </div>
+        <Button size="sm" variant="secondary" onClick={applyMineSearch} className="font-heading uppercase tracking-wider text-[10px]">
+          Search
+        </Button>
+        <Select value={mineSort} onValueChange={(v) => setMineSort(v as typeof mineSort)}>
+          <SelectTrigger className="h-9 w-[140px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Active first</SelectItem>
+            <SelectItem value="name">Name A→Z</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center justify-end -mt-1 mb-2">
+        <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-muted-foreground">
+          {filteredMineCount} {filteredMineCount === 1 ? "league" : "leagues"}
+        </span>
+      </div>
       {isLoading ? (
         <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
           Loading leagues…
@@ -390,7 +483,7 @@ export default function LeaguesPage() {
         <>
           {view === "cards" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sortedLeagues.map((l) => (
+              {filteredMine.map((l) => (
                 <LeagueCard
                   key={l.id}
                   league={l}
@@ -404,7 +497,7 @@ export default function LeaguesPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
-              {sortedLeagues.map((l) => (
+              {filteredMine.map((l) => (
                 <LeagueListRow
                   key={l.id}
                   league={l}
@@ -418,7 +511,7 @@ export default function LeaguesPage() {
             </div>
           )}
 
-          {myCustom.length === 0 && (
+          {myCustom.length === 0 && filteredMine.length === 0 && (
             <div className="rounded-xl border border-dashed border-border bg-card/40 p-8 text-center space-y-3">
               <h2 className="text-lg font-heading uppercase tracking-wider font-bold">Create your first league</h2>
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
@@ -427,6 +520,11 @@ export default function LeaguesPage() {
               <Button onClick={() => navigate("/leagues/create")} className="font-heading uppercase tracking-wider text-[10px]">
                 <Plus className="h-3.5 w-3.5 mr-1" /> Create League
               </Button>
+            </div>
+          )}
+          {myCustom.length > 0 && filteredMine.length === 0 && (
+            <div className="rounded-xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+              No leagues match these filters.
             </div>
           )}
         </>

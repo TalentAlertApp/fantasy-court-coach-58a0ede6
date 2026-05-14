@@ -117,6 +117,12 @@ Deno.serve(async (req: Request) => {
         status: u.status,
         gw: u.gw,
         day: u.day,
+        game_boxscore_url: u.game_boxscore_url ?? null,
+        game_charts_url: u.game_charts_url ?? null,
+        game_playbyplay_url: u.game_playbyplay_url ?? null,
+        game_recap_url: u.game_recap_url ?? null,
+        nba_game_url: u.nba_game_url ?? null,
+        youtube_recap_id: u.youtube_recap_id ?? null,
       }));
 
     // Build player object

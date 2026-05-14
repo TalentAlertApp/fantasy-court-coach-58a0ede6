@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useTeam } from "@/contexts/TeamContext";
+import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { createTeam, updateTeam, deleteTeam } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +16,7 @@ import LeaguePickerCards from "@/components/LeaguePickerCards";
 
 export default function TeamSwitcher() {
   const { teams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
+  const { selectedLeague } = useFantasyLeague();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -122,7 +124,12 @@ export default function TeamSwitcher() {
             <SelectValue placeholder="Select team" />
           </SelectTrigger>
           <SelectContent>
-            {(teamsInSelectedLeague.length ? teamsInSelectedLeague : teams).map((t: any) => (
+            {(() => {
+              if (teamsInSelectedLeague.length) return teamsInSelectedLeague;
+              const sport = (selectedLeague?.sport ?? "nba") as "nba" | "wnba";
+              const sportTeams = teams.filter((t: any) => (t.league_code ?? "nba") === sport);
+              return sportTeams.length ? sportTeams : teams;
+            })().map((t: any) => (
               <SelectItem key={t.id} value={t.id}>
                 <span className="flex items-center gap-1.5">
                   <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
