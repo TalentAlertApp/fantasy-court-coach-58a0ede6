@@ -2,7 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode }
 import { useQueryClient } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
-import { isMainLeague } from "@/hooks/useFantasyLeagues";
 
 export type LeagueCode = "nba" | "wnba";
 
@@ -24,14 +23,11 @@ export function getCurrentLeague(): LeagueCode {
 
 export function LeagueProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { sportCode, selectedLeague } = useFantasyLeague();
+  const { sportCode } = useFantasyLeague();
   const { selectedTeam } = useTeam();
-  // Sport is derived from the selected fantasy league. For system Main League
-  // rows, the header team pill is the source of truth so NBA/WNBA team switches
-  // immediately drive API calls and page data.
-  const league: LeagueCode = selectedLeague && !isMainLeague(selectedLeague.id)
-    ? sportCode
-    : (selectedTeam?.league_code === "wnba" ? "wnba" : "nba");
+  // The header team pill is the source of truth for the active sport. Fall back
+  // to the selected fantasy league only before a team has resolved.
+  const league: LeagueCode = selectedTeam?.league_code === "wnba" ? "wnba" : selectedTeam?.league_code === "nba" ? "nba" : sportCode;
   const previousLeagueRef = useRef<LeagueCode>(league);
 
   // Keep the module-level mirror synchronous with render. Query functions can
