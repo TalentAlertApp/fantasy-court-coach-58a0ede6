@@ -1297,6 +1297,10 @@ export type Database = {
           owner_label: string
         }[]
       }
+      is_league_member: {
+        Args: { _league_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
