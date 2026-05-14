@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeague } from "@/contexts/LeagueContext";
+import { useTeam } from "@/contexts/TeamContext";
 
 export interface ScheduleWeekGame {
   game_id: string;
@@ -15,9 +17,11 @@ export interface ScheduleWeekGame {
 }
 
 export function useScheduleWeekGames(gw: number) {
+  const { selectedTeamId } = useTeam();
+  const { league } = useLeague();
   const { data: leagueId } = useLeagueId();
   return useQuery({
-    queryKey: ["schedule-week-games", gw, leagueId],
+    queryKey: ["schedule-week-games", selectedTeamId, league, leagueId, gw],
     enabled: !!leagueId,
     queryFn: async () => {
       const { data, error } = await supabase
