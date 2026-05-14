@@ -152,9 +152,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
     localStorage.setItem(LS_KEY, id);
-    // Invalidate team-scoped queries
-    queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    // Invalidate all server-data caches because the active team controls the
+    // effective sport for Main League views and team-scoped API requests.
+    queryClient.invalidateQueries();
   }, [queryClient]);
 
   const selectedTeam: TeamRecord | null =
@@ -182,8 +182,13 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     if (!isReady || !selectedTeam || !selectedLeague) return;
     const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
     const leagueSport = selectedLeague.sport ?? null;
-    // Main League is mixed-sport — LeagueContext already follows the team there.
-    if (isMainLeague(selectedLeague.id)) return;
+    if (isMainLeague(selectedLeague.id)) {
+      const mainId = teamSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+      if (selectedLeague.id !== mainId && fantasyLeagues.some((l) => l.id === mainId)) {
+        setSelectedLeagueId(mainId);
+      }
+      return;
+    }
     if (!leagueSport || leagueSport === teamSport) return;
 
     // 1. Prefer a non-main fantasy league with matching sport that contains this team.
@@ -208,13 +213,16 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isReady) return;
     if (!selectedLeagueId || teamsInSelectedLeague.length === 0) return;
+    if (selectedLeague && selectedTeam) {
+      const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
+      if (selectedLeague.sport !== teamSport) return;
+    }
     const inLeague = teamsInSelectedLeague.some((t) => t.id === selectedTeamId);
     if (!inLeague) {
       const next = teamsInSelectedLeague[0].id;
       setSelectedTeamIdRaw(next);
       try { localStorage.setItem(LS_KEY, next); } catch { /* ignore */ }
-      queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLeagueId, teamsInSelectedLeague.length]);

@@ -20,5 +20,6 @@ export function useLeagueId() {
       return (data?.id as string | undefined) ?? null;
     },
     staleTime: 60 * 60_000,
+    placeholderData: undefined,
   });
 }

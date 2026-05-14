@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import { buildTeamDifficultyMap } from "@/lib/ballers-iq/teamDifficulty";
 import type { BIQGame, BIQTeamDifficulty } from "@/lib/ballers-iq/types";
 
@@ -8,13 +9,17 @@ import type { BIQGame, BIQTeamDifficulty } from "@/lib/ballers-iq/types";
  * once. Cached for 5 minutes — purely client-side derivation.
  */
 export function useTeamDifficultyMap() {
+  const { data: leagueId } = useLeagueId();
   return useQuery<Record<string, BIQTeamDifficulty>>({
-    queryKey: ["team-difficulty-map"],
+    queryKey: ["team-difficulty-map", leagueId],
+    enabled: !!leagueId,
     staleTime: 300_000,
+    placeholderData: undefined,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
         .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc")
+        .eq("league_id", leagueId!)
         .ilike("status", "%FINAL%")
         .order("tipoff_utc", { ascending: true });
       if (error) throw error;
