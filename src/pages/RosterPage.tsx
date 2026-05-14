@@ -572,7 +572,7 @@ export default function RosterPage() {
               className={`rounded-lg text-[10px] font-heading uppercase tracking-wide ${
                 deadlineStatus.locked
                   ? "bg-destructive/20 text-destructive border border-destructive/40"
-                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 dark:!text-black dark:font-bold"
               }`}
               title={deadlineStatus.reason ?? ""}
             >
@@ -583,7 +583,7 @@ export default function RosterPage() {
                   : "🟢 Lineup open"}
             </Badge>
           )}
-          <div className="flex items-center gap-1.5 ml-auto rounded-lg dark:bg-[#c9a749] dark:px-1.5 dark:py-1 dark:shadow-inner">
+          <div className="flex items-center gap-1.5 ml-auto rounded-lg dark:bg-[#b58126] dark:px-1.5 dark:py-1 dark:shadow-inner dark:[&_.header-icon]:drop-shadow-[0_1px_0_rgba(0,0,0,0.55)] dark:[&_.header-icon-btn]:text-white">
             <button
               type="button"
               onClick={() => setAiCoachOpen(true)}
