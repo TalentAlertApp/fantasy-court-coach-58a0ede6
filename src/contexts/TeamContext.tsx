@@ -149,6 +149,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     (autoCorrected ||
       (!!selectedTeamId && teams.some((t: any) => t.id === selectedTeamId)));
 
+  // Tracks whether the last change came from the team pill or from the
+  // fantasy-league selector. Drives asymmetric reconciliation below.
+  const lastChangeOriginRef = useRef<"team" | "league">("team");
+
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
     localStorage.setItem(LS_KEY, id);
@@ -162,9 +166,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     (teams.find((t: any) => t.id === selectedTeamId) as TeamRecord | undefined) ?? null;
 
   const { selectedLeagueId, selectedLeague, fantasyLeagues, setSelectedLeagueId } = useFantasyLeague();
-  // Tracks whether the last change came from the team pill or from the
-  // fantasy-league selector. Drives asymmetric reconciliation below.
-  const lastChangeOriginRef = useRef<"team" | "league">("team");
   const prevLeagueIdRef = useRef<string | null>(selectedLeagueId);
   useEffect(() => {
     if (prevLeagueIdRef.current !== selectedLeagueId) {
