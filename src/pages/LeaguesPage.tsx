@@ -214,6 +214,11 @@ export default function LeaguesPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "cards">("list");
+  // "Mine" tab filters — mirrors the Discover panel layout
+  const [mineSport, setMineSport] = useState<"all" | "nba" | "wnba">("all");
+  const [mineSearchInput, setMineSearchInput] = useState("");
+  const [mineSearch, setMineSearch] = useState("");
+  const [mineSort, setMineSort] = useState<"active" | "name">("active");
 
   async function handleJoinSubmit() {
     const code = joinCode.trim().toUpperCase();
@@ -267,6 +272,22 @@ export default function LeaguesPage() {
 
   const myCustom = sortedLeagues.filter((l) => !isMainLeague(l.id));
   const mineCount = sortedLeagues.length;
+
+  const filteredMine = useMemo(() => {
+    const q = mineSearch.trim().toLowerCase();
+    let arr = sortedLeagues.filter((l) => {
+      if (mineSport !== "all" && l.sport !== mineSport) return false;
+      if (q && !l.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if (mineSort === "name") {
+      arr = [...arr].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return arr;
+  }, [sortedLeagues, mineSport, mineSearch, mineSort]);
+  const filteredMineCount = filteredMine.length;
+
+  function applyMineSearch() { setMineSearch(mineSearchInput.trim()); }
 
   const handleOpen = (id: string) => {
     setSelectedLeagueId(id);
