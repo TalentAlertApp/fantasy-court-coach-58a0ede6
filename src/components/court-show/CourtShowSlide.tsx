@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle, Crown, Medal } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
@@ -976,76 +976,47 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         )}
 
         {slide.payload.kind === "performances" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
-            {slide.payload.data.map((p, i) => (
-              <motion.div
-                key={p.player_id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.1 }}
-                className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="h-6 w-6 rounded-full bg-amber-400 text-black flex items-center justify-center font-heading font-black text-xs">{i + 1}</div>
-                  <Trophy className="h-3 w-3 text-amber-400" />
-                  <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">{p.fp.toFixed(1)} FP</span>
-                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
-                </div>
-                <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} />
-                <div className="grid grid-cols-5 gap-1 mt-4 text-center">
-                  {[
-                    ["PTS", p.pts], ["REB", p.reb], ["AST", p.ast], ["STL", p.stl], ["BLK", p.blk],
-                  ].filter(([, v]) => v != null).map(([k, v]) => (
-                    <div key={k as string} className="rounded-md bg-black/30 py-1.5">
-                      <div className="text-sm font-mono font-bold text-white">{v}</div>
-                      <div className="text-[8px] uppercase tracking-wider text-white/40">{k}</div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PodiumGrid
+            items={slide.payload.data.map((p) => ({
+              player_id: p.player_id,
+              name: p.name,
+              team: p.team,
+              photo: p.photo,
+              label: p.label,
+              statHeadline: `${p.fp.toFixed(1)} FP`,
+              accent: "amber",
+              stats: [
+                ["PTS", p.pts], ["REB", p.reb], ["AST", p.ast], ["STL", p.stl], ["BLK", p.blk],
+              ].filter(([, v]) => v != null) as [string, number][],
+            }))}
+            onPlayerClick={onPlayerClick}
+          />
         )}
 
         {slide.payload.kind === "value" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
-            {slide.payload.data.map((p, i) => (
-              <motion.div
-                key={p.player_id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.1 }}
-                className="rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-emerald-400/40 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Zap className="h-3 w-3 text-emerald-400" />
-                  <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
-                    {p.value5 != null ? `${p.value5.toFixed(2)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} FP5`}
-                  </span>
-                  {p.label && <span className="ml-auto"><StoryBadge label={p.label} /></span>}
-                </div>
-                <PlayerHero p={p} onClick={() => onPlayerClick(p.player_id)} accent="amber" />
-                <div className="mt-4 flex items-center justify-around text-center">
-                  <div>
-                    <div className="text-sm font-mono font-bold text-white">${p.salary?.toFixed(1)}M</div>
-                    <div className="text-[8px] uppercase tracking-wider text-white/40">Salary</div>
-                  </div>
-                  {p.fp5 != null && (
-                    <div>
-                      <div className="text-sm font-mono font-bold text-white">{p.fp5.toFixed(1)}</div>
-                      <div className="text-[8px] uppercase tracking-wider text-white/40">FP5</div>
-                    </div>
-                  )}
-                  {p.mpg5 != null && (
-                    <div>
-                      <div className="text-sm font-mono font-bold text-white">{p.mpg5.toFixed(0)}</div>
-                      <div className="text-[8px] uppercase tracking-wider text-white/40">MPG</div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <PodiumGrid
+            items={slide.payload.data.map((p) => {
+              const fpKey = p.dayBased ? "FP" : "FP5";
+              const minKey = p.dayBased ? "MIN" : "MPG";
+              const stats: [string, number | string][] = [
+                ["$", `${p.salary?.toFixed(1)}M`],
+              ];
+              if (p.fp5 != null) stats.push([fpKey, Number(p.fp5.toFixed(1))]);
+              if (p.mpg5 != null) stats.push([minKey, Number(p.mpg5.toFixed(0))]);
+              return {
+                player_id: p.player_id,
+                name: p.name,
+                team: p.team,
+                photo: p.photo,
+                label: p.label,
+                statHeadline:
+                  p.value5 != null ? `${p.value5.toFixed(2)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} ${fpKey}`,
+                accent: "emerald",
+                stats,
+              };
+            })}
+            onPlayerClick={onPlayerClick}
+          />
         )}
 
         {slide.payload.kind === "recap" && (
