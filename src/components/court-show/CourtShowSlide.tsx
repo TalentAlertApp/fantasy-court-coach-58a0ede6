@@ -279,7 +279,7 @@ function RecapCard({
           </a>
         )}
       </div>
-      <div className="relative flex items-center justify-between gap-3">
+      <div className="relative flex items-center justify-center gap-3">
         <div className="flex items-baseline gap-2">
           <span className={cn("font-heading font-black text-sm tracking-wider", awayWon ? "text-white" : "text-white/55")}>{g.away_team}</span>
           <span className={cn("font-mono font-black text-2xl", awayWon ? "text-white" : "text-white/45")}>{g.away_pts}</span>
