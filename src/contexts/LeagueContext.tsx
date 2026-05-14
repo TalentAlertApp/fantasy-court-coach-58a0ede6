@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { isMainLeague } from "@/hooks/useFantasyLeagues";
 
 export type LeagueCode = "nba" | "wnba";
 
@@ -25,22 +26,26 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const { sportCode, selectedLeague } = useFantasyLeague();
   const { selectedTeam } = useTeam();
-  // Sport is derived from the selected fantasy league. For the system Main
-  // League (which has no fixed sport), fall back to the selected team's
-  // league_code so single-sport teams still resolve correctly.
-  const league: LeagueCode = selectedLeague && selectedLeague.id !== "00000000-0000-0000-0000-000000000010"
+  // Sport is derived from the selected fantasy league. For system Main League
+  // rows, the header team pill is the source of truth so NBA/WNBA team switches
+  // immediately drive API calls and page data.
+  const league: LeagueCode = selectedLeague && !isMainLeague(selectedLeague.id)
     ? sportCode
     : (selectedTeam?.league_code === "wnba" ? "wnba" : "nba");
+  const previousLeagueRef = useRef<LeagueCode>(league);
+
+  // Keep the module-level mirror synchronous with render. Query functions can
+  // run before effects, so waiting for useEffect causes wrong league_code calls.
+  if (currentLeague !== league) currentLeague = league;
 
   // Keep the module-level mirror in sync for non-React callers (apiFetch).
   // When the resolved league changes, wipe all server-data caches so no
   // stale league data flashes through.
   useEffect(() => {
-    if (currentLeague !== league) {
-      currentLeague = league;
+    currentLeague = league;
+    if (previousLeagueRef.current !== league) {
+      previousLeagueRef.current = league;
       queryClient.invalidateQueries();
-    } else {
-      currentLeague = league;
     }
   }, [league, queryClient]);
 
