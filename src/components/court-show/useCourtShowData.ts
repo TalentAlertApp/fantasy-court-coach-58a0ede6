@@ -112,21 +112,31 @@ export function useCourtShowData(gw: number, day: number) {
     },
   });
 
-  // Best-effort on-demand generation: if no cached row exists yet, kick off
-  // the edge function once. The query above will refresh when invalidated.
-  const shouldKickOff = !!leagueId && !aiLoading && aiRow === null && !schedLoading && games.length > 0;
+  // Live mode derived from the slate so we can detect when the cached row is stale
+  // (e.g. cached during preview but games are now FINAL → recap angles needed).
+  const liveMode: "recap" | "matchup" | "mixed" = (() => {
+    const finals = games.filter((g: any) => (g.status ?? "").toUpperCase().includes("FINAL")).length;
+    const upcoming = games.length - finals;
+    return finals && upcoming ? "mixed" : finals ? "recap" : "matchup";
+  })();
+  const cacheStale = !!aiRow && !!aiRow.mode && aiRow.mode !== liveMode;
+
+  // Best-effort on-demand generation: kick off when no cached row exists, OR
+  // when the cached row's mode no longer matches the live slate.
+  const shouldKickOff = !!leagueId && !aiLoading && !schedLoading && games.length > 0
+    && (aiRow === null || cacheStale);
   useQuery({
-    queryKey: ["court-show-ai-trigger", leagueId, gw, day, shouldKickOff],
+    queryKey: ["court-show-ai-trigger", leagueId, league, gw, day, cacheStale],
     enabled: shouldKickOff,
     staleTime: 60_000,
     queryFn: async () => {
       try {
         const { error } = await supabase.functions.invoke("court-show-intelligence", {
-          body: { league_id: leagueId, gw, day },
+          body: { league_id: leagueId, gw, day, force: cacheStale ? true : undefined },
         });
         if (error) console.warn("[court-show-intelligence] invoke error", error);
         // Refresh the cached AI row now that the function has upserted it.
-        await queryClient.invalidateQueries({ queryKey: ["court-show-ai", leagueId, gw, day] });
+        await queryClient.invalidateQueries({ queryKey: ["court-show-ai", leagueId, league, gw, day] });
       } catch (e) {
         console.warn("[court-show-intelligence] invoke threw", e);
       }
