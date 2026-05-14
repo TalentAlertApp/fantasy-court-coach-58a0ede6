@@ -1,7 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
+import SidebarPlayerSearch from "@/components/SidebarPlayerSearch";
+import PlayerModal from "@/components/PlayerModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -50,6 +52,7 @@ export default function AppLayout() {
   const { isWnba } = useLeague();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
   const [dark, setDark] = useState(() =>
     localStorage.getItem("nba_theme") === "dark" ||
     (!localStorage.getItem("nba_theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
@@ -138,14 +141,43 @@ export default function AppLayout() {
           ))}
         </nav>
 
+        {/* Player Search */}
+        {!collapsed ? (
+          <>
+            <div className="sidebar-divider" />
+            <div className="px-3 pt-2 pb-1">
+              <span className="sidebar-section-label">Player Search</span>
+            </div>
+            <div className="px-3 pb-2 pt-1">
+              <SidebarPlayerSearch onSelect={(id) => setQuickPlayerId(id)} />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="sidebar-divider" />
+            <div className="py-2 flex justify-center">
+              <NavTooltip collapsed={collapsed} label="Search player">
+                <button
+                  type="button"
+                  onClick={() => setCollapsed(false)}
+                  aria-label="Search player"
+                  className="theme-toggle"
+                >
+                  <Search className="h-3.5 w-3.5" />
+                </button>
+              </NavTooltip>
+            </div>
+          </>
+        )}
+
         {/* Team Switcher — above separator */}
         {!collapsed && (
           <>
             <div className="sidebar-divider" />
-            <div className="px-3 pt-3 pb-1">
+            <div className="px-3 pt-2 pb-1">
               <span className="sidebar-section-label">Your Team</span>
             </div>
-            <div className="px-3 pb-3 pt-1.5">
+            <div className="px-3 pb-2 pt-1">
               <TeamSwitcher />
             </div>
           </>
@@ -154,11 +186,11 @@ export default function AppLayout() {
         {/* Bottom controls */}
         <div className="sidebar-divider" />
         {!collapsed && (
-          <div className="px-3 pt-3 pb-1">
+          <div className="px-3 pt-2 pb-1">
             <span className="sidebar-section-label">Account</span>
           </div>
         )}
-        <div className={`flex flex-col ${collapsed ? "gap-2 px-0 py-3 items-center" : "gap-2 p-3"}`}>
+        <div className={`flex flex-col ${collapsed ? "gap-2 px-0 py-2 items-center" : "gap-1.5 px-3 pt-1 pb-2"}`}>
           {user && !collapsed && (
             <div className="flex items-center gap-2 rounded-lg px-2 py-1.5"
                  style={{ background: "hsl(0 0% 100% / 0.03)", boxShadow: "inset 0 0 0 1px hsl(var(--sidebar-border) / 0.5)" }}>
@@ -229,6 +261,11 @@ export default function AppLayout() {
           </div>
         </main>
       </div>
+      <PlayerModal
+        playerId={quickPlayerId}
+        open={quickPlayerId !== null}
+        onOpenChange={(o) => { if (!o) setQuickPlayerId(null); }}
+      />
     </div>
     </TooltipProvider>
   );
