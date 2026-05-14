@@ -1147,43 +1147,52 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   onClick={() => onGameClick(g)}
                   className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-all"
                 >
-                  {awayLogo && (
-                    <img
-                      src={awayLogo}
-                      alt=""
-                      aria-hidden
-                      className="pointer-events-none absolute -left-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
-                    />
-                  )}
-                  {homeLogo && (
-                    <img
-                      src={homeLogo}
-                      alt=""
-                      aria-hidden
-                      className="pointer-events-none absolute -right-4 -top-2 h-32 w-32 object-contain opacity-[0.13] blur-[1.5px] select-none"
-                    />
-                  )}
-                  <div className="relative flex items-center justify-between gap-3">
-                    <span
+                  <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                    {/* Away column */}
+                    <div
                       role="button"
                       onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
-                      className="font-heading font-black text-lg tracking-wider text-white hover:text-amber-300 transition-colors"
+                      className="relative h-24 flex items-center justify-center cursor-pointer"
                     >
-                      {g.away_team}
-                    </span>
+                      {awayLogo && (
+                        <img
+                          src={awayLogo}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 m-auto h-24 w-24 object-contain opacity-20 blur-[1px] select-none"
+                        />
+                      )}
+                      <span className="relative font-heading font-black text-2xl md:text-3xl tracking-wider text-white group-hover:text-amber-300 transition-colors drop-shadow">
+                        {g.away_team}
+                      </span>
+                    </div>
+
+                    {/* Center column: VS pill + tipoff */}
                     <div className="flex flex-col items-center">
                       <span className="px-2 py-0.5 rounded-md bg-amber-400 text-black text-[10px] font-heading font-black tracking-wider">VS</span>
                       {g.tipoff_utc && (
                         <span className="text-[10px] text-white/50 mt-1 font-mono">{format(new Date(g.tipoff_utc), "HH:mm")}</span>
                       )}
                     </div>
-                    <span
+
+                    {/* Home column */}
+                    <div
                       role="button"
                       onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
-                      className="font-heading font-black text-lg tracking-wider text-white hover:text-amber-300 transition-colors"
+                      className="relative h-24 flex items-center justify-center cursor-pointer"
                     >
-                      {g.home_team}
-                    </span>
+                      {homeLogo && (
+                        <img
+                          src={homeLogo}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute inset-0 m-auto h-24 w-24 object-contain opacity-20 blur-[1px] select-none"
+                        />
+                      )}
+                      <span className="relative font-heading font-black text-2xl md:text-3xl tracking-wider text-white group-hover:text-amber-300 transition-colors drop-shadow">
+                        {g.home_team}
+                      </span>
+                    </div>
                   </div>
                   <div className="relative mt-3 flex items-center justify-center gap-2 flex-wrap">
                     {g.label && <StoryBadge label={g.label} />}
