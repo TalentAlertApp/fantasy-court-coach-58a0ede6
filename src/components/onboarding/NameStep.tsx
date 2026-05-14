@@ -18,12 +18,13 @@ interface Props {
   onBack: () => void;
   onSubmit: (name: string, leagueCode: "nba" | "wnba") => void | Promise<void>;
   submitting: boolean;
+  lockedSport?: "nba" | "wnba" | null;
 }
 
-export default function NameStep({ onBack, onSubmit, submitting }: Props) {
+export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: Props) {
   const initial = useMemo(() => pickRandom(), []);
   const [name, setName] = useState(initial);
-  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">("nba");
+  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">(lockedSport ?? "nba");
 
   const trimmed = name.trim();
   const canSubmit = trimmed.length >= 2 && !submitting;
@@ -68,13 +69,13 @@ export default function NameStep({ onBack, onSubmit, submitting }: Props) {
 
         <div className="mt-6 mx-auto max-w-md">
           <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mb-3 text-center">
-            Choose your league
+            {lockedSport ? "League (preselected)" : "Choose your league"}
           </div>
           <LeaguePickerCards
             value={leagueCode}
             onChange={setLeagueCode}
             size="lg"
-            disabled={submitting}
+            disabled={submitting || !!lockedSport}
             showSubtitle
           />
         </div>

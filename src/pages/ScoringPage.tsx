@@ -209,11 +209,11 @@ export default function ScoringPage() {
                 You don't have a team in {selectedLeague?.name ?? "this league"} yet.
               </p>
               <Button
-                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId } })}
+                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba" } })}
                 size="sm"
                 className="rounded-xl"
               >
-                Create a team
+                Create a team in {selectedLeague?.sport === "wnba" ? "WNBA" : "NBA"}
               </Button>
             </div>
           ) : (

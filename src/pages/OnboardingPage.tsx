@@ -23,7 +23,9 @@ type Step = OnboardingStep;
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const preselectedLeagueId = (location.state as { leagueId?: string } | null)?.leagueId ?? null;
+  const navState = (location.state ?? null) as { leagueId?: string; sport?: "nba" | "wnba" } | null;
+  const preselectedLeagueId = navState?.leagueId ?? null;
+  const preselectedSport = navState?.sport ?? null;
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId } = useTeam();
   const { shouldOnboard, ready } = useFirstRunGate();
@@ -203,6 +205,7 @@ export default function OnboardingPage() {
           onBack={() => setStep("hero")}
           onSubmit={handleNameSubmit}
           submitting={creating}
+          lockedSport={preselectedLeagueId ? preselectedSport : null}
         />
       )}
       {step === "league" && (
