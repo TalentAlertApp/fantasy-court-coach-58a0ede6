@@ -213,7 +213,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isReady) return;
     if (!selectedLeagueId || teamsInSelectedLeague.length === 0) return;
-    if (selectedLeague && isMainLeague(selectedLeague.id) && selectedTeam) {
+    if (selectedLeague && selectedTeam) {
       const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
       if (selectedLeague.sport !== teamSport) return;
     }
