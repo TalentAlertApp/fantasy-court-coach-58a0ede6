@@ -64,17 +64,18 @@ async function earliestTipoffToday(
   sportLeagueId: string,
   now: Date,
 ): Promise<Date | null> {
-  const dayStart = new Date(now);
-  dayStart.setUTCHours(0, 0, 0, 0);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+  // Look for the next upcoming game (tipoff still in the future) within the
+  // next 24h. Using `tipoff_utc > now` prevents stale SCHEDULED rows whose
+  // tipoff has already passed (data not yet ingested as FINAL) from
+  // permanently locking the lineup for the rest of the day.
+  const horizon = new Date(now.getTime() + 24 * 60 * 60_000);
 
   const { data } = await sb
     .from("schedule_games")
     .select("tipoff_utc, status")
     .eq("league_id", sportLeagueId)
-    .gte("tipoff_utc", dayStart.toISOString())
-    .lt("tipoff_utc", dayEnd.toISOString())
+    .gt("tipoff_utc", now.toISOString())
+    .lt("tipoff_utc", horizon.toISOString())
     .not("status", "in", "(FINAL,PPD)")
     .order("tipoff_utc", { ascending: true })
     .limit(1);
