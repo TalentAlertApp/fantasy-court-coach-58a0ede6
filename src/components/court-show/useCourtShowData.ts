@@ -186,8 +186,24 @@ export function useCourtShowData(gw: number, day: number) {
 
     const allLogs = logs ?? [];
 
+    // Slate state
+    const playedTeams = new Set<string>();
+    for (const g of games) {
+      if ((g.status ?? "").toUpperCase().includes("FINAL")) {
+        playedTeams.add(g.home_team); playedTeams.add(g.away_team);
+      }
+    }
+    const healthWatchMode: "played" | "scheduled" =
+      finalGameIds.length > 0 ? "played" : "scheduled";
+
     // ── Health Watch (built early so it can be inserted before value / captain) ─
     const STATUS_RANK: Record<string, number> = { OUT: 0, Q: 1, GTD: 1, DTD: 2, PROB: 3 };
+    // Played-day: which players actually MISSED games on this slate (no log row, or mp == 0).
+    const playedById = new Map<number, number>();
+    for (const l of (logs ?? [])) {
+      const cur = playedById.get(l.player_id) ?? 0;
+      playedById.set(l.player_id, Math.max(cur, l.mp ?? 0));
+    }
     const allWithHealth: { p: any; h: PlayerHealth }[] = [];
     for (const p of (playersData?.items ?? []) as any[]) {
       const h = normalizePlayerHealth(p);
@@ -259,22 +275,63 @@ export function useCourtShowData(gw: number, day: number) {
     }
     const leagueWatch = leagueWatchRanked.map(({ p, h }) => toHealthWatchPlayer(p, h, false));
 
-    const healthWatchMode: "played" | "scheduled" =
-      finalGameIds.length > 0 ? "played" : "scheduled";
+    // Played-day override: replace the lists with players who actually missed
+    // a game on this slate (their team played, but they have no minutes).
+    let myRosterPlayedMissed: HealthWatchPlayer[] = myRosterAffectedRanked;
+    let leagueWatchPlayedMissed: HealthWatchPlayer[] = leagueWatch;
+    if (healthWatchMode === "played") {
+      const missed = ((playersData?.items ?? []) as any[]).filter((p) => {
+        if (!playedTeams.has(p.core.team)) return false;
+        const mp = playedById.get(p.core.id) ?? 0;
+        return mp <= 0;
+      });
+      const toRow = (p: any, onRoster: boolean): HealthWatchPlayer => {
+        const h = normalizePlayerHealth(p);
+        return {
+          player_id: p.core.id,
+          name: p.core.name,
+          team: p.core.team,
+          photo: p.core.photo ?? null,
+          fc_bc: p.core.fc_bc,
+          salary: p.core.salary,
+          fp5: p.last5?.fp5,
+          season_fp: p.season?.fp,
+          health: h,
+          reason: h.injury_type || h.notes || h.raw_status || (h.reason ? h.reason.charAt(0).toUpperCase() + h.reason.slice(1) : "Did not play"),
+          onRoster,
+        };
+      };
+      const score = (p: any) =>
+        (p.last5?.fp5 ?? 0) * 1.4 + (p.season?.fp ?? 0) * 0.8 + (p.core.salary ?? 0) * 0.6;
+      myRosterPlayedMissed = missed
+        .filter((p) => rosterIds.has(p.core.id))
+        .sort((a, b) => score(b) - score(a))
+        .slice(0, 3)
+        .map((p) => toRow(p, true));
+      leagueWatchPlayedMissed = missed
+        .filter((p) => !rosterIds.has(p.core.id))
+        .filter((p) => (p.season?.fp ?? 0) > 0 || (p.last5?.fp5 ?? 0) > 0)
+        .sort((a, b) => score(b) - score(a))
+        .slice(0, 3)
+        .map((p) => toRow(p, false));
+    }
+
+    const hwMyRoster = healthWatchMode === "played" ? myRosterPlayedMissed : myRosterAffectedRanked;
+    const hwLeague = healthWatchMode === "played" ? leagueWatchPlayedMissed : leagueWatch;
     const healthWatchSlide: CourtShowSlideItem | null =
-      myRosterAffectedRanked.length > 0 || leagueWatch.length > 0
+      hwMyRoster.length > 0 || hwLeague.length > 0
         ? {
             kind: "health_watch",
             title: "Health Watch",
             subtitle:
               healthWatchMode === "played"
-                ? "Who missed or carried availability risk on this slate"
+                ? "Who missed games on this slate"
                 : "Roster risks and star absences before lock",
             payload: {
               kind: "health_watch",
               data: {
-                myRoster: myRosterAffectedRanked,
-                leagueWatch,
+                myRoster: hwMyRoster,
+                leagueWatch: hwLeague,
                 mode: healthWatchMode,
                 gw, day,
               },
@@ -318,29 +375,63 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Value Plays ───────────────────────────────────────────────────
-    // Salary efficiency: prefer value5; require minutes security and meaningful FP
-    const valuePool = (playersData?.items ?? [])
-      .filter((p: any) => teamsOnSlate.has(p.core.team) && (p.core.salary ?? 0) > 0)
-      .map((p: any) => ({
-        player_id: p.core.id,
-        name: p.core.name,
-        team: p.core.team,
-        photo: p.core.photo ?? null,
-        salary: p.core.salary,
-        fp5: p.last5?.fp5,
-        value5: p.last5?.value5,
-        mpg5: p.last5?.mpg5,
-      }))
-      .filter((v: any) => (v.fp5 ?? 0) >= 18 && (v.mpg5 ?? 0) >= 22 && v.salary <= 9);
-
-    const valueRanked: ValuePlay[] = [...valuePool]
-      .sort((a, b) => {
-        const va = a.value5 ?? (a.fp5 ?? 0) / Math.max(a.salary, 1);
-        const vb = b.value5 ?? (b.fp5 ?? 0) / Math.max(b.salary, 1);
-        return vb - va;
-      })
-      .slice(0, 3)
-      .map((v) => ({ ...v, label: valueLabel(v) }));
+    let valueRanked: ValuePlay[];
+    if (healthWatchMode === "played") {
+      // Played day: rank by Value FROM THIS DAY's logs (dayFp / salary)
+      const dayAgg = new Map<number, { fp: number; mp: number }>();
+      for (const l of (logs ?? [])) {
+        const cur = dayAgg.get(l.player_id) ?? { fp: 0, mp: 0 };
+        cur.fp += fpFromLog(l);
+        cur.mp += l.mp ?? 0;
+        dayAgg.set(l.player_id, cur);
+      }
+      const rows: (ValuePlay & { _v: number })[] = [];
+      for (const [pid, agg] of dayAgg) {
+        const p = playersById.get(pid);
+        if (!p) continue;
+        const salary = p.core.salary ?? 0;
+        if (salary <= 0 || agg.mp < 12 || agg.fp < 10) continue;
+        const v = agg.fp / salary;
+        rows.push({
+          player_id: pid,
+          name: p.core.name,
+          team: p.core.team,
+          photo: p.core.photo ?? null,
+          salary,
+          fp5: agg.fp, // reuse field to surface the day's FP in the UI label
+          value5: v,
+          mpg5: agg.mp,
+          _v: v,
+        });
+      }
+      valueRanked = rows
+        .sort((a, b) => b._v - a._v)
+        .slice(0, 3)
+        .map(({ _v, ...rest }) => ({ ...rest, label: valueLabel(rest) }));
+    } else {
+      // Scheduled day: original last-5 value logic
+      const valuePool = (playersData?.items ?? [])
+        .filter((p: any) => teamsOnSlate.has(p.core.team) && (p.core.salary ?? 0) > 0)
+        .map((p: any) => ({
+          player_id: p.core.id,
+          name: p.core.name,
+          team: p.core.team,
+          photo: p.core.photo ?? null,
+          salary: p.core.salary,
+          fp5: p.last5?.fp5,
+          value5: p.last5?.value5,
+          mpg5: p.last5?.mpg5,
+        }))
+        .filter((v: any) => (v.fp5 ?? 0) >= 18 && (v.mpg5 ?? 0) >= 22 && v.salary <= 9);
+      valueRanked = [...valuePool]
+        .sort((a, b) => {
+          const va = a.value5 ?? (a.fp5 ?? 0) / Math.max(a.salary, 1);
+          const vb = b.value5 ?? (b.fp5 ?? 0) / Math.max(b.salary, 1);
+          return vb - va;
+        })
+        .slice(0, 3)
+        .map((v) => ({ ...v, label: valueLabel(v) }));
+    }
 
     // Health Watch — placed BEFORE Best Value Plays on played days.
     if (healthWatchSlide && healthWatchMode === "played") {
@@ -459,27 +550,22 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Captain Radar ─────────────────────────────────────────────────
+    // Per spec: surface the players with the highest accumulated FP over their
+    // last 5 played games (FP5 = per-player rolling, DNPs excluded). No slate
+    // filter — these are the form leaders regardless of tonight's schedule.
     const captains: CaptainPick[] = (playersData?.items ?? [])
-      .filter((p: any) => teamsOnSlate.has(p.core.team) && !isHealthUnavailable(normalizePlayerHealth(p)))
-      .filter((p: any) => (p.last5?.fp5 ?? 0) >= 30 && (p.last5?.mpg5 ?? 0) >= 28)
-      .map((p: any) => {
-        const fp5 = p.last5?.fp5 ?? 0;
-        const mpg5 = p.last5?.mpg5 ?? 0;
-        const allAround =
-          ((p.last5?.ast5 ?? 0) >= 4 ? 1 : 0) +
-          ((p.last5?.stl5 ?? 0) + (p.last5?.blk5 ?? 0) >= 2 ? 1 : 0);
-        const minutesSec = mpg5 >= 32 ? 1.1 : mpg5 >= 28 ? 1.0 : 0.9;
-        const recencyForm = (p.last5?.delta_fp ?? 0) >= 0 ? 1.05 : 0.95;
-        return {
-          player_id: p.core.id,
-          name: p.core.name,
-          team: p.core.team,
-          photo: p.core.photo ?? null,
-          fp5, mpg5,
-          fpProj: fp5 * minutesSec * recencyForm + allAround * 1.5,
-        } as CaptainPick;
-      })
-      .sort((a, b) => (b.fpProj ?? 0) - (a.fpProj ?? 0))
+      .filter((p: any) => !isHealthUnavailable(normalizePlayerHealth(p)))
+      .filter((p: any) => (p.last5?.fp5 ?? 0) > 0 && (p.last5?.mpg5 ?? 0) >= 28)
+      .map((p: any) => ({
+        player_id: p.core.id,
+        name: p.core.name,
+        team: p.core.team,
+        photo: p.core.photo ?? null,
+        fp5: p.last5?.fp5 ?? 0,
+        mpg5: p.last5?.mpg5 ?? 0,
+        fpProj: p.last5?.fp5 ?? 0,
+      } as CaptainPick))
+      .sort((a, b) => (b.fp5 ?? 0) - (a.fp5 ?? 0))
       .slice(0, 3)
       .map((c) => ({ ...c, label: captainLabel(c) }));
 
@@ -599,8 +685,14 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Outro ─────────────────────────────────────────────────────────
-    const idx = deadlines.findIndex((d) => d.gw === gw && d.day === day);
-    const next = idx >= 0 && idx < deadlines.length - 1 ? deadlines[idx + 1] : null;
+    // The "Set Lineup Before Lock" deadline must reflect the day THIS Court
+    // Show represents. Use this day's own deadline when it's still in the
+    // future; otherwise (already locked) fall back to the next future one.
+    const own = deadlines.find((d) => d.gw === gw && d.day === day) ?? null;
+    const nowMs = Date.now();
+    const ownInFuture = own && new Date(own.deadline_utc).getTime() > nowMs;
+    const nextFuture = deadlines.find((d) => new Date(d.deadline_utc).getTime() > nowMs) ?? null;
+    const next = ownInFuture ? own : nextFuture;
     slides.push({
       kind: "outro",
       title: "Set Lineup Before Lock",
