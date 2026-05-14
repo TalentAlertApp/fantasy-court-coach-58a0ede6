@@ -33,6 +33,110 @@ function StoryBadge({ label }: { label?: string }) {
   );
 }
 
+/* ──────────────────────────────────────────────────────────────────────
+ * Premium podium layout used by Outstanding Performances + Best Value Plays.
+ * #1 sits centered, larger and elevated; #2 (left, silver) and #3 (right,
+ * bronze) flank it. Falls back gracefully when fewer than 3 items are passed.
+ * ────────────────────────────────────────────────────────────────────── */
+interface PodiumItem {
+  player_id: number;
+  name: string;
+  team: string;
+  photo: string | null;
+  label?: string;
+  statHeadline: string;
+  stats: [string, number | string][];
+  accent: "amber" | "emerald";
+}
+const PODIUM_TIERS = [
+  { rank: 2, ringFrom: "from-slate-200/40", ringTo: "to-slate-400/30", chipBg: "bg-slate-200", chipFg: "text-slate-900", icon: Medal },
+  { rank: 1, ringFrom: "from-amber-300/70", ringTo: "to-amber-500/50", chipBg: "bg-amber-400", chipFg: "text-black", icon: Crown },
+  { rank: 3, ringFrom: "from-orange-700/40", ringTo: "to-amber-700/30", chipBg: "bg-amber-700", chipFg: "text-amber-50", icon: Medal },
+] as const;
+
+function PodiumGrid({ items, onPlayerClick }: { items: PodiumItem[]; onPlayerClick: (id: number) => void }) {
+  // Build [#2, #1, #3] order with the items provided (1-based ranks already in items[0..2]).
+  const ordered = [items[1], items[0], items[2]];
+  return (
+    <div className="grid grid-cols-3 gap-4 md:gap-6 items-end h-full content-center">
+      {ordered.map((p, i) => {
+        const tier = PODIUM_TIERS[i];
+        if (!p) return <div key={`empty-${i}`} aria-hidden />;
+        const isFirst = tier.rank === 1;
+        const accentText = p.accent === "emerald" ? "text-emerald-300" : "text-amber-300";
+        const accentBorder = p.accent === "emerald" ? "hover:border-emerald-400/50" : "hover:border-amber-400/50";
+        const Icon = tier.icon;
+        return (
+          <motion.button
+            key={p.player_id}
+            type="button"
+            onClick={() => onPlayerClick(p.player_id)}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.12, duration: 0.55, ease: [0.22, 0.61, 0.36, 1] }}
+            className={cn(
+              "group relative text-left rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] backdrop-blur-sm overflow-hidden transition-all",
+              accentBorder,
+              isFirst ? "p-6 md:p-7 scale-[1.04] shadow-[0_24px_60px_-24px_rgba(251,191,36,0.45)] ring-1 ring-amber-400/40" : "p-4 md:p-5 mb-4",
+            )}
+          >
+            {/* Podium glow under #1 */}
+            {isFirst && (
+              <div className="pointer-events-none absolute -inset-px bg-gradient-to-br from-amber-400/15 via-transparent to-transparent" />
+            )}
+            {/* Rank chip */}
+            <div className="relative flex items-center justify-between mb-3">
+              <div className={cn("flex items-center gap-1.5 px-2 py-0.5 rounded-md font-heading font-black", tier.chipBg, tier.chipFg, isFirst ? "text-xs" : "text-[10px]")}>
+                <Icon className={cn(isFirst ? "h-3.5 w-3.5" : "h-3 w-3")} />
+                <span>#{tier.rank}</span>
+              </div>
+              {p.label && <StoryBadge label={p.label} />}
+            </div>
+
+            {/* Photo + ring */}
+            <div className="relative mx-auto mb-3 flex items-center justify-center">
+              <div className={cn("rounded-full bg-gradient-to-b p-[2px]", tier.ringFrom, tier.ringTo)}>
+                {p.photo ? (
+                  <img
+                    src={p.photo}
+                    alt={p.name}
+                    className={cn("rounded-full object-cover bg-black/40", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")}
+                  />
+                ) : (
+                  <div className={cn("rounded-full bg-white/10", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")} />
+                )}
+              </div>
+            </div>
+
+            {/* Name + team */}
+            <div className="text-center mb-2">
+              <div className={cn("font-heading font-black text-white truncate", isFirst ? "text-lg md:text-xl" : "text-sm md:text-base")}>{p.name}</div>
+              <div className="text-[10px] uppercase tracking-wider text-white/50 font-mono">{p.team}</div>
+            </div>
+
+            {/* Headline stat */}
+            <div className={cn("text-center font-heading font-black", accentText, isFirst ? "text-2xl md:text-3xl" : "text-lg")}>
+              {p.statHeadline}
+            </div>
+
+            {/* Stat strip */}
+            {p.stats.length > 0 && (
+              <div className={cn("mt-3 grid gap-1 text-center", `grid-cols-${Math.min(p.stats.length, 5)}`)}>
+                {p.stats.map(([k, v]) => (
+                  <div key={k} className="rounded-md bg-black/30 py-1.5">
+                    <div className={cn("font-mono font-bold text-white", isFirst ? "text-sm" : "text-xs")}>{v}</div>
+                    <div className="text-[8px] uppercase tracking-wider text-white/40">{k}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.button>
+        );
+      })}
+    </div>
+  );
+}
+
 function BallersIQInline({
   headline,
   body,
