@@ -635,8 +635,8 @@ export default function RosterPage() {
                   data-active={advisorOpen ? "true" : undefined}
                   className="header-icon-btn is-advisor disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="header-icon dark:hidden" />
-                  <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="header-icon hidden dark:block" />
+                  <BallersIQBrand variant="emblem" size="sm" forceTheme="light" transparent className="header-icon dark:hidden !h-[1.05rem] !w-[1.05rem]" />
+                  <BallersIQBrand variant="emblem" size="sm" forceTheme="dark" transparent className="header-icon hidden dark:block !h-[1.05rem] !w-[1.05rem]" />
                 </button>
               </TooltipTrigger>
               <TooltipContent>Ballers.IQ Lineup Advisor</TooltipContent>
@@ -761,9 +761,9 @@ export default function RosterPage() {
                     <button
                       type="button"
                       aria-label="Reset roster"
-                      className="header-icon-btn is-reset"
+                      className="header-icon-btn is-reset text-red-500 hover:text-red-600"
                     >
-                      <RotateCcw className="header-icon" />
+                      <RotateCcw className="header-icon text-red-500" />
                     </button>
                   </AlertDialogTrigger>
                 </TooltipTrigger>
