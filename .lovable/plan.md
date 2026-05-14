@@ -1,50 +1,65 @@
-## Problem
+## Diagnosis
 
-`HeaderTeamPill` switches `selectedTeamId`, and `/` (My Roster) updates because it queries by team id. But every other page (`/transactions`, `/teams`, `/schedule`, `/advanced`, `/leagues`) reads the league from `useLeague()`, which derives `league` from the **selected fantasy league's sport**, not the selected team:
+The failures share one pattern: the app is mixing two different concepts of “league”:
 
-```ts
-// src/contexts/LeagueContext.tsx
-const league = selectedLeague && selectedLeague.id !== MAIN_LEAGUE
-  ? sportCode                       // WNBA Invitational → "wnba", stays "wnba"
-  : (selectedTeam?.league_code === "wnba" ? "wnba" : "nba");
-```
+- **Fantasy leagues**: Main League NBA/WNBA and custom fantasy leagues.
+- **Sport leagues**: the actual NBA/WNBA data rows that own `players`, `schedule_games`, and `player_game_logs`.
 
-So when the user is in a WNBA fantasy league and picks an NBA team in the header, `league` stays `"wnba"` → Players, Teams, Schedule, Advanced all keep loading WNBA data.
+The database confirms all player/schedule/log data lives under sport leagues (`code='nba'`, `code='wnba'`), while fantasy Main League rows intentionally have zero schedule/player rows. Several frontend queries and state transitions still sometimes resolve/use the fantasy league ID or stale NBA cache, which explains:
 
-`TeamContext` has the inverse coupling (changing fantasy league auto-switches team to one in that league) but there is no team→league reconciliation.
+- roster gameweek slots empty,
+- team modal empty,
+- `/teams` games/players/standings empty,
+- `/leagues` missing system Main Leagues,
+- scheduled game cards not opening the expected detail view,
+- WNBA cards showing NBA player blurbs.
 
-## Fix
+## Plan
 
-Add the missing direction: **when the active team's sport doesn't match the active fantasy league's sport, auto-switch the fantasy league** to one that matches the team. The header pill stays the single source of truth for "which sport am I looking at".
+1. **Centralize active sport resolution**
+   - Make the selected team’s `sport_league_id/league_code` the app-wide source of truth when a team is selected.
+   - Ensure WNBA teams created under the old NBA Main League fantasy row still activate WNBA data correctly.
+   - Invalidate/refetch all sport-scoped caches when active sport or selected team changes.
 
-### Selection rule (in `TeamContext`, after team change)
+2. **Fix sport league ID lookup everywhere**
+   - Keep `useLeagueId()` resolving only `leagues.kind='sport'` and `code IN ('nba','wnba')`.
+   - Add league/sport to all direct Supabase query keys that read `players`, `schedule_games`, or `player_game_logs`.
+   - Remove remaining query keys that only use generic names like `['players', {limit:1000}]` without the active sport.
 
-When `selectedTeam.league_code` ≠ `selectedLeague.sport`:
-1. Prefer a fantasy league the user owns/belongs to whose `sport === selectedTeam.league_code` AND that contains this team (`team.league_id === league.id`).
-2. Else prefer any accessible fantasy league with matching sport.
-3. Else fall back to the system Main League of that sport (`MAIN_LEAGUE_ID` for NBA, the WNBA main league id for WNBA — both already exist in `useFantasyLeagues`).
+3. **Fix roster gameweek slots**
+   - Query the full current gameweek from `schedule_games` by active sport league ID, not a rolling date window.
+   - Build `upcomingByTeam` from the current league’s gameweek rows, including final and scheduled games.
+   - This will populate the circular opponent slots for both NBA and WNBA rosters.
 
-Call `setSelectedLeagueId(...)` from `FantasyLeagueContext` so all league-scoped query caches invalidate (already wired).
+4. **Fix Team modal and `/teams`**
+   - Ensure Team modal games, roster, and player-log aggregation are filtered by the active sport league ID.
+   - Ensure `/teams` schedule counts, active players, and standings all use sport league ID and never a fantasy league ID.
+   - Keep WNBA/NBA team metadata separated so logos and names match the active sport.
 
-### Where the change goes
+5. **Fix `/leagues` Main League visibility**
+   - Adjust the fantasy league fetch logic so both system Main Leagues (`MAIN_LEAGUE_NBA_ID`, `MAIN_LEAGUE_WNBA_ID`) are always included in My Leagues for authenticated users.
+   - If RLS is hiding private system rows from the browser query, add a safe read policy that exposes only system Main League metadata, not user-private data.
 
-- **`src/contexts/TeamContext.tsx`** — add a `useEffect` that watches `selectedTeam?.league_code` and `selectedLeague?.sport`; when they diverge, resolve the target fantasy league per the rule above and call `setSelectedLeagueId`.
-- No change needed in `LeagueContext` — once the fantasy league switches, `sportCode` flips and `currentLeague` is invalidated (existing code wipes all React Query caches on league change).
-- No page-level changes needed: every affected page already reads `useLeague()` / `usePlayersQuery` / `useScheduleQuery` / `useLeagueTeams` which all key on `league`.
+6. **Fix schedule card behavior and WNBA player blurbs**
+   - Make scheduled game cards open the same detail modal path as played games, instead of only expanding inline previews.
+   - Scope scheduled “players to watch” fetches by active league in the query key and request path, preventing stale NBA `players` cache from being used on WNBA schedules.
+   - Scope `game-boxscore` queries by active league and pass/attach `league_code` so duplicate or ambiguous game IDs cannot mix sports.
 
-### Edge cases
+7. **Validate**
+   - Use Supabase read checks and edge-function calls to verify NBA/WNBA sport IDs return non-empty schedule/player/log counts.
+   - Verify the affected flows in preview: switching header team between NBA/WNBA updates `/`, `/teams`, `/leagues`, `/schedule`, and scheduled WNBA cards no longer show NBA players.
 
-- **Main League selected** (mixed-sport pseudo league): already falls through to `selectedTeam.league_code` in `LeagueContext` — no reconciliation needed, leave as-is.
-- **User has no matching fantasy league** for the new team's sport: fall back to that sport's Main League (always accessible).
-- **Initial load**: only run reconciliation after `isReady && !fantasyLeagueIsLoading` so we don't fight the auto-correct that picks a populated team.
-- **Loop guard**: only trigger when sports actually differ; setting the fantasy league then triggers `TeamContext`'s existing "switch team to one in this league" effect — but since the team we just selected IS in the new league (rule #1) or matches its sport, that effect will be a no-op.
+## Files likely to change
 
-### Files to edit
-
-- `src/contexts/TeamContext.tsx` (one new effect, ~20 lines)
-
-### Verification
-
-1. Start in WNBA Invitational with a WNBA team → switch header to an NBA team → `/transactions`, `/teams`, `/schedule`, `/advanced`, `/leagues` all flip to NBA data.
-2. Switch back to WNBA team → all pages flip back to WNBA.
-3. Main League stays mixed and follows the team directly (current behavior preserved).
+- `src/contexts/TeamContext.tsx`
+- `src/contexts/LeagueContext.tsx`
+- `src/hooks/useLeagueId.ts`
+- `src/hooks/useUpcomingByTeam.ts`
+- `src/components/ScheduleList.tsx`
+- `src/components/TeamModal.tsx`
+- `src/pages/TeamsPage.tsx`
+- `src/pages/LeaguesPage.tsx`
+- `src/hooks/useFantasyLeagues.ts`
+- `src/hooks/useGameBoxscoreQuery.ts`
+- `src/lib/api.ts`
+- Possibly one Supabase RLS migration for system Main League visibility if the current browser policy is confirmed to hide those rows.
