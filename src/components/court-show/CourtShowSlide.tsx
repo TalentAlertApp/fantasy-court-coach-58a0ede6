@@ -121,7 +121,13 @@ function PodiumGrid({ items, onPlayerClick }: { items: PodiumItem[]; onPlayerCli
 
             {/* Stat strip */}
             {p.stats.length > 0 && (
-              <div className={cn("mt-3 grid gap-1 text-center", `grid-cols-${Math.min(p.stats.length, 5)}`)}>
+              <div className={cn(
+                "mt-3 grid gap-1 text-center",
+                p.stats.length >= 5 ? "grid-cols-5"
+                : p.stats.length === 4 ? "grid-cols-4"
+                : p.stats.length === 3 ? "grid-cols-3"
+                : p.stats.length === 2 ? "grid-cols-2" : "grid-cols-1",
+              )}>
                 {p.stats.map(([k, v]) => (
                   <div key={k} className="rounded-md bg-black/30 py-1.5">
                     <div className={cn("font-mono font-bold text-white", isFirst ? "text-sm" : "text-xs")}>{v}</div>
