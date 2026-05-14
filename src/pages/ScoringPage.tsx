@@ -13,6 +13,7 @@ import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { isMainLeague } from "@/hooks/useFantasyLeagues";
+import { useLeague } from "@/contexts/LeagueContext";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -45,9 +46,9 @@ export default function ScoringPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { teams: userTeams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
-  const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId, sportCode } = useFantasyLeague();
+  const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId } = useFantasyLeague();
+  const { league: activeLeagueCode } = useLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
-  const activeLeagueCode: "nba" | "wnba" = sportCode;
   const headerLogo = activeLeagueCode === "wnba" ? wnbaLogo : nbaLogo;
 
   const [tab, setTab] = useState<TabValue>(() => {
