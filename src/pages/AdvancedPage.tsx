@@ -717,7 +717,9 @@ function NBAPlaySearchSection() {
             {!gameSearchDisabled && (
               <div className="flex items-center justify-between gap-3">
                 <p className="text-[10px] text-muted-foreground">
-                  If "Search Plays" is blocked by a verification page, use "Open Game" — it loads the game page directly.
+                  {selectedGame && selectedGame.status !== "FINAL"
+                    ? "This game hasn't been played yet — no player actions to search."
+                    : "If \"Search Plays\" is blocked by a verification page, use \"Open Game\" — it loads the game page directly."}
                 </p>
                 <span className="text-[10px] font-mono text-muted-foreground">{gamecode}</span>
               </div>
