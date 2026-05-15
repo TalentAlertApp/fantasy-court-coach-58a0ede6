@@ -602,8 +602,9 @@ export function useCourtShowData(gw: number, day: number) {
         title: "Played Games Recap",
         subtitle: "Final scores and the night's top fantasy producer",
         payload: { kind: "recap", data: recap },
-        // 3s per page so all played games are shown before advancing.
-        durationMs: pages * 3000,
+        // Each page lasts a full standard slide; modal computes
+        // SLIDE_MS = pageCount * BASE_SLIDE_MS based on the user's speed.
+        pageCount: pages,
       });
     }
 
