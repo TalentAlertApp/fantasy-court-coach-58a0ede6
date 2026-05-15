@@ -861,7 +861,7 @@ function NextGamesSlide({
                 } as MatchupGame)
               }
               className={cn(
-                "group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border p-4 transition-all hover:-translate-y-0.5",
+                "group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border px-4 py-3 transition-all hover:-translate-y-0.5",
                 hasRoster
                   ? "border-amber-400/40 hover:border-amber-300/70 shadow-[0_12px_40px_-18px_rgba(251,191,36,0.45)]"
                   : "border-white/10 hover:border-white/30",
@@ -872,7 +872,7 @@ function NextGamesSlide({
                   src={awayLogo}
                   alt=""
                   aria-hidden
-                  className="pointer-events-none absolute -left-3 -top-2 h-28 w-28 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                  className="pointer-events-none absolute -left-3 -top-2 h-24 w-24 object-contain opacity-[0.13] blur-[1.5px] select-none"
                 />
               )}
               {homeLogo && (
@@ -880,17 +880,17 @@ function NextGamesSlide({
                   src={homeLogo}
                   alt=""
                   aria-hidden
-                  className="pointer-events-none absolute -right-3 -top-2 h-28 w-28 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                  className="pointer-events-none absolute -right-3 -top-2 h-24 w-24 object-contain opacity-[0.13] blur-[1.5px] select-none"
                 />
               )}
-              <div className="relative flex items-center justify-center mb-2">
+              <div className="relative flex items-center justify-center mb-1.5">
                 <span className="text-[9px] uppercase tracking-[0.28em] text-amber-300/80 font-heading font-black">Scheduled</span>
               </div>
               <div className="relative flex items-center justify-center gap-4">
                 <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
-                  className="font-heading font-black text-2xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
+                  className="font-heading font-black text-xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
                 >
                   {g.away_team}
                 </span>
@@ -898,32 +898,19 @@ function NextGamesSlide({
                 <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
-                  className="font-heading font-black text-2xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
+                  className="font-heading font-black text-xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
                 >
                   {g.home_team}
                 </span>
               </div>
-              {(() => {
-                const venue = getVenue(g.home_team);
-                const tip = g.tipoff_utc ? format(new Date(g.tipoff_utc), "HH:mm") : null;
-                if (!venue?.name && !tip) return null;
-                return (
-                  <div className="relative mt-2 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/55 font-heading">
-                    {venue?.name && <span className="truncate">{venue.name}</span>}
-                    {tip && (
-                      <span className="font-mono tracking-normal text-white/70">{tip}</span>
-                    )}
-                  </div>
-                );
-              })()}
               {hasRoster ? (
-                <div className="relative mt-3 flex items-center gap-2">
+                <div className="relative mt-2 flex items-center gap-2">
                   <div className="flex -space-x-2">
                     {g.myRosterPlayers.map((p) => (
                       <button
                         key={p.player_id}
                         onClick={(e) => { e.stopPropagation(); onPlayerClick(p.player_id); }}
-                        className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-amber-400/60 bg-black/40 hover:scale-110 transition-transform"
+                        className="h-6 w-6 rounded-full overflow-hidden ring-2 ring-amber-400/60 bg-black/40 hover:scale-110 transition-transform"
                         title={p.name}
                       >
                         {p.photo ? (
@@ -932,13 +919,24 @@ function NextGamesSlide({
                       </button>
                     ))}
                   </div>
-                  <span className="text-[11px] font-heading font-black uppercase tracking-wider text-amber-300">
+                  <span className="text-[10px] font-heading font-black uppercase tracking-wider text-amber-300">
                     {g.myRosterCount} of yours in action
                   </span>
                 </div>
               ) : (
-                <div className="relative mt-3 text-[10px] text-white/40 italic">No roster players in this game</div>
+                <div className="relative mt-2 text-[10px] text-white/40 italic">No roster players in this game</div>
               )}
+              {(() => {
+                const venue = getVenue(g.home_team);
+                const tip = g.tipoff_utc ? format(new Date(g.tipoff_utc), "HH:mm") : null;
+                if (!venue?.name && !tip) return null;
+                return (
+                  <div className="absolute bottom-2 right-3 flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-white/50 font-heading">
+                    {venue?.name && <span className="truncate max-w-[160px]">{venue.name}</span>}
+                    {tip && <span className="font-mono tracking-normal text-white/70">{tip}</span>}
+                  </div>
+                );
+              })()}
             </motion.button>
           );
         })}
