@@ -217,7 +217,9 @@ export default function ScoringPage() {
 
         {/* ════════════════════════ YOUR TEAM TAB ════════════════════════ */}
         <TabsContent value="team" className="space-y-5 mt-5">
-          {myTeams.length === 0 ? (
+          {!teamReady ? (
+            <div className="h-64 rounded-xl bg-card border border-border animate-pulse" />
+          ) : myTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-card border border-border rounded-xl">
               <Shield className="h-12 w-12 text-muted-foreground/30" />
               <p className="text-muted-foreground font-heading">
