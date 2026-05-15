@@ -815,6 +815,131 @@ function HealthWatchSlide({
   );
 }
 
+/** "Next Up" slide — preview of the upcoming gameday after a played slate. */
+function NextGamesSlide({
+  payload,
+  onTeamClick,
+  onPlayerClick,
+  onGameClick,
+}: {
+  payload: NextGamesPayload;
+  onTeamClick: (tri: string) => void;
+  onPlayerClick: (id: number) => void;
+  onGameClick: (g: MatchupGame | RecapGame) => void;
+}) {
+  const { games, dateLabel, gw, day } = payload;
+  return (
+    <div className="relative h-full flex flex-col">
+      <Calendar
+        aria-hidden
+        className="pointer-events-none absolute right-4 bottom-2 h-44 w-44 text-amber-400/[0.07]"
+      />
+      <div className="absolute top-0 right-0 text-[10px] font-heading uppercase tracking-[0.2em] text-white/40">
+        {dateLabel} · GW{gw} · Day {day}
+      </div>
+      <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+        {games.map((g, i) => {
+          const awayLogo = getTeamLogo(g.away_team);
+          const homeLogo = getTeamLogo(g.home_team);
+          const hasRoster = g.myRosterCount > 0;
+          return (
+            <motion.button
+              key={g.game_id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 * i, duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
+              onClick={() =>
+                onGameClick({
+                  game_id: g.game_id,
+                  home_team: g.home_team,
+                  away_team: g.away_team,
+                  tipoff_utc: g.tipoff_utc ?? null,
+                  competitiveScore: 0,
+                  rosterRelevant: g.myRosterCount,
+                  starPower: 0,
+                } as MatchupGame)
+              }
+              className={cn(
+                "group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border p-4 transition-all hover:-translate-y-0.5",
+                hasRoster
+                  ? "border-amber-400/40 hover:border-amber-300/70 shadow-[0_12px_40px_-18px_rgba(251,191,36,0.45)]"
+                  : "border-white/10 hover:border-white/30",
+              )}
+            >
+              {awayLogo && (
+                <img
+                  src={awayLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -left-3 -top-2 h-28 w-28 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                />
+              )}
+              {homeLogo && (
+                <img
+                  src={homeLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-3 -top-2 h-28 w-28 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                />
+              )}
+              <div className="relative flex items-center justify-between gap-2 mb-2">
+                <span className="text-[9px] uppercase tracking-[0.28em] text-amber-300/80 font-heading font-black">Scheduled</span>
+                {g.tipoff_utc && (
+                  <span className="text-[10px] font-mono text-white/55">
+                    {format(new Date(g.tipoff_utc), "HH:mm")}
+                  </span>
+                )}
+              </div>
+              <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                <div
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  {awayLogo && <img src={awayLogo} alt="" className="h-8 w-8 object-contain" />}
+                  <span className="font-heading font-black text-lg tracking-wider text-white group-hover:text-amber-300 transition-colors">{g.away_team}</span>
+                </div>
+                <span className="text-white/30 text-[10px]">@</span>
+                <div
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
+                  className="flex items-center gap-2 justify-end cursor-pointer"
+                >
+                  <span className="font-heading font-black text-lg tracking-wider text-white group-hover:text-amber-300 transition-colors">{g.home_team}</span>
+                  {homeLogo && <img src={homeLogo} alt="" className="h-8 w-8 object-contain" />}
+                </div>
+              </div>
+              {hasRoster ? (
+                <div className="relative mt-3 flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {g.myRosterPlayers.map((p) => (
+                      <button
+                        key={p.player_id}
+                        onClick={(e) => { e.stopPropagation(); onPlayerClick(p.player_id); }}
+                        className="h-7 w-7 rounded-full overflow-hidden ring-2 ring-amber-400/60 bg-black/40 hover:scale-110 transition-transform"
+                        title={p.name}
+                      >
+                        {p.photo ? (
+                          <img src={p.photo} alt={p.name} className="h-full w-full object-cover object-top" />
+                        ) : <span className="block h-full w-full bg-white/10" />}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[11px] font-heading font-black uppercase tracking-wider text-amber-300">
+                    {g.myRosterCount} of yours in action
+                  </span>
+                </div>
+              ) : (
+                <div className="relative mt-3 text-[10px] text-white/40 italic">No roster players in this game</div>
+              )}
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Inline team logo + tricode used inside Ballers.IQ cards.
  *  No container; surge on hover. Logo position is configurable so callers
  *  can render `[logo] AWY` for the away side and `HOM [logo]` for the home side. */
