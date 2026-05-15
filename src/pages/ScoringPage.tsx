@@ -70,6 +70,21 @@ export default function ScoringPage() {
   // Scope team selector to teams in the currently-selected fantasy league.
   const myTeams = teamsInSelectedLeague;
 
+  // Auto-switch to the "team" tab once the user gains a team in this league
+  // (e.g. after returning from onboarding via the empty-state CTA). Guarded
+  // so we do this only once per league change, never fighting the user's
+  // subsequent tab clicks.
+  const lastAutoSwitchRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!teamReady) return;
+    const key = `${selectedLeagueId}`;
+    if (myTeams.length > 0 && lastAutoSwitchRef.current !== key && tab !== "team") {
+      lastAutoSwitchRef.current = key;
+      setTab("team");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamReady, myTeams.length, selectedLeagueId]);
+
   // When the selected league changes, ensure the selectedTeamId belongs to it.
   useEffect(() => {
     if (!teamReady) return;
@@ -209,7 +224,7 @@ export default function ScoringPage() {
                 You don't have a team in {selectedLeague?.name ?? "this league"} yet.
               </p>
               <Button
-                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba" } })}
+                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba", returnTo: "/scoring" } })}
                 size="sm"
                 className="rounded-xl"
               >
