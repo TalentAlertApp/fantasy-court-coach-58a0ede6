@@ -663,7 +663,9 @@ function NBAPlaySearchSection() {
                     <SelectValue placeholder={
                       gamesLoading
                         ? "Loading games…"
-                        : (gamesByDate?.length ? "Pick a game" : "No games on this gameday")
+                        : (gamesByDate?.length
+                            ? (lisbonDateLabel ? `Pick a game · ${lisbonDateLabel}` : "Pick a game")
+                            : "No games on this gameday")
                     } />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">

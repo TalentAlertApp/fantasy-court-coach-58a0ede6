@@ -27,6 +27,7 @@ import type {
   AIBallersIQCard,
   OutstandingGameRow,
   HealthWatchPlayer,
+  NextGameRow,
 } from "./types";
 
 function buildWeekDayDate(deadlines: Deadline[], gw: number, day: number): string {
@@ -74,6 +75,35 @@ export function useCourtShowData(gw: number, day: number) {
     () => games.filter((g: any) => (g.status ?? "").toUpperCase().includes("FINAL")).map((g: any) => g.game_id),
     [games],
   );
+
+  // ── Next gameday lookup (for the "Next Up" slide on played days) ────
+  const nextDeadline = useMemo(() => {
+    const nowMs = Date.now();
+    return (
+      deadlines.find(
+        (d) =>
+          new Date(d.deadline_utc).getTime() > nowMs &&
+          !(d.gw === gw && d.day === day),
+      ) ?? null
+    );
+  }, [deadlines, gw, day]);
+
+  const { data: nextGamesRaw } = useQuery({
+    queryKey: ["court-show-next-games", leagueId, league, nextDeadline?.gw ?? null, nextDeadline?.day ?? null],
+    enabled: !!leagueId && !!nextDeadline && finalGameIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("schedule_games")
+        .select("game_id, gw, day, home_team, away_team, tipoff_utc, status")
+        .eq("league_id", leagueId!)
+        .eq("gw", nextDeadline!.gw)
+        .eq("day", nextDeadline!.day)
+        .order("tipoff_utc", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const { data: logs, isLoading: logsLoading } = useQuery({
     queryKey: ["court-show-logs", league, gw, day, finalGameIds.join(",")],
@@ -287,6 +317,13 @@ export function useCourtShowData(gw: number, day: number) {
       });
       const toRow = (p: any, onRoster: boolean): HealthWatchPlayer => {
         const h = normalizePlayerHealth(p);
+        // Played-day rule: doubt is resolved. Never display "Questionable".
+        // Coerce any soft-status (Q/GTD/DTD/PROB) into an unambiguous DNP
+        // so the badge & reason both read as "Did not play".
+        const dnpHealth: PlayerHealth =
+          h.status === "OUT"
+            ? h
+            : { ...h, status: "OUT", raw_status: "DNP", reason: h.reason ?? "did not play" };
         return {
           player_id: p.core.id,
           name: p.core.name,
@@ -296,8 +333,8 @@ export function useCourtShowData(gw: number, day: number) {
           salary: p.core.salary,
           fp5: p.last5?.fp5,
           season_fp: p.season?.fp,
-          health: h,
-          reason: h.injury_type || h.notes || h.raw_status || (h.reason ? h.reason.charAt(0).toUpperCase() + h.reason.slice(1) : "Did not play"),
+          health: dnpHealth,
+          reason: h.injury_type || h.notes || "Did not play",
           onRoster,
         };
       };
@@ -686,6 +723,48 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Outro ─────────────────────────────────────────────────────────
+    // ── Next Up (only when current slate has played games) ────────────
+    if (healthWatchMode === "played" && nextDeadline && (nextGamesRaw?.length ?? 0) > 0) {
+      const ngRows: NextGameRow[] = (nextGamesRaw ?? []).map((g: any) => {
+        const teams = new Set<string>([g.home_team, g.away_team]);
+        const myPlayers: { player_id: number; name: string; photo: string | null }[] = [];
+        for (const id of rosterIds) {
+          const p = playersById.get(id);
+          if (p && teams.has(p.core.team)) {
+            myPlayers.push({ player_id: p.core.id, name: p.core.name, photo: p.core.photo ?? null });
+          }
+        }
+        return {
+          game_id: g.game_id,
+          home_team: g.home_team,
+          away_team: g.away_team,
+          tipoff_utc: g.tipoff_utc ?? null,
+          myRosterCount: myPlayers.length,
+          myRosterPlayers: myPlayers.slice(0, 3),
+        } as NextGameRow;
+      });
+      const nextDateLabel = (() => {
+        try {
+          return format(new Date(nextDeadline.deadline_utc), "EEE, MMM d");
+        } catch { return ""; }
+      })();
+      slides.push({
+        kind: "next_games",
+        title: "Next Up",
+        subtitle: `Coming on ${nextDateLabel} · GW ${nextDeadline.gw} · Day ${nextDeadline.day}`,
+        payload: {
+          kind: "next_games",
+          data: {
+            gw: nextDeadline.gw,
+            day: nextDeadline.day,
+            dateLabel: nextDateLabel,
+            deadlineUtc: nextDeadline.deadline_utc,
+            games: ngRows,
+          },
+        },
+      });
+    }
+
     // The "Set Lineup Before Lock" deadline must reflect the day THIS Court
     // Show represents. Use this day's own deadline when it's still in the
     // future; otherwise (already locked) fall back to the next future one.
@@ -714,7 +793,7 @@ export function useCourtShowData(gw: number, day: number) {
       gamesCount: games.length,
       slides,
     };
-  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines]);
+  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines, nextDeadline, nextGamesRaw]);
 
   return {
     data,
