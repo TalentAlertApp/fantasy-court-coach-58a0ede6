@@ -27,6 +27,7 @@ import type {
   AIBallersIQCard,
   OutstandingGameRow,
   HealthWatchPlayer,
+  NextGameRow,
 } from "./types";
 
 function buildWeekDayDate(deadlines: Deadline[], gw: number, day: number): string {
@@ -74,6 +75,35 @@ export function useCourtShowData(gw: number, day: number) {
     () => games.filter((g: any) => (g.status ?? "").toUpperCase().includes("FINAL")).map((g: any) => g.game_id),
     [games],
   );
+
+  // ── Next gameday lookup (for the "Next Up" slide on played days) ────
+  const nextDeadline = useMemo(() => {
+    const nowMs = Date.now();
+    return (
+      deadlines.find(
+        (d) =>
+          new Date(d.deadline_utc).getTime() > nowMs &&
+          !(d.gw === gw && d.day === day),
+      ) ?? null
+    );
+  }, [deadlines, gw, day]);
+
+  const { data: nextGamesRaw } = useQuery({
+    queryKey: ["court-show-next-games", leagueId, league, nextDeadline?.gw ?? null, nextDeadline?.day ?? null],
+    enabled: !!leagueId && !!nextDeadline && finalGameIds.length > 0,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("schedule_games")
+        .select("game_id, gw, day, home_team, away_team, tipoff_utc, status")
+        .eq("league_id", leagueId!)
+        .eq("gw", nextDeadline!.gw)
+        .eq("day", nextDeadline!.day)
+        .order("tipoff_utc", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
   const { data: logs, isLoading: logsLoading } = useQuery({
     queryKey: ["court-show-logs", league, gw, day, finalGameIds.join(",")],
