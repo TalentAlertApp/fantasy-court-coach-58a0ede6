@@ -674,16 +674,20 @@ function NBAPlaySearchSection() {
                       const tipStr = tip
                         ? tip.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" })
                         : "";
+                      const isPlayed = g.status === "FINAL";
                       return (
                         <SelectItem key={g.game_id} value={g.game_id}>
-                          <div className="flex items-center gap-2 w-full">
+                          <div className={`flex items-center gap-2 w-full ${isPlayed ? "" : "opacity-50 grayscale"}`}>
                             {awayLogo && <img src={awayLogo} alt="" className="w-5 h-5 shrink-0" />}
-                            <span className="font-medium">{TEAM_NAME[g.away_team] ?? g.away_team}</span>
+                            <span className={`font-medium ${isPlayed ? "" : "text-muted-foreground"}`}>{TEAM_NAME[g.away_team] ?? g.away_team}</span>
                             <span className="text-muted-foreground mx-1">@</span>
                             {homeLogo && <img src={homeLogo} alt="" className="w-5 h-5 shrink-0" />}
-                            <span className="font-medium">{TEAM_NAME[g.home_team] ?? g.home_team}</span>
+                            <span className={`font-medium ${isPlayed ? "" : "text-muted-foreground"}`}>{TEAM_NAME[g.home_team] ?? g.home_team}</span>
                             {tipStr && (
-                              <span className="ml-auto text-[10px] text-muted-foreground tabular-nums pl-3">{tipStr}</span>
+                              <span className={`ml-auto text-[10px] tabular-nums pl-3 ${isPlayed ? "text-muted-foreground" : "text-muted-foreground/70"}`}>{tipStr}</span>
+                            )}
+                            {!isPlayed && (
+                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 pl-2">Not played</span>
                             )}
                           </div>
                         </SelectItem>
