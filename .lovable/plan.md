@@ -1,60 +1,48 @@
+## 1. /commissioner — "Scheduled Daily Runs" not firing
 
-## 1. /scoring — empty-to-loaded flow after team creation
+### Diagnosis
+- DB confirms both `commissioner_sync_schedules` rows are `enabled=true`, `run_time_lisbon=07:30`, but `last_run_at IS NULL` for both → cron has never successfully invoked the tick.
+- `cron.job` row exists (`commissioner-schedule-tick`, `* * * * *`, active) and posts to `/functions/v1/commissioner-schedule-tick` with the **anon key** as Bearer.
+- Edge logs show every minute: `POST | 401 | commissioner-schedule-tick`.
+- Root cause: `commissioner-schedule-tick/index.ts › authorize()` accepts only `x-admin-secret` matching `ADMIN_API_SECRET`, OR Bearer token equal to `SUPABASE_SERVICE_ROLE_KEY`. The cron sends the anon key → 401 → schedules never run.
 
-When the user lands on `/scoring` with no team in the selected league, the empty-state CTA already navigates to onboarding with `leagueId` + `sport` preselected. After completing onboarding, returning to `/scoring` currently keeps the empty state because the React Query cache for teams isn't invalidated and `selectedTeamId` is still `null`.
+### Fix
+Reschedule the existing cron via a `supabase--read_query`-style insert (using the user-data-aware insert tool, NOT a migration, because it embeds project-specific secrets) to send the Authorization Bearer = `SUPABASE_SERVICE_ROLE_KEY`. Keep the same job name (`commissioner-schedule-tick`), schedule (`* * * * *`), and URL.
 
-Changes:
-- In `OnboardingPage.tsx`, after a successful team create:
-  - Invalidate `["teams"]` / whichever queryKey `useTeam`/`useFantasyLeagues` uses, so the new team appears.
-  - Persist the new team id in `TeamContext` as `selectedTeamId` (call `setSelectedTeamId(newTeamId)` and store in localStorage as the existing context already does), and set `selectedLeagueId` to the league the team was created in.
-  - Navigate back to `/scoring` (or wherever the user came from via `location.state.returnTo ?? "/scoring"`).
-- In `ScoringPage.tsx`:
-  - When `selectedTeamId` becomes non-null and matches a team in the active league, ensure `tab` switches to `"team"` automatically (only on first load after returning from onboarding — guard with a ref so we don't fight the user).
-  - Make the empty-state guard also check that the teams query is not still loading (`teamReady`), to avoid a flash of the empty state before teams hydrate.
-
-Result: after creating a team via the empty-state CTA, the user lands back on `/scoring` and immediately sees `LeagueView` (with the team highlighted) and `YourTeamView` populated for that team.
-
-## 2. Daily Court Show — "Played Games Recap" pacing
-
-Today, the Played Games Recap slide overrides `durationMs` to `pages * 3000` (3s per page). When there's only one page, it advances after 3s — much faster than the standard 7.5s "normal" speed used by all other slides. This makes the slide feel rushed.
-
-Changes:
-- In `useCourtShowData.ts`, stop hard-coding 3000ms. Instead, attach `pages` (count) to the slide payload and let `CourtShowModal.tsx` compute `SLIDE_MS = pages * BASE_SLIDE_MS` for recap slides. That way recap pages always inherit the user's selected speed (fast/normal/slow).
-- In `CourtShowSlide.tsx` recap component, replace the hard-coded `setInterval(..., 3000)` page advance with a `pageMs` prop equal to `BASE_SLIDE_MS`, passed through the slide payload. Pages then turn at the same cadence as the modal advance, so total recap time = `pages * BASE_SLIDE_MS` and each page lasts the same as a Captain Radar slide.
-- 1 page → equals one normal slide. 3 pages → equals three normal slides in length.
-
-## 3. Schedule — WNBA GW2 Saturday games + deadlines
-
-DB diagnosis: `schedule_games` already contains the 17 GW2 games (`day=1..5`, including the 4 Saturday May 16 games as `day=4` and the 4 Sunday May 17 games as `day=5`). The sync did import them — but the Schedule page reads its day pills/labels/deadlines from the static `WNBA_DEADLINES` array, which still has only 4 entries for GW2 (Wed/Thu/Sat/Mon, with Sat tagged as `day=3` and Mon as `day=4`). That mismatch is why the Saturday slate is invisible in the UI and why GW2.4 is shown as Sunday May 17 instead of Saturday May 16.
-
-Changes:
-
-a. `src/lib/wnba-deadlines.ts` — replace the 4 GW2 entries with the new 5-day schedule:
+Concretely:
+```sql
+select cron.unschedule('commissioner-schedule-tick');
+select cron.schedule(
+  'commissioner-schedule-tick',
+  '* * * * *',
+  $$ select net.http_post(
+    url := 'https://jtewuekavaujgnynmpaq.supabase.co/functions/v1/commissioner-schedule-tick',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer <SERVICE_ROLE_KEY>"}'::jsonb,
+    body := concat('{"t":"', now(), '"}')::jsonb
+  ); $$
+);
 ```
-{ gw: 2, day: 1, date: "2026-05-13", dayName: "Wednesday", deadline_local: "01:06", deadline_utc: "2026-05-13T00:06:00Z" },
-{ gw: 2, day: 2, date: "2026-05-14", dayName: "Thursday",  deadline_local: "00:06", deadline_utc: "2026-05-13T23:06:00Z" },
-{ gw: 2, day: 3, date: "2026-05-15", dayName: "Friday",    deadline_local: "00:36", deadline_utc: "2026-05-14T23:36:00Z" },
-{ gw: 2, day: 4, date: "2026-05-16", dayName: "Saturday",  deadline_local: "00:36", deadline_utc: "2026-05-15T23:36:00Z" },
-{ gw: 2, day: 5, date: "2026-05-18", dayName: "Monday",    deadline_local: "00:06", deadline_utc: "2026-05-17T23:06:00Z" },
-```
-(Times follow the project rule: 30 min before the first Lisbon tip of the slate. Day=5 keeps Monday because Sunday's evening games extend past midnight Lisbon — same convention as other 7-day weeks in the file.)
+The service role key is already trusted by the function's `authorize()` path. No edge-function code change needed.
 
-b. Confirm `wnba-sheet-sync` already preserves `gw`/`day` exactly as provided by the sheet (it does — line 292-293 use `intOrZero(r[0])`/`intOrZero(r[1])`). No edge-function code change needed; the sheet is already authoritative and the next manual `Sync schedule` will keep day numbers in sync. The user's prior sync did succeed; the missing-Saturday symptom was a UI overlay issue, not a data issue.
+### Verification
+- Wait one minute, then re-query `function_edge_logs` for `commissioner-schedule-tick` — expect 200s.
+- At 07:30 Lisbon, `commissioner_sync_schedules.last_run_at` becomes non-null and `last_status='ok'`.
+- Manual override (`?force=sync3` from the /commissioner panel) already works because it sends `x-admin-secret`.
 
-c. Document in code comment that GW2 has 5 days because the sheet introduced a Friday slate mid-season.
+## 2. /advanced › Play Search › By Game — gray-out unplayed games
 
-After this change:
-- Schedule page shows pills `2.1 (3G) Wed 13`, `2.2 (4G) Thu 14`, `2.3 (2G) Fri 15`, `2.4 (4G) Sat 16`, `2.5 (4G) Mon 18`.
-- Daily Court Show for `gw=2 day=4` correctly resolves to the Saturday slate with deadline Sat 00:36 Lisbon.
-- Lock evaluations everywhere (`useLeagueDeadlines`, `getCurrentGamedayFrom`) honour the new entries automatically.
+In `src/pages/AdvancedPage.tsx` (TabsContent value="game"), the game `<SelectItem>` rows render away/home with normal colors regardless of `g.status`. Schedule rows expose `status` (`SCHEDULED` for unplayed, `FINAL` once finished — see `supabase/functions/schedule/index.ts`).
+
+### Changes
+- For each item in the `(gamesByDate ?? []).map(...)` block:
+  - Compute `const isPlayed = g.status === "FINAL";` (treat anything not FINAL — `SCHEDULED`, `LIVE`, null — as "no plays available yet"; matches play-search reality where NBAPlayDB only has data after the game is final).
+  - When not played, apply muted styling to the row contents: wrap the inner `<div>` with `className={... + (isPlayed ? "" : " opacity-50 grayscale")}` so logos desaturate and team names go muted, while keeping the row selectable (so users can still pick it and see it confirmed).
+  - Also dim the tipoff time to `text-muted-foreground/70` for unplayed.
+- Add a tiny inline hint pill on unplayed rows: `<span className="ml-auto text-[9px] uppercase tracking-wider text-muted-foreground/80">Not played</span>` appended after the tipoff string (or replacing the tipoff position when status is not FINAL — keep tip time visible for context).
+- When the currently-selected `gameId` corresponds to an unplayed game, show a subtle helper line under the row of buttons: `"This game hasn't been played yet — no player actions to search."` styled `text-[10px] text-muted-foreground`. Buttons stay enabled (the user may still want to open the page on NBAPlayDB).
+
+No data-layer / hook changes required — `status` already arrives from the schedule edge function.
 
 ## Files touched
-
-- `src/components/onboarding/OnboardingPage.tsx` (or the actual create-team success handler) — invalidate teams, set context, navigate back.
-- `src/pages/ScoringPage.tsx` — auto-switch to `team` tab once `selectedTeamId` resolves; guard empty-state with `teamReady`.
-- `src/components/court-show/useCourtShowData.ts` — drop hard-coded 3000ms, pass `pages` count.
-- `src/components/court-show/CourtShowModal.tsx` — when slide.kind === "recap", compute `SLIDE_MS = pages * BASE_SLIDE_MS`.
-- `src/components/court-show/CourtShowSlide.tsx` — accept `pageMs` prop for recap auto-page interval, default to a sane fallback.
-- `src/lib/wnba-deadlines.ts` — replace GW2 entries with the new 5-day list.
-
-No DB migration. No edge-function deployment required. After shipping, the existing DB rows for GW2 will line up with the updated static deadlines.
+- (DB only, no file) — reschedule the `commissioner-schedule-tick` pg_cron job to send the service-role key.
+- `src/pages/AdvancedPage.tsx` — gray-out unplayed games in the By Game selector and add a helper hint.

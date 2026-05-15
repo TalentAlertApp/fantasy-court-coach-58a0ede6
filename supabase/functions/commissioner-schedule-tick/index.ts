@@ -10,16 +10,22 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
  * YouTube recap lookup.
  *
  * Auth: accepts either x-admin-secret (manual) OR a Bearer token equal to
- * the SUPABASE_SERVICE_ROLE_KEY (used by pg_cron via net.http_post).
+ * the SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY (used by pg_cron via
+ * net.http_post — pg_cron only has the anon key available without vault).
+ * The `?force=` override additionally requires x-admin-secret to prevent
+ * unauthenticated callers from triggering on-demand sync runs.
  */
 
-function authorize(req: Request): Response | null {
+function authorize(req: Request, allowAnon: boolean): Response | null {
   const adminSecret = Deno.env.get("ADMIN_API_SECRET");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const got = req.headers.get("x-admin-secret") ?? "";
   if (adminSecret && got && got === adminSecret) return null;
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (serviceRole && bearer && bearer === serviceRole) return null;
+  const apikey = req.headers.get("apikey") ?? "";
+  if (allowAnon && anonKey && (bearer === anonKey || apikey === anonKey)) return null;
   return errorResponse("UNAUTHORIZED", "Missing or invalid credentials", null, 401);
 }
 
@@ -94,18 +100,20 @@ Deno.serve(async (req) => {
   const cors = handleCors(req);
   if (cors) return cors;
 
-  const authFail = authorize(req);
+  // Manual override: ?force=sync3 / ?force=all runs that job immediately,
+  // ignoring time/enabled. Only allowed with admin-secret/service-role —
+  // anon callers (pg_cron) can only run scheduled ticks.
+  const url = new URL(req.url);
+  const force = url.searchParams.get("force");
+  const includeRecapsQS = url.searchParams.get("recaps") === "1";
+
+  const authFail = authorize(req, /* allowAnon */ !force);
   if (authFail) return authFail;
 
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
-
-  // Manual override: ?force=sync3 / ?force=all runs that job immediately, ignoring time/enabled.
-  const url = new URL(req.url);
-  const force = url.searchParams.get("force");
-  const includeRecapsQS = url.searchParams.get("recaps") === "1";
 
   const { hhmm, minuteKey } = nowLisbon();
   const ran: Array<{ job_key: string; status: string; error?: string }> = [];
