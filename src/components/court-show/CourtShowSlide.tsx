@@ -4,7 +4,7 @@ import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, Trend
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
-import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer } from "./types";
+import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer, NextGamesPayload, NextGameRow } from "./types";
 import { HealthStatusBadge, HealthStatusIcon } from "@/components/health";
 import { isHealthUnavailable, getHealthLabel } from "@/lib/health";
 import { cn } from "@/lib/utils";
@@ -1326,6 +1326,14 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             payload={slide.payload.data}
             onPlayerClick={onPlayerClick}
             onTeamClick={onTeamClick}
+          />
+        )}
+        {slide.payload.kind === "next_games" && (
+          <NextGamesSlide
+            payload={slide.payload.data}
+            onTeamClick={onTeamClick}
+            onPlayerClick={onPlayerClick}
+            onGameClick={onGameClick}
           />
         )}
         {slide.payload.kind === "outro" && (
