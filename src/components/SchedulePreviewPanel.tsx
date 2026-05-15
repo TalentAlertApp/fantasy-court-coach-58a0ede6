@@ -318,6 +318,7 @@ function ResultDots({
             game_playbyplay_url: d.game_playbyplay_url ?? null,
             game_recap_url: d.game_recap_url ?? null,
             nba_game_url: d.nba_game_url ?? null,
+            youtube_recap_id: d.youtube_recap_id ?? null,
             played: true,
           });
         };

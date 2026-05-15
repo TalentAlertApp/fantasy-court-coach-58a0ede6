@@ -404,6 +404,7 @@ function GameDetailDialog({ game, open, onOpenChange }: { game: Last5Game | null
         game_playbyplay_url: game.game_playbyplay_url,
         game_recap_url: game.game_recap_url,
         nba_game_url: game.nba_game_url,
+        youtube_recap_id: game.youtube_recap_id,
       }
     : null;
   return <GameDetailModal game={detail} open={open} onOpenChange={onOpenChange} />;
