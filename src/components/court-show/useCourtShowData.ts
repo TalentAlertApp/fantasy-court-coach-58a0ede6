@@ -317,6 +317,13 @@ export function useCourtShowData(gw: number, day: number) {
       });
       const toRow = (p: any, onRoster: boolean): HealthWatchPlayer => {
         const h = normalizePlayerHealth(p);
+        // Played-day rule: doubt is resolved. Never display "Questionable".
+        // Coerce any soft-status (Q/GTD/DTD/PROB) into an unambiguous DNP
+        // so the badge & reason both read as "Did not play".
+        const dnpHealth: PlayerHealth =
+          h.status === "OUT"
+            ? h
+            : { ...h, status: "OUT", raw_status: "DNP", reason: h.reason ?? "did not play" };
         return {
           player_id: p.core.id,
           name: p.core.name,
@@ -326,8 +333,8 @@ export function useCourtShowData(gw: number, day: number) {
           salary: p.core.salary,
           fp5: p.last5?.fp5,
           season_fp: p.season?.fp,
-          health: h,
-          reason: h.injury_type || h.notes || h.raw_status || (h.reason ? h.reason.charAt(0).toUpperCase() + h.reason.slice(1) : "Did not play"),
+          health: dnpHealth,
+          reason: h.injury_type || h.notes || "Did not play",
           onRoster,
         };
       };
