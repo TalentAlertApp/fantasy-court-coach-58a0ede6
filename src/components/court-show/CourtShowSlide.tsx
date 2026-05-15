@@ -301,19 +301,22 @@ function RecapCarousel({
   games,
   onGameClick,
   onPlayerClick,
+  pageMs,
 }: {
   games: RecapGame[];
   onGameClick: (g: RecapGame) => void;
   onPlayerClick: (id: number) => void;
+  pageMs?: number;
 }) {
   const PAGE = 6;
   const pages = Math.max(1, Math.ceil(games.length / PAGE));
   const [page, setPage] = useState(0);
   useEffect(() => {
     if (pages <= 1) return;
-    const t = setInterval(() => setPage((p) => (p + 1) % pages), 3000);
+    const interval = pageMs && pageMs > 0 ? pageMs : 7500;
+    const t = setInterval(() => setPage((p) => (p + 1) % pages), interval);
     return () => clearInterval(t);
-  }, [pages]);
+  }, [pages, pageMs]);
   const start = page * PAGE;
   const slice = games.slice(start, start + PAGE);
   return (
