@@ -723,6 +723,48 @@ export function useCourtShowData(gw: number, day: number) {
     }
 
     // ── Outro ─────────────────────────────────────────────────────────
+    // ── Next Up (only when current slate has played games) ────────────
+    if (healthWatchMode === "played" && nextDeadline && (nextGamesRaw?.length ?? 0) > 0) {
+      const ngRows: NextGameRow[] = (nextGamesRaw ?? []).map((g: any) => {
+        const teams = new Set<string>([g.home_team, g.away_team]);
+        const myPlayers: { player_id: number; name: string; photo: string | null }[] = [];
+        for (const id of rosterIds) {
+          const p = playersById.get(id);
+          if (p && teams.has(p.core.team)) {
+            myPlayers.push({ player_id: p.core.id, name: p.core.name, photo: p.core.photo ?? null });
+          }
+        }
+        return {
+          game_id: g.game_id,
+          home_team: g.home_team,
+          away_team: g.away_team,
+          tipoff_utc: g.tipoff_utc ?? null,
+          myRosterCount: myPlayers.length,
+          myRosterPlayers: myPlayers.slice(0, 3),
+        } as NextGameRow;
+      });
+      const nextDateLabel = (() => {
+        try {
+          return format(new Date(nextDeadline.deadline_utc), "EEE, MMM d");
+        } catch { return ""; }
+      })();
+      slides.push({
+        kind: "next_games",
+        title: "Next Up",
+        subtitle: `Coming on ${nextDateLabel} · GW ${nextDeadline.gw} · Day ${nextDeadline.day}`,
+        payload: {
+          kind: "next_games",
+          data: {
+            gw: nextDeadline.gw,
+            day: nextDeadline.day,
+            dateLabel: nextDateLabel,
+            deadlineUtc: nextDeadline.deadline_utc,
+            games: ngRows,
+          },
+        },
+      });
+    }
+
     // The "Set Lineup Before Lock" deadline must reflect the day THIS Court
     // Show represents. Use this day's own deadline when it's still in the
     // future; otherwise (already locked) fall back to the next future one.
@@ -751,7 +793,7 @@ export function useCourtShowData(gw: number, day: number) {
       gamesCount: games.length,
       slides,
     };
-  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines]);
+  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines, nextDeadline, nextGamesRaw]);
 
   return {
     data,
