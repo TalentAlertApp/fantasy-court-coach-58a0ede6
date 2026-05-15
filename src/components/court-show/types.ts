@@ -10,6 +10,7 @@ export type SlideKind =
   | "captain"
   | "outstanding"
   | "health_watch"
+  | "next_games"
   | "outro";
 
 export type StoryLabel =
@@ -202,6 +203,29 @@ export interface HealthWatchPayload {
   day: number;
 }
 
+export interface NextGameRosterPlayer {
+  player_id: number;
+  name: string;
+  photo: string | null;
+}
+
+export interface NextGameRow {
+  game_id: string;
+  away_team: string;
+  home_team: string;
+  tipoff_utc: string | null;
+  myRosterCount: number;
+  myRosterPlayers: NextGameRosterPlayer[];
+}
+
+export interface NextGamesPayload {
+  gw: number;
+  day: number;
+  dateLabel: string;
+  deadlineUtc: string | null;
+  games: NextGameRow[];
+}
+
 export type SlidePayload =
   | { kind: "intro"; data: IntroPayload }
   | { kind: "performances"; data: TopPerformer[] }
@@ -212,6 +236,7 @@ export type SlidePayload =
   | { kind: "captain"; data: CaptainPick[] }
   | { kind: "outstanding"; data: OutstandingGamePayload }
   | { kind: "health_watch"; data: HealthWatchPayload }
+  | { kind: "next_games"; data: NextGamesPayload }
   | { kind: "outro"; data: OutroPayload };
 
 export interface CourtShowSlideItem {
