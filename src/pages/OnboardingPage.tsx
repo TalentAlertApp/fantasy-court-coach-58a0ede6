@@ -23,9 +23,10 @@ type Step = OnboardingStep;
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const navState = (location.state ?? null) as { leagueId?: string; sport?: "nba" | "wnba" } | null;
+  const navState = (location.state ?? null) as { leagueId?: string; sport?: "nba" | "wnba"; returnTo?: string } | null;
   const preselectedLeagueId = navState?.leagueId ?? null;
   const preselectedSport = navState?.sport ?? null;
+  const returnTo = navState?.returnTo ?? "/";
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId } = useTeam();
   const { shouldOnboard, ready } = useFirstRunGate();
@@ -77,12 +78,14 @@ export default function OnboardingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, step, createdTeamId, teams, user?.id]);
 
-  // If user already owns a team, kick them back home.
+  // If user already owns a team, kick them back home — UNLESS they arrived
+  // here intentionally to create another team (preselectedLeagueId set, e.g.
+  // from /scoring empty-state CTA).
   useEffect(() => {
-    if (ready && !shouldOnboard) {
+    if (ready && !shouldOnboard && !preselectedLeagueId) {
       navigate("/", { replace: true });
     }
-  }, [ready, shouldOnboard, navigate]);
+  }, [ready, shouldOnboard, navigate, preselectedLeagueId]);
 
   const submitTeam = async (
     name: string,
@@ -149,7 +152,7 @@ export default function OnboardingPage() {
     clearOnboardingState(user?.id);
     await queryClient.invalidateQueries({ queryKey: ["teams"] });
     await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-    navigate("/", { replace: true });
+    navigate(returnTo, { replace: true });
   };
 
   // Back from DraftStep: if user already owns ≥2 teams, they reached this

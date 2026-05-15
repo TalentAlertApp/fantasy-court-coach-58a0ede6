@@ -70,6 +70,21 @@ export default function ScoringPage() {
   // Scope team selector to teams in the currently-selected fantasy league.
   const myTeams = teamsInSelectedLeague;
 
+  // Auto-switch to the "team" tab once the user gains a team in this league
+  // (e.g. after returning from onboarding via the empty-state CTA). Guarded
+  // so we do this only once per league change, never fighting the user's
+  // subsequent tab clicks.
+  const lastAutoSwitchRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!teamReady) return;
+    const key = `${selectedLeagueId}`;
+    if (myTeams.length > 0 && lastAutoSwitchRef.current !== key && tab !== "team") {
+      lastAutoSwitchRef.current = key;
+      setTab("team");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamReady, myTeams.length, selectedLeagueId]);
+
   // When the selected league changes, ensure the selectedTeamId belongs to it.
   useEffect(() => {
     if (!teamReady) return;
@@ -202,14 +217,16 @@ export default function ScoringPage() {
 
         {/* ════════════════════════ YOUR TEAM TAB ════════════════════════ */}
         <TabsContent value="team" className="space-y-5 mt-5">
-          {myTeams.length === 0 ? (
+          {!teamReady ? (
+            <div className="h-64 rounded-xl bg-card border border-border animate-pulse" />
+          ) : myTeams.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 bg-card border border-border rounded-xl">
               <Shield className="h-12 w-12 text-muted-foreground/30" />
               <p className="text-muted-foreground font-heading">
                 You don't have a team in {selectedLeague?.name ?? "this league"} yet.
               </p>
               <Button
-                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba" } })}
+                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba", returnTo: "/scoring" } })}
                 size="sm"
                 className="rounded-xl"
               >

@@ -86,7 +86,9 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const slides = data?.slides ?? [];
   const total = slides.length;
   const current = slides[index];
-  const SLIDE_MS = current?.durationMs ?? BASE_SLIDE_MS;
+  const SLIDE_MS = current?.pageCount && BASE_SLIDE_MS > 0
+    ? current.pageCount * BASE_SLIDE_MS
+    : (current?.durationMs ?? BASE_SLIDE_MS);
 
   useEffect(() => {
     if (!open || !autoplayActive || hover || childModalOpen || videoPlaying || total <= 1 || SLIDE_MS <= 0) return;
@@ -245,6 +247,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                     onGameClick={handleGameClick}
                     onOutroAction={handleOutroAction}
                     onVideoPlayingChange={handleVideoPlayingChange}
+                    pageMs={BASE_SLIDE_MS}
                   />
                 </AnimatePresence>
               )}

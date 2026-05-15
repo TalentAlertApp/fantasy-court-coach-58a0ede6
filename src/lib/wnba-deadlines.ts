@@ -20,8 +20,10 @@ export const WNBA_DEADLINES: WnbaDeadlineEntry[] = [
   { gw: 1, day: 2, date: "2026-05-11", dayName: "Monday", deadline_local: "01:36", deadline_utc: "2026-05-11T00:36:00Z" },
   { gw: 2, day: 1, date: "2026-05-13", dayName: "Wednesday", deadline_local: "01:06", deadline_utc: "2026-05-13T00:06:00Z" },
   { gw: 2, day: 2, date: "2026-05-14", dayName: "Thursday", deadline_local: "00:06", deadline_utc: "2026-05-13T23:06:00Z" },
-  { gw: 2, day: 3, date: "2026-05-16", dayName: "Saturday", deadline_local: "00:36", deadline_utc: "2026-05-15T23:36:00Z" },
-  { gw: 2, day: 4, date: "2026-05-18", dayName: "Monday", deadline_local: "00:06", deadline_utc: "2026-05-17T23:06:00Z" },
+  // GW2 expanded mid-season: sheet now publishes a Friday slate and a Saturday slate.
+  { gw: 2, day: 3, date: "2026-05-15", dayName: "Friday", deadline_local: "00:36", deadline_utc: "2026-05-14T23:36:00Z" },
+  { gw: 2, day: 4, date: "2026-05-16", dayName: "Saturday", deadline_local: "00:36", deadline_utc: "2026-05-15T23:36:00Z" },
+  { gw: 2, day: 5, date: "2026-05-18", dayName: "Monday", deadline_local: "00:06", deadline_utc: "2026-05-17T23:06:00Z" },
   { gw: 3, day: 1, date: "2026-05-19", dayName: "Tuesday", deadline_local: "01:06", deadline_utc: "2026-05-19T00:06:00Z" },
   { gw: 3, day: 2, date: "2026-05-20", dayName: "Wednesday", deadline_local: "03:06", deadline_utc: "2026-05-20T02:06:00Z" },
   { gw: 3, day: 3, date: "2026-05-21", dayName: "Thursday", deadline_local: "00:06", deadline_utc: "2026-05-20T23:06:00Z" },

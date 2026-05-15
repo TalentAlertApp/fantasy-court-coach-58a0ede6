@@ -1,69 +1,60 @@
-## Plan: 3 fixes (Player modal schedule, /leagues filter, /scoring WNBA standings + selector snap-back)
 
-### 1. PlayerModal — wire scheduled games to the Game Detail modal
+## 1. /scoring — empty-to-loaded flow after team creation
 
-In `src/components/PlayerModal.tsx`, the `Schedule` tab currently renders upcoming rows as inert `<TableRow>`s. Reuse the same pattern already wired in `src/components/TeamModal.tsx` (Upcoming tab → `GameDetailModal` with a built `GameDetailGame` object including `played: false`).
+When the user lands on `/scoring` with no team in the selected league, the empty-state CTA already navigates to onboarding with `leagueId` + `sport` preselected. After completing onboarding, returning to `/scoring` currently keeps the empty state because the React Query cache for teams isn't invalidated and `selectedTeamId` is still `null`.
 
-- Add `selectedGame` state (already imported `GameDetailModal` + `GameDetailGame`).
-- Wrap each upcoming row in a button (or add `onClick` to the `TableRow`) that builds the same `GameDetailGame` payload used in `TeamModal` (game_id, home/away, scores 0, status, all url fields, `youtube_recap_id`, gw, day, tipoff, `played:false`) from `data.upcoming[i]`.
-- Render `<GameDetailModal game={selectedGame} open={!!selectedGame} onOpenChange={(o)=>!o && setSelectedGame(null)}/>` next to the existing `GameDetailModal` already used in the Played tab. Keep the played-game flow untouched.
+Changes:
+- In `OnboardingPage.tsx`, after a successful team create:
+  - Invalidate `["teams"]` / whichever queryKey `useTeam`/`useFantasyLeagues` uses, so the new team appears.
+  - Persist the new team id in `TeamContext` as `selectedTeamId` (call `setSelectedTeamId(newTeamId)` and store in localStorage as the existing context already does), and set `selectedLeagueId` to the league the team was created in.
+  - Navigate back to `/scoring` (or wherever the user came from via `location.state.returnTo ?? "/scoring"`).
+- In `ScoringPage.tsx`:
+  - When `selectedTeamId` becomes non-null and matches a team in the active league, ensure `tab` switches to `"team"` automatically (only on first load after returning from onboarding — guard with a ref so we don't fight the user).
+  - Make the empty-state guard also check that the teams query is not still loading (`teamReady`), to avoid a flash of the empty state before teams hydrate.
 
-No styling changes beyond hover affordance to match Played tab.
+Result: after creating a team via the empty-state CTA, the user lands back on `/scoring` and immediately sees `LeagueView` (with the team highlighted) and `YourTeamView` populated for that team.
 
-### 2. /leagues — add the same filter bar to the "My Leagues" tab
+## 2. Daily Court Show — "Played Games Recap" pacing
 
-In `src/pages/LeaguesPage.tsx`, extract the `DiscoverPanel` filter row (sport pills with All/NBA/WNBA logos, search input + button, sort `Select`) into a small inline component reused by both tabs, OR copy the same JSX into the `mine` tab.
+Today, the Played Games Recap slide overrides `durationMs` to `pages * 3000` (3s per page). When there's only one page, it advances after 3s — much faster than the standard 7.5s "normal" speed used by all other slides. This makes the slide feel rushed.
 
-State for "mine" tab (local to the page component):
-- `mineSport: "all" | "nba" | "wnba"` (default `"all"`).
-- `mineSearchInput`, `mineSearch` (apply on Enter / Search button).
-- `mineSort: "active" | "newest" | "name"` — default `"active"`.
+Changes:
+- In `useCourtShowData.ts`, stop hard-coding 3000ms. Instead, attach `pages` (count) to the slide payload and let `CourtShowModal.tsx` compute `SLIDE_MS = pages * BASE_SLIDE_MS` for recap slides. That way recap pages always inherit the user's selected speed (fast/normal/slow).
+- In `CourtShowSlide.tsx` recap component, replace the hard-coded `setInterval(..., 3000)` page advance with a `pageMs` prop equal to `BASE_SLIDE_MS`, passed through the slide payload. Pages then turn at the same cadence as the modal advance, so total recap time = `pages * BASE_SLIDE_MS` and each page lasts the same as a Captain Radar slide.
+- 1 page → equals one normal slide. 3 pages → equals three normal slides in length.
 
-Filter pipeline applied to `sortedLeagues` for rendering:
-- Sport: `mineSport === "all" || l.sport === mineSport`.
-- Search: case-insensitive substring on `l.name`.
-- Sort: `active` keeps current ordering (Main NBA, Main WNBA, then custom A→Z); `newest` by `created_at` desc; `name` A→Z.
+## 3. Schedule — WNBA GW2 Saturday games + deadlines
 
-The empty-state ("Create your first league") still renders only when `myCustom.length === 0` after filtering returns 0 AND the user has no custom leagues; otherwise show a small "No leagues match these filters" line.
+DB diagnosis: `schedule_games` already contains the 17 GW2 games (`day=1..5`, including the 4 Saturday May 16 games as `day=4` and the 4 Sunday May 17 games as `day=5`). The sync did import them — but the Schedule page reads its day pills/labels/deadlines from the static `WNBA_DEADLINES` array, which still has only 4 entries for GW2 (Wed/Thu/Sat/Mon, with Sat tagged as `day=3` and Mon as `day=4`). That mismatch is why the Saturday slate is invisible in the UI and why GW2.4 is shown as Sunday May 17 instead of Saturday May 16.
 
-Visual: identical bar (same classes, same logo treatment, same `Search` + `Select` widgets) shown above the list/cards grid. Both `mine` and `discover` tabs keep the existing list/cards view toggle in the header.
+Changes:
 
-### 3. /scoring — fix WNBA Main standings and league selector "snap-back"
+a. `src/lib/wnba-deadlines.ts` — replace the 4 GW2 entries with the new 5-day schedule:
+```
+{ gw: 2, day: 1, date: "2026-05-13", dayName: "Wednesday", deadline_local: "01:06", deadline_utc: "2026-05-13T00:06:00Z" },
+{ gw: 2, day: 2, date: "2026-05-14", dayName: "Thursday",  deadline_local: "00:06", deadline_utc: "2026-05-13T23:06:00Z" },
+{ gw: 2, day: 3, date: "2026-05-15", dayName: "Friday",    deadline_local: "00:36", deadline_utc: "2026-05-14T23:36:00Z" },
+{ gw: 2, day: 4, date: "2026-05-16", dayName: "Saturday",  deadline_local: "00:36", deadline_utc: "2026-05-15T23:36:00Z" },
+{ gw: 2, day: 5, date: "2026-05-18", dayName: "Monday",    deadline_local: "00:06", deadline_utc: "2026-05-17T23:06:00Z" },
+```
+(Times follow the project rule: 30 min before the first Lisbon tip of the slate. Day=5 keeps Monday because Sunday's evening games extend past midnight Lisbon — same convention as other 7-day weeks in the file.)
 
-Two underlying causes:
+b. Confirm `wnba-sheet-sync` already preserves `gw`/`day` exactly as provided by the sheet (it does — line 292-293 use `intOrZero(r[0])`/`intOrZero(r[1])`). No edge-function code change needed; the sheet is already authoritative and the next manual `Sync schedule` will keep day numbers in sync. The user's prior sync did succeed; the missing-Saturday symptom was a UI overlay issue, not a data issue.
 
-A. **TeamContext snaps the active fantasy league back to match the selected team's sport.** In `src/contexts/TeamContext.tsx`, the effect "Reconcile fantasy league when the active team's sport diverges from it" runs on every league change too. When the user picks NBA Main (or any NBA league) while a WNBA team is active, this effect immediately flips the league back to WNBA Main, so the selector visually snaps back. Same when picking WNBA Main while on an NBA team.
+c. Document in code comment that GW2 has 5 days because the sheet introduced a Friday slate mid-season.
 
-B. **`league-standings` edge function returns 0 rows for WNBA Main.** In the DB every team has `teams.league_id = '...0010'` (NBA Main pseudo-id) regardless of sport; only `sport_league_id` discriminates NBA vs WNBA. `get_league_teams(_league_id='...0020')` therefore returns no rows for WNBA Main.
+After this change:
+- Schedule page shows pills `2.1 (3G) Wed 13`, `2.2 (4G) Thu 14`, `2.3 (2G) Fri 15`, `2.4 (4G) Sat 16`, `2.5 (4G) Mon 18`.
+- Daily Court Show for `gw=2 day=4` correctly resolves to the Saturday slate with deadline Sat 00:36 Lisbon.
+- Lock evaluations everywhere (`useLeagueDeadlines`, `getCurrentGamedayFrom`) honour the new entries automatically.
 
-Fix — keep player/team/roster/schedule logic untouched (LeagueContext still derives `league` from `selectedTeam.league_code`):
+## Files touched
 
-1. **Invert the reconciliation in `TeamContext`.** When the user changes the *fantasy league* (selector), switch the *team* to a team in that league/sport instead of switching the league. Concretely:
-   - Drop the existing "Reconcile fantasy league when active team's sport diverges" effect (which calls `setSelectedLeagueId`).
-   - Strengthen the existing "When the active fantasy league changes, if the currently selected team isn't in that league, switch to the first team that is" effect: remove the early-return `if (selectedLeague.sport !== teamSport) return;`. Instead, compute the ordered candidate set:
-     1. Teams in `teamsInSelectedLeague`.
-     2. Else any team whose `league_code` matches `selectedLeague.sport`.
-     3. Else any team (last resort).
-     Pick the first non-empty group, set `selectedTeamId`, persist to localStorage, invalidate all queries.
-   - The header pill (`HeaderTeamPill` / `TeamSwitcher`) continues to be authoritative for the active sport going the *other* direction: when the user clicks a team in the pill, the existing `setSelectedTeamId` flow stays unchanged. Add a paired effect in `TeamContext` that, when `selectedTeam.league_code` changes via that path, snaps the fantasy league to the matching Main League ONLY IF the current `selectedLeague.sport !== teamSport` AND the change originated from the team pill (track this with a ref: set `lastChangeOriginRef.current = "team"` in `setSelectedTeamId`, `"league"` in a wrapper around the league selector callback exported through context, default `"team"`).
-   - Net behaviour:
-     - User picks WNBA Main from `/scoring` selector → league sticks to WNBA Main; selected team is auto-switched to a WNBA team if available; sidebar pill follows the team change.
-     - User picks NBA team from sidebar pill → fantasy league snaps to a matching-sport league (existing behaviour preserved for roster/schedule).
+- `src/components/onboarding/OnboardingPage.tsx` (or the actual create-team success handler) — invalidate teams, set context, navigate back.
+- `src/pages/ScoringPage.tsx` — auto-switch to `team` tab once `selectedTeamId` resolves; guard empty-state with `teamReady`.
+- `src/components/court-show/useCourtShowData.ts` — drop hard-coded 3000ms, pass `pages` count.
+- `src/components/court-show/CourtShowModal.tsx` — when slide.kind === "recap", compute `SLIDE_MS = pages * BASE_SLIDE_MS`.
+- `src/components/court-show/CourtShowSlide.tsx` — accept `pageMs` prop for recap auto-page interval, default to a sane fallback.
+- `src/lib/wnba-deadlines.ts` — replace GW2 entries with the new 5-day list.
 
-2. **Fix `supabase/functions/league-standings/index.ts` to handle Main Leagues by sport.** When the requested `leagueId` is one of the two Main League pseudo-ids (`'...0010'` or `'...0020'`), bypass `get_league_teams(_league_id)` and instead select teams directly from `teams` filtered by `sport_league_id = <resolved sport_league_id for that Main League's sport>`, joining `auth.users` for `owner_label` (mirror the SQL the RPC already runs: `select id, name, owner_id, split_part(coalesce(u.email,'user'),'@',1) as owner_label`). The rest of the pipeline (rules, schedule_games filter by `sportLeagueId`, scoring, summary) is unchanged. Result: WNBA Main standings populate from all teams whose `sport_league_id` matches the WNBA sport row, regardless of which Main League pseudo-id is stored on `teams.league_id`.
-
-3. **Sidebar `TeamSwitcher` consistency.** Today it shows `teamsInSelectedLeague.length ? teamsInSelectedLeague : teams`, which is why a custom WNBA league with zero teams falls back to all teams (mixing NBA in). Constrain the fallback to `teams.filter(t => (t.league_code ?? "nba") === selectedLeague.sport)` so an empty WNBA custom league shows only WNBA teams, matching the WNBA Main behaviour. If that filtered set is also empty, then fall back to all teams.
-
-### Files to change
-
-- `src/components/PlayerModal.tsx` — Schedule tab rows clickable + `GameDetailModal` instance.
-- `src/pages/LeaguesPage.tsx` — filter bar on `mine` tab + sport/search/sort state and pipeline.
-- `src/contexts/TeamContext.tsx` — invert reconciliation; track origin of last change.
-- `src/components/TeamSwitcher.tsx` — sport-scoped fallback.
-- `supabase/functions/league-standings/index.ts` — Main League branch resolves teams by `sport_league_id`.
-
-### Out of scope / unchanged
-
-- LeagueContext, `useRosterQuery`, `useScheduleWeekGames`, `useUpcomingByTeam`, `usePlayersQuery` and all roster/schedule/players paths.
-- Court Show, search diacritics, and other prior fixes.
-- DB schema and RLS (no migration needed; backfilling `teams.league_id` for WNBA teams is intentionally avoided to keep current ingest paths intact).
+No DB migration. No edge-function deployment required. After shipping, the existing DB rows for GW2 will line up with the updated static deadlines.
