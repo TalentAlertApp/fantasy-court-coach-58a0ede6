@@ -222,6 +222,10 @@ export interface CourtShowSlideItem {
   /** Optional override for autoplay duration on this slide (ms). Used by the
    *  Played-Games Recap to stay open long enough to cycle through all pages. */
   durationMs?: number;
+  /** When set, the modal stays on this slide for `pageCount * BASE_SLIDE_MS`
+   *  so each internal page lasts as long as a normal slide. Used by the
+   *  Played-Games Recap. */
+  pageCount?: number;
 }
 
 export interface CourtShowData {
