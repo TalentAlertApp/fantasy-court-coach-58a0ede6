@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle, Crown, Medal } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
+import { getVenue } from "@/lib/nba-venues";
 import courtBg from "@/assets/court-bg.png";
 import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer, NextGamesPayload, NextGameRow } from "./types";
@@ -882,33 +883,39 @@ function NextGamesSlide({
                   className="pointer-events-none absolute -right-3 -top-2 h-28 w-28 object-contain opacity-[0.13] blur-[1.5px] select-none"
                 />
               )}
-              <div className="relative flex items-center justify-between gap-2 mb-2">
+              <div className="relative flex items-center justify-center mb-2">
                 <span className="text-[9px] uppercase tracking-[0.28em] text-amber-300/80 font-heading font-black">Scheduled</span>
-                {g.tipoff_utc && (
-                  <span className="text-[10px] font-mono text-white/55">
-                    {format(new Date(g.tipoff_utc), "HH:mm")}
-                  </span>
-                )}
               </div>
-              <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                <div
+              <div className="relative flex items-center justify-center gap-4">
+                <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
-                  className="flex items-center gap-2 cursor-pointer"
+                  className="font-heading font-black text-2xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
                 >
-                  {awayLogo && <img src={awayLogo} alt="" className="h-8 w-8 object-contain" />}
-                  <span className="font-heading font-black text-lg tracking-wider text-white group-hover:text-amber-300 transition-colors">{g.away_team}</span>
-                </div>
-                <span className="text-white/30 text-[10px]">@</span>
-                <div
+                  {g.away_team}
+                </span>
+                <span className="text-white/30 text-[11px] font-heading uppercase tracking-widest">@</span>
+                <span
                   role="button"
                   onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
-                  className="flex items-center gap-2 justify-end cursor-pointer"
+                  className="font-heading font-black text-2xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
                 >
-                  <span className="font-heading font-black text-lg tracking-wider text-white group-hover:text-amber-300 transition-colors">{g.home_team}</span>
-                  {homeLogo && <img src={homeLogo} alt="" className="h-8 w-8 object-contain" />}
-                </div>
+                  {g.home_team}
+                </span>
               </div>
+              {(() => {
+                const venue = getVenue(g.home_team);
+                const tip = g.tipoff_utc ? format(new Date(g.tipoff_utc), "HH:mm") : null;
+                if (!venue?.name && !tip) return null;
+                return (
+                  <div className="relative mt-2 flex items-center justify-center gap-2 text-[10px] uppercase tracking-[0.22em] text-white/55 font-heading">
+                    {venue?.name && <span className="truncate">{venue.name}</span>}
+                    {tip && (
+                      <span className="font-mono tracking-normal text-white/70">{tip}</span>
+                    )}
+                  </div>
+                );
+              })()}
               {hasRoster ? (
                 <div className="relative mt-3 flex items-center gap-2">
                   <div className="flex -space-x-2">
