@@ -1133,14 +1133,19 @@ function BiqScheduledCard({
   );
 }
 
-export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction, onVideoPlayingChange, pageMs }: Props) {
-  const watermarkTri =
-    (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
-    (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
-    (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
-    (slide.payload.kind === "recap" && slide.payload.data[0]?.winner) ||
-    (slide.payload.kind === "matchups" && slide.payload.data[0]?.home_team) ||
-    null;
+export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction, onVideoPlayingChange, pageMs, leagueCode = "nba" }: Props) {
+  // Played-Games Recap and High-Competitive Matchups use the league logo as a
+  // watermark so the slide reads as an NBA/WNBA broadcast frame instead of
+  // implying a single team's branding.
+  const useLeagueWatermark =
+    slide.payload.kind === "recap" || slide.payload.kind === "matchups";
+  const watermarkTri = useLeagueWatermark
+    ? null
+    : (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
+      (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
+      (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
+      null;
+  const leagueWatermarkSrc = useLeagueWatermark ? (leagueCode === "wnba" ? wnbaLogo : nbaLogo) : null;
   const watermarkLogo = watermarkTri ? getTeamLogo(watermarkTri) : null;
   const isBiq = slide.payload.kind === "ballersiq";
   const biqWatermark = isBiq ? "/brand/ballers-iq-league-watermark.png" : null;
