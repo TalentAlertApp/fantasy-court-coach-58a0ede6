@@ -4,6 +4,8 @@ import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, Trend
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { getVenue } from "@/lib/nba-venues";
 import courtBg from "@/assets/court-bg.png";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer, NextGamesPayload, NextGameRow } from "./types";
 import { HealthStatusBadge, HealthStatusIcon } from "@/components/health";
@@ -218,6 +220,8 @@ interface Props {
   onVideoPlayingChange?: (playing: boolean) => void;
   /** Per-page duration for paginated slides (e.g. Played Games Recap). */
   pageMs?: number;
+  /** Active league for watermarks and branding. */
+  leagueCode?: "nba" | "wnba";
 }
 
 function fmtDeadline(iso: string | null): string {
