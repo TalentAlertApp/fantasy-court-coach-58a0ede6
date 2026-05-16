@@ -1173,6 +1173,14 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.13] blur-md select-none"
         />
       )}
+      {leagueWatermarkSrc && (
+        <img
+          src={leagueWatermarkSrc}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.10] blur-[2px] select-none"
+        />
+      )}
       {biqWatermark && (
         <img
           src={biqWatermark}
