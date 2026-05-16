@@ -4,6 +4,8 @@ import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, Trend
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { getVenue } from "@/lib/nba-venues";
 import courtBg from "@/assets/court-bg.png";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 import { format } from "date-fns";
 import type { CourtShowSlideItem, MatchupGame, RecapGame, AIBallersIQCard, AIIndexKind, OutstandingGamePayload, OutstandingGameRow, HealthWatchPayload, HealthWatchPlayer, NextGamesPayload, NextGameRow } from "./types";
 import { HealthStatusBadge, HealthStatusIcon } from "@/components/health";
@@ -218,6 +220,8 @@ interface Props {
   onVideoPlayingChange?: (playing: boolean) => void;
   /** Per-page duration for paginated slides (e.g. Played Games Recap). */
   pageMs?: number;
+  /** Active league for watermarks and branding. */
+  leagueCode?: "nba" | "wnba";
 }
 
 function fmtDeadline(iso: string | null): string {
@@ -1129,14 +1133,19 @@ function BiqScheduledCard({
   );
 }
 
-export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction, onVideoPlayingChange, pageMs }: Props) {
-  const watermarkTri =
-    (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
-    (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
-    (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
-    (slide.payload.kind === "recap" && slide.payload.data[0]?.winner) ||
-    (slide.payload.kind === "matchups" && slide.payload.data[0]?.home_team) ||
-    null;
+export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGameClick, onOutroAction, onVideoPlayingChange, pageMs, leagueCode = "nba" }: Props) {
+  // Played-Games Recap and High-Competitive Matchups use the league logo as a
+  // watermark so the slide reads as an NBA/WNBA broadcast frame instead of
+  // implying a single team's branding.
+  const useLeagueWatermark =
+    slide.payload.kind === "recap" || slide.payload.kind === "matchups";
+  const watermarkTri = useLeagueWatermark
+    ? null
+    : (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
+      (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
+      (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
+      null;
+  const leagueWatermarkSrc = useLeagueWatermark ? (leagueCode === "wnba" ? wnbaLogo : nbaLogo) : null;
   const watermarkLogo = watermarkTri ? getTeamLogo(watermarkTri) : null;
   const isBiq = slide.payload.kind === "ballersiq";
   const biqWatermark = isBiq ? "/brand/ballers-iq-league-watermark.png" : null;
@@ -1162,6 +1171,14 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           alt=""
           aria-hidden
           className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.13] blur-md select-none"
+        />
+      )}
+      {leagueWatermarkSrc && (
+        <img
+          src={leagueWatermarkSrc}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.10] blur-[2px] select-none"
         />
       )}
       {biqWatermark && (
@@ -1271,71 +1288,47 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         {slide.payload.kind === "matchups" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {slide.payload.data.map((g, i) => {
-              const awayLogo = getTeamLogo(g.away_team);
-              const homeLogo = getTeamLogo(g.home_team);
+              const venue = getVenue(g.home_team);
+              const tip = g.tipoff_utc ? format(new Date(g.tipoff_utc), "HH:mm") : null;
               return (
                 <motion.button
                   key={g.game_id}
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.05 * i }}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * i, duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
                   onClick={() => onGameClick(g)}
-                  className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 hover:border-amber-400/40 transition-all"
+                  className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 px-4 py-3 hover:-translate-y-0.5 hover:border-amber-400/40 transition-all"
                 >
-                  <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                    {/* Away column */}
-                    <div
+                  <div className="relative flex items-center justify-center mb-1.5">
+                    <span className="text-[9px] uppercase tracking-[0.28em] text-amber-300/80 font-heading font-black">Scheduled</span>
+                  </div>
+                  <div className="relative flex items-center justify-center gap-4">
+                    <span
                       role="button"
                       onClick={(e) => { e.stopPropagation(); onTeamClick(g.away_team); }}
-                      className="relative h-24 flex items-center justify-center cursor-pointer"
+                      className="font-heading font-black text-xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
                     >
-                      {awayLogo && (
-                        <img
-                          src={awayLogo}
-                          alt=""
-                          aria-hidden
-                          className="pointer-events-none absolute inset-0 m-auto h-24 w-24 object-contain opacity-20 blur-[1px] select-none"
-                        />
-                      )}
-                      <span className="relative font-heading font-black text-2xl md:text-3xl tracking-wider text-white group-hover:text-amber-300 transition-colors drop-shadow">
-                        {g.away_team}
-                      </span>
-                    </div>
-
-                    {/* Center column: VS pill + tipoff */}
-                    <div className="flex flex-col items-center">
-                      <span className="px-2 py-0.5 rounded-md bg-amber-400 text-black text-[10px] font-heading font-black tracking-wider">VS</span>
-                      {g.tipoff_utc && (
-                        <span className="text-[10px] text-white/50 mt-1 font-mono">{format(new Date(g.tipoff_utc), "HH:mm")}</span>
-                      )}
-                    </div>
-
-                    {/* Home column */}
-                    <div
+                      {g.away_team}
+                    </span>
+                    <span className="text-white/30 text-[11px] font-heading uppercase tracking-widest">@</span>
+                    <span
                       role="button"
                       onClick={(e) => { e.stopPropagation(); onTeamClick(g.home_team); }}
-                      className="relative h-24 flex items-center justify-center cursor-pointer"
+                      className="font-heading font-black text-xl tracking-[0.18em] text-white hover:text-amber-300 transition-colors cursor-pointer"
                     >
-                      {homeLogo && (
-                        <img
-                          src={homeLogo}
-                          alt=""
-                          aria-hidden
-                          className="pointer-events-none absolute inset-0 m-auto h-24 w-24 object-contain opacity-20 blur-[1px] select-none"
-                        />
-                      )}
-                      <span className="relative font-heading font-black text-2xl md:text-3xl tracking-wider text-white group-hover:text-amber-300 transition-colors drop-shadow">
-                        {g.home_team}
-                      </span>
+                      {g.home_team}
+                    </span>
+                  </div>
+                  {g.label && (
+                    <div className="relative mt-2 flex items-center justify-center">
+                      <StoryBadge label={g.label} />
                     </div>
-                  </div>
-                  <div className="relative mt-3 flex items-center justify-center gap-2 flex-wrap">
-                    {g.label && <StoryBadge label={g.label} />}
-                  </div>
-                  {g.story && (
-                    <p className="relative mt-3 text-[12px] text-white/75 leading-snug text-center">
-                      {g.story}
-                    </p>
+                  )}
+                  {(venue?.name || tip) && (
+                    <div className="absolute bottom-2 right-3 flex items-center gap-1.5 text-[9px] uppercase tracking-[0.18em] text-white/50 font-heading">
+                      {venue?.name && <span className="truncate max-w-[160px]">{venue.name}</span>}
+                      {tip && <span className="font-mono tracking-normal text-white/70">{tip}</span>}
+                    </div>
                   )}
                 </motion.button>
               );

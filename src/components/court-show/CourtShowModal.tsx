@@ -248,6 +248,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                     onOutroAction={handleOutroAction}
                     onVideoPlayingChange={handleVideoPlayingChange}
                     pageMs={BASE_SLIDE_MS}
+                    leagueCode={isWnba ? "wnba" : "nba"}
                   />
                 </AnimatePresence>
               )}
