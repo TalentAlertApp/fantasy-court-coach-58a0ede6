@@ -1137,8 +1137,11 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
   // Played-Games Recap and High-Competitive Matchups use the league logo as a
   // watermark so the slide reads as an NBA/WNBA broadcast frame instead of
   // implying a single team's branding.
-  const useLeagueWatermark =
-    slide.payload.kind === "recap" || slide.payload.kind === "matchups";
+  // Played-Games Recap uses the league logo as a watermark so the slide reads
+  // as an NBA/WNBA broadcast frame instead of implying a single team's
+  // branding. The "High-Competitive Matchups" slide uses the same compact
+  // Calendar glyph as the "Next Up" slide, rendered inside that slide block.
+  const useLeagueWatermark = slide.payload.kind === "recap";
   const watermarkTri = useLeagueWatermark
     ? null
     : (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
@@ -1286,7 +1289,11 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         )}
 
         {slide.payload.kind === "matchups" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Calendar
+              aria-hidden
+              className="pointer-events-none absolute right-4 bottom-2 h-44 w-44 text-amber-400/[0.07]"
+            />
             {slide.payload.data.map((g, i) => {
               const venue = getVenue(g.home_team);
               const tip = g.tipoff_utc ? format(new Date(g.tipoff_utc), "HH:mm") : null;
