@@ -567,20 +567,12 @@ export default function RosterPage() {
               {countdown}
             </Badge>
           )}
-          {deadlineStatus && (
+          {deadlineStatus?.locked && (
             <Badge
-              className={`rounded-lg text-[10px] font-heading uppercase tracking-wide ${
-                deadlineStatus.locked
-                  ? "bg-destructive/20 text-destructive border border-destructive/40"
-                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 dark:!text-black dark:font-bold"
-              }`}
+              className="rounded-lg text-[10px] font-heading uppercase tracking-wide bg-destructive/20 text-destructive border border-destructive/40"
               title={deadlineStatus.reason ?? ""}
             >
-              {deadlineStatus.locked
-                ? `🔴 Lineup locked${deadlineStatus.reason ? " · " + deadlineStatus.reason.replace(/^Lineup locked — ?/, "") : ""}`
-                : deadlineStatus.nextDeadline
-                  ? `🟢 Lineup open · locks ${new Date(deadlineStatus.nextDeadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
-                  : "🟢 Lineup open"}
+              {`🔴 Lineup locked${deadlineStatus.reason ? " · " + deadlineStatus.reason.replace(/^Lineup locked — ?/, "") : ""}`}
             </Badge>
           )}
           <div className="flex items-center gap-1.5 ml-auto rounded-lg dark:bg-[#b58126] dark:px-1.5 dark:py-1 dark:shadow-inner dark:[&_.header-icon]:drop-shadow-[0_1px_0_rgba(0,0,0,0.55)] dark:[&_.header-icon-btn]:text-white">

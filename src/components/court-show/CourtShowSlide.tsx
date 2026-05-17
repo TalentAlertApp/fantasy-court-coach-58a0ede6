@@ -1137,8 +1137,11 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
   // Played-Games Recap and High-Competitive Matchups use the league logo as a
   // watermark so the slide reads as an NBA/WNBA broadcast frame instead of
   // implying a single team's branding.
-  const useLeagueWatermark =
-    slide.payload.kind === "recap" || slide.payload.kind === "matchups";
+  // Played-Games Recap uses the league logo as a watermark so the slide reads
+  // as an NBA/WNBA broadcast frame instead of implying a single team's
+  // branding. The "High-Competitive Matchups" slide uses the same compact
+  // Calendar glyph as the "Next Up" slide, rendered inside that slide block.
+  const useLeagueWatermark = slide.payload.kind === "recap";
   const watermarkTri = useLeagueWatermark
     ? null
     : (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
@@ -1286,10 +1289,16 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
         )}
 
         {slide.payload.kind === "matchups" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="relative grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Calendar
+              aria-hidden
+              className="pointer-events-none absolute right-4 bottom-2 h-44 w-44 text-amber-400/[0.07]"
+            />
             {slide.payload.data.map((g, i) => {
               const venue = getVenue(g.home_team);
               const tip = g.tipoff_utc ? format(new Date(g.tipoff_utc), "HH:mm") : null;
+              const awayLogo = getTeamLogo(g.away_team);
+              const homeLogo = getTeamLogo(g.home_team);
               return (
                 <motion.button
                   key={g.game_id}
@@ -1297,8 +1306,24 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05 * i, duration: 0.45, ease: [0.22, 0.61, 0.36, 1] }}
                   onClick={() => onGameClick(g)}
-                  className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 px-4 py-3 hover:-translate-y-0.5 hover:border-amber-400/40 transition-all"
+                  className="group relative overflow-hidden text-left rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 px-4 py-3 min-h-[124px] hover:-translate-y-0.5 hover:border-amber-400/40 transition-all"
                 >
+                  {awayLogo && (
+                    <img
+                      src={awayLogo}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute -left-3 -top-2 h-24 w-24 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                    />
+                  )}
+                  {homeLogo && (
+                    <img
+                      src={homeLogo}
+                      alt=""
+                      aria-hidden
+                      className="pointer-events-none absolute -right-3 -top-2 h-24 w-24 object-contain opacity-[0.13] blur-[1.5px] select-none"
+                    />
+                  )}
                   <div className="relative flex items-center justify-center mb-1.5">
                     <span className="text-[9px] uppercase tracking-[0.28em] text-amber-300/80 font-heading font-black">Scheduled</span>
                   </div>
@@ -1320,7 +1345,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     </span>
                   </div>
                   {g.label && (
-                    <div className="relative mt-2 flex items-center justify-center">
+                    <div className="absolute bottom-2 left-3">
                       <StoryBadge label={g.label} />
                     </div>
                   )}

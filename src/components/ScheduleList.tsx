@@ -181,9 +181,18 @@ function isGameFinal(status: string) {
   return status.toUpperCase().includes("FINAL");
 }
 
-function isGameLive(status: string) {
+/** Live window heuristic: server status does not flip to LIVE in real time,
+ *  so we treat a game as LIVE from tipoff until tipoff + 2h30m, unless its
+ *  status is already FINAL. */
+const LIVE_WINDOW_MS = 2.5 * 60 * 60 * 1000;
+function isGameLive(status: string, tipoff_utc?: string | null, nowMs: number = Date.now()) {
   const s = status.toUpperCase();
-  return s === "LIVE" || s === "IN_PROGRESS";
+  if (s === "LIVE" || s === "IN_PROGRESS") return true;
+  if (s.includes("FINAL")) return false;
+  if (!tipoff_utc) return false;
+  const t = new Date(tipoff_utc).getTime();
+  if (!Number.isFinite(t)) return false;
+  return nowMs >= t && nowMs < t + LIVE_WINDOW_MS;
 }
 
 function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId }: {
@@ -833,7 +842,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
 
   const renderExpandedPanel = (g: ScheduleGame) => {
     const isFinal = isGameFinal(g.status);
-    const isScheduled = !isFinal && !isGameLive(g.status);
+    const isScheduled = !isFinal && !isGameLive(g.status, g.tipoff_utc);
     const gh = computeGameHealth(g.away_team, g.home_team);
     return (
       <div className={`bg-card border border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-xl overflow-hidden`}>
@@ -863,7 +872,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
 
   const renderCard = (g: ScheduleGame, compact: boolean) => {
     const isFinal = isGameFinal(g.status);
-    const isLive = isGameLive(g.status);
+    const isLive = isGameLive(g.status, g.tipoff_utc);
     const isScheduled = !isFinal && !isLive;
     const isExpandable = isFinal || isScheduled;
     const isExpanded = expandedId === g.game_id;
@@ -1166,7 +1175,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
     <div className="space-y-2 px-1">
       {games.map((g) => {
         const isFinal = isGameFinal(g.status);
-        const isLive = isGameLive(g.status);
+        const isLive = isGameLive(g.status, g.tipoff_utc);
         const isScheduled = !isFinal && !isLive;
         const isExpandable = isFinal || isScheduled;
         const isExpanded = expandedId === g.game_id;
