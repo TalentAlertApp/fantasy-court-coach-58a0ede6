@@ -842,7 +842,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
 
   const renderExpandedPanel = (g: ScheduleGame) => {
     const isFinal = isGameFinal(g.status);
-    const isScheduled = !isFinal && !isGameLive(g.status);
+    const isScheduled = !isFinal && !isGameLive(g.status, g.tipoff_utc);
     const gh = computeGameHealth(g.away_team, g.home_team);
     return (
       <div className={`bg-card border border-l-4 ${isFinal ? "border-l-green-500" : "border-l-transparent"} rounded-xl overflow-hidden`}>
@@ -872,7 +872,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
 
   const renderCard = (g: ScheduleGame, compact: boolean) => {
     const isFinal = isGameFinal(g.status);
-    const isLive = isGameLive(g.status);
+    const isLive = isGameLive(g.status, g.tipoff_utc);
     const isScheduled = !isFinal && !isLive;
     const isExpandable = isFinal || isScheduled;
     const isExpanded = expandedId === g.game_id;
@@ -1175,7 +1175,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
     <div className="space-y-2 px-1">
       {games.map((g) => {
         const isFinal = isGameFinal(g.status);
-        const isLive = isGameLive(g.status);
+        const isLive = isGameLive(g.status, g.tipoff_utc);
         const isScheduled = !isFinal && !isLive;
         const isExpandable = isFinal || isScheduled;
         const isExpanded = expandedId === g.game_id;
