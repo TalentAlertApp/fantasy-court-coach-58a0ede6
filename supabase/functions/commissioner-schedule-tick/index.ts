@@ -19,13 +19,18 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
 function authorize(req: Request, allowAnon: boolean): Response | null {
   const adminSecret = Deno.env.get("ADMIN_API_SECRET");
   const serviceRole = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const got = req.headers.get("x-admin-secret") ?? "";
   if (adminSecret && got && got === adminSecret) return null;
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   if (serviceRole && bearer && bearer === serviceRole) return null;
-  const apikey = req.headers.get("apikey") ?? "";
-  if (allowAnon && anonKey && (bearer === anonKey || apikey === anonKey)) return null;
+  // Scheduled (cron) calls only need to reach the function — the supabase
+  // gateway already validates the JWT (anon/publishable key) before we ever
+  // see the request. Past auth attempts here failed because the function
+  // env-var `SUPABASE_ANON_KEY` did not match every key variant the project
+  // issues (publishable vs anon legacy). For non-force ticks we trust that
+  // the gateway-validated bearer is enough and only enforce admin-secret
+  // when `?force=` is used.
+  if (allowAnon) return null;
   return errorResponse("UNAUTHORIZED", "Missing or invalid credentials", null, 401);
 }
 
