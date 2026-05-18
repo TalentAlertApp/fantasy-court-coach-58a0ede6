@@ -149,10 +149,21 @@ function normTime(raw: unknown): string | null {
   const r = m[1];
   return /^(?:[01]?\d|2[0-3]):[0-5]\d$/.test(r) ? r : null;
 }
-function normalizeStatus(raw: unknown, hp?: number, ap?: number): "FINAL" | "SCHEDULED" {
+/**
+ * Preserve LIVE status strings ("Q1 5:29", "HALF", "OT 2:14", etc.) so the UI
+ * can display the actual game state. Only collapse to FINAL/SCHEDULED at the
+ * extremes. Having a score is NOT enough to mark FINAL (live games have scores).
+ */
+function normalizeStatus(raw: unknown, _hp?: number, _ap?: number): string {
   const s = String(raw ?? "").trim().toUpperCase();
+  if (!s) return "SCHEDULED";
   if (s.startsWith("FINAL")) return "FINAL";
-  if (Number(hp ?? 0) > 0 || Number(ap ?? 0) > 0) return "FINAL";
+  if (s.startsWith("SCHEDULED") || s === "TBD") return "SCHEDULED";
+  // Live indicators from source sheet: "Q1 5:29", "Q2", "HALF", "HALFTIME",
+  // "OT 2:14", "END Q3", etc. — keep the raw string (trimmed, length-capped).
+  if (/^(Q[1-4]|END|HALF|OT|PRE|DELAY|LIVE|IN[ _]PROGRESS)/.test(s)) {
+    return s.slice(0, 32);
+  }
   return "SCHEDULED";
 }
 function lisbonWallClockToUtcIso(date: string, hhmm: string): string {
