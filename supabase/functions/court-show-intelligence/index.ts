@@ -221,6 +221,21 @@ Rules:
             const parsed = JSON.parse(call);
             headline = String(parsed.headline ?? headline);
             cards = (parsed.cards ?? []).slice(0, 4);
+            // Sanitize: only accept clean 2-4 letter UPPERCASE tricodes; otherwise
+            // drop the field so the UI doesn't render garbage like "MIN},{body:".
+            const cleanTri = (v: unknown): string | null => {
+              if (typeof v !== "string") return null;
+              const t = v.trim().toUpperCase();
+              return /^[A-Z]{2,4}$/.test(t) ? t : null;
+            };
+            cards = cards.map((c) => ({
+              ...c,
+              team: cleanTri(c.team),
+              away_team: cleanTri(c.away_team),
+              home_team: cleanTri(c.home_team),
+              headline: typeof c.headline === "string" ? c.headline.replace(/[{}]/g, "").slice(0, 120) : "",
+              body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 280) : "",
+            }));
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
