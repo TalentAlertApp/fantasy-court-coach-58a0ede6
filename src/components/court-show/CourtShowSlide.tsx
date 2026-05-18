@@ -244,6 +244,13 @@ const AI_KIND_META: Record<AIIndexKind, { label: string; icon: any; ring: string
   role_stability:  { label: "Role Stability",  icon: Brain,      ring: "border-orange-400/30",  chip: "text-orange-300",  glow: "from-orange-400/[0.06]" },
 };
 
+/** Accept only clean 2-4 letter tricodes; reject AI garbage like "MIN},{body:". */
+function cleanTricode(v?: string | null): string | null {
+  if (!v || typeof v !== "string") return null;
+  const t = v.trim().toUpperCase();
+  return /^[A-Z]{2,4}$/.test(t) ? t : null;
+}
+
 function AICardView({
   card,
   onPlayerClick,
@@ -255,7 +262,10 @@ function AICardView({
 }) {
   const meta = AI_KIND_META[card.kind] ?? AI_KIND_META.form_index;
   const Icon = meta.icon;
-  const hasGameTeams = !!(card.away_team && card.home_team);
+  const cleanTeam = cleanTricode(card.team);
+  const cleanAway = cleanTricode(card.away_team);
+  const cleanHome = cleanTricode(card.home_team);
+  const hasGameTeams = !!(cleanAway && cleanHome);
   return (
     <div className={cn(
       "group relative h-full flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
@@ -278,13 +288,13 @@ function AICardView({
       <div className="relative mt-auto pt-2.5 flex items-center gap-3 flex-wrap">
         {hasGameTeams && (
           <div className="flex items-center gap-2">
-            <InlineTeamMark tri={card.away_team!} side="left" onClick={onTeamClick} />
+            <InlineTeamMark tri={cleanAway!} side="left" onClick={onTeamClick} />
             <span className="text-white/30 text-[10px]">@</span>
-            <InlineTeamMark tri={card.home_team!} side="right" onClick={onTeamClick} />
+            <InlineTeamMark tri={cleanHome!} side="right" onClick={onTeamClick} />
           </div>
         )}
-        {!hasGameTeams && card.team && (
-          <InlineTeamMark tri={card.team} side="left" onClick={onTeamClick} />
+        {!hasGameTeams && cleanTeam && (
+          <InlineTeamMark tri={cleanTeam} side="left" onClick={onTeamClick} />
         )}
         {card.player_id && card.player_name && (
           <button
