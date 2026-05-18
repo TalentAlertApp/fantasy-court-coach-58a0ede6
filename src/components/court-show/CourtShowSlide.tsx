@@ -373,6 +373,7 @@ function RecapCard({
   const awayWon = g.winner === g.away_team;
   const awayLogo = getTeamLogo(g.away_team);
   const homeLogo = getTeamLogo(g.home_team);
+  const venue = getVenue(g.home_team);
   return (
     <button
       onClick={onGameClick}
@@ -409,6 +410,13 @@ function RecapCard({
           </a>
         )}
       </div>
+      {venue?.name && (
+        <div className="relative text-center mb-1">
+          <span className="text-[10px] uppercase tracking-[0.24em] text-white/45 font-heading font-bold italic truncate">
+            {venue.name}
+          </span>
+        </div>
+      )}
       <div className="relative flex items-center justify-center gap-3">
         <div className="flex items-baseline gap-2">
           <span className={cn("font-heading font-black text-sm tracking-wider", awayWon ? "text-white" : "text-white/55")}>{g.away_team}</span>
