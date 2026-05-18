@@ -458,8 +458,15 @@ async function syncSchedule(supabase: any, token: string): Promise<{ schedule_ga
       }
     }
 
-    const rawStatus = (row[9] || "").trim().toLowerCase();
-    const mappedStatus = (rawStatus === "finished" || rawStatus === "final") ? "FINAL" : "SCHEDULED";
+    const rawStatusUpper = (row[9] || "").trim().toUpperCase();
+    let mappedStatus: string;
+    if (rawStatusUpper.startsWith("FINAL") || rawStatusUpper === "FINISHED") {
+      mappedStatus = "FINAL";
+    } else if (/^(Q[1-4]|END|HALF|OT|PRE|DELAY|LIVE|IN[ _]PROGRESS)/.test(rawStatusUpper)) {
+      mappedStatus = rawStatusUpper.slice(0, 32);
+    } else {
+      mappedStatus = "SCHEDULED";
+    }
 
     scheduleGames.push({
       game_id: gameId,
