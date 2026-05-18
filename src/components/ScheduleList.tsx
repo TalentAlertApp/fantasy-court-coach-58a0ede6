@@ -945,7 +945,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               <div className="flex flex-col items-center gap-0.5 px-1">
                 <span className="text-[10px] text-muted-foreground font-heading font-bold">@</span>
                 {isLive ? (
-                  <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
+                  <>
+                    <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
+                    {getLiveStatusLabel(g.status) && (
+                      <span className="text-[9px] font-mono font-bold text-destructive/80 tracking-wide">
+                        {getLiveStatusLabel(g.status)}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <span className={`text-[10px] font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                     {g.status}
@@ -1050,7 +1057,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               <div className="flex flex-col items-center min-w-[80px]">
                 <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
                 {isLive ? (
-                  <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                  <>
+                    <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                    {getLiveStatusLabel(g.status) && (
+                      <span className="text-[10px] font-mono font-bold text-destructive/80 tracking-wide mt-0.5">
+                        {getLiveStatusLabel(g.status)}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                     {g.status}
@@ -1252,7 +1266,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   <div className="flex flex-col items-center min-w-[80px]">
                     <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
                     {isLive ? (
-                      <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                      <>
+                        <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                        {getLiveStatusLabel(g.status) && (
+                          <span className="text-[10px] font-mono font-bold text-destructive/80 tracking-wide mt-0.5">
+                            {getLiveStatusLabel(g.status)}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                         {g.status}
