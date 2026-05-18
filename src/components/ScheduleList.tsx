@@ -173,12 +173,21 @@ function formatTipoff(utc: string): string {
 function getStatusBorder(status: string): string {
   const s = status.toUpperCase();
   if (s.includes("FINAL")) return "border-l-green-500";
-  if (s === "LIVE" || s === "IN_PROGRESS") return "border-l-[hsl(var(--nba-yellow))]";
+  if (isLiveStatusString(s)) return "border-l-[hsl(var(--nba-yellow))]";
   return "border-l-transparent";
 }
 
 function isGameFinal(status: string) {
   return status.toUpperCase().includes("FINAL");
+}
+
+/** Any non-FINAL / non-SCHEDULED status from the source sheet (e.g. "Q1 5:29",
+ *  "HALF", "OT 2:14") indicates the game is in progress. */
+function isLiveStatusString(s: string): boolean {
+  const u = s.toUpperCase().trim();
+  if (!u) return false;
+  if (u === "LIVE" || u === "IN_PROGRESS") return true;
+  return /^(Q[1-4]|END|HALF|OT|DELAY)/.test(u);
 }
 
 /** Live window heuristic: server status does not flip to LIVE in real time,
@@ -187,12 +196,21 @@ function isGameFinal(status: string) {
 const LIVE_WINDOW_MS = 2.5 * 60 * 60 * 1000;
 function isGameLive(status: string, tipoff_utc?: string | null, nowMs: number = Date.now()) {
   const s = status.toUpperCase();
-  if (s === "LIVE" || s === "IN_PROGRESS") return true;
+  if (isLiveStatusString(s)) return true;
   if (s.includes("FINAL")) return false;
   if (!tipoff_utc) return false;
   const t = new Date(tipoff_utc).getTime();
   if (!Number.isFinite(t)) return false;
   return nowMs >= t && nowMs < t + LIVE_WINDOW_MS;
+}
+
+/** When the sheet provides a real live status ("Q1 5:29"), surface it next to
+ *  the LIVE badge so users see the actual game state. */
+function getLiveStatusLabel(status: string): string | null {
+  const u = (status ?? "").trim();
+  if (!u) return null;
+  if (/^FINAL/i.test(u) || /^SCHEDULED$/i.test(u) || /^LIVE$/i.test(u) || /^IN_PROGRESS$/i.test(u)) return null;
+  return u;
 }
 
 function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId }: {
@@ -927,7 +945,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               <div className="flex flex-col items-center gap-0.5 px-1">
                 <span className="text-[10px] text-muted-foreground font-heading font-bold">@</span>
                 {isLive ? (
-                  <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
+                  <>
+                    <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
+                    {getLiveStatusLabel(g.status) && (
+                      <span className="text-[9px] font-mono font-bold text-destructive/80 tracking-wide">
+                        {getLiveStatusLabel(g.status)}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <span className={`text-[10px] font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                     {g.status}
@@ -1032,7 +1057,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               <div className="flex flex-col items-center min-w-[80px]">
                 <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
                 {isLive ? (
-                  <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                  <>
+                    <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                    {getLiveStatusLabel(g.status) && (
+                      <span className="text-[10px] font-mono font-bold text-destructive/80 tracking-wide mt-0.5">
+                        {getLiveStatusLabel(g.status)}
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                     {g.status}
@@ -1234,7 +1266,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   <div className="flex flex-col items-center min-w-[80px]">
                     <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
                     {isLive ? (
-                      <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                      <>
+                        <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                        {getLiveStatusLabel(g.status) && (
+                          <span className="text-[10px] font-mono font-bold text-destructive/80 tracking-wide mt-0.5">
+                            {getLiveStatusLabel(g.status)}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                         {g.status}
