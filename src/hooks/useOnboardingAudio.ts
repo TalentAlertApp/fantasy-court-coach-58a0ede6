@@ -14,6 +14,23 @@ export function useOnboardingAudio(active: boolean) {
   const [enabled, setEnabled] = useState<boolean>(readPref);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Cross-screen / cross-tab persistence: react to other components toggling
+  // the same storage key (e.g. Welcome Back ↔ Onboarding share the bed).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY) return;
+      setEnabled(e.newValue === null ? true : e.newValue === "1");
+    };
+    const onCustom = () => setEnabled(readPref());
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("courtshow-audio-pref", onCustom as EventListener);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("courtshow-audio-pref", onCustom as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!active || !enabled) return;
@@ -56,6 +73,8 @@ export function useOnboardingAudio(active: boolean) {
     setEnabled((prev) => {
       const next = !prev;
       try { localStorage.setItem(STORAGE_KEY, next ? "1" : "0"); } catch {}
+      // Notify same-tab listeners (storage event only fires cross-tab).
+      try { window.dispatchEvent(new Event("courtshow-audio-pref")); } catch {}
       return next;
     });
   }, []);

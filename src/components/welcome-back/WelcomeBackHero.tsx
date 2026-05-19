@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy, ArrowRightCircle } from "lucide-react";
+import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy, ArrowRightCircle, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
@@ -13,6 +13,7 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
 import { getLastAdvancedTab, ADVANCED_TAB_LABEL } from "@/lib/advanced-tab-store";
+import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 
 interface Props {
   onEnter: () => void;
@@ -44,6 +45,7 @@ const WHATS_NEW = [
 export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
   const { user, signOut } = useAuth();
   const { teams, selectedTeamId } = useTeam();
+  const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);
   const lastTab = useMemo(() => getLastAdvancedTab(), []);
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 250 });
@@ -118,7 +120,17 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
               Fantasy
             </span>
           </div>
-          <TooltipProvider delayDuration={150}>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              title={audioEnabled ? "Mute" : "Unmute"}
+              aria-label={audioEnabled ? "Mute background music" : "Unmute background music"}
+              className="h-9 w-9 rounded-full flex items-center justify-center border border-border bg-card/70 backdrop-blur text-foreground/80 hover:text-foreground hover:bg-card transition-colors"
+            >
+              {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
+            <TooltipProvider delayDuration={150}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -133,7 +145,8 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
                 Sign out{user?.email ? ` · ${user.email}` : ""}
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
+            </TooltipProvider>
+          </div>
         </header>
 
         {/* Hero content */}

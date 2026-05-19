@@ -473,6 +473,32 @@ Deno.serve(async (req) => {
         return jsonError(400, "SPORT_MISMATCH", `Team is ${srcSport.toUpperCase()}, league is ${String(tgtLeague.sport).toUpperCase()}`);
       }
 
+      // Resolve a valid sport_league_id for the target. teams.sport_league_id is
+      // NOT NULL, and many user-created fantasy leagues were saved with a null
+      // sport_league_id. Look up the canonical sport league row by sport code.
+      let resolvedSportLeagueId: string | null =
+        (tgtLeague.sport_league_id as string | null) ?? (srcTeam.sport_league_id as string | null) ?? null;
+      if (!resolvedSportLeagueId) {
+        const { data: sportRow } = await sb
+          .from("leagues")
+          .select("id")
+          .eq("kind", "sport")
+          .eq("sport", tgtLeague.sport)
+          .maybeSingle();
+        resolvedSportLeagueId = (sportRow?.id as string | undefined) ?? null;
+      }
+      if (!resolvedSportLeagueId) {
+        return jsonError(
+          500,
+          "SPORT_LEAGUE_UNRESOLVED",
+          `Could not resolve a sport league for ${String(tgtLeague.sport).toUpperCase()}`,
+        );
+      }
+      // Persist back onto the target league so future attaches skip the lookup.
+      if (!tgtLeague.sport_league_id) {
+        await sb.from("leagues").update({ sport_league_id: resolvedSportLeagueId }).eq("id", targetLeagueId);
+      }
+
       // Capacity
       const { count: teamCount } = await sb
         .from("teams")
@@ -509,11 +535,14 @@ Deno.serve(async (req) => {
           description: srcTeam.description ?? null,
           owner_id: userId,
           league_id: targetLeagueId,
-          sport_league_id: tgtLeague.sport_league_id ?? srcTeam.sport_league_id ?? null,
+          sport_league_id: resolvedSportLeagueId,
         })
         .select("id, name")
         .single();
-      if (insErr || !newTeam) return jsonError(500, "INSERT_FAILED", "Failed to create team", insErr?.message ?? null);
+      if (insErr || !newTeam) {
+        console.error("[attach-team] INSERT_TEAM_FAILED", insErr);
+        return jsonError(500, "INSERT_TEAM_FAILED", "Failed to create team", insErr?.message ?? null);
+      }
 
       // Copy roster (current entries from source team) into the new team
       const { data: srcRoster } = await sb
@@ -527,10 +556,15 @@ Deno.serve(async (req) => {
           slot: r.slot,
           player_id: r.player_id,
           is_captain: r.is_captain,
-          gw: r.gw,
-          day: r.day,
+          gw: r.gw ?? 1,
+          day: r.day ?? 1,
         }));
-        await sb.from("roster").insert(rows);
+        const { error: rosterErr } = await sb.from("roster").insert(rows);
+        if (rosterErr) {
+          // Roster clone is best-effort — don't block the attach but surface
+          // the underlying error in logs so we can chase mismatches later.
+          console.error("[attach-team] roster clone failed (continuing)", rosterErr);
+        }
       }
 
       // Copy team_settings if present
@@ -540,7 +574,8 @@ Deno.serve(async (req) => {
         .eq("team_id", sourceTeamId)
         .maybeSingle();
       if (srcSettings) {
-        await sb.from("team_settings").insert({ team_id: newTeam.id, ...srcSettings });
+        const { error: tsErr } = await sb.from("team_settings").insert({ team_id: newTeam.id, ...srcSettings });
+        if (tsErr) console.error("[attach-team] team_settings clone failed", tsErr);
       }
 
       // Ensure league membership row exists
