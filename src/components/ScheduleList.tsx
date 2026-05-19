@@ -173,7 +173,7 @@ function formatTipoff(utc: string): string {
 function getStatusBorder(status: string): string {
   const s = status.toUpperCase();
   if (s.includes("FINAL")) return "border-l-green-500";
-  if (isLiveStatusString(s)) return "border-l-[hsl(var(--nba-yellow))]";
+  if (isLiveStatusString(s)) return "border-l-red-500";
   return "border-l-transparent";
 }
 
@@ -904,6 +904,8 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
       <div
         onClick={() => isExpandable && setExpandedId(isExpanded ? null : g.game_id)}
         className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} ${
+          isGameLive(g.status, g.tipoff_utc) ? "border-l-red-500 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-red-500 before:animate-pulse before:z-10" : ""
+        } ${
           compact ? "flex flex-col px-3 py-2.5 gap-2" : "flex items-center px-5 py-3"
         } ${isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""} ${
           isExpanded && !compact ? "rounded-b-none border-b-0" : ""
@@ -1225,7 +1227,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           >
             <CollapsibleTrigger asChild disabled={!isExpandable}>
               <div
-                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} flex flex-col px-5 py-3 ${
+                className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} ${
+                  isGameLive(g.status, g.tipoff_utc) ? "border-l-red-500 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-red-500 before:animate-pulse before:z-10" : ""
+                } flex flex-col px-5 py-3 ${
                   isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""
                 } ${isExpanded ? "rounded-b-none border-b-0" : ""}`}
               >

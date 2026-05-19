@@ -51,13 +51,16 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }: {
+function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, attachableTeam, onAttach, attaching }: {
   league: FantasyLeague;
   isMine: boolean;
   isMain: boolean;
   onOpen: () => void;
   onCreateTeam: () => void;
   onSettings: () => void;
+  attachableTeam?: { id: string; name: string } | null;
+  onAttach?: () => void;
+  attaching?: boolean;
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   const chips = league.chipRules;
@@ -150,6 +153,18 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }
           <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-8 w-8" aria-label="Create team" title="Create team">
             <UserPlus className="h-4 w-4" />
           </Button>
+          {attachableTeam && onAttach && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => { e.stopPropagation(); onAttach(); }}
+              disabled={attaching}
+              className="h-8 px-2 font-heading uppercase tracking-wider text-[9px]"
+              title={`Add "${attachableTeam.name}" to this league`}
+            >
+              <Plus className="h-3 w-3 mr-1" /> Add "{attachableTeam.name}"
+            </Button>
+          )}
           {isMine && !isMain && league.join_code && (
             <CopyCodeButton code={league.join_code} />
           )}
@@ -209,8 +224,43 @@ export default function LeaguesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fantasyLeagues, setSelectedLeagueId, isLoading } = useFantasyLeague();
-  const { teams: userTeams } = useTeam();
+  const { teams: userTeams, selectedTeamId } = useTeam();
   const qc = useQueryClient();
+  const [attachingLeagueId, setAttachingLeagueId] = useState<string | null>(null);
+  const activeSidebarTeam = useMemo(
+    () => (userTeams ?? []).find((t: any) => t.id === selectedTeamId) ?? null,
+    [userTeams, selectedTeamId],
+  );
+
+  async function handleAttach(league: FantasyLeague) {
+    if (!activeSidebarTeam) return;
+    setAttachingLeagueId(league.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
+        body: { league_id: league.id, team_id: activeSidebarTeam.id },
+      });
+      const env = data as { ok?: boolean; data?: any; error?: { message?: string } } | null;
+      if (error || !env?.ok) throw new Error(env?.error?.message ?? error?.message ?? "Failed to attach team");
+      toast.success(`Added "${activeSidebarTeam.name}" to ${league.name}`);
+      await qc.invalidateQueries({ queryKey: ["teams"] });
+      await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not attach team");
+    } finally {
+      setAttachingLeagueId(null);
+    }
+  }
+
+  function getAttachableTeamFor(league: FantasyLeague): { id: string; name: string } | null {
+    if (!activeSidebarTeam) return null;
+    if (isMainLeague(league.id)) return null;
+    if (!["draft", "active"].includes(league.status)) return null;
+    const sport = (activeSidebarTeam as any).league_code ?? "nba";
+    if (sport !== league.sport) return null;
+    if ((league.myTeamCount ?? 0) > 0) return null;
+    if ((activeSidebarTeam as any).league_id === league.id) return null;
+    return { id: activeSidebarTeam.id, name: activeSidebarTeam.name };
+  }
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
@@ -510,6 +560,9 @@ export default function LeaguesPage() {
                   onOpen={() => handleOpen(l.id)}
                   onCreateTeam={() => handleCreateTeam(l.id)}
                   onSettings={() => handleSettings(l.id)}
+                  attachableTeam={getAttachableTeamFor(l)}
+                  onAttach={() => handleAttach(l)}
+                  attaching={attachingLeagueId === l.id}
                 />
               ))}
             </div>
@@ -524,6 +577,9 @@ export default function LeaguesPage() {
                   onOpen={() => handleOpen(l.id)}
                   onCreateTeam={() => handleCreateTeam(l.id)}
                   onSettings={() => handleSettings(l.id)}
+                  attachableTeam={getAttachableTeamFor(l)}
+                  onAttach={() => handleAttach(l)}
+                  attaching={attachingLeagueId === l.id}
                 />
               ))}
             </div>
@@ -857,13 +913,16 @@ function PublicLeagueCard({
   );
 }
 
-function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }: {
+function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, attachableTeam, onAttach, attaching }: {
   league: FantasyLeague;
   isMine: boolean;
   isMain: boolean;
   onOpen: () => void;
   onCreateTeam: () => void;
   onSettings: () => void;
+  attachableTeam?: { id: string; name: string } | null;
+  onAttach?: () => void;
+  attaching?: boolean;
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   return (
@@ -910,6 +969,17 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
         <button type="button" onClick={onCreateTeam} className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Create team" title="Create team">
           <UserPlus className="h-3.5 w-3.5" />
         </button>
+        {attachableTeam && onAttach && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onAttach(); }}
+            disabled={attaching}
+            className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-card/60 text-[9px] font-heading uppercase tracking-wider text-foreground/90 hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-50"
+            title={`Add "${attachableTeam.name}" to this league`}
+          >
+            <Plus className="h-3 w-3" /> Add "{attachableTeam.name}"
+          </button>
+        )}
         {isMine && !isMain && league.join_code && (
           <CopyCodeButton code={league.join_code} compact />
         )}

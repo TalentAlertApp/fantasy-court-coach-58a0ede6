@@ -35,6 +35,9 @@ import AICoachModal from "@/components/AICoachModal";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 type SortCol = "gw" | "total_fp" | "best" | "worst" | "captain_bonus";
 type SortDir = "asc" | "desc";
@@ -59,6 +62,36 @@ export default function ScoringPage() {
 
   const standingsQuery = useLeagueStandings(selectedLeagueId);
   const historyQuery = useScoringHistory(selectedLeagueId);
+  const queryClient = useQueryClient();
+  const [attaching, setAttaching] = useState(false);
+
+  // Find a same-sport team the user owns elsewhere (to offer "Attach to league")
+  const sameSportOtherTeam = useMemo(() => {
+    const sport = selectedLeague?.sport ?? "nba";
+    return (userTeams ?? []).find((t: any) => (t.league_code ?? "nba") === sport) ?? null;
+  }, [userTeams, selectedLeague?.sport]);
+
+  async function attachExistingTeam(teamId: string) {
+    if (!selectedLeagueId) return;
+    setAttaching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
+        body: { league_id: selectedLeagueId, team_id: teamId },
+      });
+      const env = data as { ok?: boolean; data?: any; error?: { message?: string } } | null;
+      if (error || !env?.ok) throw new Error(env?.error?.message ?? error?.message ?? "Failed to attach team");
+      toast.success(`Team added to ${selectedLeague?.name ?? "league"}`);
+      await queryClient.invalidateQueries({ queryKey: ["teams"] });
+      await queryClient.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+      await queryClient.invalidateQueries({ queryKey: ["league-standings"] });
+      await queryClient.invalidateQueries({ queryKey: ["scoring-history"] });
+      if (env.data?.team_id) setSelectedTeamId(env.data.team_id);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not attach team");
+    } finally {
+      setAttaching(false);
+    }
+  }
   const [selectedDayIdx, setSelectedDayIdx] = useState<number | null>(null);
   const [teamModalTeam, setTeamModalTeam] = useState<string | null>(null);
   const [playerModalId, setPlayerModalId] = useState<number | null>(null);
@@ -225,13 +258,27 @@ export default function ScoringPage() {
               <p className="text-muted-foreground font-heading">
                 You don't have a team in {selectedLeague?.name ?? "this league"} yet.
               </p>
-              <Button
-                onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba", returnTo: "/scoring" } })}
-                size="sm"
-                className="rounded-xl"
-              >
-                Create a team in {selectedLeague?.sport === "wnba" ? "WNBA" : "NBA"}
-              </Button>
+              <div className="flex flex-col items-center gap-2">
+                {sameSportOtherTeam && (
+                  <Button
+                    onClick={() => attachExistingTeam(sameSportOtherTeam.id)}
+                    disabled={attaching}
+                    size="sm"
+                    className="rounded-xl"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add "{sameSportOtherTeam.name}" to {selectedLeague?.name ?? "this league"}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => navigate("/welcome", { state: { leagueId: selectedLeagueId, sport: selectedLeague?.sport ?? "nba", returnTo: "/scoring" } })}
+                  size="sm"
+                  variant={sameSportOtherTeam ? "outline" : "default"}
+                  className="rounded-xl"
+                >
+                  Create a new team in {selectedLeague?.sport === "wnba" ? "WNBA" : "NBA"}
+                </Button>
+              </div>
             </div>
           ) : (
             <YourTeamView
