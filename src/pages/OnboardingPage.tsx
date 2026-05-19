@@ -10,6 +10,8 @@ import OnboardingHero from "@/components/onboarding/OnboardingHero";
 import NameStep from "@/components/onboarding/NameStep";
 import DraftStep from "@/components/onboarding/DraftStep";
 import ChooseLeagueStep from "@/components/onboarding/ChooseLeagueStep";
+import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
+import { Volume2, VolumeX } from "lucide-react";
 import {
   getOnboardingState,
   setOnboardingState,
@@ -32,6 +34,7 @@ export default function OnboardingPage() {
   const { shouldOnboard, ready } = useFirstRunGate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);
 
   // Hydrate persisted onboarding state for this user (resume after refresh)
   const initial = useMemo(() => getOnboardingState(user?.id), [user?.id]);
@@ -194,6 +197,17 @@ export default function OnboardingPage() {
         }}
         aria-hidden
       />
+
+      {/* Audio toggle (shared with Court Show preference) */}
+      <button
+        type="button"
+        onClick={toggleAudio}
+        title={audioEnabled ? "Mute" : "Unmute"}
+        aria-label={audioEnabled ? "Mute background music" : "Unmute background music"}
+        className="absolute top-4 right-4 z-50 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur hover:bg-card text-foreground/80 hover:text-foreground transition-colors"
+      >
+        {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+      </button>
 
       {step === "hero" && (
         <OnboardingHero
