@@ -23,6 +23,7 @@ import { getBallersIQInsights } from "@/lib/ballers-iq";
 import BallersIQShareCardModal from "@/components/ballers-iq/share/BallersIQShareCardModal";
 import type { ShareCardContext } from "@/components/ballers-iq/share/formatBallersIQShareText";
 import { HealthStatusIcon, HealthDetailsModal } from "@/components/health";
+import NationalityFlag from "@/components/NationalityFlag";
 import { normalizePlayerHealth, getHealthLabel } from "@/lib/health";
 import { Share2 } from "lucide-react";
 
