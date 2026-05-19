@@ -261,26 +261,26 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
     .slice(0, 3);
 
   const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="relative rounded-xl border border-amber-400/25 bg-card/60 p-3 overflow-hidden">
-      <BallersIQBrand variant="emblem" forceTheme="light" transparent className="pointer-events-none absolute -top-3 -right-3 !h-20 !w-20 object-contain opacity-[0.14] rotate-12 select-none" />
-      <header className="flex items-center gap-2 mb-1.5 relative z-[1]">
+    <div className="relative rounded-xl border border-amber-400/25 bg-card/60 px-2.5 py-1.5 overflow-hidden">
+      <BallersIQBrand variant="emblem" forceTheme="light" transparent className="pointer-events-none absolute -top-3 -right-3 !h-16 !w-16 object-contain opacity-[0.14] rotate-12 select-none" />
+      <header className="flex items-center gap-1.5 mb-1 relative z-[1]">
         <BallersIQBrand variant="emblem" forceTheme="light" transparent size="sm" />
         <span className="text-[9px] font-heading font-bold uppercase tracking-[0.16em] text-amber-400/90">{title}</span>
       </header>
-      <div className="relative z-[1] space-y-1">{children}</div>
+      <div className="relative z-[1] space-y-0.5">{children}</div>
     </div>
   );
 
   return (
-    <section className="shrink-0 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.04] via-card to-card p-3 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.3)]">
+    <section className="shrink-0 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.04] via-card to-card p-2 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.3)]">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         <Card title="Outstanding teams">
           {outstanding.map((t) => {
             const logo = getTeamLogo(t.tricode);
             return (
-              <button key={t.tricode} onClick={() => onTeamClick(t.tricode)} className="group w-full flex items-center gap-2 text-left text-xs hover:text-amber-400 transition-colors">
+              <button key={t.tricode} onClick={() => onTeamClick(t.tricode)} className="group w-full flex items-center gap-2 text-left text-[11px] hover:text-amber-400 transition-colors">
                 {logo && (
-                  <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-3" />
+                  <img src={logo} alt="" className="h-5 w-5 object-contain shrink-0 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-3" />
                 )}
                 <span className="font-heading font-bold truncate">{getTeamByTricode(t.tricode)?.name ?? t.tricode}</span>
                 <span className="ml-auto text-muted-foreground shrink-0">{t.w}-{t.l} · {((t.pct ?? 0) * 100).toFixed(0)}%</span>
@@ -292,9 +292,9 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
           {watchList.length ? watchList.map((t) => {
             const logo = getTeamLogo(t.tricode);
             return (
-              <button key={t.tricode} onClick={() => onTeamClick(t.tricode)} className="group w-full flex items-center gap-2 text-left text-xs hover:text-amber-400 transition-colors">
+              <button key={t.tricode} onClick={() => onTeamClick(t.tricode)} className="group w-full flex items-center gap-2 text-left text-[11px] hover:text-amber-400 transition-colors">
                 {logo && (
-                  <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-3" />
+                  <img src={logo} alt="" className="h-5 w-5 object-contain shrink-0 transition-transform duration-300 group-hover:scale-125 group-hover:rotate-3" />
                 )}
                 <span className="font-heading font-bold truncate">{getTeamByTricode(t.tricode)?.name ?? t.tricode}</span>
                 <span className="ml-auto text-muted-foreground shrink-0">{t.w}-{t.l}</span>
@@ -309,20 +309,20 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
               <button
                 key={p.core.id}
                 onClick={() => setOpenPlayerId(p.core.id)}
-                className="group w-full flex items-center gap-2 text-left text-xs hover:text-amber-400 transition-colors"
+                className="group w-full flex items-center gap-2 text-left text-[11px] hover:text-amber-400 transition-colors"
               >
-                <div className="relative h-7 w-7 shrink-0">
+                <div className="relative h-6 w-6 shrink-0">
                   {logo && (
-                    <img src={logo} alt="" className="absolute -right-1 -bottom-1 h-4 w-4 object-contain opacity-90 z-[1]" />
+                    <img src={logo} alt="" className="absolute -right-1 -bottom-1 h-3.5 w-3.5 object-contain opacity-90 z-[1]" />
                   )}
                   {p.core.photo ? (
                     <img
                       src={p.core.photo}
                       alt=""
-                      className="h-7 w-7 rounded-full object-cover bg-muted ring-1 ring-amber-400/30 transition-transform duration-300 group-hover:scale-110"
+                      className="h-6 w-6 rounded-full object-cover bg-muted ring-1 ring-amber-400/30 transition-transform duration-300 group-hover:scale-110"
                     />
                   ) : (
-                    <div className="h-7 w-7 rounded-full bg-muted ring-1 ring-amber-400/30" />
+                    <div className="h-6 w-6 rounded-full bg-muted ring-1 ring-amber-400/30" />
                   )}
                 </div>
                 <span className="truncate font-medium">{p.core.name}</span>
