@@ -668,3 +668,18 @@
   );
   mix-blend-mode: screen;
 }
+
+/* Premium thin scrollbar used in horizontally-scrollable surfaces (e.g. Roster list). */
+.premium-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.35) transparent;
+}
+.premium-scroll::-webkit-scrollbar { height: 6px; }
+.premium-scroll::-webkit-scrollbar-track { background: transparent; }
+.premium-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.35);
+  border-radius: 9999px;
+}
+.premium-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.55);
+}
