@@ -432,6 +432,135 @@ Deno.serve(async (req) => {
       return okResponse({ ok: true });
     }
 
+    // ─────────────────────── ATTACH EXISTING TEAM TO LEAGUE (clone) ───────────────────────
+    if (action === "attach-team" && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const targetLeagueId = String(body?.league_id ?? "");
+      const sourceTeamId = String(body?.team_id ?? "");
+      if (!targetLeagueId || !sourceTeamId) {
+        return jsonError(400, "BAD_REQUEST", "league_id and team_id are required");
+      }
+
+      // Source team must be owned by caller
+      const { data: srcTeam, error: stErr } = await sb
+        .from("teams")
+        .select("id, name, description, owner_id, league_id, sport_league_id")
+        .eq("id", sourceTeamId)
+        .maybeSingle();
+      if (stErr || !srcTeam) return jsonError(404, "NOT_FOUND", "Source team not found");
+      if (srcTeam.owner_id !== userId) return jsonError(403, "FORBIDDEN", "You do not own this team");
+
+      // Source league (for sport)
+      const { data: srcLeague } = await sb
+        .from("leagues")
+        .select("id, sport")
+        .eq("id", srcTeam.league_id)
+        .maybeSingle();
+      const srcSport = srcLeague?.sport ?? "nba";
+
+      // Target league
+      const { data: tgtLeague, error: tlErr } = await sb
+        .from("leagues")
+        .select("id, name, sport, kind, status, visibility, max_teams, sport_league_id")
+        .eq("id", targetLeagueId)
+        .maybeSingle();
+      if (tlErr || !tgtLeague) return jsonError(404, "NOT_FOUND", "Target league not found");
+      if (tgtLeague.kind !== "fantasy") return jsonError(400, "NOT_FANTASY", "Target must be a fantasy league");
+      if (!["draft", "active"].includes(tgtLeague.status)) {
+        return jsonError(400, "INVALID_STATUS", "League is not accepting new teams");
+      }
+      if (tgtLeague.sport !== srcSport) {
+        return jsonError(400, "SPORT_MISMATCH", `Team is ${srcSport.toUpperCase()}, league is ${String(tgtLeague.sport).toUpperCase()}`);
+      }
+
+      // Capacity
+      const { count: teamCount } = await sb
+        .from("teams")
+        .select("id", { count: "exact", head: true })
+        .eq("league_id", targetLeagueId);
+      if ((teamCount ?? 0) >= (tgtLeague.max_teams ?? 20)) {
+        return jsonError(403, "FULL", "This league is full");
+      }
+
+      // Already has a team in target?
+      const { data: existingTeam } = await sb
+        .from("teams")
+        .select("id")
+        .eq("league_id", targetLeagueId)
+        .eq("owner_id", userId)
+        .maybeSingle();
+      if (existingTeam) return jsonError(409, "ALREADY_HAS_TEAM", "You already have a team in this league");
+
+      // Name collision → suffix
+      let cloneName = srcTeam.name;
+      const { data: nameClash } = await sb
+        .from("teams")
+        .select("id")
+        .eq("league_id", targetLeagueId)
+        .eq("name", cloneName)
+        .maybeSingle();
+      if (nameClash) cloneName = `${srcTeam.name} (2)`.slice(0, 40);
+
+      // Insert cloned team
+      const { data: newTeam, error: insErr } = await sb
+        .from("teams")
+        .insert({
+          name: cloneName,
+          description: srcTeam.description ?? null,
+          owner_id: userId,
+          league_id: targetLeagueId,
+          sport_league_id: tgtLeague.sport_league_id ?? srcTeam.sport_league_id ?? null,
+        })
+        .select("id, name")
+        .single();
+      if (insErr || !newTeam) return jsonError(500, "INSERT_FAILED", "Failed to create team", insErr?.message ?? null);
+
+      // Copy roster (current entries from source team) into the new team
+      const { data: srcRoster } = await sb
+        .from("roster")
+        .select("slot, player_id, is_captain, gw, day")
+        .eq("team_id", sourceTeamId);
+      if (srcRoster && srcRoster.length) {
+        const rows = srcRoster.map((r: any) => ({
+          team_id: newTeam.id,
+          league_id: targetLeagueId,
+          slot: r.slot,
+          player_id: r.player_id,
+          is_captain: r.is_captain,
+          gw: r.gw,
+          day: r.day,
+        }));
+        await sb.from("roster").insert(rows);
+      }
+
+      // Copy team_settings if present
+      const { data: srcSettings } = await sb
+        .from("team_settings")
+        .select("salary_cap, starter_fc_min, starter_bc_min")
+        .eq("team_id", sourceTeamId)
+        .maybeSingle();
+      if (srcSettings) {
+        await sb.from("team_settings").insert({ team_id: newTeam.id, ...srcSettings });
+      }
+
+      // Ensure league membership row exists
+      const { data: existingMember } = await sb
+        .from("league_members")
+        .select("id")
+        .eq("league_id", targetLeagueId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!existingMember) {
+        await sb.from("league_members").insert({
+          league_id: targetLeagueId,
+          user_id: userId,
+          role: "member",
+        });
+      }
+
+      return okResponse({ team_id: newTeam.id, team_name: newTeam.name, league_id: targetLeagueId, league_name: tgtLeague.name });
+    }
+
     return jsonError(404, "UNKNOWN_ACTION", `Unknown action: ${action || "(root)"} ${req.method}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
