@@ -450,13 +450,26 @@ Deno.serve(async (req) => {
       if (stErr || !srcTeam) return jsonError(404, "NOT_FOUND", "Source team not found");
       if (srcTeam.owner_id !== userId) return jsonError(403, "FORBIDDEN", "You do not own this team");
 
-      // Source league (for sport)
-      const { data: srcLeague } = await sb
-        .from("leagues")
-        .select("id, sport")
-        .eq("id", srcTeam.league_id)
-        .maybeSingle();
-      const srcSport = srcLeague?.sport ?? "nba";
+      // Source sport — derive from the team's sport_league_id (authoritative),
+      // falling back to its league_id only if sport_league_id is missing. The
+      // fantasy league_id can point to a different sport than the team in
+      // legacy rows, so trusting it here causes false SPORT_MISMATCH errors.
+      let srcSport: string = "nba";
+      if (srcTeam.sport_league_id) {
+        const { data: sportRow } = await sb
+          .from("leagues")
+          .select("sport")
+          .eq("id", srcTeam.sport_league_id)
+          .maybeSingle();
+        if (sportRow?.sport) srcSport = sportRow.sport;
+      } else if (srcTeam.league_id) {
+        const { data: srcLeague } = await sb
+          .from("leagues")
+          .select("sport")
+          .eq("id", srcTeam.league_id)
+          .maybeSingle();
+        if (srcLeague?.sport) srcSport = srcLeague.sport;
+      }
 
       // Target league
       const { data: tgtLeague, error: tlErr } = await sb
