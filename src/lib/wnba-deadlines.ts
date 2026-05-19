@@ -26,7 +26,7 @@ export const WNBA_DEADLINES: WnbaDeadlineEntry[] = [
   { gw: 2, day: 4, date: "2026-05-16", dayName: "Saturday", deadline_local: "00:00", deadline_utc: "2026-05-15T23:00:00Z" },
   { gw: 2, day: 5, date: "2026-05-17", dayName: "Sunday", deadline_local: "18:00", deadline_utc: "2026-05-17T17:00:00Z" },
   // GW3
-  { gw: 3, day: 1, date: "2026-05-19", dayName: "Tuesday", deadline_local: "00:30", deadline_utc: "2026-05-18T23:30:00Z" },
+  { gw: 3, day: 1, date: "2026-05-18", dayName: "Monday", deadline_local: "00:30", deadline_utc: "2026-05-18T23:30:00Z" },
   { gw: 3, day: 2, date: "2026-05-19", dayName: "Tuesday", deadline_local: "02:30", deadline_utc: "2026-05-20T01:30:00Z" },
   { gw: 3, day: 3, date: "2026-05-20", dayName: "Wednesday", deadline_local: "23:30", deadline_utc: "2026-05-20T22:30:00Z" },
   { gw: 3, day: 4, date: "2026-05-22", dayName: "Friday", deadline_local: "00:30", deadline_utc: "2026-05-21T23:30:00Z" },
