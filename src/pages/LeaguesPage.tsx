@@ -224,8 +224,43 @@ export default function LeaguesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { fantasyLeagues, setSelectedLeagueId, isLoading } = useFantasyLeague();
-  const { teams: userTeams } = useTeam();
+  const { teams: userTeams, selectedTeamId } = useTeam();
   const qc = useQueryClient();
+  const [attachingLeagueId, setAttachingLeagueId] = useState<string | null>(null);
+  const activeSidebarTeam = useMemo(
+    () => (userTeams ?? []).find((t: any) => t.id === selectedTeamId) ?? null,
+    [userTeams, selectedTeamId],
+  );
+
+  async function handleAttach(league: FantasyLeague) {
+    if (!activeSidebarTeam) return;
+    setAttachingLeagueId(league.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
+        body: { league_id: league.id, team_id: activeSidebarTeam.id },
+      });
+      const env = data as { ok?: boolean; data?: any; error?: { message?: string } } | null;
+      if (error || !env?.ok) throw new Error(env?.error?.message ?? error?.message ?? "Failed to attach team");
+      toast.success(`Added "${activeSidebarTeam.name}" to ${league.name}`);
+      await qc.invalidateQueries({ queryKey: ["teams"] });
+      await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not attach team");
+    } finally {
+      setAttachingLeagueId(null);
+    }
+  }
+
+  function getAttachableTeamFor(league: FantasyLeague): { id: string; name: string } | null {
+    if (!activeSidebarTeam) return null;
+    if (isMainLeague(league.id)) return null;
+    if (!["draft", "active"].includes(league.status)) return null;
+    const sport = (activeSidebarTeam as any).league_code ?? "nba";
+    if (sport !== league.sport) return null;
+    if ((league.myTeamCount ?? 0) > 0) return null;
+    if ((activeSidebarTeam as any).league_id === league.id) return null;
+    return { id: activeSidebarTeam.id, name: activeSidebarTeam.name };
+  }
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
@@ -525,6 +560,9 @@ export default function LeaguesPage() {
                   onOpen={() => handleOpen(l.id)}
                   onCreateTeam={() => handleCreateTeam(l.id)}
                   onSettings={() => handleSettings(l.id)}
+                  attachableTeam={getAttachableTeamFor(l)}
+                  onAttach={() => handleAttach(l)}
+                  attaching={attachingLeagueId === l.id}
                 />
               ))}
             </div>
@@ -539,6 +577,9 @@ export default function LeaguesPage() {
                   onOpen={() => handleOpen(l.id)}
                   onCreateTeam={() => handleCreateTeam(l.id)}
                   onSettings={() => handleSettings(l.id)}
+                  attachableTeam={getAttachableTeamFor(l)}
+                  onAttach={() => handleAttach(l)}
+                  attaching={attachingLeagueId === l.id}
                 />
               ))}
             </div>
