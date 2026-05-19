@@ -27,8 +27,11 @@ const MIN_WEEK = 1;
 function buildWeekDayToDate(deadlines: Deadline[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const d of deadlines) {
-    const dt = new Date(d.deadline_utc);
-    const dateStr = dt.toISOString().slice(0, 10);
+    // Prefer the entry's authored `date` (Lisbon gameday) when present —
+    // some deadlines fall post-midnight Lisbon (e.g. WNBA late tips) and
+    // would otherwise display the wrong calendar day if derived from UTC.
+    const authored = (d as unknown as { date?: string }).date;
+    const dateStr = authored ?? new Date(d.deadline_utc).toISOString().slice(0, 10);
     map[`${d.gw}-${d.day}`] = dateStr;
   }
   return map;
