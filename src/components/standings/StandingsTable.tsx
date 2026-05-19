@@ -62,14 +62,14 @@ export default function StandingsTable({ rows, title, showCutoffs = false, compa
       {title && <h3 className="text-sm font-heading font-bold uppercase mb-2 text-muted-foreground">{title}</h3>}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-xs">
-          <thead className="bg-muted/60 sticky top-0 z-10">
+          <thead>
             <tr>
               {COLS.map((c, i) => (
                 <th
                   key={i}
                   onClick={() => handleSort(c.key)}
                   className={cn(
-                    "px-2 py-2 font-heading uppercase text-[10px] text-muted-foreground whitespace-nowrap",
+                    "sticky top-0 z-20 bg-muted px-2 py-2 font-heading uppercase text-[10px] text-muted-foreground whitespace-nowrap border-b border-border",
                     c.className,
                     c.key && "cursor-pointer hover:text-foreground",
                     sortKey === c.key && "text-foreground font-bold"
