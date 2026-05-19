@@ -13,6 +13,7 @@ import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { PlayerListItemSchema } from "@/lib/contracts";
+import { playSfx } from "@/hooks/useSfx";
 
 type Strategy = "auto" | "manual" | "ai";
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -58,6 +59,7 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
 
   const handoff = async () => {
     setSuccess(true);
+    try { playSfx("swoosh-onboarding"); } catch {}
     if (selectedTeamId) {
       await queryClient.invalidateQueries({ queryKey: ["roster-current", selectedTeamId] });
     }
