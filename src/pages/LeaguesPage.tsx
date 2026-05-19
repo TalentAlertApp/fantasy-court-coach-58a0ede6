@@ -51,13 +51,16 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }: {
+function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, attachableTeam, onAttach, attaching }: {
   league: FantasyLeague;
   isMine: boolean;
   isMain: boolean;
   onOpen: () => void;
   onCreateTeam: () => void;
   onSettings: () => void;
+  attachableTeam?: { id: string; name: string } | null;
+  onAttach?: () => void;
+  attaching?: boolean;
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   const chips = league.chipRules;
@@ -150,6 +153,18 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }
           <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-8 w-8" aria-label="Create team" title="Create team">
             <UserPlus className="h-4 w-4" />
           </Button>
+          {attachableTeam && onAttach && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => { e.stopPropagation(); onAttach(); }}
+              disabled={attaching}
+              className="h-8 px-2 font-heading uppercase tracking-wider text-[9px]"
+              title={`Add "${attachableTeam.name}" to this league`}
+            >
+              <Plus className="h-3 w-3 mr-1" /> Add "{attachableTeam.name}"
+            </Button>
+          )}
           {isMine && !isMain && league.join_code && (
             <CopyCodeButton code={league.join_code} />
           )}
