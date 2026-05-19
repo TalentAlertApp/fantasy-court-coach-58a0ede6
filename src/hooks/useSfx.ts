@@ -1,11 +1,13 @@
 import { useCallback } from "react";
 import swooshUrl from "@/assets/audio/swoosh.wav";
+import swooshOnboardingUrl from "@/assets/audio/swoosh-onboarding.wav";
 import lineupUrl from "@/assets/audio/lineup.wav";
 
-export type SfxKind = "swoosh" | "lineup" | "buzzer";
+export type SfxKind = "swoosh" | "swoosh-onboarding" | "lineup" | "buzzer";
 
 const URLS: Record<SfxKind, string> = {
   swoosh: swooshUrl,
+  "swoosh-onboarding": swooshOnboardingUrl,
   lineup: lineupUrl,
   // buzzer cue removed per product decision; kept type for backwards compat (no-op).
   buzzer: "",
