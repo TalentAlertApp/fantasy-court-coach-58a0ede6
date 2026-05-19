@@ -142,6 +142,7 @@ Deno.serve(async (req: Request) => {
         dob: playerRow.dob,
         exp: playerRow.exp,
         college: playerRow.college,
+        nationality: playerRow.nationality ?? null,
       },
       season: {
         gp,

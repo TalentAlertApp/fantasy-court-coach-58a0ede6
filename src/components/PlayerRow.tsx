@@ -14,6 +14,8 @@ import { normalizePlayerHealth } from "@/lib/health";
 import HealthStatusIcon from "@/components/health/HealthStatusIcon";
 import HealthTooltip from "@/components/health/HealthTooltip";
 import React from "react";
+import NationalityFlag from "@/components/NationalityFlag";
+import { countryLabel } from "@/lib/nationality";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -149,6 +151,14 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
       <TableCell className="text-center w-16 text-xs text-muted-foreground">{core.height ?? "—"}</TableCell>
       <TableCell className="w-44 text-xs text-muted-foreground whitespace-nowrap" title={core.college ?? undefined}>
         {core.college ?? "—"}
+      </TableCell>
+      <TableCell className="w-28 text-xs text-muted-foreground whitespace-nowrap" title={countryLabel(core.nationality) ?? undefined}>
+        {core.nationality ? (
+          <span className="inline-flex items-center gap-1.5">
+            <NationalityFlag country={core.nationality} size="xs" />
+            <span className="truncate">{countryLabel(core.nationality)}</span>
+          </span>
+        ) : "—"}
       </TableCell>
       <TableCell className="text-center w-20">
         <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-lg">

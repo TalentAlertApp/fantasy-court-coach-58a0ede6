@@ -28,6 +28,7 @@ function compactPlayerPack(p: BIQPlayer, upcoming: BIQGame[], diff: Record<strin
     team: p.team,
     fc_bc: p.fc_bc,
     salary: p.salary,
+    bio: p.nationality ? { nationality: p.nationality } : undefined,
     biq_rating: pack.biqRating.score,
     biq_label: pack.biqRating.label,
     captain_edge: pack.captainEdge.score,

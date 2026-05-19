@@ -584,6 +584,7 @@ export type Database = {
           mpg: number
           mpg5: number
           name: string
+          nationality: string | null
           nba_url: string | null
           note: string | null
           oreb: number | null
@@ -646,6 +647,7 @@ export type Database = {
           mpg?: number
           mpg5?: number
           name: string
+          nationality?: string | null
           nba_url?: string | null
           note?: string | null
           oreb?: number | null
@@ -708,6 +710,7 @@ export type Database = {
           mpg?: number
           mpg5?: number
           name?: string
+          nationality?: string | null
           nba_url?: string | null
           note?: string | null
           oreb?: number | null

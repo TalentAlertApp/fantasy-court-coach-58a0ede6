@@ -141,6 +141,8 @@ export interface BIQPlayer {
   delta_fp?: number | null;
   delta_mpg?: number | null;
   injury?: string | null;
+  /** WNBA-only biographical addon — never factors into rating/verdict. */
+  nationality?: string | null;
 }
 
 export interface BIQRosterSlot {

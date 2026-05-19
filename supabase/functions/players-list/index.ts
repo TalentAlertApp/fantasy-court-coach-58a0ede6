@@ -157,7 +157,7 @@ serve(async (req: Request) => {
       const value5 = salary > 0 ? fp5 / salary : 0;
 
       return {
-        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null, weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0, dob: p.dob || null, exp: p.exp || 0, college: p.college || null },
+        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null, weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0, dob: p.dob || null, exp: p.exp || 0, college: p.college || null, nationality: p.nationality || null },
         season: { gp, mpg, pts, reb, ast, stl, blk, fp,
           total_mp: s ? s.total_mp : 0, total_pts: s ? s.total_pts : 0,
           total_reb: s ? s.total_reb : 0, total_ast: s ? s.total_ast : 0,

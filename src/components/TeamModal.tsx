@@ -18,6 +18,7 @@ import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailMod
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import NationalityFlag from "@/components/NationalityFlag";
 
 interface TeamModalProps {
   tricode: string | null;
@@ -62,7 +63,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
     queryFn: async () => {
       let pq = supabase
         .from("players")
-        .select("id, name, photo, fc_bc, salary")
+        .select("id, name, photo, fc_bc, salary, nationality")
         .eq("team", tricode!);
       if (leagueId) pq = pq.eq("league_id", leagueId);
       const { data: teamPlayers, error: pErr } = await pq;
@@ -392,7 +393,10 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
                         </Avatar>
                         <Badge variant={p.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-0.5 py-0 rounded-lg">{p.fc_bc}</Badge>
-                        <span className="text-xs font-medium flex-1 truncate">{p.name}</span>
+                        <span className="text-xs font-medium flex-1 truncate inline-flex items-center gap-1.5">
+                          <span className="truncate">{p.name}</span>
+                          {(p as any).nationality && <NationalityFlag country={(p as any).nationality} size="xs" />}
+                        </span>
                         <span className="w-12 text-right text-xs font-mono text-muted-foreground">{p.mpg.toFixed(1)}</span>
                         <span className="w-12 text-right text-xs font-mono">{p.ppg.toFixed(1)}</span>
                         <span className="w-12 text-right text-xs font-mono font-bold">{p.fpg.toFixed(1)}</span>

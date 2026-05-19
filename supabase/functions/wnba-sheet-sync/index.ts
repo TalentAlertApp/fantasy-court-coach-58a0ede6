@@ -210,8 +210,8 @@ async function getWnbaLeagueId(sb: ReturnType<typeof makeSb>): Promise<string> {
 async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueId: string) {
   // DB_Players: A URL, B ID, C PHOTO, D NAME, E TEAM, F FC_BC,
   //             G $ (IGNORED), H # jersey, I COLLEGE, J WEIGHT, K HEIGHT,
-  //             L AGE, M DOB, N EXP, O POS
-  const rows = await fetchTab("DB_Players", "A1:O5000", token);
+  //             L AGE, M DOB, N EXP, O POS, P NAT (nationality, WNBA only)
+  const rows = await fetchTab("DB_Players", "A1:P5000", token);
   const header = (rows[0] ?? []).map((s) => String(s).trim().toUpperCase());
   if (header[1] !== "ID" || header[3] !== "NAME") {
     throw new Error(`DB_Players HEADER_MISMATCH (got: ${header.slice(0, 6).join("|")})`);
@@ -242,6 +242,10 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
       const age = sheetAge > 0 ? sheetAge : calcAge(dob);
       let name = String(r[3] ?? "").trim();
       if (/\?/.test(name) && existingName.get(id)) name = existingName.get(id)!;
+      const rawNat = nullable(r[15]);
+      const nationality = rawNat
+        ? (rawNat.trim().toUpperCase() === "USA" ? "United States" : rawNat.trim())
+        : null;
       return {
         id,
         league_id: leagueId,
@@ -262,6 +266,7 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
         dob,
         exp: intOrZero(r[13]),
         pos: nullable(r[14]),
+        nationality,
         updated_at: new Date().toISOString(),
       };
     }).filter((r): r is NonNullable<typeof r> => r !== null);
