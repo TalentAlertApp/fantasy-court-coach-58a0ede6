@@ -103,15 +103,19 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       />
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">STARTING 5</div>
-        <Table>{header}
-          <TableBody>{starters.map(renderRow)}</TableBody>
-        </Table>
+        <div className="overflow-x-auto premium-scroll">
+          <Table className="min-w-[1080px]">{header}
+            <TableBody>{starters.map(renderRow)}</TableBody>
+          </Table>
+        </div>
       </div>
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">BENCH</div>
-        <Table>{header}
-          <TableBody>{bench.map(renderRow)}</TableBody>
-        </Table>
+        <div className="overflow-x-auto premium-scroll">
+          <Table className="min-w-[1080px]">{header}
+            <TableBody>{bench.map(renderRow)}</TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );
