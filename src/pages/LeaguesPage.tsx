@@ -252,14 +252,18 @@ export default function LeaguesPage() {
   }
 
   function getAttachableTeamFor(league: FantasyLeague): { id: string; name: string } | null {
-    if (!activeSidebarTeam) return null;
     if (isMainLeague(league.id)) return null;
     if (!["draft", "active"].includes(league.status)) return null;
-    const sport = (activeSidebarTeam as any).league_code ?? "nba";
-    if (sport !== league.sport) return null;
     if ((league.myTeamCount ?? 0) > 0) return null;
-    if ((activeSidebarTeam as any).league_id === league.id) return null;
-    return { id: activeSidebarTeam.id, name: activeSidebarTeam.name };
+    // Pick a user-owned team whose sport matches the target league.
+    // Prefer the currently-active sidebar team, fall back to any same-sport team.
+    const matches = (userTeams ?? []).filter(
+      (t: any) => ((t.league_code ?? "nba") === league.sport) && t.league_id !== league.id,
+    );
+    if (matches.length === 0) return null;
+    const preferred =
+      matches.find((t: any) => t.id === activeSidebarTeam?.id) ?? matches[0];
+    return { id: preferred.id, name: preferred.name };
   }
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
