@@ -872,13 +872,16 @@ function PublicLeagueCard({
   );
 }
 
-function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings }: {
+function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, attachableTeam, onAttach, attaching }: {
   league: FantasyLeague;
   isMine: boolean;
   isMain: boolean;
   onOpen: () => void;
   onCreateTeam: () => void;
   onSettings: () => void;
+  attachableTeam?: { id: string; name: string } | null;
+  onAttach?: () => void;
+  attaching?: boolean;
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
   return (
@@ -925,6 +928,17 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
         <button type="button" onClick={onCreateTeam} className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Create team" title="Create team">
           <UserPlus className="h-3.5 w-3.5" />
         </button>
+        {attachableTeam && onAttach && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onAttach(); }}
+            disabled={attaching}
+            className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-card/60 text-[9px] font-heading uppercase tracking-wider text-foreground/90 hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-50"
+            title={`Add "${attachableTeam.name}" to this league`}
+          >
+            <Plus className="h-3 w-3" /> Add "{attachableTeam.name}"
+          </button>
+        )}
         {isMine && !isMain && league.join_code && (
           <CopyCodeButton code={league.join_code} compact />
         )}
