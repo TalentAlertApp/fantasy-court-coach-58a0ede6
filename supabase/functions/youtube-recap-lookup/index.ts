@@ -65,6 +65,13 @@ serve(async (req: Request) => {
     const replaceMode = url.searchParams.get("replace") === "1";
     const targetGameId = url.searchParams.get("game_id");
     const idsParam = url.searchParams.get("ids");
+    // Audit mode: re-fetch every recap for a specific gw/day (per-game replace).
+    // Use this to repair gamedays where stale recaps were written by the older
+    // looser scorer. Never touches games outside the requested gw/day.
+    const mode = url.searchParams.get("mode");
+    const auditGw = url.searchParams.get("gw");
+    const auditDay = url.searchParams.get("day");
+    const auditLeague = (url.searchParams.get("league") || "").toLowerCase();
     const idsList = idsParam ? idsParam.split(",").map(s => s.trim()).filter(Boolean).slice(0, 100) : null;
     const limit = Math.min(parseInt(limitParam || "50"), 100); // max 100 per invocation
     // League filter: nba | wnba | both (default both). Scopes the candidate set
@@ -83,6 +90,24 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // ───────── audit mode: expand gw/day into an ids list, force replace ─────────
+    let auditIdsList: string[] | null = null;
+    if (mode === "audit" && auditGw && auditDay) {
+      let aq = supabase
+        .from("schedule_games")
+        .select("game_id, league_id")
+        .eq("gw", parseInt(auditGw))
+        .eq("day", parseInt(auditDay))
+        .eq("status", "FINAL");
+      if (auditLeague === "nba" || auditLeague === "wnba") {
+        const { data: lgs } = await supabase.from("leagues").select("id").eq("code", auditLeague);
+        const ids = (lgs ?? []).map((l: any) => l.id);
+        if (ids.length) aq = aq.in("league_id", ids);
+      }
+      const { data: auditGames } = await aq;
+      auditIdsList = (auditGames ?? []).map((g: any) => g.game_id);
+    }
 
     // Resolve league_id list when scoped. We map by leagues.code so we don't
     // hard-code uuids.
@@ -108,10 +133,12 @@ serve(async (req: Request) => {
       .from("schedule_games")
       .select("game_id, away_team, home_team, tipoff_utc, league_id, youtube_recap_id")
       .eq("status", "FINAL");
+    const effectiveIdsList = auditIdsList ?? idsList;
+    const forceReplace = replaceMode || auditIdsList !== null;
     if (targetGameId) {
       q = q.eq("game_id", targetGameId);
-    } else if (idsList && idsList.length > 0) {
-      q = q.in("game_id", idsList);
+    } else if (effectiveIdsList && effectiveIdsList.length > 0) {
+      q = q.in("game_id", effectiveIdsList);
     } else {
       if (!replaceMode) q = q.is("youtube_recap_id", null);
       if (allowedLeagueIds) q = q.in("league_id", allowedLeagueIds);
@@ -135,6 +162,39 @@ serve(async (req: Request) => {
         .select("id, code")
         .in("id", uniqueLeagueIds);
       for (const l of lgs ?? []) leagueCodeById.set(l.id as string, (l.code as string)?.toLowerCase());
+    }
+
+    // Build a per-(league_id, date) "other teams playing tonight" set so we can
+    // hard-reject YouTube titles that mention a 3rd team (e.g. "lakers vs
+    // pacers" on a LAL@DEN slate).
+    const sameNightTeamCities = new Map<string, Set<string>>();
+    {
+      const dateKeys = new Map<string, { league_id: string; date: string }>();
+      for (const g of games) {
+        const t = (g as any).tipoff_utc ? new Date((g as any).tipoff_utc) : null;
+        if (!t) continue;
+        const d = t.toISOString().slice(0, 10);
+        const key = `${(g as any).league_id}|${d}`;
+        if (!dateKeys.has(key)) dateKeys.set(key, { league_id: (g as any).league_id, date: d });
+      }
+      for (const [key, { league_id, date }] of dateKeys) {
+        const start = new Date(date + "T00:00:00Z");
+        const end = new Date(start.getTime() + 36 * 3600_000);
+        const { data: nightGames } = await supabase
+          .from("schedule_games")
+          .select("away_team, home_team")
+          .eq("league_id", league_id)
+          .gte("tipoff_utc", new Date(start.getTime() - 12 * 3600_000).toISOString())
+          .lte("tipoff_utc", end.toISOString());
+        const leagueCode = leagueCodeById.get(league_id) ?? "nba";
+        const cityMap = leagueCode === "wnba" ? WNBA_TEAM_CITY : TEAM_CITY;
+        const set = new Set<string>();
+        for (const ng of nightGames ?? []) {
+          const a = cityMap[(ng as any).away_team]; if (a) set.add(a);
+          const h = cityMap[(ng as any).home_team]; if (h) set.add(h);
+        }
+        sameNightTeamCities.set(key, set);
+      }
     }
 
     let found = 0;
@@ -202,14 +262,29 @@ serve(async (req: Request) => {
         let items: any[] = ytData?.items ?? [];
         const awayCity = cityMap[game.away_team] ?? game.away_team.toLowerCase();
         const homeCity = cityMap[game.home_team] ?? game.home_team.toLowerCase();
+        const tipoffDay = tipoff ? tipoff.toISOString().slice(0, 10) : "";
+        const nightKey = `${(game as any).league_id}|${tipoffDay}`;
+        const otherCities = sameNightTeamCities.get(nightKey) ?? new Set<string>();
         const scoreItems = (arr: any[], minScore: number): { id: string | null; score: number } => {
           let best: any = null;
           let bestScore = -1;
           for (const item of arr) {
             const title = (item?.snippet?.title ?? "").toLowerCase();
-            let score = 0;
-            if (title.includes(awayCity)) score += 2;
-            if (title.includes(homeCity)) score += 2;
+            const hasAway = title.includes(awayCity);
+            const hasHome = title.includes(homeCity);
+            // HARD REQUIREMENT: title must mention BOTH teams. Single-team
+            // matches were the root cause of cross-game pollution (e.g.
+            // "Lakers vs Pacers" leaking onto LAL@DEN).
+            if (!hasAway || !hasHome) continue;
+            // HARD REJECT: title mentions a different team that's playing the
+            // same night in the same league.
+            let mentionsOther = false;
+            for (const c of otherCities) {
+              if (c === awayCity || c === homeCity) continue;
+              if (title.includes(c)) { mentionsOther = true; break; }
+            }
+            if (mentionsOther) continue;
+            let score = 4; // both teams confirmed
             if (title.includes("full game")) score += 2;
             if (title.includes("highlights")) score += 1;
             if (longDate && title.includes(longDate)) score += 3;
@@ -222,7 +297,7 @@ serve(async (req: Request) => {
         // Primary: channel-scoped — both teams + highlights + date strongly preferred.
         // WNBA titles often omit "Full Game", so accept a slightly lower minScore.
         // Relaxed mode lowers thresholds further so manual refreshes catch late posts.
-        const primaryMin = relaxed ? (isWnba ? 2 : 3) : (isWnba ? 4 : 5);
+        const primaryMin = relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6);
         let { id: videoId } = scoreItems(items, primaryMin);
 
         // Fallback: open YouTube search if channel-scoped lookup found no confident match.
@@ -235,7 +310,7 @@ serve(async (req: Request) => {
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
-            videoId = scoreItems(fbItems, relaxed ? (isWnba ? 2 : 3) : (isWnba ? 4 : 5)).id;
+            videoId = scoreItems(fbItems, isWnba ? 5 : 6).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             quotaExhausted = true;
@@ -255,6 +330,14 @@ serve(async (req: Request) => {
             found++;
             bucket.found += 1;
           }
+        } else if (forceReplace && game.youtube_recap_id) {
+          // Audit / replace mode: if the old recap can no longer be confidently
+          // matched, clear it so the UI stops showing a wrong video. A later
+          // pass (or the next nightly run) will try again.
+          await supabase
+            .from("schedule_games")
+            .update({ youtube_recap_id: null })
+            .eq("game_id", game.game_id);
         }
         // In replace mode, if we explicitly want to drop a stale id even when
         // YouTube returns nothing, we keep the existing recap intact. This is
