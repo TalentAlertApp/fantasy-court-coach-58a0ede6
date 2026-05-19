@@ -85,6 +85,7 @@ export const PlayerCoreSchema = z
     dob: NullableIsoDateSchema,
     exp: IntSchema,
     college: z.string().nullable(),
+    nationality: z.string().nullable().optional(),
   })
   .strict();
 
