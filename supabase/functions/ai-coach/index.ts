@@ -159,6 +159,9 @@ function buildPlayerSummary(players: any[], rosterPlayerIds: Set<number>) {
     plus_minus: p.plus_minus ?? null,
     height: p.height ?? null,
     college: p.college ?? null,
+    // WNBA-only biographical addon. Surface in summary text only; NEVER
+    // factor into biq_rating, verdict, or any score.
+    nationality: p.nationality ?? null,
     // Real NBA contract metadata — narrative flavor only, NOT used by Fantasy.
     real_guaranteed_yearly_salary: p.guaranteed_yearly_salary ?? null,
     real_total_contract_value: p.total_contract_value ?? null,
