@@ -1,4 +1,4 @@
-import { flagEmoji, countryLabel } from "@/lib/nationality";
+import { isoCode, countryLabel } from "@/lib/nationality";
 
 interface Props {
   country: string | null | undefined;
@@ -8,25 +8,27 @@ interface Props {
 }
 
 const SIZES: Record<NonNullable<Props["size"]>, string> = {
-  xs: "w-4 h-4 text-[10px]",
-  sm: "w-5 h-5 text-xs",
-  md: "w-6 h-6 text-sm",
+  xs: "w-4 h-4",
+  sm: "w-5 h-5",
+  md: "w-6 h-6",
 };
 
-/** Round flag badge backed by unicode regional-indicator emojis. */
+/** Round flag badge backed by flagcdn.com SVG/PNG images. */
 export default function NationalityFlag({ country, size = "sm", showLabel = false, className = "" }: Props) {
-  const flag = flagEmoji(country);
+  const iso = isoCode(country);
   const label = countryLabel(country);
-  if (!flag && !label) return null;
+  if (!iso && !label) return null;
   return (
     <span className={`inline-flex items-center gap-1 ${className}`} title={label ?? undefined}>
-      {flag && (
-        <span
-          aria-label={label ?? undefined}
-          className={`inline-flex items-center justify-center rounded-full bg-foreground/10 border border-foreground/15 leading-none ${SIZES[size]}`}
-        >
-          {flag}
-        </span>
+      {iso && (
+        <img
+          src={`https://flagcdn.com/w40/${iso}.png`}
+          srcSet={`https://flagcdn.com/w80/${iso}.png 2x`}
+          alt={label ?? iso.toUpperCase()}
+          title={label ?? undefined}
+          loading="lazy"
+          className={`inline-block rounded-full object-cover ring-1 ring-foreground/15 ${SIZES[size]}`}
+        />
       )}
       {showLabel && label && <span className="text-xs">{label}</span>}
     </span>

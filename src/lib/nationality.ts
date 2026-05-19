@@ -43,11 +43,8 @@ export function countryLabel(name: string | null | undefined): string | null {
   return String(name).trim();
 }
 
-export function flagEmoji(name: string | null | undefined): string | null {
+export function isoCode(name: string | null | undefined): string | null {
   if (!name) return null;
   const iso = COUNTRY_ISO[String(name).trim().toLowerCase()];
-  if (!iso) return null;
-  const A = 0x1f1e6;
-  const cps = iso.toUpperCase().split("").map((c) => A + (c.charCodeAt(0) - 65));
-  return String.fromCodePoint(...cps);
+  return iso ? iso.toLowerCase() : null;
 }

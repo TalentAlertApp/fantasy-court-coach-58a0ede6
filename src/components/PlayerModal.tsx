@@ -213,7 +213,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                       {(data.player.core as any).nationality ? (
                         <>
                           {" · "}
-                          <NationalityFlag country={(data.player.core as any).nationality} size="xs" showLabel className="align-middle" />
+                          <NationalityFlag country={(data.player.core as any).nationality} size="xs" className="align-middle" />
                         </>
                       ) : null}
                     </p>
