@@ -1,71 +1,60 @@
-## 1. Attach Team — `non-2xx` error from `leagues-manage/attach-team`
+## Goal
+Add player **nationality** (WNBA only) to the dataset and surface it in 4 specific places. No other surfaces are touched, and the field is NOT factored into any rating.
 
-**Root cause (most likely)**
+## 1. Data layer
 
-`public.teams.sport_league_id` is **NOT NULL**, but the edge function inserts:
-```ts
-sport_league_id: tgtLeague.sport_league_id ?? srcTeam.sport_league_id ?? null,
+**Migration** — add nullable column to `players`:
+```sql
+ALTER TABLE public.players ADD COLUMN nationality text;
 ```
-Newly-created fantasy leagues (e.g. "WNBA IS MINE") were saved without a `sport_league_id` populated by `leagues-create`, so when the source team also lacks one (or doesn't match the target sport), the insert fails with a NOT NULL violation → 500 → "Edge Function returned a non-2xx status code".
+(NBA rows stay NULL; only WNBA rows are populated.)
 
-A second contributor: the `roster` clone passes `gw`/`day` straight through, but those columns are NOT NULL — if the source team has rows where they were inserted as 0 it's fine, but mixed-sport roster ids would also fail an FK if the target league's `sport_league_id` differs from the source's.
+**Initial backfill** — apply the 258 ID→NAT pairs from the attached CSV directly in the same migration via `UPDATE` statements, normalizing `USA` → `United States` so the value is consistent.
 
-**Fix**
+## 2. Source-of-truth: Google Sheet ingestion
 
-In `supabase/functions/leagues-manage/index.ts` (`attach-team` action):
-1. Resolve the target sport id deterministically: look up `sport_leagues.id where code = tgtLeague.sport` and use that. Fall back to `srcTeam.sport_league_id` only if sports match. Bail with a clear `SPORT_LEAGUE_UNRESOLVED` error if still null instead of letting the DB throw.
-2. Before insert, also normalize `tgtLeague.sport_league_id`: if null, persist the resolved value back onto the league row so future attaches don't re-resolve.
-3. Skip roster cloning entirely when the source roster references player ids that don't belong to the resolved target sport (defensive — same sport so should pass, but log and continue without aborting the attach).
-4. Wrap each step in `try/catch` and return granular error codes (`INSERT_TEAM_FAILED`, `INSERT_ROSTER_FAILED`, etc.) with `details` set to the underlying Postgres message so the toast surfaces the real reason. Add `console.error` lines so the function logs are usable next time.
-5. Deploy `leagues-manage` and re-test from `/leagues` (My Leagues row) and `/scoring` (empty state).
+`supabase/functions/wnba-sheet-sync/index.ts` (the "PLAYER DATABASE" job):
+- Widen `DB_Players` fetch range from `A1:O5000` to `A1:P5000`.
+- Add `nationality: nullable(r[15])` to the upsert payload (column P = NAT, right after POS at column O).
+- Normalize `"USA"` → `"United States"` on read so the value is stable.
 
-No client changes needed — the existing `supabase.functions.invoke("leagues-manage/attach-team", { body })` call routes correctly (verified via curl).
+No change to NBA `import-players` (column does not exist there; stays NULL).
 
----
+## 3. Edge function payload
 
-## 2. Onboarding audio — play on every onboarding stage incl. Welcome Back + persist mute
+`supabase/functions/player-detail/index.ts` — include `nationality: playerRow.nationality` inside `player.core` so the Player Modal can read it.
 
-**Current state**
-- `useOnboardingAudio(active)` is only mounted inside `OnboardingPage` (the create-team flow).
-- `WelcomeBackHero` (rendered by `RequireAuth` after login but before entering the app) has no audio hook.
-- The mute toggle already writes to `localStorage["courtshow.audio.enabled"]`, but each page reads the pref only on first mount — so the persistence is mostly fine; what's missing is exposing the toggle on Welcome Back and starting playback there.
+`supabase/functions/players-list/index.ts` — include `nationality` in the row projection so the LIST VIEW and Team Modal roster tab can render it.
 
-**Fix**
-1. Promote `useOnboardingAudio` → `useAppEntryAudio(active)` (rename + move under `src/hooks/`). Same bed track, same storage key, same `pointerdown`/`keydown` autoplay-unlock retry.
-2. Mount it in `WelcomeBackHero` with `active = true`, in addition to `OnboardingPage`. Both share the storage key, so muting in one persists to the other.
-3. Add the same mute/unmute icon button to `WelcomeBackHero` (top-right, mirroring the onboarding button) so the user can toggle from either screen.
-4. Make the hook subscribe to `storage` events so toggling on one tab/screen is reflected in the other without a reload, and re-read the pref on every mount (already done — confirm).
-5. Confirm the swoosh on team-create (`DraftPicker`) still fires regardless of the bed being muted (separate `sfx.muted` key) — no change expected.
+## 4. Frontend — flag rendering helper
 
----
+New file `src/lib/nationality.ts`:
+- Map of country name → ISO-3166 alpha-2 (covers the 28 distinct values found in the CSV: USA/United States, Australia, Bahamas, Belgium, Bosnia and Herzegovina, Brazil, Cameroon, Canada, China, Czech Republic, Finland, France, Germany, Greece, Hungary, Italy, Lithuania, Mali, Mexico, Netherlands, New Zealand, Russia, Serbia, Slovenia, South Korea, Spain, United Kingdom).
+- `flagEmoji(country)` → emoji built from regional-indicator codepoints (no extra dependency).
+- `countryLabel(country)` → display name normalized.
 
-## 3. Video Recap — wrong/duplicated videos on GW 20.4 (LAL@DEN, DET@SAS)
+A tiny round-flag component `<NationalityFlag country size />` rendering the emoji inside a circular badge styled with the existing design tokens. (Pure emoji = zero asset weight, native cross-platform rendering.)
 
-**Behavior observed**
-- LAL@DEN on day 20.4 shows the **LAL@IND** recap, and the real LAL@DEN recap appears (duplicated) on a different day.
-- DET@SAS on day 20.4 shows the **LAC@SAS** recap.
+## 5. Frontend — 4 surfaces
 
-**Root cause**
+a) **Player Modal** (`src/components/PlayerModal.tsx`, line ~211): append ` · <flag> Country` immediately after the College segment in the bio line.
 
-`youtube-recap-lookup` scores YouTube hits by title-token matches and picks the highest score — when a same-night game shares one team and the date string, the wrong title can tie/beat the right one (e.g. "Lakers vs Pacers" wins over "Lakers vs Nuggets" because both contain "lakers", and the date token tips it). Once written, the value sticks because the function only re-runs on games still `is null`.
+b) **List View** (`src/components/PlayerRow.tsx`, after the College `TableCell` at ~150-152): new `TableCell` "NAT" rendering the country **name** (e.g. "Brazil"). Add a matching `<TableHead>Nat</TableHead>` and `<col>` width in the parent table headers (need to locate which page mounts `PlayerRow`'s table — RosterListView and any other consumers will get the new column header automatically since headers live with the row table).
 
-**Fix (no bulk wipe — surgical re-fetch)**
+c) **Team Modal → Roster tab** (`src/components/TeamModal.tsx`, line ~384-394 row template): extend the roster select to include `nationality`, then render a small round flag right after the player name (smaller than the FC/BC badge — `size="xs"`). No new column.
 
-1. Tighten scoring in `supabase/functions/youtube-recap-lookup/index.ts`:
-   - Require BOTH away_city AND home_city tokens to be present for a non-zero score (currently each contributes independently, so a single-team match still scores).
-   - Add a **hard reject** if the title contains a *different* known team city for the same league on the same night (build a quick set of "all other teams playing this date" from `schedule_games` and reject if any appears in the title).
-   - Bump primary `minScore` to `6` (NBA) / `5` (WNBA) once both-team-required is in.
-2. Add a new admin endpoint flag `mode=audit&gw=<n>&day=<n>` that, for the given gameday, **null-and-refetches every game's recap** (per-game replace, never bulk-wipe outside the gameday). Returns a per-game `{game_id, before, after, accepted}` report so we can verify before/after.
-3. Run the audit for GW 20 / Day 4 (NBA) immediately after deploy via `curl_edge_functions`. The two reported games and any neighbour collisions should self-correct.
-4. Leave the rest of the table untouched.
+d) **Ballers.IQ Explain** (`supabase/functions/ai-coach/index.ts` + `src/lib/ballers-iq/promptBuilder.ts`):
+- In the `ni-player` pack, add an optional `bio.nationality` field (string|null).
+- Update the `ni-player` prompt template: add a sentence instructing the model to include a single short biographical line mentioning the player's country **only if `bio.nationality` is set**, and explicitly stating this is biographical context and MUST NOT influence `biq_rating`, `verdict`, or any score.
 
-### Technical details (for the dev pass)
+## 6. Out of scope (explicit)
+- NBA players (no nationality field, no UI changes for them).
+- Any rating, scoring, salary, or projection logic.
+- Search/filter by nationality.
+- Standings, schedule, charts, court view, scoring history.
 
-- `leagues-manage/index.ts`: rewrite the `attach-team` block as described in §1; add helper `resolveSportLeagueId(sport: 'nba'|'wnba')`.
-- `useOnboardingAudio.ts` → `useAppEntryAudio.ts`; update imports in `OnboardingPage.tsx`; add to `WelcomeBackHero.tsx` with matching mute button.
-- `youtube-recap-lookup/index.ts`: extend `scoreItems` to take `requiredTokens: string[]` and `rejectTokens: string[]`; add `mode=audit` branch that builds `idsList` from `gw`+`day` then runs the existing per-game flow with `replaceMode=true`.
-
-### Out of scope
-- No DB migrations.
-- No changes to other Court Show / scoring features.
-- No bulk recap wipe.
+## Technical notes
+- Flag rendering uses unicode regional-indicator emojis → no new npm dependency, no asset pipeline.
+- `nationality` column is nullable; all UI paths render `—` / nothing when null so NBA and any unmapped WNBA rows degrade gracefully.
+- Country-name → ISO map lives in one file; "USA" and "United States" both resolve to 🇺🇸 in case the sheet drifts.
+- Edge-function changes are additive (new field in payload), no breaking client contract.
