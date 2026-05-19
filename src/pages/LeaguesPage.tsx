@@ -233,15 +233,16 @@ export default function LeaguesPage() {
   );
 
   async function handleAttach(league: FantasyLeague) {
-    if (!activeSidebarTeam) return;
+    const target = getAttachableTeamFor(league);
+    if (!target) return;
     setAttachingLeagueId(league.id);
     try {
       const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
-        body: { league_id: league.id, team_id: activeSidebarTeam.id },
+        body: { league_id: league.id, team_id: target.id },
       });
       const env = data as { ok?: boolean; data?: any; error?: { message?: string } } | null;
       if (error || !env?.ok) throw new Error(env?.error?.message ?? error?.message ?? "Failed to attach team");
-      toast.success(`Added "${activeSidebarTeam.name}" to ${league.name}`);
+      toast.success(`Added "${target.name}" to ${league.name}`);
       await qc.invalidateQueries({ queryKey: ["teams"] });
       await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
     } catch (e: any) {
