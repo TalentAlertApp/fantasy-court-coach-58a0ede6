@@ -209,6 +209,12 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     <p className="text-[10px] text-muted-foreground/80 truncate">
                       {data.player.core.height ?? "—"}
                       {data.player.core.college ? ` · ${data.player.core.college}` : ""}
+                      {(data.player.core as any).nationality ? (
+                        <>
+                          {" · "}
+                          <NationalityFlag country={(data.player.core as any).nationality} size="xs" showLabel className="align-middle" />
+                        </>
+                      ) : null}
                     </p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg">
