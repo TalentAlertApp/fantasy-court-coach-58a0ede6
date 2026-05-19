@@ -57,19 +57,19 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   const header = (
     <TableHeader>
       <TableRow className="hover:bg-transparent border-b-2 border-border/60">
-        <TableHead className="font-heading uppercase tracking-wider text-[10px]">Player</TableHead>
-        <TableHead className="text-center w-28 font-heading uppercase tracking-wider text-[10px]" title="Date of Birth (Age)">DOB (Age)</TableHead>
-        <TableHead className="text-center w-16 font-heading uppercase tracking-wider text-[10px]">HT</TableHead>
-        <TableHead className="w-44 font-heading uppercase tracking-wider text-[10px]">College</TableHead>
-        <TableHead className="w-36 font-heading uppercase tracking-wider text-[10px]">Nation</TableHead>
-        <TableHead className="text-center w-20 font-heading uppercase tracking-wider text-[10px]">FC/BC</TableHead>
-        <TableHead className="text-center w-14 font-heading uppercase tracking-wider text-[10px]" title="Health status">Health</TableHead>
-        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Salary</TableHead>
-        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">FP5</TableHead>
-        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Value5</TableHead>
-        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Last FP</TableHead>
-        <TableHead className="text-right w-24 font-heading uppercase tracking-wider text-[10px]">Total FP</TableHead>
-        <TableHead className="text-right w-10"></TableHead>
+        <TableHead className="px-2 font-heading uppercase tracking-wider text-[10px]">Player</TableHead>
+        <TableHead className="px-1.5 text-center w-[88px] font-heading uppercase tracking-wider text-[10px]" title="Date of Birth (Age)">DOB (Age)</TableHead>
+        <TableHead className="px-1.5 text-center w-12 font-heading uppercase tracking-wider text-[10px]">HT</TableHead>
+        <TableHead className="px-1.5 w-32 font-heading uppercase tracking-wider text-[10px]">College</TableHead>
+        <TableHead className="px-1.5 w-32 font-heading uppercase tracking-wider text-[10px]">Nation</TableHead>
+        <TableHead className="px-1.5 text-center w-14 font-heading uppercase tracking-wider text-[10px]">FC/BC</TableHead>
+        <TableHead className="px-1.5 text-center w-12 font-heading uppercase tracking-wider text-[10px]" title="Health status">Health</TableHead>
+        <TableHead className="px-1.5 text-right w-[68px] font-heading uppercase tracking-wider text-[10px]">Salary</TableHead>
+        <TableHead className="px-1.5 text-right w-14 font-heading uppercase tracking-wider text-[10px]">FP5</TableHead>
+        <TableHead className="px-1.5 text-right w-14 font-heading uppercase tracking-wider text-[10px]">Value5</TableHead>
+        <TableHead className="px-1.5 text-right w-14 font-heading uppercase tracking-wider text-[10px]">Last FP</TableHead>
+        <TableHead className="px-1.5 text-right w-14 font-heading uppercase tracking-wider text-[10px]">Total FP</TableHead>
+        <TableHead className="px-1.5 text-right w-8"></TableHead>
       </TableRow>
     </TableHeader>
   );
