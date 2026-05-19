@@ -68,7 +68,7 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
       onDrop={onDrop}
       onDragEnd={onDragEnd}
     >
-      <TableCell>
+      <TableCell className="px-2">
         <div className="flex items-center gap-2">
           {draggable && (
             <GripVertical className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-60 cursor-grab active:cursor-grabbing flex-shrink-0" />
@@ -85,12 +85,12 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors">{core.name}</p>
-            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-1.5 flex-wrap mt-0.5">
+            <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors whitespace-nowrap">{core.name}</p>
+            <div className="text-[10px] text-muted-foreground inline-flex items-center gap-1.5 flex-nowrap whitespace-nowrap mt-0.5">
               {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
               <span>{core.team}</span>
               {weekSlots && weekSlots.length > 0 && (
-                <div className="flex items-center gap-1 ml-3">
+                <div className="flex items-center gap-1 ml-2">
                   {weekSlots.map((day, i) => {
                     const diff = day ? difficultyMap?.[day.opponent] : undefined;
                     const isFinal = day ? /FINAL/i.test(String(day.status ?? "")) : false;
@@ -145,46 +145,46 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           </div>
         </div>
       </TableCell>
-      <TableCell className="text-center w-28 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
+      <TableCell className="px-1.5 text-center w-[88px] text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
         {dobLabel} ({core.age || "—"})
       </TableCell>
-      <TableCell className="text-center w-16 text-xs text-muted-foreground">{core.height ?? "—"}</TableCell>
-      <TableCell className="w-44 text-xs text-muted-foreground whitespace-nowrap" title={core.college ?? undefined}>
+      <TableCell className="px-1.5 text-center w-12 text-[11px] text-muted-foreground">{core.height ?? "—"}</TableCell>
+      <TableCell className="px-1.5 w-32 text-[11px] text-muted-foreground whitespace-nowrap truncate max-w-[128px]" title={core.college ?? undefined}>
         {core.college ?? "—"}
       </TableCell>
-      <TableCell className="w-36 text-xs text-muted-foreground whitespace-nowrap" title={countryLabel(core.nationality) ?? undefined}>
+      <TableCell className="px-1.5 w-32 text-[11px] text-muted-foreground whitespace-nowrap truncate max-w-[128px]" title={countryLabel(core.nationality) ?? undefined}>
         {core.nationality ? (
-          <span className="inline-flex items-center gap-1.5">
+          <span className="inline-flex items-center gap-1.5 truncate">
             <NationalityFlag country={core.nationality} size="xs" />
-            <span>{countryLabel(core.nationality)}</span>
+            <span className="truncate">{countryLabel(core.nationality)}</span>
           </span>
         ) : "—"}
       </TableCell>
-      <TableCell className="text-center w-20">
+      <TableCell className="px-1.5 text-center w-14">
         <Badge variant={core.fc_bc === "FC" ? "destructive" : "default"} className="text-[9px] rounded-lg">
           {core.fc_bc}
         </Badge>
       </TableCell>
-      <TableCell className="text-center w-14">
+      <TableCell className="px-1.5 text-center w-12">
         {health.status ? (
           <HealthTooltip health={health}>
             <span className="inline-flex"><HealthStatusIcon health={health} size="sm" /></span>
           </HealthTooltip>
         ) : (
-          <span className="text-xs text-muted-foreground/50">—</span>
+          <span className="text-[11px] text-muted-foreground/50">—</span>
         )}
       </TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatSalary(core.salary)}</TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(computed?.value5, 2, preseason)}</TableCell>
-      <TableCell className="text-right text-xs text-muted-foreground w-24 tabular-nums">{formatStat(lastGame?.fp, 1, preseason)}</TableCell>
-      <TableCell className="text-right text-xs text-foreground font-bold w-24 tabular-nums">{formatStat(totalFp, 0, preseason)}</TableCell>
-      <TableCell className="text-right">
+      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-[68px] tabular-nums">{formatSalary(core.salary)}</TableCell>
+      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>
+      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(computed?.value5, 2, preseason)}</TableCell>
+      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(lastGame?.fp, 1, preseason)}</TableCell>
+      <TableCell className="px-1.5 text-right text-[11px] text-foreground font-bold w-14 tabular-nums">{formatStat(totalFp, 0, preseason)}</TableCell>
+      <TableCell className="px-1.5 text-right w-8">
         {onSwap && (
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            className="h-6 w-6"
             onClick={(e) => { e.stopPropagation(); onSwap(); }}
             title="Swap player"
           >
