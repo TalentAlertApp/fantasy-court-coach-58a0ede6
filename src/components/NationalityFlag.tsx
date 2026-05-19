@@ -8,9 +8,9 @@ interface Props {
 }
 
 const SIZES: Record<NonNullable<Props["size"]>, string> = {
-  xs: "w-4 h-4",
-  sm: "w-5 h-5",
-  md: "w-6 h-6",
+  xs: "w-3.5 h-3.5",
+  sm: "w-4 h-4",
+  md: "w-5 h-5",
 };
 
 /** Round flag badge backed by flagcdn.com SVG/PNG images. */

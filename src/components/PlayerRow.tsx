@@ -152,11 +152,11 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
       <TableCell className="w-44 text-xs text-muted-foreground whitespace-nowrap" title={core.college ?? undefined}>
         {core.college ?? "—"}
       </TableCell>
-      <TableCell className="w-28 text-xs text-muted-foreground whitespace-nowrap" title={countryLabel(core.nationality) ?? undefined}>
+      <TableCell className="w-36 text-xs text-muted-foreground whitespace-nowrap" title={countryLabel(core.nationality) ?? undefined}>
         {core.nationality ? (
           <span className="inline-flex items-center gap-1.5">
             <NationalityFlag country={core.nationality} size="xs" />
-            <span className="truncate">{countryLabel(core.nationality)}</span>
+            <span>{countryLabel(core.nationality)}</span>
           </span>
         ) : "—"}
       </TableCell>
