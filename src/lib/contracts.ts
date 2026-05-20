@@ -225,6 +225,7 @@ export const RosterSnapshotSchema = z
     team_name: z.string().optional(),
     locked_total: NumSchema.optional(),
     market_total: NumSchema.optional(),
+    transfer_cap: IntSchema.optional(),
   })
   .strict();
 
