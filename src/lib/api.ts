@@ -105,6 +105,8 @@ export async function apiFetch<T extends z.ZodTypeAny>(
     "salary-update",
     "youtube-recap-lookup",
     "wnba-salary-recalc",
+    "wnba-salary-season-backfill",
+    "salary-adjust-gameday",
   ];
   const isAdminPath = ADMIN_PATH_PREFIXES.some((p) => path.startsWith(p));
   if (isAdminPath) {
