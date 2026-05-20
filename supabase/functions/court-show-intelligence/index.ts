@@ -550,6 +550,25 @@ Rules:
           name: t.player?.name, team: t.player?.team,
           fp: t.fp, pts: t.pts, reb: t.reb, ast: t.ast, stl: t.stl, blk: t.blk, mp: t.mp,
         })),
+        // Grounding numbers — the model MUST weave these into the prose.
+        slateMetrics: {
+          gamesCount: (games ?? []).length,
+          teamsCount: allowedTris.size,
+          b2bTeams,
+          earliestTipLisbon,
+          topForm: topForm ? { name: topForm.name, team: topForm.team, fp5: round1(topForm.fp5), mpg5: Math.round(topForm.mpg5), salary: topForm.salary } : null,
+          topValue: topValue ? { name: topValue.name, team: topValue.team, fp5: round1(topValue.fp5), salary: topValue.salary, dollarsPerFp: round2(topValue.salary / topValue.fp5) } : null,
+          topByTeam: Array.from(topByTeam.entries()).slice(0, 6).map(([tri, p]) => ({ tri, name: p.name, fp5: round1(p.fp5) })),
+          topSalaryMover: (() => {
+            let best: { id: number; delta: number } | null = null;
+            for (const [id, d] of salaryDelta) {
+              if (!best || Math.abs(d) > Math.abs(best.delta)) best = { id, delta: d };
+            }
+            if (!best) return null;
+            const p = slatePlayers.find((sp) => sp.id === best!.id);
+            return p ? { name: p.name, team: p.team, delta7d: Math.round(best.delta) } : null;
+          })(),
+        },
       };
 
       const tools = [{
