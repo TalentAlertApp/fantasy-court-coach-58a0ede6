@@ -887,38 +887,81 @@ export default function CommissionerPage() {
 
         <TabsContent value="players" className="space-y-6 mt-0">
           {leagueCode === "wnba" && (
-            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3">
-              <div className="flex-1">
-                <div className="text-sm font-semibold text-amber-300">WNBA Salary Generation</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Recalculate every WNBA player's salary from their <strong>EXP</strong>.
-                  Rookies (R) get $4.5M, the most experienced gets $25M (linear).
-                  This becomes the only source of truth for WNBA salaries.
-                </p>
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-amber-300">WNBA Salary Generation</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Recalculate every WNBA player's salary from their <strong>EXP</strong>.
+                    Rookies (R) get $4.5M, the most experienced gets $25M (linear).
+                    This becomes the only source of truth for WNBA salaries.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const res = await apiFetch(
+                        "wnba-salary-recalc",
+                        z.object({ ok: z.literal(true), data: z.object({
+                          updated: z.number(), failed: z.number().optional(),
+                          min: z.number(), max: z.number(), max_exp: z.number(),
+                          distribution: z.record(z.number()),
+                          errors: z.array(z.string()).optional(),
+                        })}),
+                        { method: "POST", body: JSON.stringify({}) },
+                      );
+                      const d = (res as any).data;
+                      toast.success(`Updated ${d.updated} WNBA salaries (${d.min}–${d.max}M, max EXP=${d.max_exp})`);
+                    } catch (e: any) {
+                      toast.error(`Salary recalc failed: ${e?.message ?? e}`);
+                    }
+                  }}
+                >
+                  Recalculate WNBA Salaries
+                </Button>
               </div>
-              <Button
-                size="sm"
-                onClick={async () => {
-                  try {
-                    const res = await apiFetch(
-                      "wnba-salary-recalc",
-                      z.object({ ok: z.literal(true), data: z.object({
-                        updated: z.number(), failed: z.number().optional(),
-                        min: z.number(), max: z.number(), max_exp: z.number(),
-                        distribution: z.record(z.number()),
-                        errors: z.array(z.string()).optional(),
-                      })}),
-                      { method: "POST", body: JSON.stringify({}) },
-                    );
-                    const d = (res as any).data;
-                    toast.success(`Updated ${d.updated} WNBA salaries (${d.min}–${d.max}M, max EXP=${d.max_exp})`);
-                  } catch (e: any) {
-                    toast.error(`Salary recalc failed: ${e?.message ?? e}`);
-                  }
-                }}
-              >
-                Recalculate WNBA Salaries
-              </Button>
+              <div className="flex items-start gap-3 pt-3 border-t border-amber-500/20">
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-amber-300">
+                    Season-to-Date Performance Backfill
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Rebases every WNBA salary using season FP/G vs league average
+                    (max <strong>±20%</strong> from current EXP-based value, bounded
+                    $4.5M–$25M). Skips players with 0 GP. Idempotent per day.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={async () => {
+                    if (!confirm(
+                      "Overwrite all WNBA salaries based on season-to-date performance?",
+                    )) return;
+                    try {
+                      const res = await apiFetch(
+                        "wnba-salary-season-backfill",
+                        z.object({ ok: z.literal(true), data: z.object({
+                          change_date: z.string(),
+                          league_avg_fp_pg: z.number(),
+                          players_total: z.number(),
+                          players_changed: z.number(),
+                        })}),
+                        { method: "POST", body: JSON.stringify({}) },
+                      );
+                      const d = (res as any).data;
+                      toast.success(
+                        `Backfilled ${d.players_changed}/${d.players_total} WNBA salaries (avg ${d.league_avg_fp_pg} FP)`,
+                      );
+                    } catch (e: any) {
+                      toast.error(`Season backfill failed: ${e?.message ?? e}`);
+                    }
+                  }}
+                >
+                  Run Season Backfill
+                </Button>
+              </div>
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
