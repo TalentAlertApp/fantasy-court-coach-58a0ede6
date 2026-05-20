@@ -23,10 +23,6 @@ export default function TeamPickerPage() {
     if (!isReady) return;
     if (ownedTeams.length === 0) {
       navigate("/welcome", { replace: true });
-    } else if (ownedTeams.length === 1) {
-      setSelectedTeamId(ownedTeams[0].id);
-      markTeamPickedThisSession();
-      navigate("/", { replace: true });
     }
   }, [isReady, ownedTeams, navigate, setSelectedTeamId]);
 
@@ -41,7 +37,7 @@ export default function TeamPickerPage() {
     navigate("/welcome", { replace: true });
   };
 
-  if (!isReady || ownedTeams.length < 2) {
+  if (!isReady || ownedTeams.length < 1) {
     return <div className="h-screen w-full bg-background" aria-hidden />;
   }
 
