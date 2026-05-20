@@ -568,6 +568,7 @@ Rules:
           body: "Salary-efficient producers carry tonight's edge.",
         },
       ];
+      cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
     }
 
     const { error: upErr } = await sb
