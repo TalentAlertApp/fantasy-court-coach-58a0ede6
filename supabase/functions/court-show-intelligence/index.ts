@@ -110,6 +110,38 @@ Deno.serve(async (req) => {
     const mode: "recap" | "matchup" | "mixed" =
       finalGames.length && upcoming.length ? "mixed" : finalGames.length ? "recap" : "matchup";
 
+    // Per-team roster shortlist (top ~6 by salary) so the model can never
+    // freelance players from training data — especially critical for WNBA
+    // scheduled days where there are no `topPerformers` to anchor it.
+    const slateTricodes = Array.from(new Set(
+      (games ?? []).flatMap((g) => [g.home_team, g.away_team]).filter(Boolean) as string[]
+    ));
+    const rosters: { team: string; players: { id: number; name: string }[] }[] = [];
+    const allowedNames = new Set<string>();
+    const allowedTris = new Set(slateTricodes.map((t) => String(t).toUpperCase()));
+    if (slateTricodes.length) {
+      const { data: rosterPlayers } = await sb
+        .from("players")
+        .select("id, name, team, salary")
+        .eq("league_id", league_id)
+        .in("team", slateTricodes);
+      const byTeam = new Map<string, { id: number; name: string; salary: number | null }[]>();
+      for (const p of rosterPlayers ?? []) {
+        const t = String(p.team ?? "").toUpperCase();
+        if (!t) continue;
+        if (!byTeam.has(t)) byTeam.set(t, []);
+        byTeam.get(t)!.push({ id: p.id as number, name: p.name as string, salary: (p as any).salary ?? null });
+      }
+      for (const t of slateTricodes) {
+        const list = (byTeam.get(t.toUpperCase()) ?? [])
+          .sort((a, b) => (b.salary ?? 0) - (a.salary ?? 0))
+          .slice(0, 6)
+          .map((p) => ({ id: p.id, name: p.name }));
+        rosters.push({ team: t, players: list });
+        for (const p of list) allowedNames.add(p.name.toLowerCase());
+      }
+    }
+
     // Top performers from played games (if any)
     let topPerformers: any[] = [];
     if (finalGames.length) {
@@ -144,7 +176,8 @@ Rules:
 - Headlines under 9 words, all caps OK, NO emojis.
 - Bodies under 28 words, concrete, no L5/FP5 jargon.
 - Reference players by name + team tricode (e.g. "LeBron · LAL").
-- Use ONLY the players, teams and games listed in the user payload — never invent names, tricodes or stats.
+- HARD RULE: Every player you name MUST appear in the user payload's "rosters" array, with the exact same name and assigned to the exact same team tricode. Never name a player who is not in "rosters".
+- Never recall players from training data. If you cannot ground a card in "rosters"/"games", write generic copy without naming any player.
 - This is the ${leagueLabel}. Do NOT reference players or teams from any other league.
 - If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
 - For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
@@ -157,6 +190,7 @@ Rules:
           game_id: g.game_id, away: g.away_team, home: g.home_team,
           status: g.status, away_pts: g.away_pts, home_pts: g.home_pts, tipoff_utc: g.tipoff_utc,
         })),
+        rosters,
         topPerformers: topPerformers.map((t: any) => ({
           player_id: t.player_id,
           name: t.player?.name, team: t.player?.team,
@@ -236,6 +270,26 @@ Rules:
               headline: typeof c.headline === "string" ? c.headline.replace(/[{}]/g, "").slice(0, 120) : "",
               body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 280) : "",
             }));
+            // Strict league-roster validator: drop cards that reference a
+            // player not in the league's roster pool, or a team tricode not
+            // playing tonight, or whose body mentions a known cross-league
+            // star not on the slate. This is the last line of defence
+            // against AI hallucinations (e.g. Doncic showing up on WNBA).
+            cards = cards.filter((c) => {
+              if (c.team && !allowedTris.has(c.team)) return false;
+              if (c.away_team && !allowedTris.has(c.away_team)) return false;
+              if (c.home_team && !allowedTris.has(c.home_team)) return false;
+              if (c.player_name && allowedNames.size && !allowedNames.has(String(c.player_name).toLowerCase())) {
+                return false;
+              }
+              // Body-level name leak detection: if any allowed name is referenced,
+              // OR no player_name was set, accept. Otherwise it would have been
+              // caught above. We also reject obvious "Player · TRI" patterns
+              // whose TRI is not on the slate.
+              const bodyMatch = String(c.body || "").match(/·\s*([A-Z]{2,4})\b/);
+              if (bodyMatch && !allowedTris.has(bodyMatch[1])) return false;
+              return true;
+            });
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
