@@ -113,6 +113,25 @@ export default function AppLayout() {
                 </span>
               </NavLink>
               <HowToPlayModal iconClassName="text-white/50 hover:text-white hover:bg-white/10 h-7 w-7 shrink-0 relative z-10" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackOpen(true)}
+                    aria-label="Send feedback"
+                    className="inline-flex items-center justify-center rounded-md text-accent/80 hover:text-accent hover:bg-accent/10 h-7 w-7 shrink-0 relative z-10 transition-colors"
+                  >
+                    <MessageSquareHeart className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="right"
+                  sideOffset={12}
+                  className="font-heading uppercase text-[10px] tracking-[0.2em] px-2.5 py-1.5"
+                >
+                  Send feedback
+                </TooltipContent>
+              </Tooltip>
             </>
           )}
           {collapsed && (
@@ -170,6 +189,22 @@ export default function AppLayout() {
               </NavTooltip>
             </div>
           </>
+        )}
+
+        {/* Feedback (collapsed-only) */}
+        {collapsed && (
+          <div className="py-1 flex justify-center">
+            <NavTooltip collapsed={collapsed} label="Send feedback">
+              <button
+                type="button"
+                onClick={() => setFeedbackOpen(true)}
+                aria-label="Send feedback"
+                className="theme-toggle text-accent/80 hover:text-accent"
+              >
+                <MessageSquareHeart className="h-3.5 w-3.5" />
+              </button>
+            </NavTooltip>
+          </div>
         )}
 
         {/* Team Switcher — above separator */}
