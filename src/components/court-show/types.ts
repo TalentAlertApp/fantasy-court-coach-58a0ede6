@@ -157,6 +157,10 @@ export interface AIBallersIQCard {
   away_team?: string | null;
   home_team?: string | null;
   game_id?: string | null;
+  /** Optional short secondary line rendered under the body. */
+  subtext?: string | null;
+  /** Optional compact server-computed stat strip (2-4 chips). */
+  stats?: { label: string; value: string }[];
 }
 
 export interface OutstandingGameRow {
