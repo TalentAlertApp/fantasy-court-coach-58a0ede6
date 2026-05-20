@@ -1160,7 +1160,8 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
   // as an NBA/WNBA broadcast frame instead of implying a single team's
   // branding. The "High-Competitive Matchups" slide uses the same compact
   // Calendar glyph as the "Next Up" slide, rendered inside that slide block.
-  const useLeagueWatermark = slide.payload.kind === "recap";
+  const useLeagueWatermark =
+    slide.payload.kind === "recap" || slide.payload.kind === "outstanding";
   // For Salary Shake-Up the watermark follows the player with the highest
   // POSITIVE delta (same broadcast-style treatment as Captain Radar).
   const salaryShakeupTopPositive =

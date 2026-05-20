@@ -14,6 +14,62 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+// Bump when the validator/prompt rules change so previously cached rows are
+// regenerated on next read (we tag every emitted card with this version).
+const VALIDATOR_VERSION = 3;
+
+// Full team name tables (city + nickname + fullName) keyed by tricode. Used
+// to detect cross-league pollution in card body/headline copy where the model
+// references teams by name instead of tricode (e.g. "Trail Blazers", "Bulls").
+const NBA_TEAMS: { tri: string; city: string; nickname: string }[] = [
+  { tri: "ATL", city: "Atlanta",      nickname: "Hawks" },
+  { tri: "BOS", city: "Boston",       nickname: "Celtics" },
+  { tri: "BKN", city: "Brooklyn",     nickname: "Nets" },
+  { tri: "CHA", city: "Charlotte",    nickname: "Hornets" },
+  { tri: "CHI", city: "Chicago",      nickname: "Bulls" },
+  { tri: "CLE", city: "Cleveland",    nickname: "Cavaliers" },
+  { tri: "DAL", city: "Dallas",       nickname: "Mavericks" },
+  { tri: "DEN", city: "Denver",       nickname: "Nuggets" },
+  { tri: "DET", city: "Detroit",      nickname: "Pistons" },
+  { tri: "GSW", city: "Golden State", nickname: "Warriors" },
+  { tri: "HOU", city: "Houston",      nickname: "Rockets" },
+  { tri: "IND", city: "Indiana",      nickname: "Pacers" },
+  { tri: "LAC", city: "LA",           nickname: "Clippers" },
+  { tri: "LAL", city: "Los Angeles",  nickname: "Lakers" },
+  { tri: "MEM", city: "Memphis",      nickname: "Grizzlies" },
+  { tri: "MIA", city: "Miami",        nickname: "Heat" },
+  { tri: "MIL", city: "Milwaukee",    nickname: "Bucks" },
+  { tri: "MIN", city: "Minnesota",    nickname: "Timberwolves" },
+  { tri: "NOP", city: "New Orleans",  nickname: "Pelicans" },
+  { tri: "NYK", city: "New York",     nickname: "Knicks" },
+  { tri: "OKC", city: "Oklahoma City",nickname: "Thunder" },
+  { tri: "ORL", city: "Orlando",      nickname: "Magic" },
+  { tri: "PHI", city: "Philadelphia", nickname: "76ers" },
+  { tri: "PHX", city: "Phoenix",      nickname: "Suns" },
+  { tri: "POR", city: "Portland",     nickname: "Trail Blazers" },
+  { tri: "SAC", city: "Sacramento",   nickname: "Kings" },
+  { tri: "SAS", city: "San Antonio",  nickname: "Spurs" },
+  { tri: "TOR", city: "Toronto",      nickname: "Raptors" },
+  { tri: "UTA", city: "Utah",         nickname: "Jazz" },
+  { tri: "WAS", city: "Washington",   nickname: "Wizards" },
+];
+const WNBA_TEAMS: { tri: string; city: string; nickname: string }[] = [
+  { tri: "ATL", city: "Atlanta",      nickname: "Dream" },
+  { tri: "CHI", city: "Chicago",      nickname: "Sky" },
+  { tri: "CON", city: "Connecticut",  nickname: "Sun" },
+  { tri: "DAL", city: "Dallas",       nickname: "Wings" },
+  { tri: "IND", city: "Indiana",      nickname: "Fever" },
+  { tri: "LVA", city: "Las Vegas",    nickname: "Aces" },
+  { tri: "LAS", city: "Los Angeles",  nickname: "Sparks" },
+  { tri: "MIN", city: "Minnesota",    nickname: "Lynx" },
+  { tri: "NYL", city: "New York",     nickname: "Liberty" },
+  { tri: "PHX", city: "Phoenix",      nickname: "Mercury" },
+  { tri: "SEA", city: "Seattle",      nickname: "Storm" },
+  { tri: "WAS", city: "Washington",   nickname: "Mystics" },
+  { tri: "GSV", city: "Golden State", nickname: "Valkyries" },
+  { tri: "TOR", city: "Toronto",      nickname: "Tempo" },
+];
+
 type AIIndexKind =
   | "form_index"
   | "matchup_index"
@@ -94,6 +150,34 @@ Deno.serve(async (req) => {
       return out;
     };
 
+    // Build a list of foreign-league team terms (city + nickname) that should
+    // never appear in this league's slate copy. Excludes any term that is also
+    // a valid term in the current league (e.g. "Atlanta", "Washington").
+    const currentTable = leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
+    const foreignTable = leagueCode === "wnba" ? NBA_TEAMS  : WNBA_TEAMS;
+    const currentTermSet = new Set<string>();
+    for (const t of currentTable) {
+      currentTermSet.add(t.city.toLowerCase());
+      currentTermSet.add(t.nickname.toLowerCase());
+      currentTermSet.add(`${t.city} ${t.nickname}`.toLowerCase());
+    }
+    const foreignTeamTerms: string[] = [];
+    for (const t of foreignTable) {
+      for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
+        if (!currentTermSet.has(term.toLowerCase())) foreignTeamTerms.push(term);
+      }
+    }
+    const containsForeignTeamTerm = (text: string): boolean => {
+      if (!text) return false;
+      const hay = text.toLowerCase();
+      return foreignTeamTerms.some((term) => {
+        const t = term.toLowerCase();
+        // word-boundary-ish: surrounded by non-letter chars (or string edges).
+        const re = new RegExp(`(^|[^a-z])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`, "i");
+        return re.test(hay);
+      });
+    };
+
     // Compute live slate mode FIRST so we can detect cache staleness below.
     const { data: gamesPre } = await sb
       .from("schedule_games")
@@ -156,6 +240,12 @@ Deno.serve(async (req) => {
         const offSlate = cacheSlateTris.size > 0 && allTricodes.some((t) => !cacheSlateTris.has(t));
         // Wrong-league tag: any card explicitly tagged with a different league.
         const wrongLeague = cardsArr.some((c: any) => c.league && c.league !== leagueLabel);
+        // Cached row predates this validator version → regenerate.
+        const versionStale = cardsArr.some((c: any) => (c._v ?? 0) < VALIDATOR_VERSION);
+        // Foreign team name leaked into body/headline copy.
+        const foreignTeamLeak = cardsArr.some((c: any) =>
+          containsForeignTeamTerm(`${c.headline ?? ""} ${c.body ?? ""}`)
+        );
         // Player-level pollution: any player_name OR body-name not in the league.
         let unknownPlayer = false;
         const namesInCache = Array.from(new Set([
@@ -184,7 +274,7 @@ Deno.serve(async (req) => {
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !foreignTeamLeak) {
           return jsonResp({ cached: true, ...existing });
         }
       }
@@ -211,11 +301,18 @@ Deno.serve(async (req) => {
     const rosters: { team: string; players: { id: number; name: string }[] }[] = [];
     const allowedNames = new Set<string>();
     const allowedTris = new Set(slateTricodes.map((t) => String(t).toUpperCase()));
-    const slateTeams: { tri: string; name: string }[] = [];
+    const teamLookup = new Map(currentTable.map((t) => [t.tri, t]));
+    const slateTeams: { tri: string; city: string; nickname: string; fullName: string }[] = [];
     if (slateTricodes.length) {
-      // Pull human-readable team names from the players table (team + a name
-      // hint isn't available, so we settle on the tricode as the canonical id).
-      for (const t of slateTricodes) slateTeams.push({ tri: t, name: t });
+      for (const t of slateTricodes) {
+        const meta = teamLookup.get(String(t).toUpperCase());
+        slateTeams.push({
+          tri: t,
+          city: meta?.city ?? t,
+          nickname: meta?.nickname ?? "",
+          fullName: meta ? `${meta.city} ${meta.nickname}` : t,
+        });
+      }
     }
     if (slateTricodes.length) {
       const { data: rosterPlayers } = await sb
@@ -278,6 +375,7 @@ Rules:
 - Never recall players from training data. If you cannot ground a card in "rosters"/"games", write generic copy without naming any player.
 - This is the ${leagueLabel}. Do NOT reference players or teams from any other league. Tag every card you emit with "league": "${leagueLabel}".
 - HARD RULE: You may ONLY reference team tricodes present in user payload's "slateTeams". Do NOT mention any other team tricode anywhere in the headline or body.
+- HARD RULE: You may ONLY reference teams by city, nickname, or full name that appear in user payload's "slateTeams" (city/nickname/fullName fields). Never reference any other team's city or nickname — e.g. on a WNBA slate, never write "Trail Blazers", "Bulls", "Timberwolves", "Portland", "Toronto", or any NBA team name.
 - HARD RULE: When you need to reference what day this slate is, use exactly user payload's "slateWeekday" (e.g. "${slateWeekday ?? "Friday"} slate"). Do NOT infer or invent a different weekday.
 - If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
 - For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
@@ -405,6 +503,8 @@ Rules:
               // Body/headline-level tricode leak: any 2-4 letter code not on tonight's slate.
               const tris = extractTricodes(text);
               if (tris.some((t) => !allowedTris.has(t))) return false;
+              // Body/headline-level foreign team name leak (city or nickname).
+              if (containsForeignTeamTerm(text)) return false;
               // Body-level name leak: any candidate name that belongs to the
               // OTHER league (and is therefore foreign).
               const candidates = extractCandidateNames(String(c.body ?? ""));
@@ -414,8 +514,10 @@ Rules:
               return true;
             });
             // Force-tag every surviving card with the active league so the
-            // cache pollution check has an explicit signal next time.
-            cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA" }));
+            // cache pollution check has an explicit signal next time, and
+            // stamp the current validator version so future runs can detect
+            // outdated cached rows.
+            cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
@@ -466,6 +568,7 @@ Rules:
           body: "Salary-efficient producers carry tonight's edge.",
         },
       ];
+      cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
     }
 
     const { error: upErr } = await sb
