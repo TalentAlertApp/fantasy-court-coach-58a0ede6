@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, PlayCircle, Crown, Medal } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, Bandage, PlayCircle, Crown, Medal } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
+import { getWnbaTeamLogo } from "@/lib/wnba-teams";
 import { getVenue } from "@/lib/nba-venues";
 import courtBg from "@/assets/court-bg.png";
 import nbaLogo from "@/assets/nba-logo.svg";
