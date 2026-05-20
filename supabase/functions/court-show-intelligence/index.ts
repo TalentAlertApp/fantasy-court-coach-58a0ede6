@@ -447,8 +447,15 @@ Deno.serve(async (req) => {
     // Top FP5 on slate (anchor for form_index).
     const topForm = slatePlayers.slice().sort((a, b) => b.fp5 - a.fp5)[0] ?? null;
 
-    const fmtMoney = (n: number) => n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n / 1_000).toFixed(0)}K` : `$${n.toFixed(0)}`;
-    const fmtDelta = (n: number) => `${n >= 0 ? "+" : "−"}${fmtMoney(Math.abs(n))}`;
+    const fmtMoney = (n: number) => {
+      const a = Math.abs(n);
+      if (a >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+      if (a >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+      if (a >= 10) return `$${n.toFixed(0)}`;
+      if (a >= 1) return `$${n.toFixed(1)}`;
+      return `$${n.toFixed(2)}`;
+    };
+    const fmtDelta = (n: number) => `${n >= 0 ? "+" : "−"}${fmtMoney(Math.abs(n)).replace("$", "$")}`;
 
     const buildStatsForKind = (kind: AIIndexKind, c: AICard): { label: string; value: string }[] => {
       const stats: { label: string; value: string }[] = [];
