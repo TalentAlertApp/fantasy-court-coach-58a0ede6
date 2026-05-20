@@ -1,42 +1,68 @@
-## 1) Block illegal Starting 5 swaps with a modal (My Roster)
+## Goal
+Make each player's **salary at acquisition time** the value that counts against the $100M roster cap. The **current market salary** only matters when buying or selling a player (trades / signings). Add a "Roster cost (locked)" row to the Roster Info card, and put FC / BC starters on a single row.
 
-The Starting 5 must always be 2FC+3BC or 3BC+2FC (already enforced server-side). Today the user can attempt a drag swap or picker swap that would break this and either silently bounce or get a toast. We'll intercept *before* the save and show a blocking modal.
+## Data model
 
-**`src/pages/RosterPage.tsx`**
-- Add state: `blockedSwap: { message: string } | null`.
-- Helper `wouldBreakStarting5(nextStarters: PlayerListItem[]): string | null` that returns an error string when starters length is 5 and FC/BC counts aren't (2,3) or (3,2). Returns `null` when ok.
-- In `handleDnDSwap`: when the swap moves a player between starters↔bench (the two cross-zone branches), compute the resulting starters list, run the check, and if it returns a message → `setBlockedSwap({ message })` and `return` before `saveMutation.mutate`. Pure within-starters or within-bench reorders are unaffected.
-- In `handleSwapSelect`: when the swap target is a starter (`starterIdx >= 0`) and the incoming player's `fc_bc` differs from the outgoing one, build the resulting starters list and run the same check; block via modal if invalid.
-- Render a shadcn `<AlertDialog>` (already imported) bound to `blockedSwap`, single OK button that clears state. Title: "This change is not allowed". Description: the returned message (e.g. "Starting 5 must be 2 FC + 3 BC or 3 FC + 2 BC.").
+Add a column to `roster`:
+- `acquired_salary numeric(6,2)` — the player's market salary at the moment they entered this roster slot (signing, draft pick, or trade-in). Immutable for the lifetime of that roster row.
 
-No backend changes — server validation stays as the final safety net.
+Backfill: for every existing `roster` row, set `acquired_salary = players.salary` (best available proxy — we have no history). Make NOT NULL after backfill.
 
-## 2) Health icon = same as Injury Report trigger (Bandage)
+No other schema changes.
 
-The `/schedule` Injury Report button uses lucide `Bandage` (see `SchedulePage.tsx` line 429). The roster health badge currently uses `Shield`.
+## Server logic
 
-**`src/components/health/HealthStatusIcon.tsx`**
-- Replace `import { Shield } from "lucide-react"` with `import { Bandage } from "lucide-react"`.
-- Replace `const Icon = Shield` with `const Icon = Bandage`.
-- Keep the existing status→color mapping (OUT red, DTD orange, GTD amber, Q yellow, PROB green) so the icon still reads "type of injury" through color.
+### `roster-save` (initial draft + onboarding)
+When inserting roster rows, stamp `acquired_salary = players.salary` for each pid (single `players` lookup we already do). `bank_remaining = cap − Σ acquired_salary`.
 
-Every consumer (`PlayerCard` court + bench, list view, modal headers) picks up the new icon automatically.
+### `roster-current`
+Stop summing `players.salary`. Sum `roster.acquired_salary` instead and return both:
+- `salary_used_locked` (Σ acquired) — drives the cap
+- `salary_used_market` (Σ current `players.salary`) — informational
+- `bank_remaining = cap − salary_used_locked`
 
-## 3) Intro screen exit transition (inverse shatter)
+### `transactions-simulate`
+Rewrite the cap math:
+- `before.locked = Σ acquired_salary` of current roster
+- `freed = Σ current players.salary` of OUT players (market sell value)
+- `cost  = Σ current players.salary` of IN players
+- `after.locked = before.locked − Σ acquired_salary(OUT) + Σ current.salary(IN)`
+- Validation: `after.locked ≤ salary_cap`
+- `available_to_spend = (cap − before.locked) + freed`; surface this so the picker can gate "+" buttons.
+- Include per-OUT `freed_value` and per-IN `cost` in the response for the trade report.
 
-**`src/components/welcome-back/BallersIQEntryIntro.tsx`**
-- Introduce an `exiting` state. Replace the immediate-`onDone` of `finish()` with: `setExiting(true)` → after ~700ms call `onDone()`. Guard with `doneRef` so it only triggers once.
-- Wrap the whole intro inside an `AnimatePresence` keyed by `!exiting`, so when `exiting` flips true the children unmount and we can run exit animations.
-- On the shatter `<motion.svg>`, replace the single opacity tween with an `exit` that:
-  - shards return to their original `{ x: s.x, y: s.y, rotate: s.rotate, scale: s.scale, opacity: 0 }` (the *inverse* of the entrance) over `0.55s` with `ease: [0.65, 0, 0.35, 1]`.
-  - the svg keeps `opacity: 1` during exit (no fade — the shards themselves fly out).
-- On the `RotatingBallersIQBadge` wrapper `motion.div`, add `exit={{ opacity: 0, scale: 0.85 }}` with `transition={{ duration: 0.35 }}`.
-- On the skip-hint paragraph add `exit={{ opacity: 0, transition: { duration: 0.2 } }}`.
-- Audio: in `finish()`, fade out the audio over the exit window instead of an instant pause (simple `a.volume` step-down via `setInterval`, then pause on unmount as today).
+### `transactions-commit`
+Same math as simulate. When inserting new roster rows for IN players, set `acquired_salary = current players.salary`. Retained rows keep their existing `acquired_salary` untouched (delete-then-insert pattern must preserve it — switch to a diff: delete only OUT rows, insert only IN rows; update captain / slot via UPDATE).
 
-No timing change to `DURATION_MS` (still 6000).
+### Daily salary auto-adjust / season backfill
+No change to `players.salary` behaviour. These jobs continue to move the *market* value only; locked roster cap is unaffected, which is exactly the desired behaviour.
+
+## Client logic
+
+### `useTradeValidation` / `TradeWorkbench` / Available Players list
+- Replace "available bank" computation with the new `available_to_spend` from simulate (or compute locally as `(cap − lockedUsed) + Σ current.salary(OUT)`).
+- `getEligibility` (`src/lib/trade-eligibility.ts`) keeps the same signature — caller just passes the new `availableBudget`. The per-player cost compared against it is the player's **current** salary.
+
+### `RosterSidebar` (Roster Info card)
+- Add a new row **"Roster Cost (locked)"** showing `$X.X` = Σ acquired_salary, with a tooltip: "Sum of each player's salary at the moment they joined your roster. This is what counts against the $100M cap."
+- Keep existing "Total Salary" row (= market value sum) for reference, renamed to **"Market Value"** so the distinction is obvious.
+- Collapse **FC Starters** and **BC Starters** into one row: label on the left, two compact badges (`FC 3` `BC 2`) on the right. Vertical height of the card must not grow.
+
+### Player rows / modals
+No change to the displayed player salary — that remains the current market value. Optionally show a tiny "locked at $X.X" chip on roster rows (out of scope unless requested).
+
+## Files touched
+
+- `supabase/migrations/<new>.sql` — add column + backfill + NOT NULL.
+- `supabase/functions/roster-save/index.ts`
+- `supabase/functions/roster-current/index.ts`
+- `supabase/functions/transactions-simulate/index.ts`
+- `supabase/functions/transactions-commit/index.ts`
+- `src/hooks/useTradeValidation.ts` (or wherever bank is computed for the trade UI)
+- `src/components/transactions/TradeWorkbench.tsx` + `RosterPane.tsx` (pass new bank)
+- `src/components/RosterSidebar.tsx` (new row + FC/BC inline)
+- `src/lib/api.ts` typing for the new response fields.
 
 ## Out of scope
-- No edits to server validation, optimizer, or roster contracts.
-- No changes to InjuryReportModal itself; we only mirror its trigger icon.
-- HealthStatusBadge text pill unaffected.
+- Historical reconstruction of true acquisition prices (we only have today's market value; backfill uses that as the baseline going forward).
+- Changing how `players.salary` itself is computed.
