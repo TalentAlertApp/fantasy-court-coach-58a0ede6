@@ -1,76 +1,87 @@
-## 1) Free-form feedback modal (3 sections + Send + confirmation)
-
-**File:** `src/components/FeedbackModal.tsx` (rewrite)
-
-Replace the current "copy email + open mail app" layout with a real composer:
-
-- Title + one-sentence intro stay (shortened to free vertical space).
-- Three compact `Textarea`s stacked, each with its own small label:
-  1. **Issues / Errors**
-  2. **Suggestions**
-  3. **Loved it**
-- Each textarea sized so all three + header + footer fit a 1025px viewport with no scroll: `rows={3}`, `resize-none`, `text-sm`, `leading-snug`. Modal `max-w-lg`, body uses `space-y-3`.
-- Footer: **Cancel** (outline) + **Send** (primary, disabled when all three are empty/whitespace).
-- Send flow (mailto, per your choice):
-  1. Open a small inline **confirmation step** inside the same `Dialog` ("Send this feedback to alertadetalento@gmail.com?") with **Back** and **Confirm & send**.
-  2. On Confirm: build a single email body assembling only the non-empty sections under headers like `=== ISSUES / ERRORS ===`, plus the existing route/timestamp footer. Subject stays `Hoops Fantasy Manager Feedback — <route>`.
-  3. Trigger `window.location.href = mailto:` (mail client opens), close modal, toast "Opening your email app…".
-- Keep the small "Reach us at alertadetalento@gmail.com" line with copy-to-clipboard as a quiet fallback under the textareas (one line, not the prominent pill).
-
-**No other files touched** for part 1. `AppLayout.tsx` already opens this modal.
+## Goals
+1. Make the Feedback modal look premium — the brand's face inside the app.
+2. Actually deliver feedback to `alertadetalento@gmail.com` (mailto isn't reliable — many users don't have a configured mail client, so nothing arrives).
+3. Remove the `route:` line from the confirmation preview.
 
 ---
 
-## 2) Stable cap math + Value (L5) rounding to 1 decimal
+## 1) Real email delivery (Resend edge function)
 
-### 2a) Shared rounding helper
+Create a new Supabase edge function `send-feedback` that posts to Resend.
 
-**New file:** `src/lib/money.ts`
-```ts
-export const round1 = (n: number) => Math.round((Number(n) + Number.EPSILON) * 10) / 10;
-export const sum1 = (xs: Array<number | null | undefined>) =>
-  round1(xs.reduce((s, v) => s + (Number(v) || 0), 0));
-```
+- Requires secret `RESEND_API_KEY` (will prompt the user to add it).
+- Sender: `Hoops Fantasy Feedback <onboarding@resend.dev>` (Resend's sandbox sender, works immediately with no domain verification, delivers to the team inbox). We can swap to a verified domain later.
+- To: `alertadetalento@gmail.com`.
+- Reply-To: the signed-in user's email (so replies go back to them).
+- Subject: `Hoops Fantasy Manager Feedback — <route label>`.
+- Body: HTML + plaintext with the three sections (Issues / Suggestions / Loved it), plus a small footer with route, user email, timestamp, league.
+- Auth: invoke with the user's Supabase JWT; function reads `auth.uid()` + email server-side for trust.
 
-**New file:** `supabase/functions/_shared/money.ts` (mirror, so server + client agree).
+Client flow in `FeedbackModal.tsx`:
+1. On "Confirm & send" → call `supabase.functions.invoke("send-feedback", { body: {...} })`.
+2. On success → success toast "Feedback sent — thank you", close modal.
+3. On failure → fall back to `mailto:` and show a toast explaining the fallback opened the user's mail app.
 
-### 2b) Server — `supabase/functions/roster-save/index.ts` and `roster-current/index.ts`
-
-Apply `round1` to every cap-bearing value before returning JSON:
-- `bank_remaining`, `locked_total`, `market_total`
-- The `lockedBefore`, `freedMarket`, `costMarket`, `available`, and the diff (`costMarket - available`) used in the `OVER_BUDGET` check — use `round1` on both sides and compare with `> 0` instead of the current `+ 1e-6` epsilon trick. This eliminates the `99.9999999 vs 100` rejections.
-- Same treatment in `transactions-simulate/index.ts` and `transactions-commit/index.ts` cap math so the simulate→commit→roster-current chain reports identical numbers.
-
-### 2c) Client — consume the rounded server values as-is
-
-- `src/pages/RosterPage.tsx`, `src/components/RosterSidebar.tsx`, `src/components/KpiTiles.tsx`, `src/components/BottomActionBar.tsx`, `src/components/SwapConfirmModal.tsx`, `src/components/transactions/TradeWorkbench.tsx`, `src/hooks/useTradeValidation.ts`: any place that currently does arithmetic on `bank_remaining`/`locked_total` (e.g. predicting the post-trade bank) routes through `round1` from `src/lib/money.ts`. Display uses `toFixed(1)` on already-rounded values.
-- `src/lib/format-salary.ts`: leave `formatSalary` as-is (already 1 decimal-friendly), but add a `formatBank(n)` that returns `$${round1(n).toFixed(1)}M` for consistency.
-
-### 2d) "Value 5" → N.D (1 decimal) everywhere it's rendered
-
-Replace 2-decimal renders with 1-decimal:
-
-| File | Change |
-|---|---|
-| `src/components/PlayerRow.tsx:184` | `formatStat(computed?.value5, 2, preseason)` → `formatStat(computed?.value5, 1, preseason)` |
-| `src/components/PlayerModal.tsx:346` | `data.player.computed.value5.toFixed(2)` → `.toFixed(1)` |
-| `src/components/PlayerCard.tsx` (V5 pill near line 302) | confirm pill uses `.toFixed(1)`; fix if 2 |
-| `src/components/transactions/TradeReport.tsx:67` | already `toFixed(1)` — no change |
-| `src/components/ballers-iq/BallersIQMarketWatch.tsx:158` | already `toFixed(1)` — no change |
-| `src/components/ChartsPanel.tsx` tooltip/axis | round V5 tick formatter to 1 decimal |
-| `src/components/AICoachModal.tsx`, `src/components/court-show/CourtShowSlide.tsx`, `src/components/advanced/TrendingTab.tsx`, `src/components/onboarding/DraftPicker.tsx`, `src/components/onboarding/PlayerMarquee.tsx` | grep-and-normalize any `value5.*toFixed(2)` / `formatStat(..., 2,` for value5 to 1 decimal |
-
-Sort/filter logic (`usePlayersQuery`, `players-list`, `ai-coach`) keeps full precision — only the **display** is forced to 1 decimal.
-
-### 2e) Verification
-
-- Run `bunx vitest run` (existing tests).
-- Manual: do a swap whose post-trade total lands at exactly the cap; bank should read `$0.0M` cleanly with no `OVER_BUDGET` from float noise.
-- Manual: hover the V5 column / open PlayerModal — every value shows N.D, never N.CC.
+No mailto by default anymore — it's only the fallback.
 
 ---
+
+## 2) Premium redesign
+
+Drop the boxy default `Dialog` look. New visual treatment, dark + light aware:
+
+**Background**
+- Full-bleed basketball court image as modal backdrop (use one of the existing court SVG/PNG assets in the repo — pick the cleanest one; if none fits, generate a subtle line-art court).
+- Dark mode: court at ~8–12% opacity over a near-black gradient (`hsl(var(--background))` → `hsl(var(--card))`) with a top-down vignette so text stays readable.
+- Light mode: court at ~10% opacity over a warm off-white gradient with a soft top vignette.
+- A subtle radial accent glow in NBA yellow at top-right (very low opacity) to give it premium depth.
+
+**Header**
+- Left: stacked NBA + WNBA logos side-by-side (small, ~h-6), separated by a thin vertical divider.
+- Center/left of header: title `SEND FEEDBACK` in `font-heading uppercase tracking-[0.22em]`, with a smaller eyebrow line `MVP TESTING · YOUR VOICE SHIPS THE NEXT BUILD` in muted accent.
+- Right: close button (already provided by Dialog).
+- Thin gold hairline divider beneath the header (`border-accent/30`).
+
+**Body — compose stage**
+- Three section cards stacked, each:
+  - Header row: icon in a small rounded square with section-tinted background (red-tinted for Issues, yellow for Suggestions, emerald for Loved), label in heading font, and a tiny char count on the right.
+  - `Textarea` inside the card (rows 3, resize-none, transparent background, no inner border — border lives on the card itself), focus ring in accent yellow.
+  - Card has soft `bg-card/60 backdrop-blur` + `border-border/60`, rounded-xl, subtle inner shadow.
+- Footer pill (not full button) showing email + copy icon, muted style.
+
+**Body — confirm stage**
+- A premium "letter preview" card: paper-like surface (light tint in dark mode), monospaced body, accent-yellow left border bar. **No `route:` line** — only the three sections.
+- Short reassurance: "We'll email this to the team and reply from `alertadetalento@gmail.com`."
+
+**Footer buttons**
+- Compose: ghost `Cancel` + primary `Send` (yellow accent fill, black text, font-heading uppercase, slight glow shadow `shadow-[0_0_20px_hsl(var(--accent)/0.35)]`).
+- Confirm: ghost `Back` + primary `Confirm & send` (same premium style, with `Send` icon, loading spinner while invoking).
+
+**Misc polish**
+- Modal width `max-w-xl`, rounded `2xl`, border `border-border/60`, large shadow.
+- Smooth fade/scale on open (Dialog default is fine).
+- All colors via semantic tokens; only accent yellow & section tints use raw HSL vars already defined.
+
+---
+
+## 3) Trim the confirmation preview
+
+Remove the trailing `--- route: ... sent: ...` block from the **on-screen** confirmation view. Keep a minimal footer (`route`, `user`, `sent_at`) only in the actual email payload sent to the server — useful for triage but not shown to the user.
+
+---
+
+## Files
+
+**New**
+- `supabase/functions/send-feedback/index.ts` — Resend POST + envelope responses.
+- `supabase/config.toml` — register function with `verify_jwt = true`.
+
+**Edited**
+- `src/components/FeedbackModal.tsx` — full visual redesign + real send via `supabase.functions.invoke`, mailto fallback, drop route line from preview.
+
+**Secret**
+- `RESEND_API_KEY` (prompt user via secrets tool before deploying the function).
 
 ## Out of scope
-- No new backend mailer (mailto stays the transport).
-- No changes to scoring math, FP5 logic, or Ballers.IQ scoring weights.
-- No DB migration — cap rounding is presentation/contract layer only.
+- Verified custom sending domain (can do later, sandbox sender is fine for MVP).
+- Storing feedback in a DB table (email is enough for now; can add later if you want a backlog).
