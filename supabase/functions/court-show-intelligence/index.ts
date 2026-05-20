@@ -541,6 +541,14 @@ Rules:
               if (candidates.some((n) => foreignNameSet.has(n.toLowerCase()) && !localNameSet.has(n.toLowerCase()))) {
                 return false;
               }
+              // Same-league but off-roster/off-slate name leak: if the model
+              // mentions a real current-league player in copy, that player must
+              // be one of the allowed roster names for tonight's slate.
+              if (allowedNames.size && candidates.some((n) =>
+                localNameSet.has(n.toLowerCase()) && !allowedNames.has(n.toLowerCase())
+              )) {
+                return false;
+              }
               return true;
             });
             // Force-tag every surviving card with the active league so the
