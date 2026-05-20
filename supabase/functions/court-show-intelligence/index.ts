@@ -16,7 +16,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // Bump when the validator/prompt rules change so previously cached rows are
 // regenerated on next read (we tag every emitted card with this version).
-const VALIDATOR_VERSION = 3;
+const VALIDATOR_VERSION = 4;
 
 // Full team name tables (city + nickname + fullName) keyed by tricode. Used
 // to detect cross-league pollution in card body/headline copy where the model
@@ -154,28 +154,48 @@ Deno.serve(async (req) => {
     // never appear in this league's slate copy. Excludes any term that is also
     // a valid term in the current league (e.g. "Atlanta", "Washington").
     const currentTable = leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
-    const foreignTable = leagueCode === "wnba" ? NBA_TEAMS  : WNBA_TEAMS;
-    const currentTermSet = new Set<string>();
-    for (const t of currentTable) {
-      currentTermSet.add(t.city.toLowerCase());
-      currentTermSet.add(t.nickname.toLowerCase());
-      currentTermSet.add(`${t.city} ${t.nickname}`.toLowerCase());
-    }
-    const foreignTeamTerms: string[] = [];
-    for (const t of foreignTable) {
-      for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
-        if (!currentTermSet.has(term.toLowerCase())) foreignTeamTerms.push(term);
+    // The blocklist is computed AFTER we resolve tonight's slate tricodes
+    // (see `buildForeignTermChecker` below) so we can also flag current-league
+    // teams that aren't actually playing tonight (off-slate leaks).
+    let containsForeignTeamTerm: (text: string) => boolean = () => false;
+    const buildForeignTermChecker = (allowedTris: Set<string>) => {
+      // Any team term (from either league) whose tricode is NOT on tonight's
+      // slate is considered foreign. This catches both cross-league leaks
+      // (NBA "Trail Blazers" on a WNBA night) and off-slate leaks (a WNBA
+      // team that exists but isn't playing tonight).
+      const terms: string[] = [];
+      const allTeams = [...NBA_TEAMS, ...WNBA_TEAMS];
+      for (const t of allTeams) {
+        if (allowedTris.has(t.tri.toUpperCase())) continue;
+        for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
+          if (term && term.length >= 3) terms.push(term);
+        }
       }
-    }
-    const containsForeignTeamTerm = (text: string): boolean => {
-      if (!text) return false;
-      const hay = text.toLowerCase();
-      return foreignTeamTerms.some((term) => {
-        const t = term.toLowerCase();
-        // word-boundary-ish: surrounded by non-letter chars (or string edges).
-        const re = new RegExp(`(^|[^a-z])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`, "i");
-        return re.test(hay);
-      });
+      // De-dupe and drop terms that are ALSO names of teams actually on the
+      // slate (e.g. "Atlanta" appears in both leagues; if WNBA ATL is playing
+      // tonight we shouldn't block "Atlanta").
+      const onSlateTerms = new Set<string>();
+      for (const t of allTeams) {
+        if (!allowedTris.has(t.tri.toUpperCase())) continue;
+        onSlateTerms.add(t.city.toLowerCase());
+        onSlateTerms.add(t.nickname.toLowerCase());
+        onSlateTerms.add(`${t.city} ${t.nickname}`.toLowerCase());
+      }
+      const filtered = Array.from(new Set(terms)).filter(
+        (term) => !onSlateTerms.has(term.toLowerCase()),
+      );
+      return (text: string): boolean => {
+        if (!text) return false;
+        const hay = text.toLowerCase();
+        return filtered.some((term) => {
+          const t = term.toLowerCase();
+          const re = new RegExp(
+            `(^|[^a-z])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`,
+            "i",
+          );
+          return re.test(hay);
+        });
+      };
     };
 
     // Compute live slate mode FIRST so we can detect cache staleness below.
@@ -198,6 +218,8 @@ Deno.serve(async (req) => {
         .filter(Boolean)
         .map((t: string) => String(t).toUpperCase())
     );
+    // Wire up the foreign-term checker now that we know tonight's tricodes.
+    containsForeignTeamTerm = buildForeignTermChecker(cacheSlateTris);
 
     // Resolve the human-readable slate date/weekday in Europe/Lisbon so the
     // AI never invents a weekday (e.g. "Sunday" on a Friday). We anchor on
@@ -242,6 +264,8 @@ Deno.serve(async (req) => {
         const wrongLeague = cardsArr.some((c: any) => c.league && c.league !== leagueLabel);
         // Cached row predates this validator version → regenerate.
         const versionStale = cardsArr.some((c: any) => (c._v ?? 0) < VALIDATOR_VERSION);
+        // Cards missing league tag entirely → predate the league-tagging fix.
+        const missingLeagueTag = cardsArr.some((c: any) => !c.league);
         // Foreign team name leaked into body/headline copy.
         const foreignTeamLeak = cardsArr.some((c: any) =>
           containsForeignTeamTerm(`${c.headline ?? ""} ${c.body ?? ""}`)
@@ -274,9 +298,15 @@ Deno.serve(async (req) => {
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !foreignTeamLeak) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !missingLeagueTag && !foreignTeamLeak) {
           return jsonResp({ cached: true, ...existing });
         }
+        // Cached row is bad — hard-delete it so a partial regeneration failure
+        // can never leave the stale leaked content visible to clients.
+        await sb
+          .from("court_show_intelligence")
+          .delete()
+          .eq("league_id", league_id).eq("gw", gw).eq("day", day);
       }
     }
 
