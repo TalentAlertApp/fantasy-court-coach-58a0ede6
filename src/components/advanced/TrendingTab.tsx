@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Flame, Coins, Zap, Snowflake } from "lucide-react";
+import { Flame, Coins, Zap, Snowflake, TrendingUp, TrendingDown } from "lucide-react";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeaderColumn, LeaderRow } from "./LeaderTable";
@@ -83,6 +83,36 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
       .sort((a: any, b: any) => a._sort - b._sort); // ascending = most negative first
   }, [filtered]);
 
+  const moversRisersRows: LeaderRow[] = useMemo(() => {
+    return filtered
+      .map((p) => {
+        const d7 = Number((p.core as any).salary_delta_7d ?? 0);
+        const d1 = Number((p.core as any).last_salary_delta ?? 0);
+        return {
+          id: p.core.id, name: p.core.name, team: p.core.team, photo: p.core.photo, fc_bc: p.core.fc_bc,
+          values: [d7, d1, p.core.salary, p.last5.fp5],
+          _sort: d7,
+        };
+      })
+      .filter((r: any) => r._sort > 0)
+      .sort((a: any, b: any) => b._sort - a._sort);
+  }, [filtered]);
+
+  const moversFallersRows: LeaderRow[] = useMemo(() => {
+    return filtered
+      .map((p) => {
+        const d7 = Number((p.core as any).salary_delta_7d ?? 0);
+        const d1 = Number((p.core as any).last_salary_delta ?? 0);
+        return {
+          id: p.core.id, name: p.core.name, team: p.core.team, photo: p.core.photo, fc_bc: p.core.fc_bc,
+          values: [d7, d1, p.core.salary, p.last5.fp5],
+          _sort: d7,
+        };
+      })
+      .filter((r: any) => r._sort < 0)
+      .sort((a: any, b: any) => a._sort - b._sort);
+  }, [filtered]);
+
   const hotCols: LeaderColumn[] = [
     { key: "fp5", label: "FP5", align: "right", tone: "accent" },
     { key: "fp", label: "FP", align: "right" },
@@ -107,6 +137,12 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
     { key: "fp", label: "FP", align: "right", tone: "accent" },
     { key: "mp5", label: "MP5", align: "right" },
   ];
+  const moversCols: LeaderColumn[] = [
+    { key: "d7", label: "Δ7d $", align: "right", tone: "delta" },
+    { key: "d1", label: "Last $", align: "right", tone: "delta" },
+    { key: "$", label: "$", align: "right", tone: "accent" },
+    { key: "fp5", label: "FP5", align: "right" },
+  ];
 
   if (isLoading) {
     return (
@@ -121,6 +157,8 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
     { id: "value", title: "Value Kings", subtitle: "V5 leaders", icon: <Coins className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />, columns: valueCols, rows: valueRows, tone: "yellow" },
     { id: "stocks", title: "Stocks Surge", subtitle: "STL5+BLK5", icon: <Zap className="h-4 w-4 text-emerald-500" />, columns: stocksCols, rows: stocksRows, tone: "green" },
     { id: "cold", title: "Cold Snap", subtitle: "Bounce-back watch", icon: <Snowflake className="h-4 w-4 text-blue-400" />, columns: coldCols, rows: coldRows, tone: "blue" },
+    { id: "movers-up", title: "Salary Risers", subtitle: "Biggest 7d ↑", icon: <TrendingUp className="h-4 w-4 text-emerald-500" />, columns: moversCols, rows: moversRisersRows, tone: "green" },
+    { id: "movers-down", title: "Salary Drops", subtitle: "Biggest 7d ↓", icon: <TrendingDown className="h-4 w-4 text-destructive" />, columns: moversCols, rows: moversFallersRows, tone: "red" },
   ];
 
   return (
