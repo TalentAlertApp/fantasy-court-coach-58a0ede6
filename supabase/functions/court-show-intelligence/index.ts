@@ -844,7 +844,7 @@ Rules:
         },
       ];
       cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
-      cards = cards.map(attachStats);
+      cards = cards.map((c) => ({ ...c, stats: undefined, subtext: undefined }));
     }
 
     const { error: upErr } = await sb
