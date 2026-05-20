@@ -1,87 +1,44 @@
-## Goals
-1. Make the Feedback modal look premium — the brand's face inside the app.
-2. Actually deliver feedback to `alertadetalento@gmail.com` (mailto isn't reliable — many users don't have a configured mail client, so nothing arrives).
-3. Remove the `route:` line from the confirmation preview.
+## Daily Court Show — three targeted fixes
 
----
+### A. Ballers.IQ shows NBA players on a WNBA scheduled day
 
-## 1) Real email delivery (Resend edge function)
+**Diagnosis.** `supabase/functions/court-show-intelligence/index.ts` only feeds the AI a list of games + (for played days) `topPerformers`. On a **scheduled** WNBA day there are no top performers, so the model freelances using its training data and pulls in NBA stars (e.g. "Doncic · DAL", "Haliburton · IND"). The existing pollution check is by tricode only, and DAL/IND/WAS/PHX/CHI etc. exist in **both** leagues, so the leak slips through.
 
-Create a new Supabase edge function `send-feedback` that posts to Resend.
+**Fix (server-side, `court-show-intelligence`).**
+1. Before calling the AI, fetch a per-team **roster shortlist** for the league: top ~6 players per team in `players` filtered by `league_id` and the tricodes of today's games (sorted by recent FP / salary). Pass them in the payload as `rosters: [{ team, players: [{ id, name }] }]`.
+2. Tighten the system prompt: "Every player you reference MUST appear in the provided `rosters` array. Use ONLY their exact names and the team tricode that owns them. Never invent or recall players from training data."
+3. Add a **post-AI roster validator**: drop / regenerate any card whose `player_name` is not in the provided roster pool. If validation still leaves <4 cards, fall back to the deterministic generic cards (already in place).
+4. Strengthen the cache-pollution check: instead of only flagging tricodes, also re-fetch and confirm every referenced `player_name` exists in the league's `players` table; if not, treat the cache row as polluted and regenerate (`force=true` path).
 
-- Requires secret `RESEND_API_KEY` (will prompt the user to add it).
-- Sender: `Hoops Fantasy Feedback <onboarding@resend.dev>` (Resend's sandbox sender, works immediately with no domain verification, delivers to the team inbox). We can swap to a verified domain later.
-- To: `alertadetalento@gmail.com`.
-- Reply-To: the signed-in user's email (so replies go back to them).
-- Subject: `Hoops Fantasy Manager Feedback — <route label>`.
-- Body: HTML + plaintext with the three sections (Issues / Suggestions / Loved it), plus a small footer with route, user email, timestamp, league.
-- Auth: invoke with the user's Supabase JWT; function reads `auth.uid()` + email server-side for trust.
+### B. Salary Shake-Up slide
 
-Client flow in `FeedbackModal.tsx`:
-1. On "Confirm & send" → call `supabase.functions.invoke("send-feedback", { body: {...} })`.
-2. On success → success toast "Feedback sent — thank you", close modal.
-3. On failure → fall back to `mailto:` and show a toast explaining the fallback opened the user's mail app.
+**(i) Match Best Value Plays card style.** Reuse the existing `PodiumGrid` component (already used for Performances + Value Plays).
+- Map each `SalaryShakeupRow` to a `PodiumItem`:
+  - `statHeadline` = `"+$4.0M"` / `"−$4.2M"` Δ (colored amber for #1 via accent)
+  - `stats` = `[["WAS", "$X.XM"], ["Δ", "±$Y.Y"], ["NOW", "$Z.ZM"]]`
+  - `label` = `"Season Δ"` or `"Last Gameday"`
+  - `accent` = `"emerald"` if highest delta is positive, otherwise `"amber"` (we'll add a small per-card tint via existing accent prop; keep #1 elevated like Best Value Plays).
+- Delete the bespoke 3-card grid (lines ~1505–1556) and replace with `<PodiumGrid items={…} onPlayerClick={…} />`.
 
-No mailto by default anymore — it's only the fallback.
+**(ii) Team-logo watermark (top-right).**
+- Pick the player with the **highest positive** `delta` from `slide.payload.data.top` (fallback: largest absolute delta if all are negative — but spec says positive, so render watermark only when at least one positive exists).
+- Render that team's logo (resolved via league-aware lookup: NBA → `getTeamLogo`, WNBA → `getWnbaTeamLogo`) as an absolutely-positioned `top-4 right-4` image, ~`h-40 w-40`, `opacity-10`, `mix-blend-luminosity`, pointer-events-none — same treatment as the existing Health Watch watermark.
 
----
+### C. Health Watch slide watermark
 
-## 2) Premium redesign
+- Swap the current `Shield` watermark (line 764–767) for the lucide `Bandage` icon (same icon used by `HealthStatusIcon` and rendered next to each injured player in the Roster Sidebar and Injury Report).
+- Keep size/position/tint identical (`right-4 bottom-2 h-48 w-48 text-red-500/10`).
+- Add the matching `import { Bandage } from "lucide-react"` and remove the `Shield` import only if unused elsewhere in the file (it's still used inside `HealthWatchSlide`'s "Your Roster" header — keep it for that, just don't use it for the watermark).
 
-Drop the boxy default `Dialog` look. New visual treatment, dark + light aware:
+### Technical notes
 
-**Background**
-- Full-bleed basketball court image as modal backdrop (use one of the existing court SVG/PNG assets in the repo — pick the cleanest one; if none fits, generate a subtle line-art court).
-- Dark mode: court at ~8–12% opacity over a near-black gradient (`hsl(var(--background))` → `hsl(var(--card))`) with a top-down vignette so text stays readable.
-- Light mode: court at ~10% opacity over a warm off-white gradient with a soft top vignette.
-- A subtle radial accent glow in NBA yellow at top-right (very low opacity) to give it premium depth.
+- **Files edited (frontend):** `src/components/court-show/CourtShowSlide.tsx` (Salary Shake-Up rewrite + watermark, Health Watch watermark swap). League-aware logo helper: small local switch using `leagueCode` prop already received by `CourtShowSlide` plus `getWnbaTeamLogo` from `@/lib/wnba-teams`.
+- **Files edited (backend):** `supabase/functions/court-show-intelligence/index.ts` (roster shortlist payload, stricter prompt, post-AI validator, stronger cache-pollution check). Bump cache invalidation by setting `force=true` for any row whose cards reference unknown players.
+- **No DB migrations needed.**
+- **No new dependencies.**
 
-**Header**
-- Left: stacked NBA + WNBA logos side-by-side (small, ~h-6), separated by a thin vertical divider.
-- Center/left of header: title `SEND FEEDBACK` in `font-heading uppercase tracking-[0.22em]`, with a smaller eyebrow line `MVP TESTING · YOUR VOICE SHIPS THE NEXT BUILD` in muted accent.
-- Right: close button (already provided by Dialog).
-- Thin gold hairline divider beneath the header (`border-accent/30`).
+### Out of scope
 
-**Body — compose stage**
-- Three section cards stacked, each:
-  - Header row: icon in a small rounded square with section-tinted background (red-tinted for Issues, yellow for Suggestions, emerald for Loved), label in heading font, and a tiny char count on the right.
-  - `Textarea` inside the card (rows 3, resize-none, transparent background, no inner border — border lives on the card itself), focus ring in accent yellow.
-  - Card has soft `bg-card/60 backdrop-blur` + `border-border/60`, rounded-xl, subtle inner shadow.
-- Footer pill (not full button) showing email + copy icon, muted style.
-
-**Body — confirm stage**
-- A premium "letter preview" card: paper-like surface (light tint in dark mode), monospaced body, accent-yellow left border bar. **No `route:` line** — only the three sections.
-- Short reassurance: "We'll email this to the team and reply from `alertadetalento@gmail.com`."
-
-**Footer buttons**
-- Compose: ghost `Cancel` + primary `Send` (yellow accent fill, black text, font-heading uppercase, slight glow shadow `shadow-[0_0_20px_hsl(var(--accent)/0.35)]`).
-- Confirm: ghost `Back` + primary `Confirm & send` (same premium style, with `Send` icon, loading spinner while invoking).
-
-**Misc polish**
-- Modal width `max-w-xl`, rounded `2xl`, border `border-border/60`, large shadow.
-- Smooth fade/scale on open (Dialog default is fine).
-- All colors via semantic tokens; only accent yellow & section tints use raw HSL vars already defined.
-
----
-
-## 3) Trim the confirmation preview
-
-Remove the trailing `--- route: ... sent: ...` block from the **on-screen** confirmation view. Keep a minimal footer (`route`, `user`, `sent_at`) only in the actual email payload sent to the server — useful for triage but not shown to the user.
-
----
-
-## Files
-
-**New**
-- `supabase/functions/send-feedback/index.ts` — Resend POST + envelope responses.
-- `supabase/config.toml` — register function with `verify_jwt = true`.
-
-**Edited**
-- `src/components/FeedbackModal.tsx` — full visual redesign + real send via `supabase.functions.invoke`, mailto fallback, drop route line from preview.
-
-**Secret**
-- `RESEND_API_KEY` (prompt user via secrets tool before deploying the function).
-
-## Out of scope
-- Verified custom sending domain (can do later, sandbox sender is fine for MVP).
-- Storing feedback in a DB table (email is enough for now; can add later if you want a backlog).
+- Re-styling the Best Value Plays slide itself.
+- Changing the Ballers.IQ cache TTL or scheduling.
+- Touching the Roster Sidebar / Injury Report icons.
