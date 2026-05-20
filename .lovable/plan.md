@@ -1,57 +1,42 @@
-## I) Roster — health icon placement + visual
+## 1) Block illegal Starting 5 swaps with a modal (My Roster)
 
-**PlayerCard.tsx**
+The Starting 5 must always be 2FC+3BC or 3BC+2FC (already enforced server-side). Today the user can attempt a drag swap or picker swap that would break this and either silently bounce or get a toast. We'll intercept *before* the save and show a blocking modal.
 
-1. **Bench variant**: Move the health indicator out of `absolute bottom-0.5 right-1` and inline it right after the player name. The name line becomes:
-   ```tsx
-   <p className="… flex items-center gap-1.5">
-     <span className="truncate">{formatShortName(core.name)}</span>
-     {health.status && <HealthTooltip …><HealthStatusIcon health={health} size="xs" /></HealthTooltip>}
-   </p>
-   ```
-   Remove the previous absolute-positioned block.
+**`src/pages/RosterPage.tsx`**
+- Add state: `blockedSwap: { message: string } | null`.
+- Helper `wouldBreakStarting5(nextStarters: PlayerListItem[]): string | null` that returns an error string when starters length is 5 and FC/BC counts aren't (2,3) or (3,2). Returns `null` when ok.
+- In `handleDnDSwap`: when the swap moves a player between starters↔bench (the two cross-zone branches), compute the resulting starters list, run the check, and if it returns a message → `setBlockedSwap({ message })` and `return` before `saveMutation.mutate`. Pure within-starters or within-bench reorders are unaffected.
+- In `handleSwapSelect`: when the swap target is a starter (`starterIdx >= 0`) and the incoming player's `fc_bc` differs from the outgoing one, build the resulting starters list and run the same check; block via modal if invalid.
+- Render a shadcn `<AlertDialog>` (already imported) bound to `blockedSwap`, single OK button that clears state. Title: "This change is not allowed". Description: the returned message (e.g. "Starting 5 must be 2 FC + 3 BC or 3 FC + 2 BC.").
 
-2. **Court variant**: Replace the `absolute -bottom-0.5 -left-0.5` indicator on the photo with an inline indicator next to the name. The name line becomes a flex row with the icon to the immediate right of the short name. Remove the absolute block on the photo.
+No backend changes — server validation stays as the final safety net.
 
-3. **Icon swap + color by status**: Update `HealthStatusIcon.tsx` to use the same `Shield` icon used by the Injury Report trigger (the lucide `Shield` used in `InjuryReportModal`). Recolor by status to match `InjuryReportModal.statusClasses` palette:
-   - OUT → `text-red-500` (with current red glow)
-   - Day-To-Day (`DTD`) → `text-orange-500`
-   - Game-Time Decision (`GTD`) → `text-amber-500`
-   - Questionable (`Q`) → `text-yellow-400`
-   - Probable (`PROB`) → `text-green-600`
-   Keep sizes and tooltip behavior; ditch the `Activity` / `CircleAlert` branches — Shield only.
+## 2) Health icon = same as Injury Report trigger (Bandage)
 
-This is the only file affected for the icon swap; every consumer (`PlayerCard`, `PlayerRow`, modal headers, etc.) inherits the new look automatically.
+The `/schedule` Injury Report button uses lucide `Bandage` (see `SchedulePage.tsx` line 429). The roster health badge currently uses `Shield`.
 
-## II) Onboarding — remove redundant CTA
+**`src/components/health/HealthStatusIcon.tsx`**
+- Replace `import { Shield } from "lucide-react"` with `import { Bandage } from "lucide-react"`.
+- Replace `const Icon = Shield` with `const Icon = Bandage`.
+- Keep the existing status→color mapping (OUT red, DTD orange, GTD amber, Q yellow, PROB green) so the icon still reads "type of injury" through color.
 
-**DraftPicker.tsx**
+Every consumer (`PlayerCard` court + bench, list view, modal headers) picks up the new icon automatically.
 
-When `strategy === "manual"` and `picks.length > 0 && picks.length < 10`, two equivalent CTAs render:
-- the "+ Add more players (N/10)" pill (lines ~246-255)
-- the main `<Button>` showing "Pick N More" (same `handleGo` → opens `PlayerPickerDialog`)
+## 3) Intro screen exit transition (inverse shatter)
 
-Remove the small "+ Add more players" pill block entirely. The main yellow CTA already handles "Pick N More" and is the prominent action.
+**`src/components/welcome-back/BallersIQEntryIntro.tsx`**
+- Introduce an `exiting` state. Replace the immediate-`onDone` of `finish()` with: `setExiting(true)` → after ~700ms call `onDone()`. Guard with `doneRef` so it only triggers once.
+- Wrap the whole intro inside an `AnimatePresence` keyed by `!exiting`, so when `exiting` flips true the children unmount and we can run exit animations.
+- On the shatter `<motion.svg>`, replace the single opacity tween with an `exit` that:
+  - shards return to their original `{ x: s.x, y: s.y, rotate: s.rotate, scale: s.scale, opacity: 0 }` (the *inverse* of the entrance) over `0.55s` with `ease: [0.65, 0, 0.35, 1]`.
+  - the svg keeps `opacity: 1` during exit (no fade — the shards themselves fly out).
+- On the `RotatingBallersIQBadge` wrapper `motion.div`, add `exit={{ opacity: 0, scale: 0.85 }}` with `transition={{ duration: 0.35 }}`.
+- On the skip-hint paragraph add `exit={{ opacity: 0, transition: { duration: 0.2 } }}`.
+- Audio: in `finish()`, fade out the audio over the exit window instead of an instant pause (simple `a.volume` step-down via `setInterval`, then pause on unmount as today).
 
-## III) Ballers.IQ entry intro polish
-
-**BallersIQEntryIntro.tsx**
-
-1. **Background**: behind the shatter SVG + rotating card, add a court-image layer using `@/assets/court-bg.png` (the same asset used by `RosterCourtView` for Starting 5 / TOTW):
-   ```tsx
-   <div
-     className="absolute inset-0 bg-cover bg-center opacity-20 dark:opacity-15"
-     style={{ backgroundImage: `url(${courtBg})` }}
-     aria-hidden
-   />
-   ```
-   Use `opacity-15` in dark and `opacity-25` in light to read as "quite darker" in dark theme and "quite lighter" in light theme while remaining a background. The `bg-background` color stays as the base so the theme tint dominates.
-
-2. **Timing**: bump `DURATION_MS` from `5000` to `6000`.
-
-No changes to audio, shatter motion, or skip behavior.
+No timing change to `DURATION_MS` (still 6000).
 
 ## Out of scope
-- No changes to data sources, edge functions, or roster business logic.
-- No changes to the Injury Report modal itself; only its trigger icon convention is reused.
-- `HealthStatusBadge` text pill (used elsewhere) is untouched.
+- No edits to server validation, optimizer, or roster contracts.
+- No changes to InjuryReportModal itself; we only mirror its trigger icon.
+- HealthStatusBadge text pill unaffected.
