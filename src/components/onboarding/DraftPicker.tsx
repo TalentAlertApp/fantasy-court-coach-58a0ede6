@@ -243,17 +243,6 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
           })}
         </div>
 
-        {strategy === "manual" && picks.length > 0 && picks.length < 10 && (
-          <div className="mt-4 mx-auto max-w-2xl rounded-2xl border-2 border-accent/40 bg-accent/5 p-3">
-            <button
-              onClick={() => setManualOpen(true)}
-              className="text-[11px] uppercase tracking-[0.2em] text-accent hover:underline underline-offset-4"
-            >
-              + Add more players ({picks.length}/10)
-            </button>
-          </div>
-        )}
-
         <div className="mt-7 flex items-center gap-3">
           <Button
             onClick={handleGo}
