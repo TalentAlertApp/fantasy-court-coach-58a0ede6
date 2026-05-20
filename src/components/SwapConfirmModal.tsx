@@ -45,13 +45,7 @@ export default function SwapConfirmModal({
   // Per the trade-budget rule: both sides valued at CURRENT market.
   const costDelta = in_.salary - out.salary;
   const bankAfter = bankBefore - costDelta;
-  // Locked accounting: kept players stay at their acquired; new IN locks at current market.
-  const lockedAfter = lockedBefore - (bankBefore - (salaryCap - lockedBefore)) /* no-op for clarity */ ;
-  // Simpler: locked delta = +in_market − acquired(OUT). We don't have OUT's
-  // acquired here, but we can derive: lockedBefore + in.salary − (lockedBefore − (locked accounting on this trade)).
-  // For the display, show locked_after = lockedBefore + (in.salary − out_acquired). Since the
-  // server preserves acquireds, and bankAfter is authoritative, we display
-  // locked_after = cap − bankAfter when bankAfter ≥ 0, else the raw computation.
+  // Locked accounting is authoritative server-side; display derives from bank.
   const lockedAfterDisplay = Math.max(0, salaryCap - bankAfter);
 
   const ftAfter = Math.max(0, freeTransfersBefore - 1);
