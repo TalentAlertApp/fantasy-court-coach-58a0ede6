@@ -14,6 +14,62 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
+// Bump when the validator/prompt rules change so previously cached rows are
+// regenerated on next read (we tag every emitted card with this version).
+const VALIDATOR_VERSION = 3;
+
+// Full team name tables (city + nickname + fullName) keyed by tricode. Used
+// to detect cross-league pollution in card body/headline copy where the model
+// references teams by name instead of tricode (e.g. "Trail Blazers", "Bulls").
+const NBA_TEAMS: { tri: string; city: string; nickname: string }[] = [
+  { tri: "ATL", city: "Atlanta",      nickname: "Hawks" },
+  { tri: "BOS", city: "Boston",       nickname: "Celtics" },
+  { tri: "BKN", city: "Brooklyn",     nickname: "Nets" },
+  { tri: "CHA", city: "Charlotte",    nickname: "Hornets" },
+  { tri: "CHI", city: "Chicago",      nickname: "Bulls" },
+  { tri: "CLE", city: "Cleveland",    nickname: "Cavaliers" },
+  { tri: "DAL", city: "Dallas",       nickname: "Mavericks" },
+  { tri: "DEN", city: "Denver",       nickname: "Nuggets" },
+  { tri: "DET", city: "Detroit",      nickname: "Pistons" },
+  { tri: "GSW", city: "Golden State", nickname: "Warriors" },
+  { tri: "HOU", city: "Houston",      nickname: "Rockets" },
+  { tri: "IND", city: "Indiana",      nickname: "Pacers" },
+  { tri: "LAC", city: "LA",           nickname: "Clippers" },
+  { tri: "LAL", city: "Los Angeles",  nickname: "Lakers" },
+  { tri: "MEM", city: "Memphis",      nickname: "Grizzlies" },
+  { tri: "MIA", city: "Miami",        nickname: "Heat" },
+  { tri: "MIL", city: "Milwaukee",    nickname: "Bucks" },
+  { tri: "MIN", city: "Minnesota",    nickname: "Timberwolves" },
+  { tri: "NOP", city: "New Orleans",  nickname: "Pelicans" },
+  { tri: "NYK", city: "New York",     nickname: "Knicks" },
+  { tri: "OKC", city: "Oklahoma City",nickname: "Thunder" },
+  { tri: "ORL", city: "Orlando",      nickname: "Magic" },
+  { tri: "PHI", city: "Philadelphia", nickname: "76ers" },
+  { tri: "PHX", city: "Phoenix",      nickname: "Suns" },
+  { tri: "POR", city: "Portland",     nickname: "Trail Blazers" },
+  { tri: "SAC", city: "Sacramento",   nickname: "Kings" },
+  { tri: "SAS", city: "San Antonio",  nickname: "Spurs" },
+  { tri: "TOR", city: "Toronto",      nickname: "Raptors" },
+  { tri: "UTA", city: "Utah",         nickname: "Jazz" },
+  { tri: "WAS", city: "Washington",   nickname: "Wizards" },
+];
+const WNBA_TEAMS: { tri: string; city: string; nickname: string }[] = [
+  { tri: "ATL", city: "Atlanta",      nickname: "Dream" },
+  { tri: "CHI", city: "Chicago",      nickname: "Sky" },
+  { tri: "CON", city: "Connecticut",  nickname: "Sun" },
+  { tri: "DAL", city: "Dallas",       nickname: "Wings" },
+  { tri: "IND", city: "Indiana",      nickname: "Fever" },
+  { tri: "LVA", city: "Las Vegas",    nickname: "Aces" },
+  { tri: "LAS", city: "Los Angeles",  nickname: "Sparks" },
+  { tri: "MIN", city: "Minnesota",    nickname: "Lynx" },
+  { tri: "NYL", city: "New York",     nickname: "Liberty" },
+  { tri: "PHX", city: "Phoenix",      nickname: "Mercury" },
+  { tri: "SEA", city: "Seattle",      nickname: "Storm" },
+  { tri: "WAS", city: "Washington",   nickname: "Mystics" },
+  { tri: "GSV", city: "Golden State", nickname: "Valkyries" },
+  { tri: "TOR", city: "Toronto",      nickname: "Tempo" },
+];
+
 type AIIndexKind =
   | "form_index"
   | "matchup_index"
