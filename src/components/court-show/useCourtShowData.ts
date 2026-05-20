@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { format, parse } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
@@ -68,7 +68,6 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: leagueId } = useLeagueId();
   const { deadlines } = useLeagueDeadlines();
   const { league } = useLeague();
-  const queryClient = useQueryClient();
 
   const games = scheduleData?.games ?? [];
   const finalGameIds = useMemo(
@@ -147,58 +146,31 @@ export function useCourtShowData(gw: number, day: number) {
     },
   });
 
-  // ── Ballers.IQ AI cards (cached per league/gw/day) ───────────────────
+  // ── Ballers.IQ AI cards ──────────────────────────────────────────────
+  // Always go through the edge function, which is the single source of truth
+  // for cache validity. It returns the cached row when fresh and clean, or
+  // regenerates (and deletes any polluted row) before responding. Reading
+  // `court_show_intelligence` directly from the client would bypass the
+  // league/slate/foreign-term validators and leak NBA content into WNBA.
   const { data: aiRow, isLoading: aiLoading } = useQuery({
     queryKey: ["court-show-ai", leagueId, league, gw, day],
-    enabled: !!leagueId,
-    staleTime: 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("court_show_intelligence")
-        .select("cards, headline, mode, generated_at")
-        .eq("league_id", leagueId!)
-        .eq("gw", gw)
-        .eq("day", day)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) return null;
-      return {
-        cards: (data.cards ?? []) as unknown as AIBallersIQCard[],
-        headline: (data.headline ?? null) as string | null,
-        mode: (data.mode ?? "mixed") as string,
-      };
-    },
-  });
-
-  // Live mode derived from the slate so we can detect when the cached row is stale
-  // (e.g. cached during preview but games are now FINAL → recap angles needed).
-  const liveMode: "recap" | "matchup" | "mixed" = (() => {
-    const finals = games.filter((g: any) => (g.status ?? "").toUpperCase().includes("FINAL")).length;
-    const upcoming = games.length - finals;
-    return finals && upcoming ? "mixed" : finals ? "recap" : "matchup";
-  })();
-  const cacheStale = !!aiRow && !!aiRow.mode && aiRow.mode !== liveMode;
-
-  // Best-effort on-demand generation: kick off when no cached row exists, OR
-  // when the cached row's mode no longer matches the live slate.
-  const shouldKickOff = !!leagueId && !aiLoading && !schedLoading && games.length > 0
-    && (aiRow === null || cacheStale);
-  useQuery({
-    queryKey: ["court-show-ai-trigger", leagueId, league, gw, day, cacheStale],
-    enabled: shouldKickOff,
+    enabled: !!leagueId && !schedLoading,
     staleTime: 60_000,
     queryFn: async () => {
-      try {
-        const { error } = await supabase.functions.invoke("court-show-intelligence", {
-          body: { league_id: leagueId, gw, day, force: cacheStale ? true : undefined },
-        });
-        if (error) console.warn("[court-show-intelligence] invoke error", error);
-        // Refresh the cached AI row now that the function has upserted it.
-        await queryClient.invalidateQueries({ queryKey: ["court-show-ai", leagueId, league, gw, day] });
-      } catch (e) {
-        console.warn("[court-show-intelligence] invoke threw", e);
+      const { data, error } = await supabase.functions.invoke("court-show-intelligence", {
+        body: { league_id: leagueId, gw, day },
+      });
+      if (error) {
+        console.warn("[court-show-intelligence] invoke error", error);
+        return null;
       }
-      return true;
+      const cards = (data?.cards ?? []) as unknown as AIBallersIQCard[];
+      if (!cards.length) return null;
+      return {
+        cards,
+        headline: (data?.headline ?? null) as string | null,
+        mode: (data?.mode ?? "mixed") as string,
+      };
     },
   });
 
