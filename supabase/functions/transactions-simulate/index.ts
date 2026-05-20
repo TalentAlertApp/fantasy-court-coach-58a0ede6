@@ -170,9 +170,15 @@ Deno.serve(async (req) => {
       .filter((p) => postIds.has(Number(p.id)) && !ins.includes(Number(p.id)))
       .concat(inPlayers.filter((p) => postIds.has(Number(p.id))));
 
-    // Salary cap.
-    if (after.salary > SALARY_CAP + 1e-6) {
-      errors.push(`Salary cap exceeded: $${after.salary.toFixed(1)}M > $${SALARY_CAP}M`);
+    // Trade-budget check: IN cost (current market) must not exceed the
+    // current bank plus the market value of OUT players being released.
+    // This matches the rule: "selling a player frees their CURRENT salary
+    // as cap space; the locked acquisition salary still counts for cap on
+    // anyone you keep."
+    const tradeBudget = (SALARY_CAP - before.salary) + removedMarket.salary;
+    if (added.salary > tradeBudget + 1e-6) {
+      const over = added.salary - tradeBudget;
+      errors.push(`Over budget by $${over.toFixed(1)}M (IN $${added.salary.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`);
     }
 
     // Roster size.

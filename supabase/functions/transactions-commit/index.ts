@@ -248,11 +248,29 @@ Deno.serve(async (req) => {
       if (tri) teamCounts[tri] = (teamCounts[tri] ?? 0) + 1;
     }
 
-    if (postSalary > salary_cap + 1e-6) {
-      return errorResponse(
-        "INVALID_TRADE",
-        `salary cap exceeded: $${postSalary.toFixed(1)}M > $${salary_cap}M`,
+    // Trade-budget check: cost of IN (current market) ≤ pre-trade bank
+    // (cap − Σ acquired) + Σ current(OUT). Selling a player frees their
+    // CURRENT value of cap space; kept players still consume their locked
+    // acquisition salary.
+    {
+      const lockedBefore = Array.from(acquiredById.values())
+        .reduce((s, v) => s + Number(v ?? 0), 0);
+      const bankBefore = salary_cap - lockedBefore;
+      const freed = outs.reduce(
+        (s, id) => s + Number(playerById.get(id)?.salary ?? 0),
+        0,
       );
+      const cost = ins.reduce(
+        (s, id) => s + Number(playerById.get(id)?.salary ?? 0),
+        0,
+      );
+      const tradeBudget = bankBefore + freed;
+      if (cost > tradeBudget + 1e-6) {
+        return errorResponse(
+          "INVALID_TRADE",
+          `Over budget by $${(cost - tradeBudget).toFixed(1)}M (IN $${cost.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`,
+        );
+      }
     }
     // FC/BC balance: only enforce 5/5 once the roster is full (post-trade size == 10).
     // While the roster is still being built (ADD mode with < 10), we only enforce
