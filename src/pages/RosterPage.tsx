@@ -93,6 +93,7 @@ export default function RosterPage() {
     level: "block" | "warn";
     message: string;
   } | null>(null);
+  const [blockedSwap, setBlockedSwap] = useState<{ message: string } | null>(null);
   const [optimizeOpen, setOptimizeOpen] = useState(false);
   const [optimizerResult, setOptimizerResult] = useState<OptimizerResult | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -363,6 +364,22 @@ export default function RosterPage() {
     setOptimizeOpen(false);
   };
 
+  // Starting 5 must be exactly (2 FC + 3 BC) or (3 FC + 2 BC) when full.
+  // Returns an error message if invalid, or null when ok / not yet full.
+  const checkStarting5 = (nextStarterIds: number[]): string | null => {
+    const ids = nextStarterIds.filter((id) => id > 0);
+    if (ids.length < 5) return null;
+    let fc = 0, bc = 0;
+    for (const id of ids) {
+      const p = resolvePlayer(id);
+      if (!p) continue;
+      if (p.core.fc_bc === "FC") fc++;
+      else if (p.core.fc_bc === "BC") bc++;
+    }
+    if ((fc === 2 && bc === 3) || (fc === 3 && bc === 2)) return null;
+    return `Starting 5 must be 2 FC + 3 BC or 3 FC + 2 BC. This change would result in ${fc} FC + ${bc} BC.`;
+  };
+
   const handleSwapRequest = (playerId: number) => {
     const ft = roster?.free_transfers_remaining ?? 0;
     if (ft <= 0) {
@@ -392,6 +409,11 @@ export default function RosterPage() {
 
     if (starterIdx >= 0) newStarters[starterIdx] = newPlayer.core.id;
     else if (benchIdx >= 0) newBench[benchIdx] = newPlayer.core.id;
+
+    if (starterIdx >= 0) {
+      const err = checkStarting5(newStarters);
+      if (err) { setBlockedSwap({ message: err }); return; }
+    }
 
     saveMutation.mutate({
       gw: currentGameday.gw, day: currentGameday.day,
@@ -424,6 +446,10 @@ export default function RosterPage() {
       newBench[fromBenchIdx] = toId;
       newStarters[toStarterIdx] = fromId;
     }
+
+    // Block any starters↔bench swap that would break the 2/3 split.
+    const err = checkStarting5(newStarters);
+    if (err) { setBlockedSwap({ message: err }); return; }
 
     const newCaptain = captainId === fromId ? toId : captainId === toId ? fromId : captainId;
 
@@ -955,6 +981,7 @@ export default function RosterPage() {
             onOpenChange={(o) => !o && setGameDetail(null)}
           />
           <AlertDialog open={!!captainConfirm} onOpenChange={(o) => { if (!o) setCaptainConfirm(null); }}>
+            {/* (captain confirm dialog below) */}
             <AlertDialogContent className="rounded-xl">
               <AlertDialogHeader>
                 <AlertDialogTitle>
@@ -980,6 +1007,19 @@ export default function RosterPage() {
                 >
                   Captain anyway
                 </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog open={!!blockedSwap} onOpenChange={(o) => { if (!o) setBlockedSwap(null); }}>
+            <AlertDialogContent className="rounded-xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>This change is not allowed</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {blockedSwap?.message ?? "Starting 5 must be 2 FC + 3 BC or 3 FC + 2 BC."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setBlockedSwap(null)}>OK</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

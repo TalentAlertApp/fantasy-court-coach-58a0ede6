@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Shield } from "lucide-react";
+import { Bandage } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlayerHealth } from "@/lib/health";
 import { getHealthLabel } from "@/lib/health";
@@ -38,7 +38,7 @@ export default function HealthStatusIcon({
 
   // Match the color scheme used by the Injury Report modal status chips:
   // OUT=red, DTD=orange, GTD=amber, Q=yellow, PROB=green.
-  const Icon = Shield;
+  const Icon = Bandage;
   const toneCls =
     health.status === "OUT"
       ? "text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.45)]"
