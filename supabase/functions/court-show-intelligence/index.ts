@@ -270,6 +270,9 @@ Deno.serve(async (req) => {
         const foreignTeamLeak = cardsArr.some((c: any) =>
           containsForeignTeamTerm(`${c.headline ?? ""} ${c.body ?? ""}`)
         );
+        // Ballers.IQ slides are defined as 4 cards; partial rows usually mean
+        // prior validation dropped polluted model output and must be rebuilt.
+        const incompleteCards = cardsArr.length < 4;
         // Player-level pollution: any player_name OR body-name not in the league.
         let unknownPlayer = false;
         const namesInCache = Array.from(new Set([
@@ -298,7 +301,7 @@ Deno.serve(async (req) => {
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !missingLeagueTag && !foreignTeamLeak) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !missingLeagueTag && !foreignTeamLeak && !incompleteCards) {
           return jsonResp({ cached: true, ...existing });
         }
         // Cached row is bad — hard-delete it so a partial regeneration failure
