@@ -714,11 +714,17 @@ Rules:
       });
       addCard({
         kind: "form_index",
-        headline: topPerformers[0]?.player ? `${topPerformers[0].player.name} HEATS UP` : "FORM WATCH",
-        body: topPerformers[0]?.player ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.` : `Monitor ${slateLabel} starters as lineups settle.`,
-        player_id: topPerformers[0]?.player_id ?? null,
-        player_name: topPerformers[0]?.player?.name ?? null,
-        team: topPerformers[0]?.player?.team ?? null,
+        headline: topPerformers[0]?.player
+          ? `${topPerformers[0].player.name} HEATS UP`
+          : topForm ? `${topForm.name} LEADS FORM` : "FORM WATCH",
+        body: topPerformers[0]?.player
+          ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.`
+          : topForm
+            ? `${topForm.name} (${topForm.team}) is the slate's top FP5 anchor heading in.`
+            : `Monitor ${slateLabel} starters as lineups settle.`,
+        player_id: topPerformers[0]?.player_id ?? topForm?.id ?? null,
+        player_name: topPerformers[0]?.player?.name ?? topForm?.name ?? null,
+        team: topPerformers[0]?.player?.team ?? topForm?.team ?? null,
       });
       addCard({
         kind: "schedule_index",
@@ -727,14 +733,27 @@ Rules:
       });
       addCard({
         kind: "market_index",
-        headline: "VALUE WATCH",
-        body: `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+        headline: topValue ? `${topValue.name} BEST $/FP` : "VALUE WATCH",
+        body: topValue
+          ? `${topValue.name} (${topValue.team}) ranks first in salary efficiency on tonight's ${leagueLabel} slate.`
+          : `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+        player_id: topValue?.id ?? null,
+        player_name: topValue?.name ?? null,
+        team: topValue?.team ?? null,
       });
       addCard({
         kind: "role_stability",
         headline: "ROTATION CHECK",
         body: `Prioritize secure ${leagueLabel} minutes and late lineup confirmations.`,
       });
+      // Hydrate photos + stats for backfilled cards.
+      const bfPids = cards.map((c) => c.player_id).filter(Boolean) as number[];
+      if (bfPids.length) {
+        const { data: ps } = await sb.from("players").select("id, photo").in("id", bfPids);
+        const m = new Map((ps ?? []).map((p: any) => [p.id, p.photo]));
+        cards = cards.map((c) => c.player_id ? { ...c, player_photo: c.player_photo ?? m.get(c.player_id) ?? null } : c);
+      }
+      cards = cards.map((c) => c.stats ? c : attachStats(c));
     }
 
     // Fallback deterministic cards if AI failed/disabled
@@ -769,6 +788,7 @@ Rules:
         },
       ];
       cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
+      cards = cards.map(attachStats);
     }
 
     const { error: upErr } = await sb
