@@ -256,10 +256,12 @@ function AICardView({
   card,
   onPlayerClick,
   onTeamClick,
+  leagueCode = "nba",
 }: {
   card: AIBallersIQCard;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
+  leagueCode?: "nba" | "wnba";
 }) {
   const meta = AI_KIND_META[card.kind] ?? AI_KIND_META.form_index;
   const Icon = meta.icon;
@@ -267,12 +269,29 @@ function AICardView({
   const cleanAway = cleanTricode(card.away_team);
   const cleanHome = cleanTricode(card.home_team);
   const hasGameTeams = !!(cleanAway && cleanHome);
+  // Watermark logic: game → league logo; team/player → team logo; else league logo.
+  const teamForWatermark = cleanTeam ?? null;
+  const isWnba = leagueCode === "wnba";
+  const leagueLogo = isWnba ? wnbaLogo : nbaLogo;
+  const teamLogo = teamForWatermark
+    ? (isWnba ? getWnbaTeamLogo(teamForWatermark) : getTeamLogo(teamForWatermark))
+    : null;
+  const watermarkSrc = hasGameTeams ? leagueLogo : (teamLogo ?? leagueLogo);
+  const watermarkAlt = hasGameTeams ? (isWnba ? "WNBA" : "NBA") : (teamForWatermark ?? (isWnba ? "WNBA" : "NBA"));
   return (
     <div className={cn(
       "group relative h-full flex flex-col rounded-xl border bg-gradient-to-br to-transparent p-4 overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_40px_-12px_rgba(251,191,36,0.25)]",
       meta.ring, meta.glow,
     )}>
       <span aria-hidden className="pointer-events-none absolute -inset-y-2 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[600%] transition-transform duration-1000" />
+      {watermarkSrc && (
+        <img
+          src={watermarkSrc}
+          alt={watermarkAlt}
+          aria-hidden
+          className="pointer-events-none absolute top-2 right-2 h-10 w-10 object-contain opacity-[0.18] select-none z-0"
+        />
+      )}
       <div className="relative flex items-center justify-between gap-2 mb-2">
         <span className={cn("inline-flex items-center gap-1.5 text-[9px] uppercase tracking-[0.28em] font-heading font-black", meta.chip)}>
           <Icon className="h-3 w-3" />
@@ -285,25 +304,7 @@ function AICardView({
       <p className="relative font-heading font-black text-[13px] text-white leading-tight">
         {card.headline}
       </p>
-      <p className="relative text-[11px] text-white/70 leading-snug mt-1.5">{card.body}</p>
-      {card.subtext && (
-        <p className="relative text-[10px] text-white/50 leading-snug mt-1 italic">{card.subtext}</p>
-      )}
-      {card.stats && card.stats.length > 0 && (
-        <div className={cn(
-          "relative mt-2.5 grid gap-1.5",
-          card.stats.length >= 4 ? "grid-cols-4"
-          : card.stats.length === 3 ? "grid-cols-3"
-          : card.stats.length === 2 ? "grid-cols-2" : "grid-cols-1",
-        )}>
-          {card.stats.slice(0, 4).map((s, i) => (
-            <div key={i} className="rounded-md bg-black/30 border border-white/10 px-2 py-1.5 text-center">
-              <div className="font-mono text-[12px] font-black text-white leading-tight truncate">{s.value}</div>
-              <div className="text-[8px] uppercase tracking-[0.18em] text-white/45 mt-0.5 truncate">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="relative text-[12.5px] text-white/80 leading-relaxed mt-2">{card.body}</p>
       <div className="relative mt-auto pt-2.5 flex items-center gap-3 flex-wrap">
         {hasGameTeams && (
           <div className="flex items-center gap-2">
