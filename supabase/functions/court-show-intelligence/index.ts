@@ -16,7 +16,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // Bump when the validator/prompt rules change so previously cached rows are
 // regenerated on next read (we tag every emitted card with this version).
-const VALIDATOR_VERSION = 4;
+const VALIDATOR_VERSION = 5;
 
 // Full team name tables (city + nickname + fullName) keyed by tricode. Used
 // to detect cross-league pollution in card body/headline copy where the model
@@ -90,6 +90,8 @@ interface AICard {
   home_team?: string | null;
   game_id?: string | null;
   league?: "NBA" | "WNBA";
+  subtext?: string | null;
+  stats?: { label: string; value: string }[];
 }
 
 function jsonResp(body: unknown, status = 200) {
@@ -338,7 +340,10 @@ Deno.serve(async (req) => {
     const slateTricodes = Array.from(new Set(
       (games ?? []).flatMap((g) => [g.home_team, g.away_team]).filter(Boolean) as string[]
     ));
+    type SlatePlayer = { id: number; name: string; team: string; salary: number; fp5: number; mpg5: number };
     const rosters: { team: string; players: { id: number; name: string }[] }[] = [];
+    const slatePlayers: SlatePlayer[] = [];
+    const topByTeam = new Map<string, SlatePlayer>();
     const allowedNames = new Set<string>();
     const allowedTris = new Set(slateTricodes.map((t) => String(t).toUpperCase()));
     const teamLookup = new Map(currentTable.map((t) => [t.tri, t]));
@@ -357,23 +362,36 @@ Deno.serve(async (req) => {
     if (slateTricodes.length) {
       const { data: rosterPlayers } = await sb
         .from("players")
-        .select("id, name, team, salary")
+        .select("id, name, team, salary, fp_pg5, mpg5")
         .eq("league_id", league_id)
         .in("team", slateTricodes);
-      const byTeam = new Map<string, { id: number; name: string; salary: number | null }[]>();
+      const byTeam = new Map<string, { id: number; name: string; salary: number; fp5: number; mpg5: number }[]>();
       for (const p of rosterPlayers ?? []) {
         const t = String(p.team ?? "").toUpperCase();
         if (!t) continue;
         if (!byTeam.has(t)) byTeam.set(t, []);
-        byTeam.get(t)!.push({ id: p.id as number, name: p.name as string, salary: (p as any).salary ?? null });
+        byTeam.get(t)!.push({
+          id: p.id as number,
+          name: p.name as string,
+          salary: Number((p as any).salary ?? 0),
+          fp5: Number((p as any).fp_pg5 ?? 0),
+          mpg5: Number((p as any).mpg5 ?? 0),
+        });
       }
       for (const t of slateTricodes) {
-        const list = (byTeam.get(t.toUpperCase()) ?? [])
+        const tri = t.toUpperCase();
+        const teamPlayers = byTeam.get(tri) ?? [];
+        const list = teamPlayers.slice()
           .sort((a, b) => (b.salary ?? 0) - (a.salary ?? 0))
           .slice(0, 6)
           .map((p) => ({ id: p.id, name: p.name }));
         rosters.push({ team: t, players: list });
         for (const p of list) allowedNames.add(p.name.toLowerCase());
+        for (const p of teamPlayers) {
+          slatePlayers.push({ id: p.id, name: p.name, team: tri, salary: p.salary, fp5: p.fp5, mpg5: p.mpg5 });
+        }
+        const topFp = teamPlayers.slice().sort((a, b) => b.fp5 - a.fp5)[0];
+        if (topFp) topByTeam.set(tri, { id: topFp.id, name: topFp.name, team: tri, salary: topFp.salary, fp5: topFp.fp5, mpg5: topFp.mpg5 });
       }
     }
 
@@ -399,6 +417,95 @@ Deno.serve(async (req) => {
         topPerformers = topPerformers.map((t) => ({ ...t, player: map.get(t.player_id) }));
       }
     }
+
+    // ── Slate-level metrics for card stat strips (league-scoped) ──
+    const earliestTipLisbon = earliestTipoff
+      ? lisbonFmt(earliestTipoff, { hour: "2-digit", minute: "2-digit", hour12: false })
+      : null;
+    // Back-to-back teams: teams playing tonight that also played yesterday.
+    let b2bTeams = 0;
+    try {
+      const { data: prevGames } = await sb
+        .from("schedule_games")
+        .select("home_team, away_team")
+        .eq("league_id", league_id).eq("gw", gw).eq("day", day - 1);
+      const prevTris = new Set((prevGames ?? []).flatMap((g: any) => [g.home_team, g.away_team]).filter(Boolean).map((t: string) => String(t).toUpperCase()));
+      b2bTeams = Array.from(allowedTris).filter((t) => prevTris.has(t)).length;
+    } catch (_) { /* ignore */ }
+    // Salary 7d delta map (slate-scoped).
+    const salaryDelta = new Map<number, number>();
+    try {
+      const { data: movers } = await sb.rpc("get_salary_movers", { _days: 7, _league_id: league_id });
+      for (const m of (movers ?? []) as any[]) salaryDelta.set(Number(m.player_id), Number(m.total_delta ?? 0));
+    } catch (_) { /* ignore */ }
+    // Top value (best $/FP) on slate.
+    const valuePicks = slatePlayers
+      .filter((p) => p.fp5 > 0 && p.salary > 0 && p.mpg5 >= 10)
+      .map((p) => ({ ...p, dpf: p.salary / p.fp5 }))
+      .sort((a, b) => a.dpf - b.dpf);
+    const topValue = valuePicks[0] ?? null;
+    // Top FP5 on slate (anchor for form_index).
+    const topForm = slatePlayers.slice().sort((a, b) => b.fp5 - a.fp5)[0] ?? null;
+
+    const fmtMoney = (n: number) => {
+      const a = Math.abs(n);
+      if (a >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+      if (a >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
+      if (a >= 10) return `$${n.toFixed(0)}`;
+      if (a >= 1) return `$${n.toFixed(1)}`;
+      return `$${n.toFixed(2)}`;
+    };
+    const fmtDelta = (n: number) => `${n >= 0 ? "+" : "−"}${fmtMoney(Math.abs(n)).replace("$", "$")}`;
+
+    const buildStatsForKind = (kind: AIIndexKind, c: AICard): { label: string; value: string }[] => {
+      const stats: { label: string; value: string }[] = [];
+      if (kind === "matchup_index") {
+        const away = c.away_team ?? null;
+        const home = c.home_team ?? null;
+        const ta = away ? topByTeam.get(away) : null;
+        const th = home ? topByTeam.get(home) : null;
+        if (earliestTipLisbon) stats.push({ label: "Tip · Lisbon", value: earliestTipLisbon });
+        if (ta) stats.push({ label: `Top ${away}`, value: `${ta.fp5.toFixed(1)} FP5` });
+        if (th) stats.push({ label: `Top ${home}`, value: `${th.fp5.toFixed(1)} FP5` });
+        if (stats.length < 3) stats.push({ label: "Games", value: String((games ?? []).length) });
+      } else if (kind === "form_index") {
+        const anchorId = c.player_id ?? topForm?.id ?? null;
+        const anchor = slatePlayers.find((p) => p.id === anchorId) ?? topForm;
+        if (anchor) {
+          stats.push({ label: "FP5", value: anchor.fp5.toFixed(1) });
+          stats.push({ label: "MPG5", value: anchor.mpg5.toFixed(0) });
+          stats.push({ label: "Salary", value: fmtMoney(anchor.salary) });
+          if (anchor.fp5 > 0) stats.push({ label: "$/FP", value: fmtMoney(anchor.salary / anchor.fp5) });
+        }
+      } else if (kind === "schedule_index") {
+        stats.push({ label: "Games", value: String((games ?? []).length) });
+        stats.push({ label: "B2B teams", value: String(b2bTeams) });
+        stats.push({ label: "Teams", value: String(allowedTris.size) });
+        if (earliestTipLisbon) stats.push({ label: "First tip", value: earliestTipLisbon });
+      } else if (kind === "market_index") {
+        const anchorId = c.player_id ?? topValue?.id ?? null;
+        const anchor = slatePlayers.find((p) => p.id === anchorId) ?? topValue;
+        if (anchor) {
+          stats.push({ label: "Salary", value: fmtMoney(anchor.salary) });
+          stats.push({ label: "FP5", value: anchor.fp5.toFixed(1) });
+          if (anchor.fp5 > 0) stats.push({ label: "$/FP", value: fmtMoney(anchor.salary / anchor.fp5) });
+          const d = salaryDelta.get(anchor.id) ?? 0;
+          if (d !== 0) stats.push({ label: "Δ 7d", value: fmtDelta(d) });
+        }
+      } else if (kind === "role_stability") {
+        stats.push({ label: "Teams", value: String(allowedTris.size) });
+        stats.push({ label: "B2B", value: String(b2bTeams) });
+        if (earliestTipLisbon) stats.push({ label: "First tip", value: earliestTipLisbon });
+      }
+      return stats.slice(0, 4);
+    };
+
+    const attachStats = (card: AICard): AICard => {
+      const stats = buildStatsForKind(card.kind, card);
+      // Strip any stat value that would smuggle in a foreign team term.
+      const safe = stats.filter((s) => !containsForeignTeamTerm(`${s.label} ${s.value}`));
+      return { ...card, stats: safe.length ? safe : undefined };
+    };
 
     let cards: AICard[] = [];
     let headline = "GAMENIGHT INTELLIGENCE";
@@ -582,6 +689,8 @@ Rules:
                 return p ? { ...c, player_name: c.player_name ?? p.name, team: c.team ?? p.team, player_photo: p.photo } : c;
               });
             }
+            // Server-authoritative stat strip for every card.
+            cards = cards.map(attachStats);
           }
         } else {
           console.warn("AI gateway non-OK", aiResp.status, await aiResp.text());
@@ -612,11 +721,17 @@ Rules:
       });
       addCard({
         kind: "form_index",
-        headline: topPerformers[0]?.player ? `${topPerformers[0].player.name} HEATS UP` : "FORM WATCH",
-        body: topPerformers[0]?.player ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.` : `Monitor ${slateLabel} starters as lineups settle.`,
-        player_id: topPerformers[0]?.player_id ?? null,
-        player_name: topPerformers[0]?.player?.name ?? null,
-        team: topPerformers[0]?.player?.team ?? null,
+        headline: topPerformers[0]?.player
+          ? `${topPerformers[0].player.name} HEATS UP`
+          : topForm ? `${topForm.name} LEADS FORM` : "FORM WATCH",
+        body: topPerformers[0]?.player
+          ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.`
+          : topForm
+            ? `${topForm.name} (${topForm.team}) is the slate's top FP5 anchor heading in.`
+            : `Monitor ${slateLabel} starters as lineups settle.`,
+        player_id: topPerformers[0]?.player_id ?? topForm?.id ?? null,
+        player_name: topPerformers[0]?.player?.name ?? topForm?.name ?? null,
+        team: topPerformers[0]?.player?.team ?? topForm?.team ?? null,
       });
       addCard({
         kind: "schedule_index",
@@ -625,14 +740,27 @@ Rules:
       });
       addCard({
         kind: "market_index",
-        headline: "VALUE WATCH",
-        body: `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+        headline: topValue ? `${topValue.name} BEST $/FP` : "VALUE WATCH",
+        body: topValue
+          ? `${topValue.name} (${topValue.team}) ranks first in salary efficiency on tonight's ${leagueLabel} slate.`
+          : `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+        player_id: topValue?.id ?? null,
+        player_name: topValue?.name ?? null,
+        team: topValue?.team ?? null,
       });
       addCard({
         kind: "role_stability",
         headline: "ROTATION CHECK",
         body: `Prioritize secure ${leagueLabel} minutes and late lineup confirmations.`,
       });
+      // Hydrate photos + stats for backfilled cards.
+      const bfPids = cards.map((c) => c.player_id).filter(Boolean) as number[];
+      if (bfPids.length) {
+        const { data: ps } = await sb.from("players").select("id, photo").in("id", bfPids);
+        const m = new Map((ps ?? []).map((p: any) => [p.id, p.photo]));
+        cards = cards.map((c) => c.player_id ? { ...c, player_photo: c.player_photo ?? m.get(c.player_id) ?? null } : c);
+      }
+      cards = cards.map((c) => c.stats ? c : attachStats(c));
     }
 
     // Fallback deterministic cards if AI failed/disabled
@@ -667,6 +795,7 @@ Rules:
         },
       ];
       cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
+      cards = cards.map(attachStats);
     }
 
     const { error: upErr } = await sb

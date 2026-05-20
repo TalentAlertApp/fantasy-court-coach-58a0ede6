@@ -286,6 +286,24 @@ function AICardView({
         {card.headline}
       </p>
       <p className="relative text-[11px] text-white/70 leading-snug mt-1.5">{card.body}</p>
+      {card.subtext && (
+        <p className="relative text-[10px] text-white/50 leading-snug mt-1 italic">{card.subtext}</p>
+      )}
+      {card.stats && card.stats.length > 0 && (
+        <div className={cn(
+          "relative mt-2.5 grid gap-1.5",
+          card.stats.length >= 4 ? "grid-cols-4"
+          : card.stats.length === 3 ? "grid-cols-3"
+          : card.stats.length === 2 ? "grid-cols-2" : "grid-cols-1",
+        )}>
+          {card.stats.slice(0, 4).map((s, i) => (
+            <div key={i} className="rounded-md bg-black/30 border border-white/10 px-2 py-1.5 text-center">
+              <div className="font-mono text-[12px] font-black text-white leading-tight truncate">{s.value}</div>
+              <div className="text-[8px] uppercase tracking-[0.18em] text-white/45 mt-0.5 truncate">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="relative mt-auto pt-2.5 flex items-center gap-3 flex-wrap">
         {hasGameTeams && (
           <div className="flex items-center gap-2">
