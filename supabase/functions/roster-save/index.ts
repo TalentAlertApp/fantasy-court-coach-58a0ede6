@@ -84,7 +84,14 @@ Deno.serve(async (req) => {
     // bank_before = cap - Σ acquired(kept + OUT) = cap - locked_before
     // Initial roster draft (no prior roster on this team) is not a "transfer"
     // and must bypass both the budget delta check and the GW transfer cap.
-    const isInitialDraft = oldIdSet.size === 0;
+    // "Initial draft" = the team's roster is not yet fully assembled (less
+    // than 10 players on file). This covers brand-new teams (size 0) as
+    // well as partially-seeded teams that still need players to complete
+    // the legal 10-man roster — e.g. AI Coach personalised draft from a
+    // team that was created with a single placeholder pick. In all these
+    // cases the changes are not real transfers and must bypass both the
+    // budget delta check and the GW transfer cap.
+    const isInitialDraft = oldIdSet.size < 10;
     if (tradeCount > 0 && !isInitialDraft) {
       // We need OUT players' current market salary (they aren't in `playerIds`).
       const outMarket = new Map<number, number>();
