@@ -418,6 +418,88 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Slate-level metrics for card stat strips (league-scoped) ──
+    const earliestTipLisbon = earliestTipoff
+      ? lisbonFmt(earliestTipoff, { hour: "2-digit", minute: "2-digit", hour12: false })
+      : null;
+    // Back-to-back teams: teams playing tonight that also played yesterday.
+    let b2bTeams = 0;
+    try {
+      const { data: prevGames } = await sb
+        .from("schedule_games")
+        .select("home_team, away_team")
+        .eq("league_id", league_id).eq("gw", gw).eq("day", day - 1);
+      const prevTris = new Set((prevGames ?? []).flatMap((g: any) => [g.home_team, g.away_team]).filter(Boolean).map((t: string) => String(t).toUpperCase()));
+      b2bTeams = Array.from(allowedTris).filter((t) => prevTris.has(t)).length;
+    } catch (_) { /* ignore */ }
+    // Salary 7d delta map (slate-scoped).
+    const salaryDelta = new Map<number, number>();
+    try {
+      const { data: movers } = await sb.rpc("get_salary_movers", { _days: 7, _league_id: league_id });
+      for (const m of (movers ?? []) as any[]) salaryDelta.set(Number(m.player_id), Number(m.total_delta ?? 0));
+    } catch (_) { /* ignore */ }
+    // Top value (best $/FP) on slate.
+    const valuePicks = slatePlayers
+      .filter((p) => p.fp5 > 0 && p.salary > 0 && p.mpg5 >= 10)
+      .map((p) => ({ ...p, dpf: p.salary / p.fp5 }))
+      .sort((a, b) => a.dpf - b.dpf);
+    const topValue = valuePicks[0] ?? null;
+    // Top FP5 on slate (anchor for form_index).
+    const topForm = slatePlayers.slice().sort((a, b) => b.fp5 - a.fp5)[0] ?? null;
+
+    const fmtMoney = (n: number) => n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n / 1_000).toFixed(0)}K` : `$${n.toFixed(0)}`;
+    const fmtDelta = (n: number) => `${n >= 0 ? "+" : "−"}${fmtMoney(Math.abs(n))}`;
+
+    const buildStatsForKind = (kind: AIIndexKind, c: AICard): { label: string; value: string }[] => {
+      const stats: { label: string; value: string }[] = [];
+      if (kind === "matchup_index") {
+        const away = c.away_team ?? null;
+        const home = c.home_team ?? null;
+        const ta = away ? topByTeam.get(away) : null;
+        const th = home ? topByTeam.get(home) : null;
+        if (earliestTipLisbon) stats.push({ label: "Tip · Lisbon", value: earliestTipLisbon });
+        if (ta) stats.push({ label: `Top ${away}`, value: `${ta.fp5.toFixed(1)} FP5` });
+        if (th) stats.push({ label: `Top ${home}`, value: `${th.fp5.toFixed(1)} FP5` });
+        if (stats.length < 3) stats.push({ label: "Games", value: String((games ?? []).length) });
+      } else if (kind === "form_index") {
+        const anchorId = c.player_id ?? topForm?.id ?? null;
+        const anchor = slatePlayers.find((p) => p.id === anchorId) ?? topForm;
+        if (anchor) {
+          stats.push({ label: "FP5", value: anchor.fp5.toFixed(1) });
+          stats.push({ label: "MPG5", value: anchor.mpg5.toFixed(0) });
+          stats.push({ label: "Salary", value: fmtMoney(anchor.salary) });
+          if (anchor.fp5 > 0) stats.push({ label: "$/FP", value: fmtMoney(anchor.salary / anchor.fp5) });
+        }
+      } else if (kind === "schedule_index") {
+        stats.push({ label: "Games", value: String((games ?? []).length) });
+        stats.push({ label: "B2B teams", value: String(b2bTeams) });
+        stats.push({ label: "Teams", value: String(allowedTris.size) });
+        if (earliestTipLisbon) stats.push({ label: "First tip", value: earliestTipLisbon });
+      } else if (kind === "market_index") {
+        const anchorId = c.player_id ?? topValue?.id ?? null;
+        const anchor = slatePlayers.find((p) => p.id === anchorId) ?? topValue;
+        if (anchor) {
+          stats.push({ label: "Salary", value: fmtMoney(anchor.salary) });
+          stats.push({ label: "FP5", value: anchor.fp5.toFixed(1) });
+          if (anchor.fp5 > 0) stats.push({ label: "$/FP", value: fmtMoney(anchor.salary / anchor.fp5) });
+          const d = salaryDelta.get(anchor.id) ?? 0;
+          if (d !== 0) stats.push({ label: "Δ 7d", value: fmtDelta(d) });
+        }
+      } else if (kind === "role_stability") {
+        stats.push({ label: "Teams", value: String(allowedTris.size) });
+        stats.push({ label: "B2B", value: String(b2bTeams) });
+        if (earliestTipLisbon) stats.push({ label: "First tip", value: earliestTipLisbon });
+      }
+      return stats.slice(0, 4);
+    };
+
+    const attachStats = (card: AICard): AICard => {
+      const stats = buildStatsForKind(card.kind, card);
+      // Strip any stat value that would smuggle in a foreign team term.
+      const safe = stats.filter((s) => !containsForeignTeamTerm(`${s.label} ${s.value}`));
+      return { ...card, stats: safe.length ? safe : undefined };
+    };
+
     let cards: AICard[] = [];
     let headline = "GAMENIGHT INTELLIGENCE";
 
