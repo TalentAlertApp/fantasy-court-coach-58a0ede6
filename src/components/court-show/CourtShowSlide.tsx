@@ -1161,14 +1161,25 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
   // branding. The "High-Competitive Matchups" slide uses the same compact
   // Calendar glyph as the "Next Up" slide, rendered inside that slide block.
   const useLeagueWatermark = slide.payload.kind === "recap";
+  // For Salary Shake-Up the watermark follows the player with the highest
+  // POSITIVE delta (same broadcast-style treatment as Captain Radar).
+  const salaryShakeupTopPositive =
+    slide.payload.kind === "salary_shakeup"
+      ? [...slide.payload.data.top]
+          .filter((r) => r.delta > 0)
+          .sort((a, b) => b.delta - a.delta)[0]
+      : null;
   const watermarkTri = useLeagueWatermark
     ? null
     : (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
       (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
       (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
+      (salaryShakeupTopPositive?.team ?? null) ||
       null;
   const leagueWatermarkSrc = useLeagueWatermark ? (leagueCode === "wnba" ? wnbaLogo : nbaLogo) : null;
-  const watermarkLogo = watermarkTri ? getTeamLogo(watermarkTri) : null;
+  const watermarkLogo = watermarkTri
+    ? (leagueCode === "wnba" ? getWnbaTeamLogo(watermarkTri) : getTeamLogo(watermarkTri))
+    : null;
   const isBiq = slide.payload.kind === "ballersiq";
   const biqWatermark = isBiq ? "/brand/ballers-iq-league-watermark.png" : null;
 
@@ -1507,25 +1518,23 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           const rows = slide.payload.data.top;
           const cumulative = rows[0]?.cumulative;
           const label = cumulative ? "Season Δ" : "Last Gameday";
-          // Watermark = team logo of player with highest positive delta
+          // Watermark for this slide is rendered at the slide chrome level
+          // (see watermarkTri/watermarkLogo above) so it matches the Captain
+          // Radar treatment exactly without being clipped by the body scroll.
           const topPositive = rows
             .filter((r) => r.delta > 0)
             .sort((a, b) => b.delta - a.delta)[0];
-          const wmLogo = topPositive
-            ? (leagueCode === "wnba" ? getWnbaTeamLogo(topPositive.team) : getTeamLogo(topPositive.team))
-            : null;
+          // Podium order: highest POSITIVE delta becomes #1 (items[0]).
+          // Remaining two fill #2/#3 in their existing |delta| desc order.
+          const orderedRows = (() => {
+            if (!topPositive) return rows;
+            const rest = rows.filter((r) => r !== topPositive);
+            return [topPositive, ...rest];
+          })();
           return (
             <div className="relative h-full">
-              {wmLogo && (
-                <img
-                  src={wmLogo}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute top-2 right-2 h-40 w-40 object-contain opacity-10 mix-blend-luminosity"
-                />
-              )}
               <PodiumGrid
-                items={rows.map((p) => {
+                items={orderedRows.map((p) => {
                   const up = p.delta > 0;
                   return {
                     player_id: p.player_id,

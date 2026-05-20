@@ -33,6 +33,7 @@ interface AICard {
   away_team?: string | null;
   home_team?: string | null;
   game_id?: string | null;
+  league?: "NBA" | "WNBA";
 }
 
 function jsonResp(body: unknown, status = 200) {
@@ -62,6 +63,37 @@ Deno.serve(async (req) => {
     const leagueCode = (leagueRow?.code ?? "nba").toLowerCase();
     const leagueLabel = leagueCode === "wnba" ? "WNBA" : "NBA";
 
+    // ── helpers used by validators (defined early so cache check can use them) ──
+    // Tokens that look like tricodes but aren't team tricodes. We must exclude
+    // them from the body/headline tricode scan to avoid false positives.
+    const TRICODE_NOISE = new Set([
+      "FP","GW","MP","PTS","REB","AST","STL","BLK","TOV","FG","FGA","FGM",
+      "FT","FTA","FTM","TP","TPA","TPM","USG","TS","PER","NBA","WNBA","ESPN",
+      "TV","ABC","CBS","NBC","FOX","TNT","ET","PT","CT","MT","AM","PM","UTC",
+      "WAS","NOW","DEL","VAL","ON","OFF","OK","NO","YES","HOME","AWAY",
+      "B2B","V5","L5","L10","L3",
+    ]);
+    const extractTricodes = (text: string): string[] => {
+      const out: string[] = [];
+      const re = /\b[A-Z]{2,4}\b/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
+        const t = m[0];
+        if (TRICODE_NOISE.has(t)) continue;
+        out.push(t);
+      }
+      return out;
+    };
+    const extractCandidateNames = (text: string): string[] => {
+      // Two consecutive Capitalized tokens, optionally with apostrophes/hyphens.
+      // Captures "Tyrese Haliburton", "A'ja Wilson", "Jewell Loyd".
+      const out: string[] = [];
+      const re = /\b([A-Z][a-zA-Z'’\-]{1,})\s+([A-Z][a-zA-Z'’\-]{1,})\b/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) out.push(`${m[1]} ${m[2]}`);
+      return out;
+    };
+
     // Compute live slate mode FIRST so we can detect cache staleness below.
     const { data: gamesPre } = await sb
       .from("schedule_games")
@@ -75,13 +107,29 @@ Deno.serve(async (req) => {
     // Pre-compute slate tricodes for the cache-pollution check below.
     const { data: cachePreGames } = await sb
       .from("schedule_games")
-      .select("home_team, away_team")
+      .select("home_team, away_team, tipoff_utc")
       .eq("league_id", league_id).eq("gw", gw).eq("day", day);
     const cacheSlateTris = new Set(
       (cachePreGames ?? []).flatMap((g: any) => [g.home_team, g.away_team])
         .filter(Boolean)
         .map((t: string) => String(t).toUpperCase())
     );
+
+    // Resolve the human-readable slate date/weekday in Europe/Lisbon so the
+    // AI never invents a weekday (e.g. "Sunday" on a Friday). We anchor on
+    // the earliest tipoff to honour gameweeks that cross midnight.
+    const tipoffs = (cachePreGames ?? [])
+      .map((g: any) => g.tipoff_utc)
+      .filter(Boolean)
+      .map((s: string) => new Date(s).getTime())
+      .filter((n: number) => Number.isFinite(n));
+    const earliestTipoff = tipoffs.length ? new Date(Math.min(...tipoffs)) : null;
+    const lisbonFmt = (d: Date, opts: Intl.DateTimeFormatOptions) =>
+      new Intl.DateTimeFormat("en-US", { timeZone: "Europe/Lisbon", ...opts }).format(d);
+    const slateWeekday = earliestTipoff ? lisbonFmt(earliestTipoff, { weekday: "long" }) : null;
+    const slateDate = earliestTipoff
+      ? lisbonFmt(earliestTipoff, { weekday: "long", month: "long", day: "numeric" })
+      : null;
 
     if (!force) {
       const { data: existing } = await sb
@@ -92,9 +140,13 @@ Deno.serve(async (req) => {
       if (existing && (existing.cards as any[])?.length) {
         // Detect cross-league pollution (e.g. WNBA row referencing NBA tricodes).
         const cardsArr = (existing.cards as any[]) ?? [];
-        const allTricodes = cardsArr.flatMap((c) =>
+        const fieldTricodes = cardsArr.flatMap((c) =>
           [c.team, c.home_team, c.away_team].filter(Boolean).map((t: string) => String(t).toUpperCase())
         );
+        const textTricodes = cardsArr.flatMap((c) =>
+          extractTricodes(`${c.headline ?? ""} ${c.body ?? ""}`)
+        );
+        const allTricodes = [...fieldTricodes, ...textTricodes];
         const NBA_ONLY = new Set(["ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND","LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHX","POR","SAC","SAS","TOR","UTA","WAS"]);
         const WNBA_ONLY = new Set(["ATL","CHI","CON","DAL","IND","LVA","LAS","MIN","NYL","PHX","SEA","WAS","GSV","TOR"]);
         const polluted =
@@ -102,9 +154,14 @@ Deno.serve(async (req) => {
           (leagueCode === "nba"  && allTricodes.some((t) => WNBA_ONLY.has(t) && !NBA_ONLY.has(t)));
         // Slate-level pollution: any tricode referenced that isn't playing tonight.
         const offSlate = cacheSlateTris.size > 0 && allTricodes.some((t) => !cacheSlateTris.has(t));
-        // Player-level pollution: any player_name not in tonight's league rosters.
+        // Wrong-league tag: any card explicitly tagged with a different league.
+        const wrongLeague = cardsArr.some((c: any) => c.league && c.league !== leagueLabel);
+        // Player-level pollution: any player_name OR body-name not in the league.
         let unknownPlayer = false;
-        const namesInCache = cardsArr.map((c: any) => c.player_name).filter(Boolean) as string[];
+        const namesInCache = Array.from(new Set([
+          ...cardsArr.map((c: any) => c.player_name).filter(Boolean),
+          ...cardsArr.flatMap((c: any) => extractCandidateNames(`${c.body ?? ""}`)),
+        ])) as string[];
         if (namesInCache.length) {
           const { data: ps } = await sb
             .from("players")
@@ -112,12 +169,22 @@ Deno.serve(async (req) => {
             .eq("league_id", league_id)
             .in("name", namesInCache);
           const known = new Set((ps ?? []).map((p: any) => String(p.name).toLowerCase()));
-          unknownPlayer = namesInCache.some((n) => !known.has(n.toLowerCase()));
+          // Cross-league check: any candidate name that DOES exist in the
+          // OTHER league but not in this one is hard evidence of pollution.
+          const { data: foreign } = await sb
+            .from("players")
+            .select("name, league_id")
+            .neq("league_id", league_id)
+            .in("name", namesInCache);
+          const foreignSet = new Set((foreign ?? []).map((p: any) => String(p.name).toLowerCase()));
+          unknownPlayer = namesInCache.some(
+            (n) => !known.has(n.toLowerCase()) && foreignSet.has(n.toLowerCase())
+          );
         }
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale && !offSlate && !unknownPlayer) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague) {
           return jsonResp({ cached: true, ...existing });
         }
       }
@@ -144,6 +211,12 @@ Deno.serve(async (req) => {
     const rosters: { team: string; players: { id: number; name: string }[] }[] = [];
     const allowedNames = new Set<string>();
     const allowedTris = new Set(slateTricodes.map((t) => String(t).toUpperCase()));
+    const slateTeams: { tri: string; name: string }[] = [];
+    if (slateTricodes.length) {
+      // Pull human-readable team names from the players table (team + a name
+      // hint isn't available, so we settle on the tricode as the canonical id).
+      for (const t of slateTricodes) slateTeams.push({ tri: t, name: t });
+    }
     if (slateTricodes.length) {
       const { data: rosterPlayers } = await sb
         .from("players")
@@ -203,7 +276,9 @@ Rules:
 - Reference players by name + team tricode (e.g. "LeBron · LAL").
 - HARD RULE: Every player you name MUST appear in the user payload's "rosters" array, with the exact same name and assigned to the exact same team tricode. Never name a player who is not in "rosters".
 - Never recall players from training data. If you cannot ground a card in "rosters"/"games", write generic copy without naming any player.
-- This is the ${leagueLabel}. Do NOT reference players or teams from any other league.
+- This is the ${leagueLabel}. Do NOT reference players or teams from any other league. Tag every card you emit with "league": "${leagueLabel}".
+- HARD RULE: You may ONLY reference team tricodes present in user payload's "slateTeams". Do NOT mention any other team tricode anywhere in the headline or body.
+- HARD RULE: When you need to reference what day this slate is, use exactly user payload's "slateWeekday" (e.g. "${slateWeekday ?? "Friday"} slate"). Do NOT infer or invent a different weekday.
 - If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
 - For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
 - Also produce a single short HEADLINE (under 8 words) summarizing the night.`;
@@ -211,6 +286,9 @@ Rules:
       const userPayload = {
         league: leagueLabel,
         gw, day, mode,
+        slateDate,
+        slateWeekday,
+        slateTeams,
         games: (games ?? []).map((g: any) => ({
           game_id: g.game_id, away: g.away_team, home: g.home_team,
           status: g.status, away_pts: g.away_pts, home_pts: g.home_pts, tipoff_utc: g.tipoff_utc,
@@ -247,6 +325,7 @@ Rules:
                     away_team: { type: ["string","null"] },
                     home_team: { type: ["string","null"] },
                     game_id: { type: ["string","null"] },
+                    league: { type: "string", enum: ["NBA","WNBA"] },
                   },
                   required: ["kind","headline","body"],
                   additionalProperties: false,
@@ -295,11 +374,26 @@ Rules:
               headline: typeof c.headline === "string" ? c.headline.replace(/[{}]/g, "").slice(0, 120) : "",
               body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 280) : "",
             }));
-            // Strict league-roster validator: drop cards that reference a
-            // player not in the league's roster pool, or a team tricode not
-            // playing tonight, or whose body mentions a known cross-league
-            // star not on the slate. This is the last line of defence
-            // against AI hallucinations (e.g. Doncic showing up on WNBA).
+            // Build the set of foreign player names referenced anywhere in
+            // the cards. We use this to drop cards that smuggle in a name
+            // from another league via the body text.
+            const allCandidateNames = Array.from(new Set(
+              cards.flatMap((c) => [
+                ...(c.player_name ? [c.player_name as string] : []),
+                ...extractCandidateNames(`${c.body ?? ""}`),
+              ])
+            ));
+            let foreignNameSet = new Set<string>();
+            let localNameSet = new Set<string>();
+            if (allCandidateNames.length) {
+              const [{ data: localPs }, { data: foreignPs }] = await Promise.all([
+                sb.from("players").select("name").eq("league_id", league_id).in("name", allCandidateNames),
+                sb.from("players").select("name").neq("league_id", league_id).in("name", allCandidateNames),
+              ]);
+              localNameSet = new Set((localPs ?? []).map((p: any) => String(p.name).toLowerCase()));
+              foreignNameSet = new Set((foreignPs ?? []).map((p: any) => String(p.name).toLowerCase()));
+            }
+            // Strict league validator: drop cards that mix in the wrong league.
             cards = cards.filter((c) => {
               if (c.team && !allowedTris.has(c.team)) return false;
               if (c.away_team && !allowedTris.has(c.away_team)) return false;
@@ -307,14 +401,21 @@ Rules:
               if (c.player_name && allowedNames.size && !allowedNames.has(String(c.player_name).toLowerCase())) {
                 return false;
               }
-              // Body-level name leak detection: if any allowed name is referenced,
-              // OR no player_name was set, accept. Otherwise it would have been
-              // caught above. We also reject obvious "Player · TRI" patterns
-              // whose TRI is not on the slate.
-              const bodyMatch = String(c.body || "").match(/·\s*([A-Z]{2,4})\b/);
-              if (bodyMatch && !allowedTris.has(bodyMatch[1])) return false;
+              const text = `${c.headline ?? ""} ${c.body ?? ""}`;
+              // Body/headline-level tricode leak: any 2-4 letter code not on tonight's slate.
+              const tris = extractTricodes(text);
+              if (tris.some((t) => !allowedTris.has(t))) return false;
+              // Body-level name leak: any candidate name that belongs to the
+              // OTHER league (and is therefore foreign).
+              const candidates = extractCandidateNames(String(c.body ?? ""));
+              if (candidates.some((n) => foreignNameSet.has(n.toLowerCase()) && !localNameSet.has(n.toLowerCase()))) {
+                return false;
+              }
               return true;
             });
+            // Force-tag every surviving card with the active league so the
+            // cache pollution check has an explicit signal next time.
+            cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA" }));
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
