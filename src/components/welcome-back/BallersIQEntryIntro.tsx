@@ -29,15 +29,29 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
   const [reduced] = useState<boolean>(() => prefersReducedMotion());
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const doneRef = useRef(false);
+  const [exiting, setExiting] = useState(false);
+  const EXIT_MS = 700;
 
   const finish = () => {
     if (doneRef.current) return;
     doneRef.current = true;
-    try {
-      const a = audioRef.current;
-      if (a) { a.pause(); a.currentTime = 0; }
-    } catch {}
-    onDone();
+    // Fade audio out across the exit window.
+    const a = audioRef.current;
+    if (a) {
+      const startVol = a.volume;
+      const steps = 10;
+      let i = 0;
+      const id = window.setInterval(() => {
+        i += 1;
+        try { a.volume = Math.max(0, startVol * (1 - i / steps)); } catch {}
+        if (i >= steps) {
+          window.clearInterval(id);
+          try { a.pause(); a.currentTime = 0; } catch {}
+        }
+      }, EXIT_MS / 10);
+    }
+    setExiting(true);
+    window.setTimeout(() => onDone(), EXIT_MS);
   };
 
   // VO playback
@@ -108,10 +122,16 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
   }, []);
 
   return (
-    <div
+    <AnimatePresence>
+    {!exiting && (
+    <motion.div
+      key="biq-intro"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-background overflow-hidden cursor-pointer"
       onClick={finish}
       role="presentation"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { delay: EXIT_MS / 1000 - 0.15, duration: 0.15 } }}
     >
       {/* Court background — darker in dark theme, lighter in light theme */}
       <div
@@ -140,6 +160,7 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
           initial={{ opacity: 1 }}
           animate={{ opacity: 0 }}
           transition={{ delay: 0.9, duration: 0.5, ease: "easeOut" }}
+          exit={{ opacity: 1, transition: { duration: 0 } }}
         >
           <defs>
             <linearGradient id="biq-shard-fill" x1="0" y1="0" x2="1" y2="1">
@@ -169,6 +190,14 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
                 delay: s.delay,
                 ease: [0.22, 1, 0.36, 1],
               }}
+              exit={{
+                x: s.x,
+                y: s.y,
+                rotate: s.rotate,
+                scale: s.scale,
+                opacity: 0,
+                transition: { duration: 0.55, delay: s.delay * 0.5, ease: [0.65, 0, 0.35, 1] },
+              }}
             />
           ))}
         </motion.svg>
@@ -180,6 +209,7 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: reduced ? 0 : 0.85, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.35 } }}
       >
         <RotatingBallersIQBadge width={576} />
       </motion.div>
@@ -190,9 +220,12 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.6, duration: 0.5 }}
+        exit={{ opacity: 0, transition: { duration: 0.2 } }}
       >
         Tap anywhere to skip
       </motion.p>
-    </div>
+    </motion.div>
+    )}
+    </AnimatePresence>
   );
 }
