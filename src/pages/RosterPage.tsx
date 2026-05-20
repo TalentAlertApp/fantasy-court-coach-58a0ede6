@@ -1075,6 +1075,19 @@ export default function RosterPage() {
             isApplying={autoPickApplying}
             onPlayerClick={(id) => setSelectedPlayerId(id)}
           />
+          <SwapConfirmModal
+            open={!!pendingSwap}
+            onOpenChange={(o) => { if (!o) setPendingSwap(null); }}
+            out={pendingSwap?.out ?? null}
+            in_={pendingSwap?.in_ ?? null}
+            bankBefore={Number(roster?.bank_remaining ?? 0)}
+            lockedBefore={Number((roster as any)?.locked_total ?? Math.max(0, (roster?.constraints?.salary_cap ?? 100) - (roster?.bank_remaining ?? 0)))}
+            salaryCap={Number(roster?.constraints?.salary_cap ?? 100)}
+            freeTransfersBefore={Number(roster?.free_transfers_remaining ?? 0)}
+            transferCap={Number((roster as any)?.transfer_cap ?? 2)}
+            isSubmitting={saveMutation.isPending}
+            onConfirm={() => { if (pendingSwap) saveMutation.mutate(pendingSwap.payload); }}
+          />
         </>
       )}
     </div>
