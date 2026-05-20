@@ -682,6 +682,8 @@ Rules:
                 return p ? { ...c, player_name: c.player_name ?? p.name, team: c.team ?? p.team, player_photo: p.photo } : c;
               });
             }
+            // Server-authoritative stat strip for every card.
+            cards = cards.map(attachStats);
           }
         } else {
           console.warn("AI gateway non-OK", aiResp.status, await aiResp.text());
