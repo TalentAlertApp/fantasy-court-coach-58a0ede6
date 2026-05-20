@@ -1,8 +1,8 @@
 import * as React from "react";
-import { ShieldAlert, CircleAlert, Activity } from "lucide-react";
+import { Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PlayerHealth } from "@/lib/health";
-import { getHealthTone, getHealthLabel } from "@/lib/health";
+import { getHealthLabel } from "@/lib/health";
 
 export interface HealthStatusIconProps {
   health: PlayerHealth | null | undefined;
@@ -36,19 +36,20 @@ export default function HealthStatusIcon({
 }: HealthStatusIconProps) {
   if (!health || !health.status) return null;
 
-  const tone = getHealthTone(health.status);
-  const Icon =
-    health.status === "OUT" ? ShieldAlert :
-    health.status === "PROB" ? Activity :
-    CircleAlert;
-
+  // Match the color scheme used by the Injury Report modal status chips:
+  // OUT=red, DTD=orange, GTD=amber, Q=yellow, PROB=green.
+  const Icon = Shield;
   const toneCls =
-    tone === "danger"
+    health.status === "OUT"
       ? "text-red-500 drop-shadow-[0_0_4px_rgba(239,68,68,0.45)]"
-      : tone === "warning"
-      ? "text-amber-400"
-      : tone === "muted"
-      ? "text-muted-foreground/80"
+      : health.status === "DTD"
+      ? "text-orange-500"
+      : health.status === "GTD"
+      ? "text-amber-500"
+      : health.status === "Q"
+      ? "text-yellow-400"
+      : health.status === "PROB"
+      ? "text-green-600"
       : "text-muted-foreground";
 
   const aria = title ?? `${getHealthLabel(health)} — health status`;

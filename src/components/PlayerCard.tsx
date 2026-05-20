@@ -141,13 +141,6 @@ export default function PlayerCard({
         }`}
       >
         {isCaptain && <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>}
-        {health.status && (
-          <div className="absolute bottom-0.5 right-1 z-10">
-            <HealthTooltip health={health} side="left">
-              <span className="inline-flex"><HealthStatusIcon health={health} size="xs" /></span>
-            </HealthTooltip>
-          </div>
-        )}
         {onSetCaptain && !isCaptain && (
           <button
             onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
@@ -181,8 +174,13 @@ export default function PlayerCard({
             </div>
           )}
           <div className="flex-1 px-2 py-1.5 min-w-0">
-            <p className="text-sm font-heading font-bold leading-tight truncate">
-              {formatShortName(core.name)}
+            <p className="text-sm font-heading font-bold leading-tight flex items-center gap-1 min-w-0">
+              <span className="truncate">{formatShortName(core.name)}</span>
+              {health.status && (
+                <HealthTooltip health={health} side="left">
+                  <span className="inline-flex shrink-0"><HealthStatusIcon health={health} size="xs" /></span>
+                </HealthTooltip>
+              )}
             </p>
 
             <div className="flex items-center gap-2 mt-0.5">
@@ -284,18 +282,16 @@ export default function PlayerCard({
             className="absolute -top-0.5 -right-0.5 w-7 h-7 object-contain drop-shadow-md pointer-events-none"
           />
         )}
-        {health.status && (
-          <div className="absolute -bottom-0.5 -left-0.5 z-20 rounded-full bg-background/80 backdrop-blur-sm p-0.5 shadow-lg">
-            <HealthTooltip health={health} side="bottom">
-              <span className="inline-flex"><HealthStatusIcon health={health} size="sm" /></span>
-            </HealthTooltip>
-          </div>
-        )}
       </div>
 
       {/* Name — bold, cinematic, larger */}
-      <p className="text-sm md:text-base font-heading font-bold text-center text-white drop-shadow-lg leading-tight mt-1.5 truncate max-w-full z-10">
-        {formatShortName(core.name)}
+      <p className="text-sm md:text-base font-heading font-bold text-center text-white drop-shadow-lg leading-tight mt-1.5 max-w-full z-10 inline-flex items-center justify-center gap-1">
+        <span className="truncate">{formatShortName(core.name)}</span>
+        {health.status && (
+          <HealthTooltip health={health} side="bottom">
+            <span className="inline-flex shrink-0"><HealthStatusIcon health={health} size="sm" /></span>
+          </HealthTooltip>
+        )}
       </p>
 
       {/* FC/BC badge + salary + V5 — pill containers matching /transactions style */}

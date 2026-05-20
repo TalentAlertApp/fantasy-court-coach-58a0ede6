@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import RotatingBallersIQBadge from "@/components/court-show/RotatingBallersIQBadge";
 import { useLeague } from "@/contexts/LeagueContext";
+import courtBg from "@/assets/court-bg.png";
 
 const AUDIO_PREF_KEY = "courtshow.audio.enabled";
-const DURATION_MS = 5000;
+const DURATION_MS = 6000;
 
 function audioEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -112,6 +113,13 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
       onClick={finish}
       role="presentation"
     >
+      {/* Court background — darker in dark theme, lighter in light theme */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-25 dark:opacity-15"
+        style={{ backgroundImage: `url(${courtBg})` }}
+        aria-hidden
+      />
+
       {/* Subtle radial spotlight to add depth */}
       <div
         className="pointer-events-none absolute inset-0"
