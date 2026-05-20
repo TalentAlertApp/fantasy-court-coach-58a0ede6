@@ -45,7 +45,7 @@ const adminSecret = () =>
   (typeof window !== "undefined" ? localStorage.getItem("nba_admin_secret") : "") ?? "";
 
 interface ScheduleRow {
-  job_key: "sync3" | "all";
+  job_key: "sync3" | "all" | "salary-auto";
   enabled: boolean;
   run_time_lisbon: string;
   include_recaps: boolean;
@@ -57,6 +57,7 @@ interface ScheduleRow {
 const JOB_LABELS: Record<ScheduleRow["job_key"], string> = {
   sync3: "Sync Schedule + Games + Advanced",
   all: "Sync ALL",
+  "salary-auto": "Salary Auto-Adjust (NBA + WNBA)",
 };
 
 export default function WnbaSheetSyncPanel() {
