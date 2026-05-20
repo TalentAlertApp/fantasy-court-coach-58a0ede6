@@ -1161,14 +1161,25 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
   // branding. The "High-Competitive Matchups" slide uses the same compact
   // Calendar glyph as the "Next Up" slide, rendered inside that slide block.
   const useLeagueWatermark = slide.payload.kind === "recap";
+  // For Salary Shake-Up the watermark follows the player with the highest
+  // POSITIVE delta (same broadcast-style treatment as Captain Radar).
+  const salaryShakeupTopPositive =
+    slide.payload.kind === "salary_shakeup"
+      ? [...slide.payload.data.top]
+          .filter((r) => r.delta > 0)
+          .sort((a, b) => b.delta - a.delta)[0]
+      : null;
   const watermarkTri = useLeagueWatermark
     ? null
     : (slide.payload.kind === "performances" && slide.payload.data[0]?.team) ||
       (slide.payload.kind === "value" && slide.payload.data[0]?.team) ||
       (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
+      (salaryShakeupTopPositive?.team ?? null) ||
       null;
   const leagueWatermarkSrc = useLeagueWatermark ? (leagueCode === "wnba" ? wnbaLogo : nbaLogo) : null;
-  const watermarkLogo = watermarkTri ? getTeamLogo(watermarkTri) : null;
+  const watermarkLogo = watermarkTri
+    ? (leagueCode === "wnba" ? getWnbaTeamLogo(watermarkTri) : getTeamLogo(watermarkTri))
+    : null;
   const isBiq = slide.payload.kind === "ballersiq";
   const biqWatermark = isBiq ? "/brand/ballers-iq-league-watermark.png" : null;
 
