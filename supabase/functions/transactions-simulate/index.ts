@@ -175,10 +175,11 @@ Deno.serve(async (req) => {
     // This matches the rule: "selling a player frees their CURRENT salary
     // as cap space; the locked acquisition salary still counts for cap on
     // anyone you keep."
-    const tradeBudget = (SALARY_CAP - before.salary) + removedMarket.salary;
-    if (added.salary > tradeBudget + 1e-6) {
-      const over = added.salary - tradeBudget;
-      errors.push(`Over budget by $${over.toFixed(1)}M (IN $${added.salary.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`);
+    const tradeBudget = round1((SALARY_CAP - before.salary) + removedMarket.salary);
+    const addedSalaryRounded = round1(added.salary);
+    if (round1(addedSalaryRounded - tradeBudget) > 0) {
+      const over = round1(addedSalaryRounded - tradeBudget);
+      errors.push(`Over budget by $${over.toFixed(1)}M (IN $${addedSalaryRounded.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`);
     }
 
     // Roster size.

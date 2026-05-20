@@ -3,6 +3,7 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
 import { canTransfer } from "../_shared/deadlines.ts";
+import { round1 } from "../_shared/money.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -253,22 +254,21 @@ Deno.serve(async (req) => {
     // CURRENT value of cap space; kept players still consume their locked
     // acquisition salary.
     {
-      const lockedBefore = Array.from(acquiredById.values())
-        .reduce((s, v) => s + Number(v ?? 0), 0);
-      const bankBefore = salary_cap - lockedBefore;
-      const freed = outs.reduce(
-        (s, id) => s + Number(playerById.get(id)?.salary ?? 0),
-        0,
+      const lockedBefore = round1(
+        Array.from(acquiredById.values()).reduce((s, v) => s + Number(v ?? 0), 0),
       );
-      const cost = ins.reduce(
-        (s, id) => s + Number(playerById.get(id)?.salary ?? 0),
-        0,
+      const bankBefore = round1(salary_cap - lockedBefore);
+      const freed = round1(
+        outs.reduce((s, id) => s + Number(playerById.get(id)?.salary ?? 0), 0),
       );
-      const tradeBudget = bankBefore + freed;
-      if (cost > tradeBudget + 1e-6) {
+      const cost = round1(
+        ins.reduce((s, id) => s + Number(playerById.get(id)?.salary ?? 0), 0),
+      );
+      const tradeBudget = round1(bankBefore + freed);
+      if (round1(cost - tradeBudget) > 0) {
         return errorResponse(
           "INVALID_TRADE",
-          `Over budget by $${(cost - tradeBudget).toFixed(1)}M (IN $${cost.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`,
+          `Over budget by $${round1(cost - tradeBudget).toFixed(1)}M (IN $${cost.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`,
         );
       }
     }

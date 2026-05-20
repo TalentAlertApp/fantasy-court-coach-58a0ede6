@@ -3,6 +3,7 @@ import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { resolveTeam } from "../_shared/resolve-team.ts";
 import { isLineupLocked } from "../_shared/deadlines.ts";
+import { round1 } from "../_shared/money.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -90,20 +91,21 @@ Deno.serve(async (req) => {
           outMarket.set(Number(p.id), Number(p.salary ?? 0));
         }
       }
-      const lockedBefore = Array.from(existingAcquired.values())
-        .reduce((s, v) => s + Number(v ?? 0), 0);
+      const lockedBefore = round1(
+        Array.from(existingAcquired.values()).reduce((s, v) => s + Number(v ?? 0), 0),
+      );
       const salaryCapForCheck = await (async () => {
         const { data: s } = await sb.from("team_settings").select("salary_cap").eq("team_id", team_id).maybeSingle();
         return Number(s?.salary_cap ?? 100);
       })();
-      const bankBefore = salaryCapForCheck - lockedBefore;
-      const freedMarket = outIds.reduce((s, id) => s + Number(outMarket.get(id) ?? 0), 0);
-      const costMarket = inIds.reduce((s, id) => s + Number(currentSalary.get(id) ?? 0), 0);
-      const available = bankBefore + freedMarket;
-      if (costMarket > available + 1e-6) {
+      const bankBefore = round1(salaryCapForCheck - lockedBefore);
+      const freedMarket = round1(outIds.reduce((s, id) => s + Number(outMarket.get(id) ?? 0), 0));
+      const costMarket = round1(inIds.reduce((s, id) => s + Number(currentSalary.get(id) ?? 0), 0));
+      const available = round1(bankBefore + freedMarket);
+      if (round1(costMarket - available) > 0) {
         return errorResponse(
           "OVER_BUDGET",
-          `Trade exceeds the $${salaryCapForCheck}M cap by $${(costMarket - available).toFixed(1)}M (have $${available.toFixed(1)}M available — bank $${bankBefore.toFixed(1)}M + freed $${freedMarket.toFixed(1)}M)`,
+          `Trade exceeds the $${salaryCapForCheck}M cap by $${round1(costMarket - available).toFixed(1)}M (have $${available.toFixed(1)}M available — bank $${bankBefore.toFixed(1)}M + freed $${freedMarket.toFixed(1)}M)`,
           null,
           400,
         );
@@ -172,10 +174,9 @@ Deno.serve(async (req) => {
       if (txErr) console.error("[roster-save] transaction log failed:", txErr);
     }
 
-    const lockedTotal = rows.reduce((s, r) => s + Number(r.acquired_salary ?? 0), 0);
-    const marketTotal = playerIds.reduce(
-      (s, pid) => s + Number(currentSalary.get(pid) ?? 0),
-      0,
+    const lockedTotal = round1(rows.reduce((s, r) => s + Number(r.acquired_salary ?? 0), 0));
+    const marketTotal = round1(
+      playerIds.reduce((s, pid) => s + Number(currentSalary.get(pid) ?? 0), 0),
     );
 
     const { data: settings } = await sb.from("team_settings").select("*").eq("team_id", team_id).maybeSingle();
@@ -200,9 +201,9 @@ Deno.serve(async (req) => {
         gw, day, deadline_utc: null,
         starters, bench,
         captain_id,
-        bank_remaining: salaryCap - lockedTotal,
-        locked_total: Math.round(lockedTotal * 100) / 100,
-        market_total: Math.round(marketTotal * 100) / 100,
+        bank_remaining: round1(salaryCap - lockedTotal),
+        locked_total: round1(lockedTotal),
+        market_total: round1(marketTotal),
         free_transfers_remaining: freeTransfers,
         transfer_cap: transferCap,
         constraints: {
