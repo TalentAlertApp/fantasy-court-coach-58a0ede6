@@ -2,6 +2,7 @@ import { ArrowRight, AlertTriangle, Wallet, ArrowRightLeft } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { round1 } from "@/lib/money";
 
 export interface SwapConfirmPlayer {
   id: number;
@@ -43,13 +44,19 @@ export default function SwapConfirmModal({
   if (!out || !in_) return null;
 
   // Per the trade-budget rule: both sides valued at CURRENT market.
-  const costDelta = in_.salary - out.salary;
-  const bankAfter = bankBefore - costDelta;
+  // Every cap figure is forced through round1 so the modal matches the
+  // server's authoritative comparison and never shows ghost cents.
+  const outSalary = round1(out.salary);
+  const inSalary = round1(in_.salary);
+  const costDelta = round1(inSalary - outSalary);
+  const bankBeforeR = round1(bankBefore);
+  const lockedBeforeR = round1(lockedBefore);
+  const bankAfter = round1(bankBeforeR - costDelta);
   // Locked accounting is authoritative server-side; display derives from bank.
-  const lockedAfterDisplay = Math.max(0, salaryCap - bankAfter);
+  const lockedAfterDisplay = round1(Math.max(0, salaryCap - bankAfter));
 
   const ftAfter = Math.max(0, freeTransfersBefore - 1);
-  const overBudget = bankAfter < -1e-6;
+  const overBudget = bankAfter < 0;
   const noFt = freeTransfersBefore <= 0;
   const blocked = overBudget || noFt;
 
@@ -77,8 +84,8 @@ export default function SwapConfirmModal({
           <div className="flex items-center gap-1.5 text-[10px] font-heading uppercase text-muted-foreground">
             <Wallet className="h-3.5 w-3.5" /> Budget impact (current market)
           </div>
-          <Row label="OUT value (freed)" value={`+$${out.salary.toFixed(1)}M`} valueClass="text-emerald-500 font-mono" />
-          <Row label="IN cost" value={`−$${in_.salary.toFixed(1)}M`} valueClass="text-destructive font-mono" />
+          <Row label="OUT value (freed)" value={`+$${outSalary.toFixed(1)}M`} valueClass="text-emerald-500 font-mono" />
+          <Row label="IN cost" value={`−$${inSalary.toFixed(1)}M`} valueClass="text-destructive font-mono" />
           <Row
             label="Net change"
             value={`${costDelta >= 0 ? "−" : "+"}$${Math.abs(costDelta).toFixed(1)}M`}
@@ -87,7 +94,7 @@ export default function SwapConfirmModal({
           <div className="border-t pt-2 grid grid-cols-2 gap-2 text-xs">
             <div>
               <div className="text-[10px] uppercase text-muted-foreground">Bank before</div>
-              <div className={`font-mono font-bold ${bankColor(bankBefore)}`}>${bankBefore.toFixed(1)}M</div>
+              <div className={`font-mono font-bold ${bankColor(bankBeforeR)}`}>${bankBeforeR.toFixed(1)}M</div>
             </div>
             <div>
               <div className="text-[10px] uppercase text-muted-foreground">Bank after</div>
@@ -95,7 +102,7 @@ export default function SwapConfirmModal({
             </div>
             <div>
               <div className="text-[10px] uppercase text-muted-foreground">Roster cost (locked)</div>
-              <div className="font-mono">${lockedBefore.toFixed(1)}M / ${salaryCap}M</div>
+              <div className="font-mono">${lockedBeforeR.toFixed(1)}M / ${salaryCap}M</div>
             </div>
             <div>
               <div className="text-[10px] uppercase text-muted-foreground">After</div>

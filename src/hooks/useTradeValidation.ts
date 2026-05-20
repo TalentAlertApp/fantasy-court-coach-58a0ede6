@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { round1 } from "@/lib/money";
 
 export interface ValidationPlayer {
   id: number;
@@ -75,9 +76,11 @@ export function useTradeValidation(
     const outPlayers = input.outs.map((id) => byId.get(id)).filter(Boolean) as ValidationPlayer[];
     const inPlayers = input.ins.map((id) => byId.get(id)).filter(Boolean) as ValidationPlayer[];
 
-    const freedSalary = outPlayers.reduce((s, p) => s + (p.salary ?? 0), 0);
-    const addedSalary = inPlayers.reduce((s, p) => s + (p.salary ?? 0), 0);
-    const availableForNextIn = input.bankRemaining + freedSalary - addedSalary;
+    const freedSalary = round1(outPlayers.reduce((s, p) => s + (p.salary ?? 0), 0));
+    const addedSalary = round1(inPlayers.reduce((s, p) => s + (p.salary ?? 0), 0));
+    const availableForNextIn = round1(
+      round1(input.bankRemaining) + freedSalary - addedSalary,
+    );
 
     // Post-trade roster
     const postIds = new Set<number>(input.rosterPlayers.map((p) => p.id));
@@ -139,7 +142,7 @@ export function useTradeValidation(
     // bank + value freed by OUTs (their current market value). Matches the
     // server check. The displayed post-trade `postSalary` may exceed cap
     // for appreciated swaps — that's expected.
-    if (availableForNextIn < -1e-6) {
+    if (availableForNextIn < 0) {
       reasons.push(`Over budget by $${Math.abs(availableForNextIn).toFixed(1)}M`);
     }
     for (const [tri, count] of Object.entries(postTeamCounts)) {
@@ -155,7 +158,7 @@ export function useTradeValidation(
     return {
       isValid: reasons.length === 0,
       reasons,
-      postSalary,
+      postSalary: round1(postSalary),
       postFc,
       postBc,
       postTeamCounts,

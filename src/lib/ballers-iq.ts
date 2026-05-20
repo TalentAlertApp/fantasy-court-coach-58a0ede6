@@ -255,7 +255,7 @@ function buildLineupInsights(payload: BIQPayload): BallersIQResponse {
         title: "Value Pick",
         headline: `${valuePick.p.name} is your best bench value.`,
         bullets: [
-          `Value5 ${num(valuePick.p.value5).toFixed(2)} per $M.`,
+          `Value5 ${num(valuePick.p.value5).toFixed(1)} per $M.`,
           `${num(valuePick.p.fp_pg5).toFixed(1)} FP5 at $${num(valuePick.p.salary).toFixed(1)}M.`,
           "Consider promoting if a starter is risky.",
         ],
@@ -349,7 +349,7 @@ function buildPlayerInsights(payload: BIQPayload): BallersIQResponse {
     bullets.push(`Δ MPG ${dMpg >= 0 ? "+" : ""}${dMpg.toFixed(1)}.`);
   const stocks = num(p.stl5) + num(p.blk5);
   if (stocks >= 2) bullets.push(`Stocks ${stocks.toFixed(1)} per game (high impact).`);
-  if (value5 > 0) bullets.push(`Value5 ${value5.toFixed(2)} per $M.`);
+  if (value5 > 0) bullets.push(`Value5 ${value5.toFixed(1)} per $M.`);
 
   return {
     summary: headline,

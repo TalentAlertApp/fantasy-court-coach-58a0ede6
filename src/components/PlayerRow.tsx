@@ -181,7 +181,7 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
       </TableCell>
       <TableCell title={salaryTip} className={`px-1.5 text-right text-[11px] w-[68px] tabular-nums font-bold ${salaryToneCls || "text-muted-foreground"}`}>{formatSalary(core.salary)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>
-      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(computed?.value5, 2, preseason)}</TableCell>
+      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(computed?.value5, 1, preseason)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(lastGame?.fp, 1, preseason)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-foreground font-bold w-14 tabular-nums">{formatStat(totalFp, 0, preseason)}</TableCell>
       <TableCell className="px-1.5 text-right w-8">
