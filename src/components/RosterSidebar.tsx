@@ -68,7 +68,23 @@ export default function RosterSidebar({
               changes don't affect it — only trades do.
             </TooltipContent>
           </Tooltip>
-          <InfoRow icon={<ArrowRightLeft className="h-3.5 w-3.5" />} label="Free Transfers" value={String(freeTransfers)} />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-muted-foreground dark:text-white/70">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-heading uppercase">Free Transfers</span>
+            </div>
+            <span
+              className={`font-mono text-sm font-bold ${
+                freeTransfers <= 0
+                  ? "text-destructive"
+                  : freeTransfers === 1
+                  ? "text-[hsl(var(--nba-yellow))]"
+                  : "dark:text-white"
+              }`}
+            >
+              {freeTransfers}
+            </span>
+          </div>
           <div className="border-t pt-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">Starters</span>
