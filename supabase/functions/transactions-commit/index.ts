@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
 
     // 1. Load current roster (RLS-scoped) and team settings
     const [rosterRes, settingsRes] = await Promise.all([
-      userClient.from("roster").select("id, player_id, slot").eq("team_id", team_id),
+      userClient.from("roster").select("id, player_id, slot, acquired_salary").eq("team_id", team_id),
       userClient.from("team_settings").select("*").eq("team_id", team_id).maybeSingle(),
     ]);
     if (rosterRes.error) {
@@ -221,6 +221,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Cap accounting uses acquired_salary for kept players and current
+    // market salary for newly added (IN) players (their new lock).
+    const acquiredById = new Map<number, number>();
+    for (const r of (rosterRows ?? []) as any[]) {
+      acquiredById.set(Number(r.player_id), Number(r.acquired_salary ?? 0));
+    }
     let postSalary = 0;
     let postFc = 0;
     let postBc = 0;
@@ -230,7 +236,12 @@ Deno.serve(async (req) => {
       if (!p) {
         return errorResponse("INVALID_TRADE", `roster player ${id} not found in players table`);
       }
-      postSalary += Number(p.salary ?? 0);
+      // Kept rosters keep their locked acquisition salary; new IN ids enter
+      // at their current market value (becomes their lock).
+      const isNewIn = ins.includes(id);
+      postSalary += isNewIn
+        ? Number(p.salary ?? 0)
+        : Number(acquiredById.get(id) ?? p.salary ?? 0);
       if (p.fc_bc === "FC") postFc += 1;
       else if (p.fc_bc === "BC") postBc += 1;
       const tri = String(p.team ?? "").toUpperCase();
@@ -306,6 +317,8 @@ Deno.serve(async (req) => {
     const insertedTxns: any[] = [];
     if (isAddMode) {
       for (const inId of ins) {
+        const inPlayer = playerById.get(inId);
+        const acqIn = Number(inPlayer?.salary ?? 0);
         const insRes = await userClient.from("roster").insert({
           team_id,
           league_id: teamLeagueId,
@@ -313,6 +326,7 @@ Deno.serve(async (req) => {
           slot: "BENCH",
           gw,
           day,
+          acquired_salary: acqIn,
         });
         if (insRes.error) {
           return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
@@ -341,6 +355,9 @@ Deno.serve(async (req) => {
         const inId = ins[i];
         const outRow = rosterRows.find((r: any) => Number(r.player_id) === outId);
         const slot = outRow?.slot ?? "BENCH";
+        const outAcq = Number(outRow?.acquired_salary ?? 0);
+        const inPlayer = playerById.get(inId);
+        const acqIn = Number(inPlayer?.salary ?? 0);
 
         // delete OUT first, then insert IN — order matters because (team_id, player_id)
         // may have a uniqueness expectation downstream and the delete frees the slot.
@@ -355,10 +372,11 @@ Deno.serve(async (req) => {
           slot,
           gw,
           day,
+          acquired_salary: acqIn,
         });
         if (insRes.error) {
           // Best-effort rollback: re-insert the OUT row so the user isn't left short.
-          await userClient.from("roster").insert({ team_id, league_id: teamLeagueId, player_id: outId, slot, gw, day });
+          await userClient.from("roster").insert({ team_id, league_id: teamLeagueId, player_id: outId, slot, gw, day, acquired_salary: outAcq });
           return errorResponse("ROSTER_INSERT_FAILED", insRes.error.message, null, 500);
         }
 
