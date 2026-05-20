@@ -710,9 +710,7 @@ function PremiumChip({
         active ? `${t.glow} animate-[pulse_2.4s_ease-in-out_infinite]` : "border-foreground/10"
       } ${danger ? "bg-destructive/10" : ""}`}
     >
-      <span className={`h-8 w-8 shrink-0 rounded-lg inline-flex items-center justify-center ${t.tile}`}>
-        <Icon className="h-4 w-4" />
-      </span>
+      <Icon className={`h-5 w-5 shrink-0 ${t.tile.split(" ").find((c) => c.startsWith("text-")) ?? "text-foreground"}`} />
       <div className="flex flex-col leading-none min-w-0">
         <span className="text-[8.5px] uppercase tracking-[0.3em] font-heading text-foreground/55">{label}</span>
         <span className={`mt-1 font-mono font-black text-sm tabular-nums truncate ${valueCls}`}>
