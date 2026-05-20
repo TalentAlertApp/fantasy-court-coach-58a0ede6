@@ -1514,6 +1514,13 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           const wmLogo = topPositive
             ? (leagueCode === "wnba" ? getWnbaTeamLogo(topPositive.team) : getTeamLogo(topPositive.team))
             : null;
+          // Podium order: highest POSITIVE delta becomes #1 (items[0]).
+          // Remaining two fill #2/#3 in their existing |delta| desc order.
+          const orderedRows = (() => {
+            if (!topPositive) return rows;
+            const rest = rows.filter((r) => r !== topPositive);
+            return [topPositive, ...rest];
+          })();
           return (
             <div className="relative h-full">
               {wmLogo && (
@@ -1521,11 +1528,11 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                   src={wmLogo}
                   alt=""
                   aria-hidden
-                  className="pointer-events-none absolute top-2 right-2 h-40 w-40 object-contain opacity-10 mix-blend-luminosity"
+                  className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.13] blur-md select-none"
                 />
               )}
               <PodiumGrid
-                items={rows.map((p) => {
+                items={orderedRows.map((p) => {
                   const up = p.delta > 0;
                   return {
                     player_id: p.player_id,
