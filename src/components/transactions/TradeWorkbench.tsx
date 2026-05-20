@@ -7,6 +7,7 @@ import { HealthStatusIcon } from "@/components/health";
 import type { PlayerHealth } from "@/lib/health";
 import { isHealthUnavailable } from "@/lib/health";
 import type { ReactNode } from "react";
+import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
 
 export interface TradeChipPlayer {
   id: number;
@@ -16,6 +17,8 @@ export interface TradeChipPlayer {
   salary: number;
   photo: string | null;
   health?: PlayerHealth | null;
+  last_salary_delta?: number | null;
+  salary_delta_7d?: number | null;
 }
 
 interface TradeWorkbenchProps {
@@ -53,6 +56,10 @@ function PlayerChip({
   const isOut = variant === "out";
   const logo = getTeamLogo(p.team);
   const playerOut = isHealthUnavailable(p.health);
+  const d1 = p.last_salary_delta ?? null;
+  const d7 = p.salary_delta_7d ?? null;
+  const salaryToneCls = salaryDeltaColor(d7 ?? d1);
+  const salaryTip = salaryDeltaTooltip(d1, d7);
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-lg pl-1 pr-2 h-9 text-[11px] font-heading uppercase border-2 ${
@@ -72,7 +79,7 @@ function PlayerChip({
       {logo && <img src={logo} alt="" className="h-4 w-4" />}
       <span className="font-bold tracking-tight max-w-[110px] truncate">{p.name}</span>
       <HealthStatusIcon health={p.health ?? null} size="xs" />
-      <span className="font-mono opacity-70">${p.salary}M</span>
+      <span className={`font-mono font-bold ${salaryToneCls || "opacity-70"}`} title={salaryTip}>${p.salary}M</span>
       <button
         type="button"
         onClick={onRemove}

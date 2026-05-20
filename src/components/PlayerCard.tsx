@@ -11,6 +11,7 @@ import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky } from "@/lib
 import HealthStatusIcon from "@/components/health/HealthStatusIcon";
 import HealthTooltip from "@/components/health/HealthTooltip";
 import React from "react";
+import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -90,6 +91,10 @@ export default function PlayerCard({
   const accentColor = isFc ? "border-destructive" : "border-primary";
   const teamLogo = getTeamLogo(core.team);
   const v5 = (player.computed as any)?.value5;
+  const d1 = (core as any).last_salary_delta as number | undefined;
+  const d7 = (core as any).salary_delta_7d as number | undefined;
+  const salaryToneCls = salaryDeltaColor(d1);
+  const salaryTip = salaryDeltaTooltip(d1, d7);
 
   // Normalized health → drives compact indicator + subtle card-tone signal.
   const health = normalizePlayerHealth(player);
@@ -187,7 +192,7 @@ export default function PlayerCard({
               <Badge variant={isFc ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5 shrink-0">
                 {core.fc_bc}
               </Badge>
-              <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-3.5 inline-flex items-center text-[10px] font-mono text-foreground shrink-0">
+              <span title={salaryTip} className={`rounded-md bg-card/80 border border-border/40 px-1.5 h-3.5 inline-flex items-center text-[10px] font-mono shrink-0 font-bold ${salaryToneCls || "text-foreground"}`}>
                 ${core.salary}
               </span>
               {v5 != null && (
@@ -299,7 +304,7 @@ export default function PlayerCard({
         <Badge variant={isFc ? "destructive" : "default"} className="text-[9px] px-1.5 py-0 rounded h-4 shadow-md">
           {core.fc_bc}
         </Badge>
-        <span className="rounded-md bg-card/80 border border-border/40 px-1.5 h-4 inline-flex items-center text-xs font-mono text-foreground">
+        <span title={salaryTip} className={`rounded-md bg-card/80 border border-border/40 px-1.5 h-4 inline-flex items-center text-xs font-mono font-bold ${salaryToneCls || "text-foreground"}`}>
           ${core.salary}
         </span>
         {v5 != null && (
