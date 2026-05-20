@@ -739,39 +739,60 @@ Rules:
         cards.push({ ...card, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any);
       };
       const slateLabel = slateTeams.slice(0, 2).map((t) => t.tri).join(" @ ") || leagueLabel;
+      const headlineGame = upcoming[0] ?? finalGames[0] ?? null;
+      const awayTop = headlineGame ? topByTeam.get(String(headlineGame.away_team).toUpperCase()) : null;
+      const homeTop = headlineGame ? topByTeam.get(String(headlineGame.home_team).toUpperCase()) : null;
+      const tipStr = earliestTipLisbon ? `tips at ${earliestTipLisbon} Lisbon` : "tips tonight";
+      const matchupBody = headlineGame
+        ? `${headlineGame.away_team} at ${headlineGame.home_team} ${tipStr} and projects as the highest-leverage spot for ${leagueLabel} managers.${
+            awayTop && homeTop
+              ? ` ${awayTop.name} (${awayTop.team}, ${round1(awayTop.fp5)} FP5) and ${homeTop.name} (${homeTop.team}, ${round1(homeTop.fp5)} FP5) headline the two-way star power.`
+              : awayTop
+                ? ` ${awayTop.name} (${awayTop.team}) anchors the visitors at ${round1(awayTop.fp5)} FP5 heading in.`
+                : homeTop
+                  ? ` ${homeTop.name} (${homeTop.team}) carries the hosts at ${round1(homeTop.fp5)} FP5 heading in.`
+                  : ""
+          }`
+        : `Nothing on the ${leagueLabel} board tonight — circle back when the next slate locks in.`;
       addCard({
         kind: "matchup_index",
-        headline: upcoming[0] ? `${upcoming[0].away_team} @ ${upcoming[0].home_team}` : "MATCHUP RADAR",
-        body: upcoming[0] ? "Highest-leverage tilt of the night for fantasy lineups." : `No ${leagueLabel} games to preview.`,
-        away_team: upcoming[0]?.away_team ?? null,
-        home_team: upcoming[0]?.home_team ?? null,
-        game_id: upcoming[0]?.game_id ?? null,
+        headline: headlineGame ? `${headlineGame.away_team} @ ${headlineGame.home_team}` : "MATCHUP RADAR",
+        body: matchupBody,
+        away_team: headlineGame?.away_team ?? null,
+        home_team: headlineGame?.home_team ?? null,
+        game_id: headlineGame?.game_id ?? null,
       });
+      const anchor = topPerformers[0]?.player
+        ? { name: topPerformers[0].player.name, team: topPerformers[0].player.team, id: topPerformers[0].player_id, fp5: topPerformers[0].fp, mpg5: 0, salary: 0 }
+        : topForm;
+      const formBody = anchor
+        ? `${anchor.name} (${anchor.team}) headlines tonight's ${leagueLabel} form board, posting ${round1(anchor.fp5)} FP across his last five.${
+            anchor.mpg5 ? ` Minutes are holding around ${Math.round(anchor.mpg5)} a night, so the runway for another anchor line is wide open.` : ""
+          }`
+        : `No clear hot hand yet on tonight's ${slateLabel} slate — let opening rotations dictate where the points concentrate.`;
       addCard({
         kind: "form_index",
-        headline: topPerformers[0]?.player
-          ? `${topPerformers[0].player.name} HEATS UP`
-          : topForm ? `${topForm.name} LEADS FORM` : "FORM WATCH",
-        body: topPerformers[0]?.player
-          ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.`
-          : topForm
-            ? `${topForm.name} (${topForm.team}) is the slate's top FP5 anchor heading in.`
-            : `Monitor ${slateLabel} starters as lineups settle.`,
+        headline: anchor ? `${anchor.name} LEADS FORM` : "FORM WATCH",
+        body: formBody,
         player_id: topPerformers[0]?.player_id ?? topForm?.id ?? null,
-        player_name: topPerformers[0]?.player?.name ?? topForm?.name ?? null,
-        team: topPerformers[0]?.player?.team ?? topForm?.team ?? null,
+        player_name: anchor?.name ?? null,
+        team: anchor?.team ?? null,
       });
+      const scheduleBody = `${(games ?? []).length} ${leagueLabel} games tip on tonight's ${slateWeekday ?? "slate"}, spanning ${allowedTris.size} teams${
+        earliestTipLisbon ? ` with first tip at ${earliestTipLisbon} Lisbon` : ""
+      }. ${b2bTeams > 0 ? `${b2bTeams} team${b2bTeams === 1 ? "" : "s"} are on a back-to-back, so factor in fatigue before locking captains.` : "No back-to-backs to fade — minutes should run clean across the board."}`;
       addCard({
         kind: "schedule_index",
         headline: `${(games ?? []).length} GAMES ON SLATE`,
-        body: slateWeekday ? `Use the ${slateWeekday} slate timing and confirmed rotations before locking lineups.` : "Use confirmed rotations before locking lineups.",
+        body: scheduleBody,
       });
+      const marketBody = topValue
+        ? `${topValue.name} (${topValue.team}) is the slate's best ${leagueLabel} value at ${round2(topValue.salary / topValue.fp5)} dollars per fantasy point, sitting at ${round1(topValue.fp5)} FP5 on a manageable salary. That combination makes him the easiest way to free cap room for a true captain.`
+        : `Salary-efficient ${leagueLabel} producers carry tonight's edge — lean on mid-tier anchors before paying up at the top of the board.`;
       addCard({
         kind: "market_index",
         headline: topValue ? `${topValue.name} BEST $/FP` : "VALUE WATCH",
-        body: topValue
-          ? `${topValue.name} (${topValue.team}) ranks first in salary efficiency on tonight's ${leagueLabel} slate.`
-          : `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+        body: marketBody,
         player_id: topValue?.id ?? null,
         player_name: topValue?.name ?? null,
         team: topValue?.team ?? null,
@@ -779,7 +800,7 @@ Rules:
       addCard({
         kind: "role_stability",
         headline: "ROTATION CHECK",
-        body: `Prioritize secure ${leagueLabel} minutes and late lineup confirmations.`,
+        body: `Prioritize secure ${leagueLabel} minutes and wait on late inactives — confirmed starters tend to outperform their salary on ${slateWeekday ?? "this"}-night slates.`,
       });
       // Hydrate photos + stats for backfilled cards.
       const bfPids = cards.map((c) => c.player_id).filter(Boolean) as number[];
@@ -788,7 +809,7 @@ Rules:
         const m = new Map((ps ?? []).map((p: any) => [p.id, p.photo]));
         cards = cards.map((c) => c.player_id ? { ...c, player_photo: c.player_photo ?? m.get(c.player_id) ?? null } : c);
       }
-      cards = cards.map((c) => c.stats ? c : attachStats(c));
+      cards = cards.map((c) => ({ ...c, stats: undefined, subtext: undefined }));
     }
 
     // Fallback deterministic cards if AI failed/disabled
