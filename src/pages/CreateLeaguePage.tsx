@@ -51,6 +51,7 @@ export default function CreateLeaguePage() {
   const [benchCount, setBenchCount] = useState(5);
   const [maxPerTeamEnabled, setMaxPerTeamEnabled] = useState(true);
   const [maxPerTeam, setMaxPerTeam] = useState(2);
+  const [dynamicSalaries, setDynamicSalaries] = useState(true);
 
   // Step 5
   const [deadlineType, setDeadlineType] = useState<"first_game_of_day" | "per_player_game_lock">("first_game_of_day");
@@ -117,6 +118,7 @@ export default function CreateLeaguePage() {
         max_players_per_team: maxPerTeamEnabled ? maxPerTeam : null,
       },
       deadline_type: deadlineType,
+      dynamic_salaries: dynamicSalaries,
       chips: {
         captain_enabled: captainEnabled,
         captain_multiplier: chipCaptainMult,

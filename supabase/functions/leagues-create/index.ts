@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
       return errorResponse("VALIDATION", "Invalid visibility", null, 400);
     }
     const transferCap = Math.max(1, Math.min(5, Number(body.transfer_cap ?? 2)));
+    const dynamicSalaries = body.dynamic_salaries !== false; // default ON
 
     const scoring = body.scoring ?? {};
     const weights = scoring.weights ?? {};
@@ -265,6 +266,7 @@ Deno.serve(async (req) => {
         deadline_rule_set_id: drs.id,
         chip_rule_set_id: crs.id,
         is_active: true,
+        dynamic_salaries: dynamicSalaries,
       })
       .select("id")
       .single();

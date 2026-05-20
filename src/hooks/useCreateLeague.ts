@@ -28,6 +28,7 @@ export type CreateLeagueInput = {
     all_star_multiplier: number;
   };
   transfer_cap: number;
+  dynamic_salaries?: boolean;
 };
 
 export type CreateLeagueResult = { league_id: string; join_code: string };
