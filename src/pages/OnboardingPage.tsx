@@ -230,6 +230,7 @@ export default function OnboardingPage() {
           onBack={() => setStep("name")}
           onSubmit={handleLeagueSubmit}
           submitting={creating}
+          lockedSport={pendingMainSport}
         />
       )}
       {step === "draft" && (

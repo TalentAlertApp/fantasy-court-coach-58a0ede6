@@ -16,7 +16,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // Bump when the validator/prompt rules change so previously cached rows are
 // regenerated on next read (we tag every emitted card with this version).
-const VALIDATOR_VERSION = 6;
+const VALIDATOR_VERSION = 7;
 
 // Full team name tables (city + nickname + fullName) keyed by tricode. Used
 // to detect cross-league pollution in card body/headline copy where the model
@@ -517,6 +517,11 @@ Deno.serve(async (req) => {
       const sysPrompt = `You are Ballers.IQ — a fantasy basketball editorial AI for the ${leagueLabel}.
 Generate exactly 4 "index" cards for tonight's ${leagueLabel} slate. Pick 4 DIFFERENT "kind" values from: form_index, matchup_index, schedule_index, market_index, role_stability.
 Voice: confident editorial analyst, like a fantasy column intro. NO stat dashboards, NO stat bullets.
+TENSE RULES — CRITICAL:
+- mode = "recap" → ALL games on this slate are FINAL. Write in PAST TENSE: "tipped at", "led", "posted", "delivered", "finished as", "closed the night". NEVER write "tips at", "tonight's", "projects as", "should", "will", "lock in", "fade", "free cap room". This is a recap of a slate that is already over.
+- mode = "matchup" → all games are upcoming. Write in PRESENT/FUTURE tense (preview voice).
+- mode = "mixed" → some games are FINAL, some upcoming. Past tense for anything tied to a FINAL game/player; present/future for upcoming. Check "playedGames" vs "upcomingGames" in the payload.
+- The payload's "mode" field is authoritative — read it first and pick the voice before drafting any sentence.
 Rules:
 - Headlines: under 9 words, all caps OK, NO emojis.
 - Bodies: 2 to 3 full sentences (45–70 words total) of natural prose. Weave numbers INTO the sentences (e.g. "Caitlin Clark is averaging 52.3 FP over her last five, fueled by 31 minutes a night and a slate-best $0.13 per fantasy point"). Do NOT use bullet points, em-dash lists, slashes between stats, or strings like "FP5 / MPG5 / Salary". Numbers should read as if a human wrote them.
@@ -534,7 +539,7 @@ Rules:
 - HARD RULE: You may ONLY reference teams by city, nickname, or full name that appear in user payload's "slateTeams" (city/nickname/fullName fields). Never reference any other team's city or nickname — e.g. on a WNBA slate, never write "Trail Blazers", "Bulls", "Timberwolves", "Portland", "Toronto", or any NBA team name.
 - HARD RULE: When you need to reference what day this slate is, use exactly user payload's "slateWeekday" (e.g. "${slateWeekday ?? "Friday"} slate"). Do NOT infer or invent a different weekday.
 - If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
-- For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
+- For played games, lean into recap angles (who won the night, who outperformed salary, who closed as the form leader); for scheduled games, lean into preview angles (who to captain, which game has the highest leverage, who's the best value).
 - Also produce a single short HEADLINE (under 8 words) summarizing the night.`;
 
       const userPayload = {
@@ -546,6 +551,13 @@ Rules:
         games: (games ?? []).map((g: any) => ({
           game_id: g.game_id, away: g.away_team, home: g.home_team,
           status: g.status, away_pts: g.away_pts, home_pts: g.home_pts, tipoff_utc: g.tipoff_utc,
+        })),
+        playedGames: finalGames.map((g: any) => ({
+          game_id: g.game_id, away: g.away_team, home: g.home_team,
+          away_pts: g.away_pts, home_pts: g.home_pts,
+        })),
+        upcomingGames: upcoming.map((g: any) => ({
+          game_id: g.game_id, away: g.away_team, home: g.home_team, tipoff_utc: g.tipoff_utc,
         })),
         rosters,
         topPerformers: topPerformers.map((t: any) => ({
@@ -739,21 +751,39 @@ Rules:
         cards.push({ ...card, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any);
       };
       const slateLabel = slateTeams.slice(0, 2).map((t) => t.tri).join(" @ ") || leagueLabel;
-      const headlineGame = upcoming[0] ?? finalGames[0] ?? null;
+      const isRecap = mode === "recap";
+      const headlineGame = isRecap ? (finalGames[0] ?? upcoming[0] ?? null) : (upcoming[0] ?? finalGames[0] ?? null);
       const awayTop = headlineGame ? topByTeam.get(String(headlineGame.away_team).toUpperCase()) : null;
       const homeTop = headlineGame ? topByTeam.get(String(headlineGame.home_team).toUpperCase()) : null;
-      const tipStr = earliestTipLisbon ? `tips at ${earliestTipLisbon} Lisbon` : "tips tonight";
+      const tipStr = earliestTipLisbon
+        ? (isRecap ? `tipped at ${earliestTipLisbon} Lisbon` : `tips at ${earliestTipLisbon} Lisbon`)
+        : (isRecap ? "wrapped up last night" : "tips tonight");
+      const scoreStr = isRecap && headlineGame && (headlineGame.away_pts != null || headlineGame.home_pts != null)
+        ? ` and finished ${headlineGame.away_pts ?? "?"}–${headlineGame.home_pts ?? "?"}`
+        : "";
       const matchupBody = headlineGame
-        ? `${headlineGame.away_team} at ${headlineGame.home_team} ${tipStr} and projects as the highest-leverage spot for ${leagueLabel} managers.${
-            awayTop && homeTop
-              ? ` ${awayTop.name} (${awayTop.team}, ${round1(awayTop.fp5)} FP5) and ${homeTop.name} (${homeTop.team}, ${round1(homeTop.fp5)} FP5) headline the two-way star power.`
-              : awayTop
-                ? ` ${awayTop.name} (${awayTop.team}) anchors the visitors at ${round1(awayTop.fp5)} FP5 heading in.`
-                : homeTop
-                  ? ` ${homeTop.name} (${homeTop.team}) carries the hosts at ${round1(homeTop.fp5)} FP5 heading in.`
-                  : ""
-          }`
-        : `Nothing on the ${leagueLabel} board tonight — circle back when the next slate locks in.`;
+        ? (isRecap
+          ? `${headlineGame.away_team} at ${headlineGame.home_team} ${tipStr}${scoreStr} as the highest-leverage spot of the ${slateWeekday ?? "night"} board for ${leagueLabel} managers.${
+              awayTop && homeTop
+                ? ` ${awayTop.name} (${awayTop.team}) and ${homeTop.name} (${homeTop.team}) led the two-way star power, with rolling FP5s of ${round1(awayTop.fp5)} and ${round1(homeTop.fp5)}.`
+                : awayTop
+                  ? ` ${awayTop.name} (${awayTop.team}) anchored the visitors at ${round1(awayTop.fp5)} FP5 heading in.`
+                  : homeTop
+                    ? ` ${homeTop.name} (${homeTop.team}) carried the hosts at ${round1(homeTop.fp5)} FP5 heading in.`
+                    : ""
+            }`
+          : `${headlineGame.away_team} at ${headlineGame.home_team} ${tipStr} and projects as the highest-leverage spot for ${leagueLabel} managers.${
+              awayTop && homeTop
+                ? ` ${awayTop.name} (${awayTop.team}, ${round1(awayTop.fp5)} FP5) and ${homeTop.name} (${homeTop.team}, ${round1(homeTop.fp5)} FP5) headline the two-way star power.`
+                : awayTop
+                  ? ` ${awayTop.name} (${awayTop.team}) anchors the visitors at ${round1(awayTop.fp5)} FP5 heading in.`
+                  : homeTop
+                    ? ` ${homeTop.name} (${homeTop.team}) carries the hosts at ${round1(homeTop.fp5)} FP5 heading in.`
+                    : ""
+            }`)
+        : (isRecap
+          ? `No ${leagueLabel} games on the ${slateWeekday ?? "night"} board to recap.`
+          : `Nothing on the ${leagueLabel} board tonight — circle back when the next slate locks in.`);
       addCard({
         kind: "matchup_index",
         headline: headlineGame ? `${headlineGame.away_team} @ ${headlineGame.home_team}` : "MATCHUP RADAR",
@@ -766,10 +796,16 @@ Rules:
         ? { name: topPerformers[0].player.name, team: topPerformers[0].player.team, id: topPerformers[0].player_id, fp5: topPerformers[0].fp, mpg5: 0, salary: 0 }
         : topForm;
       const formBody = anchor
-        ? `${anchor.name} (${anchor.team}) headlines tonight's ${leagueLabel} form board, posting ${round1(anchor.fp5)} FP across his last five.${
-            anchor.mpg5 ? ` Minutes are holding around ${Math.round(anchor.mpg5)} a night, so the runway for another anchor line is wide open.` : ""
-          }`
-        : `No clear hot hand yet on tonight's ${slateLabel} slate — let opening rotations dictate where the points concentrate.`;
+        ? (isRecap
+          ? `${anchor.name} (${anchor.team}) closed the ${slateWeekday ?? ""} ${leagueLabel} slate as the form leader, posting ${round1(anchor.fp5)} FP across the last five played games.${
+              anchor.mpg5 ? ` Minutes settled around ${Math.round(anchor.mpg5)} a night, keeping the workload trend firmly in their favor.` : ""
+            }`
+          : `${anchor.name} (${anchor.team}) headlines tonight's ${leagueLabel} form board, posting ${round1(anchor.fp5)} FP across the last five.${
+              anchor.mpg5 ? ` Minutes are holding around ${Math.round(anchor.mpg5)} a night, so the runway for another anchor line is wide open.` : ""
+            }`)
+        : (isRecap
+          ? `No standout form story emerged from the ${slateLabel} slate — production stayed evenly spread.`
+          : `No clear hot hand yet on tonight's ${slateLabel} slate — let opening rotations dictate where the points concentrate.`);
       addCard({
         kind: "form_index",
         headline: anchor ? `${anchor.name} LEADS FORM` : "FORM WATCH",
@@ -778,17 +814,25 @@ Rules:
         player_name: anchor?.name ?? null,
         team: anchor?.team ?? null,
       });
-      const scheduleBody = `${(games ?? []).length} ${leagueLabel} games tip on tonight's ${slateWeekday ?? "slate"}, spanning ${allowedTris.size} teams${
-        earliestTipLisbon ? ` with first tip at ${earliestTipLisbon} Lisbon` : ""
-      }. ${b2bTeams > 0 ? `${b2bTeams} team${b2bTeams === 1 ? "" : "s"} are on a back-to-back, so factor in fatigue before locking captains.` : "No back-to-backs to fade — minutes should run clean across the board."}`;
+      const scheduleBody = isRecap
+        ? `${(games ?? []).length} ${leagueLabel} games played on ${slateWeekday ?? "this"} night, spanning ${allowedTris.size} teams${
+            earliestTipLisbon ? ` with first tip at ${earliestTipLisbon} Lisbon` : ""
+          }. ${b2bTeams > 0 ? `${b2bTeams} team${b2bTeams === 1 ? "" : "s"} were on a back-to-back, and the fatigue showed in the rotations.` : "No back-to-backs in the mix — minutes ran clean across the board."}`
+        : `${(games ?? []).length} ${leagueLabel} games tip on tonight's ${slateWeekday ?? "slate"}, spanning ${allowedTris.size} teams${
+            earliestTipLisbon ? ` with first tip at ${earliestTipLisbon} Lisbon` : ""
+          }. ${b2bTeams > 0 ? `${b2bTeams} team${b2bTeams === 1 ? "" : "s"} are on a back-to-back, so factor in fatigue before locking captains.` : "No back-to-backs to fade — minutes should run clean across the board."}`;
       addCard({
         kind: "schedule_index",
         headline: `${(games ?? []).length} GAMES ON SLATE`,
         body: scheduleBody,
       });
       const marketBody = topValue
-        ? `${topValue.name} (${topValue.team}) is the slate's best ${leagueLabel} value at ${round2(topValue.salary / topValue.fp5)} dollars per fantasy point, sitting at ${round1(topValue.fp5)} FP5 on a manageable salary. That combination makes him the easiest way to free cap room for a true captain.`
-        : `Salary-efficient ${leagueLabel} producers carry tonight's edge — lean on mid-tier anchors before paying up at the top of the board.`;
+        ? (isRecap
+          ? `${topValue.name} (${topValue.team}) finished as the slate's best ${leagueLabel} value at ${round2(topValue.salary / topValue.fp5)} dollars per fantasy point, anchored by a ${round1(topValue.fp5)} FP5 on a very manageable salary. Managers who rolled with that anchor freed up real cap room at the top.`
+          : `${topValue.name} (${topValue.team}) is the slate's best ${leagueLabel} value at ${round2(topValue.salary / topValue.fp5)} dollars per fantasy point, sitting at ${round1(topValue.fp5)} FP5 on a manageable salary. That combination makes him the easiest way to free cap room for a true captain.`)
+        : (isRecap
+          ? `Salary-efficient ${leagueLabel} producers carried the night's edge — mid-tier anchors out-earned the top of the board.`
+          : `Salary-efficient ${leagueLabel} producers carry tonight's edge — lean on mid-tier anchors before paying up at the top of the board.`);
       addCard({
         kind: "market_index",
         headline: topValue ? `${topValue.name} BEST $/FP` : "VALUE WATCH",
@@ -800,7 +844,9 @@ Rules:
       addCard({
         kind: "role_stability",
         headline: "ROTATION CHECK",
-        body: `Prioritize secure ${leagueLabel} minutes and wait on late inactives — confirmed starters tend to outperform their salary on ${slateWeekday ?? "this"}-night slates.`,
+        body: isRecap
+          ? `Confirmed starters outperformed their salary on the ${slateWeekday ?? "night"} ${leagueLabel} slate — the rotations that held minutes paid off cleanly.`
+          : `Prioritize secure ${leagueLabel} minutes and wait on late inactives — confirmed starters tend to outperform their salary on ${slateWeekday ?? "this"}-night slates.`,
       });
       // Hydrate photos + stats for backfilled cards.
       const bfPids = cards.map((c) => c.player_id).filter(Boolean) as number[];
