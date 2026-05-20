@@ -1,6 +1,7 @@
 import { Wallet, ArrowRightLeft, Users, Shield, AlertTriangle, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { round1 } from "@/lib/money";
 
 interface RosterSidebarProps {
   gw: number;
@@ -22,12 +23,15 @@ export default function RosterSidebar({
   lockedTotal, salaryCap = 100,
 }: RosterSidebarProps) {
   // Locked roster cost — falls back to (cap − bank) so the row always renders
-  // even if the parent hasn't wired locked_total through yet.
-  const locked = lockedTotal ?? Math.max(0, salaryCap - bankRemaining);
+  // even if the parent hasn't wired locked_total through yet. All values go
+  // through round1 so display matches the server's authoritative cap math.
+  const bank = round1(bankRemaining);
+  const locked = round1(lockedTotal ?? Math.max(0, salaryCap - bank));
+  const market = round1(totalSalary);
   const bankColorClass =
-    bankRemaining > 0
+    bank > 0
       ? "text-green-500 font-bold"
-      : bankRemaining < 0
+      : bank < 0
       ? "text-destructive font-bold"
       : "text-[hsl(var(--nba-yellow))] font-bold";
   return (
@@ -44,9 +48,9 @@ export default function RosterSidebar({
               <Wallet className="h-3.5 w-3.5" />
               <span className="text-[10px] font-heading uppercase">Bank Remaining</span>
             </div>
-            <span className={`font-mono text-sm ${bankColorClass}`}>${bankRemaining.toFixed(1)}</span>
+            <span className={`font-mono text-sm ${bankColorClass}`}>${bank.toFixed(1)}</span>
           </div>
-          {bankRemaining < 0 && (
+          {bank < 0 && (
             <div className="flex items-start gap-1.5 text-destructive text-[10px] leading-tight">
               <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
               <span>Over budget — adjust roster to bring bank to 0 or higher</span>
@@ -101,7 +105,7 @@ export default function RosterSidebar({
                   <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">
                     <Users className="h-3 w-3 inline mr-1" />Market Value
                   </span>
-                  <span className="font-mono font-bold text-[11px] dark:text-white">${totalSalary.toFixed(1)}</span>
+                  <span className="font-mono font-bold text-[11px] dark:text-white">${market.toFixed(1)}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="left" className="max-w-[220px] text-xs">
