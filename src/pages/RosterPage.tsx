@@ -24,6 +24,7 @@ import PlayerModal from "@/components/PlayerModal";
 import PlayerPickerDialog from "@/components/PlayerPickerDialog";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import AutoPickConfirmModal, { type AutoPickProposal } from "@/components/AutoPickConfirmModal";
+import SwapConfirmModal, { type SwapConfirmPlayer } from "@/components/SwapConfirmModal";
 import type { UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +100,11 @@ export default function RosterPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [swapPlayerId, setSwapPlayerId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pendingSwap, setPendingSwap] = useState<null | {
+    out: SwapConfirmPlayer;
+    in_: SwapConfirmPlayer;
+    payload: Parameters<typeof saveRoster>[0];
+  }>(null);
 
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
@@ -278,8 +284,10 @@ export default function RosterPage() {
       saveRoster(body, selectedTeamId ?? undefined),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
+      queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
       playSfx("lineup");
       toast({ title: "Lineup saved!" });
+      setPendingSwap(null);
     },
     onError: (err) => {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
@@ -415,12 +423,34 @@ export default function RosterPage() {
       if (err) { setBlockedSwap({ message: err }); return; }
     }
 
-    saveMutation.mutate({
-      gw: currentGameday.gw, day: currentGameday.day,
-      starters: newStarters, bench: newBench,
-      captain_id: captainId === swapPlayerId ? newPlayer.core.id : captainId,
+    // Stage the trade for confirmation; only fire the save on confirm.
+    const outPlayer = resolvePlayer(swapPlayerId);
+    if (!outPlayer) return;
+    setPendingSwap({
+      out: {
+        id: outPlayer.core.id,
+        name: outPlayer.core.name,
+        team: outPlayer.core.team,
+        photo: outPlayer.core.photo ?? null,
+        fc_bc: outPlayer.core.fc_bc,
+        salary: Number(outPlayer.core.salary ?? 0),
+      },
+      in_: {
+        id: newPlayer.core.id,
+        name: newPlayer.core.name,
+        team: newPlayer.core.team,
+        photo: newPlayer.core.photo ?? null,
+        fc_bc: newPlayer.core.fc_bc,
+        salary: Number(newPlayer.core.salary ?? 0),
+      },
+      payload: {
+        gw: currentGameday.gw, day: currentGameday.day,
+        starters: newStarters, bench: newBench,
+        captain_id: captainId === swapPlayerId ? newPlayer.core.id : captainId,
+      },
     });
     setSwapPlayerId(null);
+    setPickerOpen(false);
   };
 
   const handleDnDSwap = (fromId: number, toId: number) => {
