@@ -16,7 +16,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // Bump when the validator/prompt rules change so previously cached rows are
 // regenerated on next read (we tag every emitted card with this version).
-const VALIDATOR_VERSION = 4;
+const VALIDATOR_VERSION = 5;
 
 // Full team name tables (city + nickname + fullName) keyed by tricode. Used
 // to detect cross-league pollution in card body/headline copy where the model
@@ -90,6 +90,8 @@ interface AICard {
   home_team?: string | null;
   game_id?: string | null;
   league?: "NBA" | "WNBA";
+  subtext?: string | null;
+  stats?: { label: string; value: string }[];
 }
 
 function jsonResp(body: unknown, status = 200) {
