@@ -243,7 +243,9 @@ export default function PlayersPage() {
       outZone
         .map((id) => rosterPlayers.find((p) => p.player_id === id))
         .filter(Boolean)
-        .map((p) => ({
+        .map((p) => {
+          const full = playerById.get(p!.player_id);
+          return {
           id: p!.player_id,
           name: p!.name,
           team: p!.team,
@@ -251,7 +253,10 @@ export default function PlayersPage() {
           salary: p!.salary,
           photo: p!.photo,
           health: p!.health ?? null,
-        })),
+          last_salary_delta: (full?.core as any)?.last_salary_delta ?? null,
+          salary_delta_7d: (full?.core as any)?.salary_delta_7d ?? null,
+          };
+        }),
     [outZone, rosterPlayers],
   );
   const inChips = useMemo(
@@ -267,6 +272,8 @@ export default function PlayersPage() {
           salary: p!.core.salary,
           photo: p!.core.photo ?? null,
           health: normalizePlayerHealth(p),
+          last_salary_delta: (p!.core as any).last_salary_delta ?? null,
+          salary_delta_7d: (p!.core as any).salary_delta_7d ?? null,
         })),
     [inZone, playerById],
   );
