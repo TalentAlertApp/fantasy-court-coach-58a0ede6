@@ -645,7 +645,7 @@ Rules:
               away_team: cleanTri(c.away_team),
               home_team: cleanTri(c.home_team),
               headline: typeof c.headline === "string" ? c.headline.replace(/[{}]/g, "").slice(0, 120) : "",
-              body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 280) : "",
+              body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 520) : "",
             }));
             // Build the set of foreign player names referenced anywhere in
             // the cards. We use this to drop cards that smuggle in a name
@@ -717,8 +717,8 @@ Rules:
                 return p ? { ...c, player_name: c.player_name ?? p.name, team: c.team ?? p.team, player_photo: p.photo } : c;
               });
             }
-            // Server-authoritative stat strip for every card.
-            cards = cards.map(attachStats);
+            // Editorial mode: cards are prose-only, no stat strip.
+            cards = cards.map((c) => ({ ...c, stats: undefined, subtext: undefined }));
           }
         } else {
           console.warn("AI gateway non-OK", aiResp.status, await aiResp.text());
