@@ -150,36 +150,43 @@ Deno.serve(async (req) => {
       return out;
     };
 
-    // Build a list of foreign-league team terms (city + nickname) that should
-    // never appear in this league's slate copy. Excludes any term that is also
-    // a valid term in the current league (e.g. "Atlanta", "Washington").
     const currentTable = leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
+    const foreignTable = leagueCode === "wnba" ? NBA_TEAMS : WNBA_TEAMS;
     // The blocklist is computed AFTER we resolve tonight's slate tricodes
     // (see `buildForeignTermChecker` below) so we can also flag current-league
     // teams that aren't actually playing tonight (off-slate leaks).
     let containsForeignTeamTerm: (text: string) => boolean = () => false;
+    const teamTerms = (t: { city: string; nickname: string }) => {
+      const terms = [t.city, t.nickname, `${t.city} ${t.nickname}`];
+      const nicknameParts = t.nickname.split(/\s+/).filter(Boolean);
+      if (nicknameParts.length > 1) terms.push(nicknameParts[nicknameParts.length - 1]);
+      return terms;
+    };
     const buildForeignTermChecker = (allowedTris: Set<string>) => {
-      // Any team term (from either league) whose tricode is NOT on tonight's
-      // slate is considered foreign. This catches both cross-league leaks
-      // (NBA "Trail Blazers" on a WNBA night) and off-slate leaks (a WNBA
-      // team that exists but isn't playing tonight).
       const terms: string[] = [];
-      const allTeams = [...NBA_TEAMS, ...WNBA_TEAMS];
-      for (const t of allTeams) {
+      // Current-league teams are only legal if their tricode is on tonight's
+      // slate. This blocks off-slate WNBA teams without blocking slate teams.
+      for (const t of currentTable) {
         if (allowedTris.has(t.tri.toUpperCase())) continue;
-        for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
+        for (const term of teamTerms(t)) {
           if (term && term.length >= 3) terms.push(term);
         }
       }
-      // De-dupe and drop terms that are ALSO names of teams actually on the
-      // slate (e.g. "Atlanta" appears in both leagues; if WNBA ATL is playing
-      // tonight we shouldn't block "Atlanta").
       const onSlateTerms = new Set<string>();
-      for (const t of allTeams) {
+      for (const t of currentTable) {
         if (!allowedTris.has(t.tri.toUpperCase())) continue;
         onSlateTerms.add(t.city.toLowerCase());
         onSlateTerms.add(t.nickname.toLowerCase());
+        if (t.nickname.includes(" ")) onSlateTerms.add(t.nickname.split(/\s+/).pop()!.toLowerCase());
         onSlateTerms.add(`${t.city} ${t.nickname}`.toLowerCase());
+      }
+      // Foreign-league nicknames/full names are always illegal, even when the
+      // tricode overlaps with a current-league team (WNBA POR ≠ NBA POR).
+      // Foreign cities are illegal unless the current slate has the same city.
+      for (const t of foreignTable) {
+        const city = t.city.toLowerCase();
+        if (!onSlateTerms.has(city)) terms.push(t.city);
+        for (const term of teamTerms(t).filter((term) => term !== t.city)) terms.push(term);
       }
       const filtered = Array.from(new Set(terms)).filter(
         (term) => !onSlateTerms.has(term.toLowerCase()),
@@ -270,6 +277,9 @@ Deno.serve(async (req) => {
         const foreignTeamLeak = cardsArr.some((c: any) =>
           containsForeignTeamTerm(`${c.headline ?? ""} ${c.body ?? ""}`)
         );
+        // Ballers.IQ slides are defined as 4 cards; partial rows usually mean
+        // prior validation dropped polluted model output and must be rebuilt.
+        const incompleteCards = cardsArr.length < 4;
         // Player-level pollution: any player_name OR body-name not in the league.
         let unknownPlayer = false;
         const namesInCache = Array.from(new Set([
@@ -298,7 +308,7 @@ Deno.serve(async (req) => {
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !missingLeagueTag && !foreignTeamLeak) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !missingLeagueTag && !foreignTeamLeak && !incompleteCards) {
           return jsonResp({ cached: true, ...existing });
         }
         // Cached row is bad — hard-delete it so a partial regeneration failure
@@ -541,6 +551,14 @@ Rules:
               if (candidates.some((n) => foreignNameSet.has(n.toLowerCase()) && !localNameSet.has(n.toLowerCase()))) {
                 return false;
               }
+              // Same-league but off-roster/off-slate name leak: if the model
+              // mentions a real current-league player in copy, that player must
+              // be one of the allowed roster names for tonight's slate.
+              if (allowedNames.size && candidates.some((n) =>
+                localNameSet.has(n.toLowerCase()) && !allowedNames.has(n.toLowerCase())
+              )) {
+                return false;
+              }
               return true;
             });
             // Force-tag every surviving card with the active league so the
@@ -548,6 +566,12 @@ Rules:
             // stamp the current validator version so future runs can detect
             // outdated cached rows.
             cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
+            const seenKinds = new Set<string>();
+            cards = cards.filter((c) => {
+              if (seenKinds.has(c.kind)) return false;
+              seenKinds.add(c.kind);
+              return true;
+            });
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
@@ -565,6 +589,50 @@ Rules:
       } catch (e) {
         console.error("AI call failed", e);
       }
+    }
+
+    // Backfill deterministic, slate-safe cards if AI failed or if strict
+    // validation removed polluted cards. This keeps the slide complete without
+    // ever reusing unsafe model output.
+    if (cards.length < 4) {
+      const usedKinds = new Set(cards.map((c) => c.kind));
+      const addCard = (card: AICard) => {
+        if (cards.length >= 4 || usedKinds.has(card.kind)) return;
+        usedKinds.add(card.kind);
+        cards.push({ ...card, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any);
+      };
+      const slateLabel = slateTeams.slice(0, 2).map((t) => t.tri).join(" @ ") || leagueLabel;
+      addCard({
+        kind: "matchup_index",
+        headline: upcoming[0] ? `${upcoming[0].away_team} @ ${upcoming[0].home_team}` : "MATCHUP RADAR",
+        body: upcoming[0] ? "Highest-leverage tilt of the night for fantasy lineups." : `No ${leagueLabel} games to preview.`,
+        away_team: upcoming[0]?.away_team ?? null,
+        home_team: upcoming[0]?.home_team ?? null,
+        game_id: upcoming[0]?.game_id ?? null,
+      });
+      addCard({
+        kind: "form_index",
+        headline: topPerformers[0]?.player ? `${topPerformers[0].player.name} HEATS UP` : "FORM WATCH",
+        body: topPerformers[0]?.player ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.` : `Monitor ${slateLabel} starters as lineups settle.`,
+        player_id: topPerformers[0]?.player_id ?? null,
+        player_name: topPerformers[0]?.player?.name ?? null,
+        team: topPerformers[0]?.player?.team ?? null,
+      });
+      addCard({
+        kind: "schedule_index",
+        headline: `${(games ?? []).length} GAMES ON SLATE`,
+        body: slateWeekday ? `Use the ${slateWeekday} slate timing and confirmed rotations before locking lineups.` : "Use confirmed rotations before locking lineups.",
+      });
+      addCard({
+        kind: "market_index",
+        headline: "VALUE WATCH",
+        body: `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+      });
+      addCard({
+        kind: "role_stability",
+        headline: "ROTATION CHECK",
+        body: `Prioritize secure ${leagueLabel} minutes and late lineup confirmations.`,
+      });
     }
 
     // Fallback deterministic cards if AI failed/disabled
