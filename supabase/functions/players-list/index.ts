@@ -63,6 +63,18 @@ serve(async (req: Request) => {
     const { data: players, error } = await supabase.from("players").select("*").eq("league_id", league_id);
     if (error) throw new Error(error.message);
 
+    // Fetch trailing 7d salary deltas in one shot (server-aggregated).
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const { data: salaryDeltas } = await supabase
+      .from("player_salary_changes")
+      .select("player_id, delta")
+      .eq("league_id", league_id)
+      .gte("change_date", sevenDaysAgo);
+    const delta7Map = new Map<number, number>();
+    for (const row of (salaryDeltas ?? [])) {
+      delta7Map.set(row.player_id, (delta7Map.get(row.player_id) ?? 0) + Number(row.delta || 0));
+    }
+
     // Fetch last game data
     const { data: lastGames } = await supabase.from("player_last_game").select("*").eq("league_id", league_id);
     const lgMap = new Map((lastGames || []).map((lg: any) => [lg.player_id, lg]));
@@ -157,7 +169,16 @@ serve(async (req: Request) => {
       const value5 = salary > 0 ? fp5 / salary : 0;
 
       return {
-        core: { id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null, salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null, weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0, dob: p.dob || null, exp: p.exp || 0, college: p.college || null, nationality: p.nationality || null },
+        core: {
+          id: p.id, name: p.name, team: p.team, fc_bc: p.fc_bc, photo: p.photo || null,
+          salary, jersey: p.jersey || 0, pos: p.pos || null, height: p.height || null,
+          weight: p.weight || 0, age: calcAgeFromDob(p.dob) || p.age || 0,
+          dob: p.dob || null, exp: p.exp || 0, college: p.college || null,
+          nationality: p.nationality || null,
+          last_salary_delta: Number(p.last_salary_delta) || 0,
+          last_salary_change_at: p.last_salary_change_at ?? null,
+          salary_delta_7d: Math.round((delta7Map.get(p.id) ?? 0) * 10) / 10,
+        },
         season: { gp, mpg, pts, reb, ast, stl, blk, fp,
           total_mp: s ? s.total_mp : 0, total_pts: s ? s.total_pts : 0,
           total_reb: s ? s.total_reb : 0, total_ast: s ? s.total_ast : 0,

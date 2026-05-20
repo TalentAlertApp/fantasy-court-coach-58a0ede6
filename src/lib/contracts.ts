@@ -86,6 +86,11 @@ export const PlayerCoreSchema = z
     exp: IntSchema,
     college: z.string().nullable(),
     nationality: z.string().nullable().optional(),
+    /** Latest daily salary delta in $M. Positive = increase, negative = drop. */
+    last_salary_delta: NumSchema.optional().default(0),
+    last_salary_change_at: z.string().nullable().optional(),
+    /** Sum of deltas over the trailing 7 days (in $M). */
+    salary_delta_7d: NumSchema.optional().default(0),
   })
   .strict();
 
