@@ -1518,13 +1518,12 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           const rows = slide.payload.data.top;
           const cumulative = rows[0]?.cumulative;
           const label = cumulative ? "Season Δ" : "Last Gameday";
-          // Watermark = team logo of player with highest positive delta
+          // Watermark for this slide is rendered at the slide chrome level
+          // (see watermarkTri/watermarkLogo above) so it matches the Captain
+          // Radar treatment exactly without being clipped by the body scroll.
           const topPositive = rows
             .filter((r) => r.delta > 0)
             .sort((a, b) => b.delta - a.delta)[0];
-          const wmLogo = topPositive
-            ? (leagueCode === "wnba" ? getWnbaTeamLogo(topPositive.team) : getTeamLogo(topPositive.team))
-            : null;
           // Podium order: highest POSITIVE delta becomes #1 (items[0]).
           // Remaining two fill #2/#3 in their existing |delta| desc order.
           const orderedRows = (() => {
@@ -1534,14 +1533,6 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
           })();
           return (
             <div className="relative h-full">
-              {wmLogo && (
-                <img
-                  src={wmLogo}
-                  alt=""
-                  aria-hidden
-                  className="pointer-events-none absolute -top-16 -right-16 h-[420px] w-[420px] object-contain opacity-[0.13] blur-md select-none"
-                />
-              )}
               <PodiumGrid
                 items={orderedRows.map((p) => {
                   const up = p.delta > 0;
