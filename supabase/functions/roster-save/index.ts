@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
 
     // Log one transaction row per OUT/IN pair (or pure ADD/DROP), matching
     // the format that `useGameweekTransfers` and roster-current read.
-    if (tradeCount > 0) {
+    if (tradeCount > 0 && !isInitialDraft) {
       const txnRows: any[] = [];
       const pairCount = Math.max(outIds.length, inIds.length);
       for (let i = 0; i < pairCount; i++) {
