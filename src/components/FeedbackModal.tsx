@@ -198,16 +198,28 @@ export default function FeedbackModal({ open, onOpenChange }: Props) {
           <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-card" />
           <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
           <div className="absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+          {/* League logos as decorative watermark, top-left, layered + tilted */}
+          <img
+            src={nbaLogo}
+            alt=""
+            aria-hidden
+            className="absolute -top-6 -left-8 h-32 w-32 object-contain opacity-[0.07] dark:opacity-[0.10] select-none"
+            style={{ transform: "rotate(-18deg)" }}
+            draggable={false}
+          />
+          <img
+            src={wnbaLogo}
+            alt=""
+            aria-hidden
+            className="absolute top-10 left-14 h-24 w-24 object-contain opacity-[0.07] dark:opacity-[0.10] select-none"
+            style={{ transform: "rotate(12deg)" }}
+            draggable={false}
+          />
         </div>
 
         {/* Header */}
         <div className="relative px-6 pt-5 pb-4 border-b border-accent/25">
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-md bg-white/5 dark:bg-white/5 border border-border/40 px-2 py-1 backdrop-blur-sm">
-              <img src={nbaLogo} alt="NBA" className="h-5 w-auto" />
-              <span className="h-4 w-px bg-border/60" aria-hidden />
-              <img src={wnbaLogo} alt="WNBA" className="h-5 w-auto object-contain" />
-            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 text-[9px] font-heading font-semibold uppercase tracking-[0.32em] text-accent/90">
                 <MessageSquareHeart className="h-3 w-3" />

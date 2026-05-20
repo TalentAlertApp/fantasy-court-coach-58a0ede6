@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Loader2, Plus, Trophy, Users } from "lucide-react";
-import LeaguePickerCards from "@/components/LeaguePickerCards";
-import { useFantasyLeagues, MAIN_LEAGUE_ID } from "@/hooks/useFantasyLeagues";
+import { useFantasyLeagues, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_IDS } from "@/hooks/useFantasyLeagues";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,28 +12,25 @@ interface Props {
   onBack: () => void;
   onSubmit: (args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba" }) => void | Promise<void>;
   submitting: boolean;
+  lockedSport: "nba" | "wnba";
 }
 
-export default function ChooseLeagueStep({ onBack, onSubmit, submitting }: Props) {
+export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedSport }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: leagues = [], isLoading } = useFantasyLeagues();
-  const [selectedId, setSelectedId] = useState<string>(MAIN_LEAGUE_ID);
-  const [mainSport, setMainSport] = useState<"nba" | "wnba">("nba");
+  const mainId = lockedSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+  const [selectedId, setSelectedId] = useState<string>(mainId);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
 
-  const main = leagues.find((l) => l.id === MAIN_LEAGUE_ID);
-  const others = leagues.filter((l) => l.id !== MAIN_LEAGUE_ID);
+  const main = leagues.find((l) => l.id === mainId);
+  const others = leagues.filter((l) => !MAIN_LEAGUE_IDS.has(l.id) && l.sport === lockedSport);
   const selected = leagues.find((l) => l.id === selectedId);
 
   const handleNext = () => {
-    if (selectedId === MAIN_LEAGUE_ID) {
-      onSubmit({ leagueCode: mainSport });
-    } else if (selected) {
-      onSubmit({ fantasyLeagueId: selectedId, leagueCode: selected.sport });
-    }
+    onSubmit({ fantasyLeagueId: selectedId, leagueCode: lockedSport });
   };
 
   const handleJoin = async () => {
@@ -74,27 +70,12 @@ export default function ChooseLeagueStep({ onBack, onSubmit, submitting }: Props
         <div className="mt-8 grid gap-3 text-left">
           {/* Main league card */}
           <LeagueCard
-            active={selectedId === MAIN_LEAGUE_ID}
-            onClick={() => setSelectedId(MAIN_LEAGUE_ID)}
-            title={main?.name ?? "Main League"}
-            subtitle="The flagship public league — open to everyone."
-            badge="MAIN"
-          >
-            {selectedId === MAIN_LEAGUE_ID && (
-              <div className="mt-4 pt-4 border-t border-foreground/10">
-                <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mb-2">
-                  Choose sport
-                </div>
-                <LeaguePickerCards
-                  value={mainSport}
-                  onChange={setMainSport}
-                  size="md"
-                  disabled={submitting}
-                  showSubtitle={false}
-                />
-              </div>
-            )}
-          </LeagueCard>
+            active={selectedId === mainId}
+            onClick={() => setSelectedId(mainId)}
+            title={main?.name ?? `Main League ${lockedSport.toUpperCase()}`}
+            subtitle={`The flagship ${lockedSport.toUpperCase()} public league — open to everyone.`}
+            badge={`MAIN · ${lockedSport.toUpperCase()}`}
+          />
 
           {others.map((l) => (
             <LeagueCard

@@ -71,12 +71,14 @@ Deno.serve(async (req) => {
         return errorResponse("VALIDATION", "name is required");
       }
       const byCode = await leaguesByCode(sb);
-      const MAIN_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
+      const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
+      const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
+      const MAIN_LEAGUE_IDS = new Set<string>([MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID]);
 
-      let targetLeagueId: string = MAIN_LEAGUE_ID;
+      let targetLeagueId: string = MAIN_LEAGUE_NBA_ID;
       let code: "nba" | "wnba" = "nba";
 
-      if (fantasy_league_id && typeof fantasy_league_id === "string" && fantasy_league_id !== MAIN_LEAGUE_ID) {
+      if (fantasy_league_id && typeof fantasy_league_id === "string" && !MAIN_LEAGUE_IDS.has(fantasy_league_id)) {
         // Look up the fantasy league
         const { data: fl, error: flErr } = await sb
           .from("leagues")
@@ -109,6 +111,23 @@ Deno.serve(async (req) => {
         }
         targetLeagueId = fantasy_league_id;
         code = (fl.sport === "wnba" ? "wnba" : "nba");
+      } else if (fantasy_league_id && typeof fantasy_league_id === "string" && MAIN_LEAGUE_IDS.has(fantasy_league_id)) {
+        // Main league (NBA or WNBA) — free entry, no membership check.
+        // Resolve sport from the league row itself (ignore caller-supplied league_code).
+        const { data: fl } = await sb
+          .from("leagues")
+          .select("id, sport, max_teams")
+          .eq("id", fantasy_league_id)
+          .maybeSingle();
+        const { count: teamCount } = await sb
+          .from("teams")
+          .select("id", { count: "exact", head: true })
+          .eq("league_id", fantasy_league_id);
+        if (typeof teamCount === "number" && teamCount >= (fl?.max_teams ?? 20)) {
+          return errorResponse("VALIDATION", "This league is full.");
+        }
+        targetLeagueId = fantasy_league_id;
+        code = (fl?.sport === "wnba" ? "wnba" : "nba");
       } else {
         // Backward compatible: Main League with optional NBA/WNBA selector
         const c = String(league_code ?? "nba").toLowerCase();
@@ -116,6 +135,7 @@ Deno.serve(async (req) => {
           return errorResponse("VALIDATION", "league_code must be 'nba' or 'wnba'");
         }
         code = c as "nba" | "wnba";
+        targetLeagueId = code === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
       }
 
       const sportLeagueId = byCode[code];
