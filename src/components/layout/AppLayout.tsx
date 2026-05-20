@@ -303,6 +303,7 @@ export default function AppLayout() {
         open={quickPlayerId !== null}
         onOpenChange={(o) => { if (!o) setQuickPlayerId(null); }}
       />
+      <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
     </TooltipProvider>
   );
