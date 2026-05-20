@@ -231,20 +231,13 @@ export default function WnbaSheetSyncPanel() {
           Runs automatically at the chosen local time. Toggle "Include YouTube Recaps"
           to also run <code>youtube-recap-lookup</code> right after.
         </p>
-        {(["sync3", "all", "salary-auto"] as const).map((key) => {
+        {(["sync3", "all"] as const).map((key) => {
           const row = schedules[key];
           if (!row) return null;
           return (
             <div key={key} className="border rounded-md p-3 space-y-2 bg-background">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="font-semibold text-sm">
-                  {JOB_LABELS[key]}
-                  {key === "salary-auto" && (
-                    <span className="ml-2 text-[10px] font-normal text-muted-foreground">
-                      ±1%/gameday · NBA $4–$30M · WNBA $4.5–$25M
-                    </span>
-                  )}
-                </div>
+                <div className="font-semibold text-sm">{JOB_LABELS[key]}</div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {row.last_run_at && (
                     <span>
@@ -277,18 +270,16 @@ export default function WnbaSheetSyncPanel() {
                     className="w-28 h-8"
                   />
                 </div>
-                {key !== "salary-auto" && (
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={row.include_recaps}
-                      onCheckedChange={(v) => updateSchedule(key, { include_recaps: v })}
-                      id={`recaps-${key}`}
-                    />
-                    <Label htmlFor={`recaps-${key}`} className="text-xs flex items-center gap-1">
-                      <Youtube className="h-3 w-3" /> Include YouTube Recaps
-                    </Label>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={row.include_recaps}
+                    onCheckedChange={(v) => updateSchedule(key, { include_recaps: v })}
+                    id={`recaps-${key}`}
+                  />
+                  <Label htmlFor={`recaps-${key}`} className="text-xs flex items-center gap-1">
+                    <Youtube className="h-3 w-3" /> Include YouTube Recaps
+                  </Label>
+                </div>
                 <Button
                   size="sm"
                   variant="default"
