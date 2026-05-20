@@ -72,6 +72,17 @@ Deno.serve(async (req) => {
     const liveMode: "recap" | "matchup" | "mixed" =
       liveFinals.length && liveUpcoming.length ? "mixed" : liveFinals.length ? "recap" : "matchup";
 
+    // Pre-compute slate tricodes for the cache-pollution check below.
+    const { data: cachePreGames } = await sb
+      .from("schedule_games")
+      .select("home_team, away_team")
+      .eq("league_id", league_id).eq("gw", gw).eq("day", day);
+    const cacheSlateTris = new Set(
+      (cachePreGames ?? []).flatMap((g: any) => [g.home_team, g.away_team])
+        .filter(Boolean)
+        .map((t: string) => String(t).toUpperCase())
+    );
+
     if (!force) {
       const { data: existing } = await sb
         .from("court_show_intelligence")
@@ -89,10 +100,24 @@ Deno.serve(async (req) => {
         const polluted =
           (leagueCode === "wnba" && allTricodes.some((t) => NBA_ONLY.has(t) && !WNBA_ONLY.has(t))) ||
           (leagueCode === "nba"  && allTricodes.some((t) => WNBA_ONLY.has(t) && !NBA_ONLY.has(t)));
+        // Slate-level pollution: any tricode referenced that isn't playing tonight.
+        const offSlate = cacheSlateTris.size > 0 && allTricodes.some((t) => !cacheSlateTris.has(t));
+        // Player-level pollution: any player_name not in tonight's league rosters.
+        let unknownPlayer = false;
+        const namesInCache = cardsArr.map((c: any) => c.player_name).filter(Boolean) as string[];
+        if (namesInCache.length) {
+          const { data: ps } = await sb
+            .from("players")
+            .select("name")
+            .eq("league_id", league_id)
+            .in("name", namesInCache);
+          const known = new Set((ps ?? []).map((p: any) => String(p.name).toLowerCase()));
+          unknownPlayer = namesInCache.some((n) => !known.has(n.toLowerCase()));
+        }
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer) {
           return jsonResp({ cached: true, ...existing });
         }
       }
