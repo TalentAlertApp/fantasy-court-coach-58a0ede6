@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { format, parse } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
@@ -68,7 +68,6 @@ export function useCourtShowData(gw: number, day: number) {
   const { data: leagueId } = useLeagueId();
   const { deadlines } = useLeagueDeadlines();
   const { league } = useLeague();
-  const queryClient = useQueryClient();
 
   const games = scheduleData?.games ?? [];
   const finalGameIds = useMemo(
