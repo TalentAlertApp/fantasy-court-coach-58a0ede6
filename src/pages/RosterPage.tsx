@@ -282,7 +282,15 @@ export default function RosterPage() {
   const saveMutation = useMutation({
     mutationFn: (body: Parameters<typeof saveRoster>[0]) =>
       saveRoster(body, selectedTeamId ?? undefined),
-    onSuccess: () => {
+    onSuccess: (resp: any) => {
+      // Seed the cache synchronously with the server's authoritative roster
+      // so any immediate follow-up swap reads fresh starters/bench instead of
+      // a stale snapshot (which would diff as multiple trades and trip the
+      // GW transfer cap).
+      const fresh = resp?.roster ?? resp;
+      if (fresh && selectedTeamId) {
+        queryClient.setQueryData(["roster-current", selectedTeamId, league], { roster: fresh });
+      }
       queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
       playSfx("lineup");
