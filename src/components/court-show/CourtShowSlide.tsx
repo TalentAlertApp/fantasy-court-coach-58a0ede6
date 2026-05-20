@@ -1461,7 +1461,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 * i, duration: 0.5, ease: [0.22, 0.9, 0.3, 1] }}
                   >
-                    <AICardView card={c} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+                    <AICardView card={c} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} leagueCode={leagueCode} />
                   </motion.div>
                 ))}
               </div>
