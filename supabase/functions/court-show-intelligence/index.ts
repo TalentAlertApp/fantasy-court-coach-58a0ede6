@@ -150,6 +150,34 @@ Deno.serve(async (req) => {
       return out;
     };
 
+    // Build a list of foreign-league team terms (city + nickname) that should
+    // never appear in this league's slate copy. Excludes any term that is also
+    // a valid term in the current league (e.g. "Atlanta", "Washington").
+    const currentTable = leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
+    const foreignTable = leagueCode === "wnba" ? NBA_TEAMS  : WNBA_TEAMS;
+    const currentTermSet = new Set<string>();
+    for (const t of currentTable) {
+      currentTermSet.add(t.city.toLowerCase());
+      currentTermSet.add(t.nickname.toLowerCase());
+      currentTermSet.add(`${t.city} ${t.nickname}`.toLowerCase());
+    }
+    const foreignTeamTerms: string[] = [];
+    for (const t of foreignTable) {
+      for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
+        if (!currentTermSet.has(term.toLowerCase())) foreignTeamTerms.push(term);
+      }
+    }
+    const containsForeignTeamTerm = (text: string): boolean => {
+      if (!text) return false;
+      const hay = text.toLowerCase();
+      return foreignTeamTerms.some((term) => {
+        const t = term.toLowerCase();
+        // word-boundary-ish: surrounded by non-letter chars (or string edges).
+        const re = new RegExp(`(^|[^a-z])${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^a-z]|$)`, "i");
+        return re.test(hay);
+      });
+    };
+
     // Compute live slate mode FIRST so we can detect cache staleness below.
     const { data: gamesPre } = await sb
       .from("schedule_games")
@@ -212,6 +240,12 @@ Deno.serve(async (req) => {
         const offSlate = cacheSlateTris.size > 0 && allTricodes.some((t) => !cacheSlateTris.has(t));
         // Wrong-league tag: any card explicitly tagged with a different league.
         const wrongLeague = cardsArr.some((c: any) => c.league && c.league !== leagueLabel);
+        // Cached row predates this validator version → regenerate.
+        const versionStale = cardsArr.some((c: any) => (c._v ?? 0) < VALIDATOR_VERSION);
+        // Foreign team name leaked into body/headline copy.
+        const foreignTeamLeak = cardsArr.some((c: any) =>
+          containsForeignTeamTerm(`${c.headline ?? ""} ${c.body ?? ""}`)
+        );
         // Player-level pollution: any player_name OR body-name not in the league.
         let unknownPlayer = false;
         const namesInCache = Array.from(new Set([
@@ -240,7 +274,7 @@ Deno.serve(async (req) => {
         // Regenerate if the slate mode changed since cache (e.g. games went FINAL
         // and we now need recap angles instead of preview angles).
         const modeStale = existing.mode && existing.mode !== liveMode;
-        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague) {
+        if (!polluted && !modeStale && !offSlate && !unknownPlayer && !wrongLeague && !versionStale && !foreignTeamLeak) {
           return jsonResp({ cached: true, ...existing });
         }
       }
