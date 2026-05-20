@@ -16,7 +16,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // Bump when the validator/prompt rules change so previously cached rows are
 // regenerated on next read (we tag every emitted card with this version).
-const VALIDATOR_VERSION = 6;
+const VALIDATOR_VERSION = 7;
 
 // Full team name tables (city + nickname + fullName) keyed by tricode. Used
 // to detect cross-league pollution in card body/headline copy where the model
@@ -517,6 +517,11 @@ Deno.serve(async (req) => {
       const sysPrompt = `You are Ballers.IQ — a fantasy basketball editorial AI for the ${leagueLabel}.
 Generate exactly 4 "index" cards for tonight's ${leagueLabel} slate. Pick 4 DIFFERENT "kind" values from: form_index, matchup_index, schedule_index, market_index, role_stability.
 Voice: confident editorial analyst, like a fantasy column intro. NO stat dashboards, NO stat bullets.
+TENSE RULES — CRITICAL:
+- mode = "recap" → ALL games on this slate are FINAL. Write in PAST TENSE: "tipped at", "led", "posted", "delivered", "finished as", "closed the night". NEVER write "tips at", "tonight's", "projects as", "should", "will", "lock in", "fade", "free cap room". This is a recap of a slate that is already over.
+- mode = "matchup" → all games are upcoming. Write in PRESENT/FUTURE tense (preview voice).
+- mode = "mixed" → some games are FINAL, some upcoming. Past tense for anything tied to a FINAL game/player; present/future for upcoming. Check "playedGames" vs "upcomingGames" in the payload.
+- The payload's "mode" field is authoritative — read it first and pick the voice before drafting any sentence.
 Rules:
 - Headlines: under 9 words, all caps OK, NO emojis.
 - Bodies: 2 to 3 full sentences (45–70 words total) of natural prose. Weave numbers INTO the sentences (e.g. "Caitlin Clark is averaging 52.3 FP over her last five, fueled by 31 minutes a night and a slate-best $0.13 per fantasy point"). Do NOT use bullet points, em-dash lists, slashes between stats, or strings like "FP5 / MPG5 / Salary". Numbers should read as if a human wrote them.
@@ -534,7 +539,7 @@ Rules:
 - HARD RULE: You may ONLY reference teams by city, nickname, or full name that appear in user payload's "slateTeams" (city/nickname/fullName fields). Never reference any other team's city or nickname — e.g. on a WNBA slate, never write "Trail Blazers", "Bulls", "Timberwolves", "Portland", "Toronto", or any NBA team name.
 - HARD RULE: When you need to reference what day this slate is, use exactly user payload's "slateWeekday" (e.g. "${slateWeekday ?? "Friday"} slate"). Do NOT infer or invent a different weekday.
 - If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
-- For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
+- For played games, lean into recap angles (who won the night, who outperformed salary, who closed as the form leader); for scheduled games, lean into preview angles (who to captain, which game has the highest leverage, who's the best value).
 - Also produce a single short HEADLINE (under 8 words) summarizing the night.`;
 
       const userPayload = {
@@ -546,6 +551,13 @@ Rules:
         games: (games ?? []).map((g: any) => ({
           game_id: g.game_id, away: g.away_team, home: g.home_team,
           status: g.status, away_pts: g.away_pts, home_pts: g.home_pts, tipoff_utc: g.tipoff_utc,
+        })),
+        playedGames: finalGames.map((g: any) => ({
+          game_id: g.game_id, away: g.away_team, home: g.home_team,
+          away_pts: g.away_pts, home_pts: g.home_pts,
+        })),
+        upcomingGames: upcoming.map((g: any) => ({
+          game_id: g.game_id, away: g.away_team, home: g.home_team, tipoff_utc: g.tipoff_utc,
         })),
         rosters,
         topPerformers: topPerformers.map((t: any) => ({
