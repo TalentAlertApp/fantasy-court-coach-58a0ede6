@@ -71,7 +71,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     user
   ) {
     const owned = teams.filter((t: any) => t.owner_id === user.id || !t.owner_id);
-    if (owned.length >= 2 && !isTeamPickedThisSession()) {
+    if (owned.length >= 1 && !isTeamPickedThisSession()) {
       return <Navigate to="/welcome/pick-team" replace />;
     }
   }
