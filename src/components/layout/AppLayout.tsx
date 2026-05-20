@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
+import FeedbackModal from "@/components/FeedbackModal";
 import SidebarPlayerSearch from "@/components/SidebarPlayerSearch";
 import PlayerModal from "@/components/PlayerModal";
 import { useState, useEffect } from "react";
@@ -53,6 +54,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [dark, setDark] = useState(() =>
     localStorage.getItem("nba_theme") === "dark" ||
     (!localStorage.getItem("nba_theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
