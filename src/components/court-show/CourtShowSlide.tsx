@@ -762,7 +762,7 @@ function HealthWatchSlide({
   return (
     <div className="relative h-full grid grid-cols-1 md:grid-cols-2 gap-5 content-stretch">
       {/* Faded watermark */}
-      <Shield
+      <Bandage
         aria-hidden
         className="pointer-events-none absolute right-4 bottom-2 h-48 w-48 text-red-500/10"
       />
