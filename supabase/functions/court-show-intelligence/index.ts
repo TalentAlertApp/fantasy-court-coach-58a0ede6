@@ -301,11 +301,18 @@ Deno.serve(async (req) => {
     const rosters: { team: string; players: { id: number; name: string }[] }[] = [];
     const allowedNames = new Set<string>();
     const allowedTris = new Set(slateTricodes.map((t) => String(t).toUpperCase()));
-    const slateTeams: { tri: string; name: string }[] = [];
+    const teamLookup = new Map(currentTable.map((t) => [t.tri, t]));
+    const slateTeams: { tri: string; city: string; nickname: string; fullName: string }[] = [];
     if (slateTricodes.length) {
-      // Pull human-readable team names from the players table (team + a name
-      // hint isn't available, so we settle on the tricode as the canonical id).
-      for (const t of slateTricodes) slateTeams.push({ tri: t, name: t });
+      for (const t of slateTricodes) {
+        const meta = teamLookup.get(String(t).toUpperCase());
+        slateTeams.push({
+          tri: t,
+          city: meta?.city ?? t,
+          nickname: meta?.nickname ?? "",
+          fullName: meta ? `${meta.city} ${meta.nickname}` : t,
+        });
+      }
     }
     if (slateTricodes.length) {
       const { data: rosterPlayers } = await sb
@@ -368,6 +375,7 @@ Rules:
 - Never recall players from training data. If you cannot ground a card in "rosters"/"games", write generic copy without naming any player.
 - This is the ${leagueLabel}. Do NOT reference players or teams from any other league. Tag every card you emit with "league": "${leagueLabel}".
 - HARD RULE: You may ONLY reference team tricodes present in user payload's "slateTeams". Do NOT mention any other team tricode anywhere in the headline or body.
+- HARD RULE: You may ONLY reference teams by city, nickname, or full name that appear in user payload's "slateTeams" (city/nickname/fullName fields). Never reference any other team's city or nickname — e.g. on a WNBA slate, never write "Trail Blazers", "Bulls", "Timberwolves", "Portland", "Toronto", or any NBA team name.
 - HARD RULE: When you need to reference what day this slate is, use exactly user payload's "slateWeekday" (e.g. "${slateWeekday ?? "Friday"} slate"). Do NOT infer or invent a different weekday.
 - If the slate has no games or no top performers, write generic ${leagueLabel} preview copy without naming specific players.
 - For played games, lean into recap angles; for scheduled games, lean into preview angles; for mixed, blend both.
@@ -495,6 +503,8 @@ Rules:
               // Body/headline-level tricode leak: any 2-4 letter code not on tonight's slate.
               const tris = extractTricodes(text);
               if (tris.some((t) => !allowedTris.has(t))) return false;
+              // Body/headline-level foreign team name leak (city or nickname).
+              if (containsForeignTeamTerm(text)) return false;
               // Body-level name leak: any candidate name that belongs to the
               // OTHER league (and is therefore foreign).
               const candidates = extractCandidateNames(String(c.body ?? ""));
@@ -504,8 +514,10 @@ Rules:
               return true;
             });
             // Force-tag every surviving card with the active league so the
-            // cache pollution check has an explicit signal next time.
-            cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA" }));
+            // cache pollution check has an explicit signal next time, and
+            // stamp the current validator version so future runs can detect
+            // outdated cached rows.
+            cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
