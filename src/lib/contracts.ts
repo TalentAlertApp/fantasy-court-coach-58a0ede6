@@ -223,6 +223,8 @@ export const RosterSnapshotSchema = z
     updated_at: NullableIsoDateTimeSchema,
     team_id: z.string().uuid().optional(),
     team_name: z.string().optional(),
+    locked_total: NumSchema.optional(),
+    market_total: NumSchema.optional(),
   })
   .strict();
 

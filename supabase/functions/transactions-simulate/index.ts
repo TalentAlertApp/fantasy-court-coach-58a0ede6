@@ -28,10 +28,15 @@ function projFor(p: any) {
   };
 }
 
-function aggregate(players: any[]) {
+/**
+ * Sum salary + projection stats.
+ * @param salaryKey  "salary" for current market value, or "acquired_salary"
+ *                   for the locked roster-cap value.
+ */
+function aggregate(players: any[], salaryKey: "salary" | "acquired_salary" = "salary") {
   let salary = 0, fp5 = 0, stocks5 = 0, ast5 = 0;
   for (const p of players) {
-    salary += num(p?.salary);
+    salary += num(p?.[salaryKey]);
     const pr = projFor(p);
     fp5 += pr.fp5;
     stocks5 += pr.stl5 + pr.blk5;
@@ -80,10 +85,14 @@ Deno.serve(async (req) => {
 
     // Load roster + linked player aggregates.
     const { data: rosterRows, error: rosterErr } = await sb
-      .from("roster").select("player_id, slot").eq("team_id", team_id);
+      .from("roster").select("player_id, slot, acquired_salary").eq("team_id", team_id);
     if (rosterErr) return errorResponse("ROSTER_LOAD_FAILED", rosterErr.message, null, 500);
 
     const rosterIds = (rosterRows ?? []).map((r: any) => Number(r.player_id));
+    const acquiredById = new Map<number, number>();
+    for (const r of (rosterRows ?? []) as any[]) {
+      acquiredById.set(Number(r.player_id), Number(r.acquired_salary ?? 0));
+    }
     const allIds = Array.from(new Set<number>([...rosterIds, ...ins]));
 
     let beforePlayers: any[] = [];
@@ -101,7 +110,10 @@ Deno.serve(async (req) => {
       // These are stale rows and must NOT count toward salary/projection math.
       beforePlayers = rosterIds
         .map((id) => byId.get(id))
-        .filter((p) => p && p.league_id === teamLeagueId);
+        .filter((p) => p && p.league_id === teamLeagueId)
+        // Attach the locked acquisition salary onto each roster player so the
+        // aggregate(..., "acquired_salary") path can read it.
+        .map((p: any) => ({ ...p, acquired_salary: acquiredById.get(Number(p.id)) ?? 0 }));
       staleRosterIds = rosterIds.filter((id) => {
         const p = byId.get(id);
         return !p || p.league_id !== teamLeagueId;
@@ -131,18 +143,23 @@ Deno.serve(async (req) => {
       if (!rosterIds.includes(id)) errors.push(`Outgoing player ${id} is not on roster`);
     }
 
-    const before = aggregate(beforePlayers);
+    // Cap accounting uses locked (acquired) salaries for the existing roster.
+    // IN players enter at their current market value (becomes their lock).
+    const before = aggregate(beforePlayers, "acquired_salary");
+    const beforeMarket = aggregate(beforePlayers, "salary");
     const outPlayers = outs
       .map((id) => beforePlayers.find((p) => Number(p.id) === id))
       .filter(Boolean);
-    const removed = aggregate(outPlayers);
-    const added = aggregate(inPlayers);
+    const removedLocked = aggregate(outPlayers, "acquired_salary");
+    const removedMarket = aggregate(outPlayers, "salary");
+    const added = aggregate(inPlayers, "salary");
 
     const after = {
-      salary: before.salary - removed.salary + added.salary,
-      fp5: before.fp5 - removed.fp5 + added.fp5,
-      stocks5: before.stocks5 - removed.stocks5 + added.stocks5,
-      ast5: before.ast5 - removed.ast5 + added.ast5,
+      // Cap usage after the trade = kept (locked) + new IN (current).
+      salary: before.salary - removedLocked.salary + added.salary,
+      fp5: before.fp5 - removedLocked.fp5 + added.fp5,
+      stocks5: before.stocks5 - removedLocked.stocks5 + added.stocks5,
+      ast5: before.ast5 - removedLocked.ast5 + added.ast5,
     };
 
     // Compose post-trade roster for shape validation.
@@ -153,9 +170,15 @@ Deno.serve(async (req) => {
       .filter((p) => postIds.has(Number(p.id)) && !ins.includes(Number(p.id)))
       .concat(inPlayers.filter((p) => postIds.has(Number(p.id))));
 
-    // Salary cap.
-    if (after.salary > SALARY_CAP + 1e-6) {
-      errors.push(`Salary cap exceeded: $${after.salary.toFixed(1)}M > $${SALARY_CAP}M`);
+    // Trade-budget check: IN cost (current market) must not exceed the
+    // current bank plus the market value of OUT players being released.
+    // This matches the rule: "selling a player frees their CURRENT salary
+    // as cap space; the locked acquisition salary still counts for cap on
+    // anyone you keep."
+    const tradeBudget = (SALARY_CAP - before.salary) + removedMarket.salary;
+    if (added.salary > tradeBudget + 1e-6) {
+      const over = added.salary - tradeBudget;
+      errors.push(`Over budget by $${over.toFixed(1)}M (IN $${added.salary.toFixed(1)}M > $${tradeBudget.toFixed(1)}M available)`);
     }
 
     // Roster size.
@@ -191,6 +214,10 @@ Deno.serve(async (req) => {
       warnings.push("Pre-season: projections unavailable until game data is imported");
     }
 
+    // "Available to spend on the IN side" — tells the picker how much cap
+    // relief the user actually unlocks by releasing the chosen OUTs.
+    const availableToSpend = (SALARY_CAP - before.salary) + removedMarket.salary;
+
     return okResponse({
       is_valid: errors.length === 0,
       errors,
@@ -211,6 +238,12 @@ Deno.serve(async (req) => {
         proj_fp5: round1(after.fp5 - before.fp5),
         proj_stocks5: round1(after.stocks5 - before.stocks5),
         proj_ast5: round1(after.ast5 - before.ast5),
+      },
+      market: {
+        before_total: round1(beforeMarket.salary),
+        freed: round1(removedMarket.salary),
+        cost: round1(added.salary),
+        available_to_spend: round1(availableToSpend),
       },
     });
   } catch (e) {

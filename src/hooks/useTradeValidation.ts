@@ -6,6 +6,12 @@ export interface ValidationPlayer {
   team: string;
   fc_bc: "FC" | "BC";
   salary: number;
+  /**
+   * Locked acquisition salary — what this player counts as against the
+   * roster cap. Set on roster players; omitted on candidates (a candidate
+   * becomes locked at their current `salary` when traded in).
+   */
+  acquired_salary?: number;
 }
 
 export interface TradeValidationInput {
@@ -85,7 +91,12 @@ export function useTradeValidation(
     for (const id of postIds) {
       const p = byId.get(id);
       if (!p) continue;
-      postSalary += p.salary ?? 0;
+      // Kept players: locked acquisition salary. Newly traded-in players
+      // enter at their current market value (becomes their lock).
+      const isNewIn = input.ins.includes(id);
+      postSalary += isNewIn
+        ? (p.salary ?? 0)
+        : (p.acquired_salary ?? p.salary ?? 0);
       if (p.fc_bc === "FC") postFc += 1;
       else if (p.fc_bc === "BC") postBc += 1;
       const tri = (p.team ?? "").toUpperCase();
@@ -124,8 +135,12 @@ export function useTradeValidation(
         reasons.push(`Position balance broken: would leave ${postFc} FC / ${postBc} BC`);
       }
     }
-    if (postSalary > cap + 1e-6) {
-      reasons.push(`Over salary cap by $${(postSalary - cap).toFixed(1)}M`);
+    // Trade-budget rule: cost of IN (current market) must not exceed
+    // bank + value freed by OUTs (their current market value). Matches the
+    // server check. The displayed post-trade `postSalary` may exceed cap
+    // for appreciated swaps — that's expected.
+    if (availableForNextIn < -1e-6) {
+      reasons.push(`Over budget by $${Math.abs(availableForNextIn).toFixed(1)}M`);
     }
     for (const [tri, count] of Object.entries(postTeamCounts)) {
       if (count > 2) reasons.push(`Max 2 per team violated: ${count} from ${tri}`);

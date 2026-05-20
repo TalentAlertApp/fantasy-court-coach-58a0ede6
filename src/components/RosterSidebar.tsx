@@ -1,5 +1,6 @@
-import { Wallet, ArrowRightLeft, Users, Shield, AlertTriangle } from "lucide-react";
+import { Wallet, ArrowRightLeft, Users, Shield, AlertTriangle, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RosterSidebarProps {
   gw: number;
@@ -10,11 +11,19 @@ interface RosterSidebarProps {
   fcStarters: number;
   bcStarters: number;
   totalSalary: number;
+  /** Sum of acquired (locked) salaries — what counts against the $100M cap. */
+  lockedTotal?: number;
+  /** Salary cap, default 100. */
+  salaryCap?: number;
 }
 
 export default function RosterSidebar({
   bankRemaining, freeTransfers, fcStarters, bcStarters, totalSalary,
+  lockedTotal, salaryCap = 100,
 }: RosterSidebarProps) {
+  // Locked roster cost — falls back to (cap − bank) so the row always renders
+  // even if the parent hasn't wired locked_total through yet.
+  const locked = lockedTotal ?? Math.max(0, salaryCap - bankRemaining);
   const bankColorClass =
     bankRemaining > 0
       ? "text-green-500 font-bold"
@@ -22,6 +31,7 @@ export default function RosterSidebar({
       ? "text-destructive font-bold"
       : "text-[hsl(var(--nba-yellow))] font-bold";
   return (
+    <TooltipProvider delayDuration={150}>
     <div className="space-y-3">
       <div className="bg-card border rounded-xl overflow-hidden">
         <div className="px-3 py-2 bg-muted border-b flex items-center gap-2">
@@ -42,28 +52,52 @@ export default function RosterSidebar({
               <span>Over budget — adjust roster to bring bank to 0 or higher</span>
             </div>
           )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center justify-between cursor-help">
+                <div className="flex items-center gap-1.5 text-muted-foreground dark:text-white/70">
+                  <Lock className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-heading uppercase">Roster Cost (locked)</span>
+                </div>
+                <span className="font-mono font-bold text-sm dark:text-white">${locked.toFixed(1)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="left" className="max-w-[220px] text-xs">
+              Sum of each player's salary at the moment they joined your roster.
+              This is what counts against the ${salaryCap}M cap. Daily market
+              changes don't affect it — only trades do.
+            </TooltipContent>
+          </Tooltip>
           <InfoRow icon={<ArrowRightLeft className="h-3.5 w-3.5" />} label="Free Transfers" value={String(freeTransfers)} />
-          <div className="border-t pt-2 space-y-1.5">
+          <div className="border-t pt-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">FC Starters</span>
-              <Badge variant="destructive" className="rounded-lg text-[9px] px-1.5">{fcStarters}</Badge>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">BC Starters</span>
-              <Badge className="rounded-lg text-[9px] px-1.5">{bcStarters}</Badge>
+              <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">Starters</span>
+              <div className="flex items-center gap-1.5">
+                <Badge variant="destructive" className="rounded-lg text-[9px] px-1.5">FC {fcStarters}</Badge>
+                <Badge className="rounded-lg text-[9px] px-1.5">BC {bcStarters}</Badge>
+              </div>
             </div>
           </div>
           <div className="border-t pt-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">
-                <Users className="h-3 w-3 inline mr-1" />Total Salary
-              </span>
-              <span className="font-mono font-bold text-[11px] dark:text-white">${totalSalary.toFixed(1)}</span>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between text-xs cursor-help">
+                  <span className="text-muted-foreground dark:text-white/70 font-heading uppercase text-[10px]">
+                    <Users className="h-3 w-3 inline mr-1" />Market Value
+                  </span>
+                  <span className="font-mono font-bold text-[11px] dark:text-white">${totalSalary.toFixed(1)}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[220px] text-xs">
+                Current market value of your roster (sum of today's salaries).
+                Informational only — the cap is enforced on the locked Roster Cost.
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 

@@ -37,6 +37,8 @@ interface RosterCourtViewProps {
     fcStarters: number;
     bcStarters: number;
     totalSalary: number;
+    lockedTotal?: number;
+    salaryCap?: number;
   };
 }
 

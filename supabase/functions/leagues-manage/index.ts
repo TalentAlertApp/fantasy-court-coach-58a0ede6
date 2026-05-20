@@ -560,7 +560,7 @@ Deno.serve(async (req) => {
       // Copy roster (current entries from source team) into the new team
       const { data: srcRoster } = await sb
         .from("roster")
-        .select("slot, player_id, is_captain, gw, day")
+        .select("slot, player_id, is_captain, gw, day, acquired_salary")
         .eq("team_id", sourceTeamId);
       if (srcRoster && srcRoster.length) {
         const rows = srcRoster.map((r: any) => ({
@@ -571,6 +571,7 @@ Deno.serve(async (req) => {
           is_captain: r.is_captain,
           gw: r.gw ?? 1,
           day: r.day ?? 1,
+          acquired_salary: Number(r.acquired_salary ?? 0),
         }));
         const { error: rosterErr } = await sb.from("roster").insert(rows);
         if (rosterErr) {

@@ -186,8 +186,8 @@ Deno.serve(async (req) => {
     if (!dryRun) {
       await sb.from("roster").delete().eq("team_id", team_id);
       const rows = [
-        ...starters.map((s) => ({ player_id: s.id, slot: "STARTER", is_captain: s.id === captain.id, gw, day, team_id, league_id: teamLeagueId })),
-        ...bench.map((b) => ({ player_id: b.id, slot: "BENCH", is_captain: false, gw, day, team_id, league_id: teamLeagueId })),
+        ...starters.map((s) => ({ player_id: s.id, slot: "STARTER", is_captain: s.id === captain.id, gw, day, team_id, league_id: teamLeagueId, acquired_salary: Number(s.salary ?? 0) })),
+        ...bench.map((b) => ({ player_id: b.id, slot: "BENCH", is_captain: false, gw, day, team_id, league_id: teamLeagueId, acquired_salary: Number(b.salary ?? 0) })),
       ];
       const { error: insErr } = await sb.from("roster").insert(rows);
       if (insErr) throw insErr;
