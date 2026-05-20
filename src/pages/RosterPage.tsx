@@ -935,6 +935,8 @@ export default function RosterPage() {
                   fcStarters,
                   bcStarters,
                   totalSalary,
+                  lockedTotal: (roster as any)?.locked_total,
+                  salaryCap: roster?.constraints?.salary_cap ?? 100,
                 }}
               />
             ) : (
@@ -950,6 +952,8 @@ export default function RosterPage() {
                     fcStarters={fcStarters}
                     bcStarters={bcStarters}
                     totalSalary={totalSalary}
+                    lockedTotal={(roster as any)?.locked_total}
+                    salaryCap={roster?.constraints?.salary_cap ?? 100}
                   />
                   {biqAdvisor && <LineupAdvisorPanel data={biqAdvisor} />}
                 </div>
