@@ -56,16 +56,22 @@ Deno.serve(async (req) => {
     const gw = rows.length > 0 ? rows[0].gw : 1;
     const day = rows.length > 0 ? rows[0].day : 1;
 
-    // Compute bank_remaining from player salaries
+    // Cap accounting uses each player's acquired_salary (the value at the
+    // moment they joined this roster — immutable for the life of the row).
+    // We also surface the current market total as informational.
     const playerIds = [...starters, ...bench].filter((id: number) => id > 0);
-    let salaryUsed = 0;
+    const lockedTotal = rows.reduce(
+      (s: number, r: any) => s + Number(r.acquired_salary ?? 0),
+      0,
+    );
+    let marketTotal = 0;
     if (playerIds.length > 0) {
       const { data: players } = await sb
         .from("players")
         .select("id, salary")
         .in("id", playerIds);
       if (players) {
-        salaryUsed = players.reduce((sum: number, p: any) => sum + (p.salary || 0), 0);
+        marketTotal = players.reduce((sum: number, p: any) => sum + (p.salary || 0), 0);
       }
     }
 
@@ -79,7 +85,9 @@ Deno.serve(async (req) => {
         starters: starters.slice(0, 5),
         bench: bench.slice(0, 5),
         captain_id: captainRow?.player_id ?? 0,
-        bank_remaining: salaryCap - salaryUsed,
+        bank_remaining: salaryCap - lockedTotal,
+        locked_total: Math.round(lockedTotal * 100) / 100,
+        market_total: Math.round(marketTotal * 100) / 100,
         free_transfers_remaining: 2,
         constraints: {
           salary_cap: salaryCap,

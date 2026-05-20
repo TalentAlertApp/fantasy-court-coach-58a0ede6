@@ -43,18 +43,40 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Delete existing roster for this team (already team-scoped; team is league-scoped)
+    // Preserve acquired_salary for any player already on this roster — only
+    // brand-new IN rows get stamped with the current market salary. This
+    // matches the rule: cap accounting is locked at acquisition time.
+    const playerIds = [...starters, ...bench].filter((id: number) => id > 0);
+    const [existingRosterRes, playersRes] = await Promise.all([
+      sb.from("roster").select("player_id, acquired_salary").eq("team_id", team_id),
+      playerIds.length > 0
+        ? sb.from("players").select("id, salary").in("id", playerIds)
+        : Promise.resolve({ data: [] as any[] }),
+    ]);
+    const existingAcquired = new Map<number, number>();
+    for (const r of (existingRosterRes.data ?? []) as any[]) {
+      existingAcquired.set(Number(r.player_id), Number(r.acquired_salary ?? 0));
+    }
+    const currentSalary = new Map<number, number>();
+    for (const p of (playersRes.data ?? []) as any[]) {
+      currentSalary.set(Number(p.id), Number(p.salary ?? 0));
+    }
+    const acquiredFor = (pid: number): number =>
+      existingAcquired.has(pid)
+        ? Number(existingAcquired.get(pid))
+        : Number(currentSalary.get(pid) ?? 0);
+
+    // Delete existing roster for this team and rewrite it.
     await sb.from("roster").delete().eq("team_id", team_id);
 
-    // Insert new rows
     const rows: any[] = [];
     for (const pid of starters) {
       if (pid === 0) continue;
-      rows.push({ player_id: pid, slot: "STARTER", is_captain: pid === captain_id, gw, day, team_id, league_id: teamLeagueId });
+      rows.push({ player_id: pid, slot: "STARTER", is_captain: pid === captain_id, gw, day, team_id, league_id: teamLeagueId, acquired_salary: acquiredFor(pid) });
     }
     for (const pid of bench) {
       if (pid === 0) continue;
-      rows.push({ player_id: pid, slot: "BENCH", is_captain: pid === captain_id, gw, day, team_id, league_id: teamLeagueId });
+      rows.push({ player_id: pid, slot: "BENCH", is_captain: pid === captain_id, gw, day, team_id, league_id: teamLeagueId, acquired_salary: acquiredFor(pid) });
     }
 
     if (rows.length > 0) {
@@ -62,13 +84,11 @@ Deno.serve(async (req) => {
       if (error) throw error;
     }
 
-    // Compute bank
-    const playerIds = [...starters, ...bench].filter((id: number) => id > 0);
-    let salaryUsed = 0;
-    if (playerIds.length > 0) {
-      const { data: players } = await sb.from("players").select("id, salary").in("id", playerIds);
-      if (players) salaryUsed = players.reduce((s: number, p: any) => s + (p.salary || 0), 0);
-    }
+    const lockedTotal = rows.reduce((s, r) => s + Number(r.acquired_salary ?? 0), 0);
+    const marketTotal = playerIds.reduce(
+      (s, pid) => s + Number(currentSalary.get(pid) ?? 0),
+      0,
+    );
 
     const { data: settings } = await sb.from("team_settings").select("*").eq("team_id", team_id).maybeSingle();
     const salaryCap = settings?.salary_cap ?? 100;
@@ -78,7 +98,9 @@ Deno.serve(async (req) => {
         gw, day, deadline_utc: null,
         starters, bench,
         captain_id,
-        bank_remaining: salaryCap - salaryUsed,
+        bank_remaining: salaryCap - lockedTotal,
+        locked_total: Math.round(lockedTotal * 100) / 100,
+        market_total: Math.round(marketTotal * 100) / 100,
         free_transfers_remaining: 2,
         constraints: {
           salary_cap: salaryCap, starters_count: 5, bench_count: 5,
