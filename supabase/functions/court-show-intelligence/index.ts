@@ -556,6 +556,12 @@ Rules:
             // stamp the current validator version so future runs can detect
             // outdated cached rows.
             cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
+            const seenKinds = new Set<string>();
+            cards = cards.filter((c) => {
+              if (seenKinds.has(c.kind)) return false;
+              seenKinds.add(c.kind);
+              return true;
+            });
             // Hydrate player photos when player_id is present
             const pids = cards.map((c) => c.player_id).filter(Boolean) as number[];
             if (pids.length) {
@@ -573,6 +579,50 @@ Rules:
       } catch (e) {
         console.error("AI call failed", e);
       }
+    }
+
+    // Backfill deterministic, slate-safe cards if AI failed or if strict
+    // validation removed polluted cards. This keeps the slide complete without
+    // ever reusing unsafe model output.
+    if (cards.length < 4) {
+      const usedKinds = new Set(cards.map((c) => c.kind));
+      const addCard = (card: AICard) => {
+        if (cards.length >= 4 || usedKinds.has(card.kind)) return;
+        usedKinds.add(card.kind);
+        cards.push({ ...card, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any);
+      };
+      const slateLabel = slateTeams.slice(0, 2).map((t) => t.tri).join(" @ ") || leagueLabel;
+      addCard({
+        kind: "matchup_index",
+        headline: upcoming[0] ? `${upcoming[0].away_team} @ ${upcoming[0].home_team}` : "MATCHUP RADAR",
+        body: upcoming[0] ? "Highest-leverage tilt of the night for fantasy lineups." : `No ${leagueLabel} games to preview.`,
+        away_team: upcoming[0]?.away_team ?? null,
+        home_team: upcoming[0]?.home_team ?? null,
+        game_id: upcoming[0]?.game_id ?? null,
+      });
+      addCard({
+        kind: "form_index",
+        headline: topPerformers[0]?.player ? `${topPerformers[0].player.name} HEATS UP` : "FORM WATCH",
+        body: topPerformers[0]?.player ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.` : `Monitor ${slateLabel} starters as lineups settle.`,
+        player_id: topPerformers[0]?.player_id ?? null,
+        player_name: topPerformers[0]?.player?.name ?? null,
+        team: topPerformers[0]?.player?.team ?? null,
+      });
+      addCard({
+        kind: "schedule_index",
+        headline: `${(games ?? []).length} GAMES ON SLATE`,
+        body: slateWeekday ? `Use the ${slateWeekday} slate timing and confirmed rotations before locking lineups.` : "Use confirmed rotations before locking lineups.",
+      });
+      addCard({
+        kind: "market_index",
+        headline: "VALUE WATCH",
+        body: `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+      });
+      addCard({
+        kind: "role_stability",
+        headline: "ROTATION CHECK",
+        body: `Prioritize secure ${leagueLabel} minutes and late lineup confirmations.`,
+      });
     }
 
     // Fallback deterministic cards if AI failed/disabled
