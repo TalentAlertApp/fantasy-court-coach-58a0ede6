@@ -150,36 +150,36 @@ Deno.serve(async (req) => {
       return out;
     };
 
-    // Build a list of foreign-league team terms (city + nickname) that should
-    // never appear in this league's slate copy. Excludes any term that is also
-    // a valid term in the current league (e.g. "Atlanta", "Washington").
     const currentTable = leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
+    const foreignTable = leagueCode === "wnba" ? NBA_TEAMS : WNBA_TEAMS;
     // The blocklist is computed AFTER we resolve tonight's slate tricodes
     // (see `buildForeignTermChecker` below) so we can also flag current-league
     // teams that aren't actually playing tonight (off-slate leaks).
     let containsForeignTeamTerm: (text: string) => boolean = () => false;
     const buildForeignTermChecker = (allowedTris: Set<string>) => {
-      // Any team term (from either league) whose tricode is NOT on tonight's
-      // slate is considered foreign. This catches both cross-league leaks
-      // (NBA "Trail Blazers" on a WNBA night) and off-slate leaks (a WNBA
-      // team that exists but isn't playing tonight).
       const terms: string[] = [];
-      const allTeams = [...NBA_TEAMS, ...WNBA_TEAMS];
-      for (const t of allTeams) {
+      // Current-league teams are only legal if their tricode is on tonight's
+      // slate. This blocks off-slate WNBA teams without blocking slate teams.
+      for (const t of currentTable) {
         if (allowedTris.has(t.tri.toUpperCase())) continue;
         for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
           if (term && term.length >= 3) terms.push(term);
         }
       }
-      // De-dupe and drop terms that are ALSO names of teams actually on the
-      // slate (e.g. "Atlanta" appears in both leagues; if WNBA ATL is playing
-      // tonight we shouldn't block "Atlanta").
       const onSlateTerms = new Set<string>();
-      for (const t of allTeams) {
+      for (const t of currentTable) {
         if (!allowedTris.has(t.tri.toUpperCase())) continue;
         onSlateTerms.add(t.city.toLowerCase());
         onSlateTerms.add(t.nickname.toLowerCase());
         onSlateTerms.add(`${t.city} ${t.nickname}`.toLowerCase());
+      }
+      // Foreign-league nicknames/full names are always illegal, even when the
+      // tricode overlaps with a current-league team (WNBA POR ≠ NBA POR).
+      // Foreign cities are illegal unless the current slate has the same city.
+      for (const t of foreignTable) {
+        const city = t.city.toLowerCase();
+        if (!onSlateTerms.has(city)) terms.push(t.city);
+        terms.push(t.nickname, `${t.city} ${t.nickname}`);
       }
       const filtered = Array.from(new Set(terms)).filter(
         (term) => !onSlateTerms.has(term.toLowerCase()),
