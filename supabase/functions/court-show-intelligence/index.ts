@@ -16,7 +16,7 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 // Bump when the validator/prompt rules change so previously cached rows are
 // regenerated on next read (we tag every emitted card with this version).
-const VALIDATOR_VERSION = 5;
+const VALIDATOR_VERSION = 6;
 
 // Full team name tables (city + nickname + fullName) keyed by tricode. Used
 // to detect cross-league pollution in card body/headline copy where the model
@@ -100,6 +100,9 @@ function jsonResp(body: unknown, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
+
+const round1 = (n: number) => Math.round((Number(n) || 0) * 10) / 10;
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -512,12 +515,18 @@ Deno.serve(async (req) => {
 
     if (LOVABLE_API_KEY) {
       const sysPrompt = `You are Ballers.IQ — a fantasy basketball editorial AI for the ${leagueLabel}.
-Generate exactly 4 short, punchy "index" cards for tonight's ${leagueLabel} slate.
-Pick 4 different "kind" values from: form_index, matchup_index, schedule_index, market_index, role_stability.
+Generate exactly 4 "index" cards for tonight's ${leagueLabel} slate. Pick 4 DIFFERENT "kind" values from: form_index, matchup_index, schedule_index, market_index, role_stability.
+Voice: confident editorial analyst, like a fantasy column intro. NO stat dashboards, NO stat bullets.
 Rules:
-- Headlines under 9 words, all caps OK, NO emojis.
-- Bodies under 28 words, concrete, no L5/FP5 jargon.
-- Reference players by name + team tricode (e.g. "LeBron · LAL").
+- Headlines: under 9 words, all caps OK, NO emojis.
+- Bodies: 2 to 3 full sentences (45–70 words total) of natural prose. Weave numbers INTO the sentences (e.g. "Caitlin Clark is averaging 52.3 FP over her last five, fueled by 31 minutes a night and a slate-best $0.13 per fantasy point"). Do NOT use bullet points, em-dash lists, slashes between stats, or strings like "FP5 / MPG5 / Salary". Numbers should read as if a human wrote them.
+- Each of the 4 cards MUST cover a DISTINCT angle. Do not repeat the same fact, player, or storyline across cards:
+   • matchup_index → tonight's headline game: stakes, pace, tipoff, why fantasy managers should care.
+   • form_index → the slate's hottest individual anchor and what's driving the heater.
+   • schedule_index → slate shape: game count, back-to-back teams, density, weekday, tipoff windows.
+   • market_index → salary efficiency or salary movement: the best $/FP or biggest 7-day mover.
+   • role_stability → minutes/role certainty if you use it instead of one above.
+- Reference players by name plus team tricode in the prose (e.g. "Caitlin Clark (IND)").
 - HARD RULE: Every player you name MUST appear in the user payload's "rosters" array, with the exact same name and assigned to the exact same team tricode. Never name a player who is not in "rosters".
 - Never recall players from training data. If you cannot ground a card in "rosters"/"games", write generic copy without naming any player.
 - This is the ${leagueLabel}. Do NOT reference players or teams from any other league. Tag every card you emit with "league": "${leagueLabel}".
@@ -544,6 +553,25 @@ Rules:
           name: t.player?.name, team: t.player?.team,
           fp: t.fp, pts: t.pts, reb: t.reb, ast: t.ast, stl: t.stl, blk: t.blk, mp: t.mp,
         })),
+        // Grounding numbers — the model MUST weave these into the prose.
+        slateMetrics: {
+          gamesCount: (games ?? []).length,
+          teamsCount: allowedTris.size,
+          b2bTeams,
+          earliestTipLisbon,
+          topForm: topForm ? { name: topForm.name, team: topForm.team, fp5: round1(topForm.fp5), mpg5: Math.round(topForm.mpg5), salary: topForm.salary } : null,
+          topValue: topValue ? { name: topValue.name, team: topValue.team, fp5: round1(topValue.fp5), salary: topValue.salary, dollarsPerFp: round2(topValue.salary / topValue.fp5) } : null,
+          topByTeam: Array.from(topByTeam.entries()).slice(0, 6).map(([tri, p]) => ({ tri, name: p.name, fp5: round1(p.fp5) })),
+          topSalaryMover: (() => {
+            let best: { id: number; delta: number } | null = null;
+            for (const [id, d] of salaryDelta) {
+              if (!best || Math.abs(d) > Math.abs(best.delta)) best = { id, delta: d };
+            }
+            if (!best) return null;
+            const p = slatePlayers.find((sp) => sp.id === best!.id);
+            return p ? { name: p.name, team: p.team, delta7d: Math.round(best.delta) } : null;
+          })(),
+        },
       };
 
       const tools = [{
@@ -617,7 +645,7 @@ Rules:
               away_team: cleanTri(c.away_team),
               home_team: cleanTri(c.home_team),
               headline: typeof c.headline === "string" ? c.headline.replace(/[{}]/g, "").slice(0, 120) : "",
-              body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 280) : "",
+              body: typeof c.body === "string" ? c.body.replace(/[{}]/g, "").slice(0, 520) : "",
             }));
             // Build the set of foreign player names referenced anywhere in
             // the cards. We use this to drop cards that smuggle in a name
@@ -689,8 +717,8 @@ Rules:
                 return p ? { ...c, player_name: c.player_name ?? p.name, team: c.team ?? p.team, player_photo: p.photo } : c;
               });
             }
-            // Server-authoritative stat strip for every card.
-            cards = cards.map(attachStats);
+            // Editorial mode: cards are prose-only, no stat strip.
+            cards = cards.map((c) => ({ ...c, stats: undefined, subtext: undefined }));
           }
         } else {
           console.warn("AI gateway non-OK", aiResp.status, await aiResp.text());
@@ -711,39 +739,60 @@ Rules:
         cards.push({ ...card, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any);
       };
       const slateLabel = slateTeams.slice(0, 2).map((t) => t.tri).join(" @ ") || leagueLabel;
+      const headlineGame = upcoming[0] ?? finalGames[0] ?? null;
+      const awayTop = headlineGame ? topByTeam.get(String(headlineGame.away_team).toUpperCase()) : null;
+      const homeTop = headlineGame ? topByTeam.get(String(headlineGame.home_team).toUpperCase()) : null;
+      const tipStr = earliestTipLisbon ? `tips at ${earliestTipLisbon} Lisbon` : "tips tonight";
+      const matchupBody = headlineGame
+        ? `${headlineGame.away_team} at ${headlineGame.home_team} ${tipStr} and projects as the highest-leverage spot for ${leagueLabel} managers.${
+            awayTop && homeTop
+              ? ` ${awayTop.name} (${awayTop.team}, ${round1(awayTop.fp5)} FP5) and ${homeTop.name} (${homeTop.team}, ${round1(homeTop.fp5)} FP5) headline the two-way star power.`
+              : awayTop
+                ? ` ${awayTop.name} (${awayTop.team}) anchors the visitors at ${round1(awayTop.fp5)} FP5 heading in.`
+                : homeTop
+                  ? ` ${homeTop.name} (${homeTop.team}) carries the hosts at ${round1(homeTop.fp5)} FP5 heading in.`
+                  : ""
+          }`
+        : `Nothing on the ${leagueLabel} board tonight — circle back when the next slate locks in.`;
       addCard({
         kind: "matchup_index",
-        headline: upcoming[0] ? `${upcoming[0].away_team} @ ${upcoming[0].home_team}` : "MATCHUP RADAR",
-        body: upcoming[0] ? "Highest-leverage tilt of the night for fantasy lineups." : `No ${leagueLabel} games to preview.`,
-        away_team: upcoming[0]?.away_team ?? null,
-        home_team: upcoming[0]?.home_team ?? null,
-        game_id: upcoming[0]?.game_id ?? null,
+        headline: headlineGame ? `${headlineGame.away_team} @ ${headlineGame.home_team}` : "MATCHUP RADAR",
+        body: matchupBody,
+        away_team: headlineGame?.away_team ?? null,
+        home_team: headlineGame?.home_team ?? null,
+        game_id: headlineGame?.game_id ?? null,
       });
+      const anchor = topPerformers[0]?.player
+        ? { name: topPerformers[0].player.name, team: topPerformers[0].player.team, id: topPerformers[0].player_id, fp5: topPerformers[0].fp, mpg5: 0, salary: 0 }
+        : topForm;
+      const formBody = anchor
+        ? `${anchor.name} (${anchor.team}) headlines tonight's ${leagueLabel} form board, posting ${round1(anchor.fp5)} FP across his last five.${
+            anchor.mpg5 ? ` Minutes are holding around ${Math.round(anchor.mpg5)} a night, so the runway for another anchor line is wide open.` : ""
+          }`
+        : `No clear hot hand yet on tonight's ${slateLabel} slate — let opening rotations dictate where the points concentrate.`;
       addCard({
         kind: "form_index",
-        headline: topPerformers[0]?.player
-          ? `${topPerformers[0].player.name} HEATS UP`
-          : topForm ? `${topForm.name} LEADS FORM` : "FORM WATCH",
-        body: topPerformers[0]?.player
-          ? `${topPerformers[0].player.name} (${topPerformers[0].player.team}) led the slate with ${topPerformers[0].fp.toFixed(1)} FP.`
-          : topForm
-            ? `${topForm.name} (${topForm.team}) is the slate's top FP5 anchor heading in.`
-            : `Monitor ${slateLabel} starters as lineups settle.`,
+        headline: anchor ? `${anchor.name} LEADS FORM` : "FORM WATCH",
+        body: formBody,
         player_id: topPerformers[0]?.player_id ?? topForm?.id ?? null,
-        player_name: topPerformers[0]?.player?.name ?? topForm?.name ?? null,
-        team: topPerformers[0]?.player?.team ?? topForm?.team ?? null,
+        player_name: anchor?.name ?? null,
+        team: anchor?.team ?? null,
       });
+      const scheduleBody = `${(games ?? []).length} ${leagueLabel} games tip on tonight's ${slateWeekday ?? "slate"}, spanning ${allowedTris.size} teams${
+        earliestTipLisbon ? ` with first tip at ${earliestTipLisbon} Lisbon` : ""
+      }. ${b2bTeams > 0 ? `${b2bTeams} team${b2bTeams === 1 ? "" : "s"} are on a back-to-back, so factor in fatigue before locking captains.` : "No back-to-backs to fade — minutes should run clean across the board."}`;
       addCard({
         kind: "schedule_index",
         headline: `${(games ?? []).length} GAMES ON SLATE`,
-        body: slateWeekday ? `Use the ${slateWeekday} slate timing and confirmed rotations before locking lineups.` : "Use confirmed rotations before locking lineups.",
+        body: scheduleBody,
       });
+      const marketBody = topValue
+        ? `${topValue.name} (${topValue.team}) is the slate's best ${leagueLabel} value at ${round2(topValue.salary / topValue.fp5)} dollars per fantasy point, sitting at ${round1(topValue.fp5)} FP5 on a manageable salary. That combination makes him the easiest way to free cap room for a true captain.`
+        : `Salary-efficient ${leagueLabel} producers carry tonight's edge — lean on mid-tier anchors before paying up at the top of the board.`;
       addCard({
         kind: "market_index",
         headline: topValue ? `${topValue.name} BEST $/FP` : "VALUE WATCH",
-        body: topValue
-          ? `${topValue.name} (${topValue.team}) ranks first in salary efficiency on tonight's ${leagueLabel} slate.`
-          : `Salary-efficient ${leagueLabel} producers carry tonight's edge.`,
+        body: marketBody,
         player_id: topValue?.id ?? null,
         player_name: topValue?.name ?? null,
         team: topValue?.team ?? null,
@@ -751,7 +800,7 @@ Rules:
       addCard({
         kind: "role_stability",
         headline: "ROTATION CHECK",
-        body: `Prioritize secure ${leagueLabel} minutes and late lineup confirmations.`,
+        body: `Prioritize secure ${leagueLabel} minutes and wait on late inactives — confirmed starters tend to outperform their salary on ${slateWeekday ?? "this"}-night slates.`,
       });
       // Hydrate photos + stats for backfilled cards.
       const bfPids = cards.map((c) => c.player_id).filter(Boolean) as number[];
@@ -760,7 +809,7 @@ Rules:
         const m = new Map((ps ?? []).map((p: any) => [p.id, p.photo]));
         cards = cards.map((c) => c.player_id ? { ...c, player_photo: c.player_photo ?? m.get(c.player_id) ?? null } : c);
       }
-      cards = cards.map((c) => c.stats ? c : attachStats(c));
+      cards = cards.map((c) => ({ ...c, stats: undefined, subtext: undefined }));
     }
 
     // Fallback deterministic cards if AI failed/disabled
@@ -795,7 +844,7 @@ Rules:
         },
       ];
       cards = cards.map((c) => ({ ...c, league: leagueLabel as "NBA" | "WNBA", _v: VALIDATOR_VERSION } as any));
-      cards = cards.map(attachStats);
+      cards = cards.map((c) => ({ ...c, stats: undefined, subtext: undefined }));
     }
 
     const { error: upErr } = await sb
