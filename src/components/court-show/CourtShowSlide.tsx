@@ -1293,7 +1293,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
                 photo: p.photo,
                 label: p.label,
                 statHeadline:
-                  p.value5 != null ? `${p.value5.toFixed(2)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} ${fpKey}`,
+                  p.value5 != null ? `${p.value5.toFixed(1)} FP/$M` : `${(p.fp5 ?? 0).toFixed(1)} ${fpKey}`,
                 accent: "emerald",
                 stats,
               };

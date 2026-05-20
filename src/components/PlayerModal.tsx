@@ -343,7 +343,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                       { l: "MPG (season)", v: data.player.season.mpg?.toFixed(1) ?? "—" },
                       { l: "MPG (L5)", v: data.player.last5.mpg5?.toFixed(1) ?? "—" },
                       { l: "Value (season)", v: data.player.computed.value.toFixed(2) },
-                      { l: "Value (L5)", v: data.player.computed.value5.toFixed(2) },
+                      { l: "Value (L5)", v: data.player.computed.value5.toFixed(1) },
                       { l: "Stocks (L5)", v: data.player.computed.stocks5.toFixed(1) },
                       { l: "Δ FP", v: `${data.player.computed.delta_fp >= 0 ? "+" : ""}${data.player.computed.delta_fp.toFixed(1)}`, color: data.player.computed.delta_fp >= 0 },
                     ].map(({ l, v, color }) => (
