@@ -340,7 +340,10 @@ Deno.serve(async (req) => {
     const slateTricodes = Array.from(new Set(
       (games ?? []).flatMap((g) => [g.home_team, g.away_team]).filter(Boolean) as string[]
     ));
+    type SlatePlayer = { id: number; name: string; team: string; salary: number; fp5: number; mpg5: number };
     const rosters: { team: string; players: { id: number; name: string }[] }[] = [];
+    const slatePlayers: SlatePlayer[] = [];
+    const topByTeam = new Map<string, SlatePlayer>();
     const allowedNames = new Set<string>();
     const allowedTris = new Set(slateTricodes.map((t) => String(t).toUpperCase()));
     const teamLookup = new Map(currentTable.map((t) => [t.tri, t]));
@@ -359,23 +362,36 @@ Deno.serve(async (req) => {
     if (slateTricodes.length) {
       const { data: rosterPlayers } = await sb
         .from("players")
-        .select("id, name, team, salary")
+        .select("id, name, team, salary, fp_pg5, mpg5")
         .eq("league_id", league_id)
         .in("team", slateTricodes);
-      const byTeam = new Map<string, { id: number; name: string; salary: number | null }[]>();
+      const byTeam = new Map<string, { id: number; name: string; salary: number; fp5: number; mpg5: number }[]>();
       for (const p of rosterPlayers ?? []) {
         const t = String(p.team ?? "").toUpperCase();
         if (!t) continue;
         if (!byTeam.has(t)) byTeam.set(t, []);
-        byTeam.get(t)!.push({ id: p.id as number, name: p.name as string, salary: (p as any).salary ?? null });
+        byTeam.get(t)!.push({
+          id: p.id as number,
+          name: p.name as string,
+          salary: Number((p as any).salary ?? 0),
+          fp5: Number((p as any).fp_pg5 ?? 0),
+          mpg5: Number((p as any).mpg5 ?? 0),
+        });
       }
       for (const t of slateTricodes) {
-        const list = (byTeam.get(t.toUpperCase()) ?? [])
+        const tri = t.toUpperCase();
+        const teamPlayers = byTeam.get(tri) ?? [];
+        const list = teamPlayers.slice()
           .sort((a, b) => (b.salary ?? 0) - (a.salary ?? 0))
           .slice(0, 6)
           .map((p) => ({ id: p.id, name: p.name }));
         rosters.push({ team: t, players: list });
         for (const p of list) allowedNames.add(p.name.toLowerCase());
+        for (const p of teamPlayers) {
+          slatePlayers.push({ id: p.id, name: p.name, team: tri, salary: p.salary, fp5: p.fp5, mpg5: p.mpg5 });
+        }
+        const topFp = teamPlayers.slice().sort((a, b) => b.fp5 - a.fp5)[0];
+        if (topFp) topByTeam.set(tri, { id: topFp.id, name: topFp.name, team: tri, salary: topFp.salary, fp5: topFp.fp5, mpg5: topFp.mpg5 });
       }
     }
 
