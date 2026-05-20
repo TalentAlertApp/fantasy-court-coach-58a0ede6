@@ -101,6 +101,9 @@ function jsonResp(body: unknown, status = 200) {
   });
 }
 
+const round1 = (n: number) => Math.round((Number(n) || 0) * 10) / 10;
+const round2 = (n: number) => Math.round((Number(n) || 0) * 100) / 100;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
