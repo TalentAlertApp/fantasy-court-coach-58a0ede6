@@ -282,20 +282,31 @@ export default function RosterPage() {
   const saveMutation = useMutation({
     mutationFn: (body: Parameters<typeof saveRoster>[0]) =>
       saveRoster(body, selectedTeamId ?? undefined),
-    onSuccess: (resp: any) => {
-      // Seed the cache synchronously with the server's authoritative roster
-      // so any immediate follow-up swap reads fresh starters/bench instead of
-      // a stale snapshot (which would diff as multiple trades and trip the
-      // GW transfer cap).
+    onSuccess: async (resp: any) => {
+      // 1) Cancel any in-flight roster-current refetches so a slower response
+      //    from a previous mutation cannot overwrite this fresh snapshot.
+      // 2) Seed the cache synchronously with the server's authoritative
+      //    roster — both ids AND derived fields (bank_remaining, locked_total,
+      //    free_transfers_remaining) — so the sidebar updates instantly.
+      // 3) Force an immediate refetch (active queries only) so the next
+      //    render reconciles with the DB; awaiting this guarantees subsequent
+      //    swaps read post-trade state.
       const fresh = resp?.roster ?? resp;
+      await queryClient.cancelQueries({ queryKey: ["roster-current"] });
       if (fresh && selectedTeamId) {
-        queryClient.setQueryData(["roster-current", selectedTeamId, league], { roster: fresh });
+        queryClient.setQueryData(
+          ["roster-current", selectedTeamId, league],
+          { roster: fresh },
+        );
       }
-      queryClient.invalidateQueries({ queryKey: ["roster-current"] });
       queryClient.invalidateQueries({ queryKey: ["gw-transfers"] });
       playSfx("lineup");
       toast({ title: "Lineup saved!" });
       setPendingSwap(null);
+      await queryClient.refetchQueries({
+        queryKey: ["roster-current"],
+        type: "active",
+      });
     },
     onError: (err) => {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
