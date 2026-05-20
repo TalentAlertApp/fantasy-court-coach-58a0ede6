@@ -1,49 +1,27 @@
-## 1. Outstanding Game — add NBA/WNBA league watermark
+## Plan
 
-**File:** `src/components/court-show/CourtShowSlide.tsx`
+1. **Stop the frontend from bypassing validation**
+   - Change `useCourtShowData` so it does not read `court_show_intelligence` directly as the source of truth for Ballers.IQ.
+   - Have it invoke `court-show-intelligence` first and use the function response, because the function contains the league/cache validator.
+   - Keep React Query keys league-aware (`leagueId`, `league`, `gw`, `day`) so NBA/WNBA views cannot reuse each other’s data.
 
-Extend the slide-chrome watermark logic (around line 1163) so the `outstanding` kind uses the league logo, exactly like `recap`:
+2. **Make cache invalidation automatic and strict**
+   - Bump the validator version again.
+   - Treat any cached row as stale if any card is missing `league` or `_v`, has the wrong league, mentions an off-slate team code, or mentions blocked NBA/WNBA team terms.
+   - Add a hard `force`/invalid-cache path that deletes or overwrites bad rows instead of allowing them to remain visible.
 
-```ts
-const useLeagueWatermark =
-  slide.payload.kind === "recap" || slide.payload.kind === "outstanding";
-```
+3. **Strengthen the WNBA team-term detector**
+   - Fix the current false-negative issue caused by excluding shared WNBA/NBA cities like `Portland` and `Toronto`; these can still be wrong when the slate does not include those teams.
+   - Build two checks:
+     - cross-league nickname/full-name blocker (`Trail Blazers`, `Raptors`, etc.)
+     - off-slate current-league city/nickname/full-name blocker (`Portland`, `Toronto Tempo`, etc. unless those teams are actually on the WNBA slate)
+   - Apply both checks to cached cards and freshly generated cards.
 
-Result: the same NBA/WNBA league logo currently behind Recap slides is rendered behind the Outstanding Game slide (oversized, blurred, `opacity-[0.10]`, top-right) — sitting behind the YouTube recap container without affecting the iframe (already `relative z-[1]` on header/content).
+4. **Clear the polluted cache fully**
+   - Remove existing WNBA `court_show_intelligence` rows that predate the validator stamp or contain known NBA leakage.
+   - Regenerate on next Daily Court Show open through the fixed edge function.
 
-No other Outstanding slide layout changes.
-
-## 2. Ballers.IQ — close the remaining NBA→WNBA leak
-
-The current `court-show-intelligence` validator drops cards that mention **off-slate tricodes** (e.g. `POR`, `TOR`) and **foreign player names** (e.g. "Anthony Edwards"). It still misses cards like:
-
-> "STABLE ROTATIONS FOR TRAIL BLAZERS AND RAPTORS — … Portland and Toronto …"
-
-because the body uses **city / nickname strings** (`Portland`, `Toronto`, `Trail Blazers`, `Raptors`, `Bulls`, `Timberwolves`) instead of tricodes or two-word player names. The card field `team: "POR"` *would* trip the existing tricode check, but for stale cache rows the regen loop can still surface similar copy.
-
-### Fix (file: `supabase/functions/court-show-intelligence/index.ts`)
-
-**a) Build a foreign-team-name blocklist.** Hardcode the NBA and WNBA full team rosters as `{ city, nickname, fullName }`. Compute:
-- `foreignTeamTerms` = all city + nickname + fullName strings belonging to the *other* league that are NOT also valid for the current league's slate teams.
-- Example for a WNBA slate: includes `"Portland"`, `"Toronto"`, `"Trail Blazers"`, `"Raptors"`, `"Bulls"`, `"Timberwolves"`, `"Anthony Edwards"`-style names are already covered separately.
-
-**b) Add `containsForeignTeamTerm(text)`** — case-insensitive substring scan over headline+body.
-
-**c) Wire into both checks:**
-- **Post-AI validator:** drop the card if `containsForeignTeamTerm` matches.
-- **Cache pollution check:** if any cached card matches, set `offSlate = true` so the row is regenerated.
-
-**d) Strengthen the prompt** with one extra hard rule:
-> "Never reference any team by city, nickname, or full name that is not in `slateTeams`. Use only the tricodes listed in `slateTeams`."
-
-**e) Inject `slateTeamNames`** (city + nickname per slate team) into the user payload so the model has the allowed vocabulary explicitly.
-
-**f) One-shot cache flush:** bump an internal `VALIDATOR_VERSION` constant and store it on the cached row; on read, if the stored version is missing or older than current, treat the row as stale and regenerate. This guarantees existing polluted WNBA rows (which pre-date this fix) are rebuilt on next view without needing a manual `force`.
-
-### Deploy
-Redeploy `court-show-intelligence` after the edit.
-
-### Scope guardrails
-- No DB schema changes.
-- No changes to other slides, layouts, or to Captain Radar / Salary Shake-Up / Health Watch behaviour.
-- Frontend change limited to a single boolean expression.
+5. **Validate the fix**
+   - Query the WNBA cache for leaked NBA terms such as `Trail Blazers`, `Raptors`, `Mavericks`, `Warriors`, `Pacers`, `Luka`, `Curry`, etc.
+   - Directly call `court-show-intelligence` for the reported WNBA slate and confirm returned cards are WNBA-only, validator-stamped, and slate-safe.
+   - Deploy the updated edge function after the source changes.
