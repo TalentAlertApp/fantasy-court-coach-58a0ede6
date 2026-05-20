@@ -11,6 +11,7 @@ import {
   isWelcomeBackSeenThisSession,
 } from "@/lib/welcome-back-store";
 import WelcomeBackHero from "@/components/welcome-back/WelcomeBackHero";
+import BallersIQEntryIntro from "@/components/welcome-back/BallersIQEntryIntro";
 import { useTeam } from "@/contexts/TeamContext";
 
 interface Props {
@@ -29,6 +30,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   // user id is reliably available — initializing in useState would race
   // with the loading state and silently produce false.
   const [welcomeOpen, setWelcomeOpen] = useState<boolean>(false);
+  const [entryIntroOpen, setEntryIntroOpen] = useState<boolean>(false);
   useEffect(() => {
     if (loading) return;
     if (!user?.id) return;
@@ -87,11 +89,12 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
         onEnter={() => {
           markWelcomeBackSeenThisSession();
           clearLastSignOut(user.id);
-          setWelcomeOpen(false);
           // Strip the preview query param if present
           if (new URLSearchParams(location.search).get("welcomeback") === "1") {
             navigate(location.pathname, { replace: true });
           }
+          setEntryIntroOpen(true);
+          setWelcomeOpen(false);
         }}
         onContinue={() => {
           markWelcomeBackSeenThisSession();
@@ -103,5 +106,12 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {entryIntroOpen && (
+        <BallersIQEntryIntro onDone={() => setEntryIntroOpen(false)} />
+      )}
+    </>
+  );
 }
