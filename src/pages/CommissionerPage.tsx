@@ -963,6 +963,9 @@ export default function CommissionerPage() {
                   Run Season Backfill
                 </Button>
               </div>
+              <div className="pt-3 border-t border-amber-500/20">
+                <SalaryAutoSchedulePanel />
+              </div>
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
