@@ -1502,6 +1502,58 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             onGameClick={onGameClick}
           />
         )}
+        {slide.payload.kind === "salary_shakeup" && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full content-center">
+            {slide.payload.data.top.map((p, i) => {
+              const up = p.delta > 0;
+              const tone = up ? "from-emerald-400/15 border-emerald-400/40 text-emerald-300" : "from-red-400/15 border-red-400/40 text-red-300";
+              return (
+                <motion.div
+                  key={p.player_id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.1 }}
+                  onClick={() => onPlayerClick(p.player_id)}
+                  className={`cursor-pointer rounded-2xl bg-gradient-to-br to-transparent backdrop-blur-sm border p-5 ${tone}`}
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-[10px] uppercase tracking-wider font-bold">
+                      {p.cumulative ? "Season Δ" : "Last Gameday"}
+                    </span>
+                    <span className="ml-auto text-[10px] font-mono text-white/50">#{i + 1}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {p.photo ? (
+                      <img src={p.photo} alt={p.name} className="h-16 w-16 rounded-full object-cover bg-black/40" />
+                    ) : (
+                      <div className="h-16 w-16 rounded-full bg-white/10" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="font-heading font-black text-white truncate">{p.name}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-white/50 font-mono">{p.team}</div>
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-md bg-black/30 py-1.5">
+                      <div className="text-xs font-mono font-bold text-white/80">${p.old_salary.toFixed(1)}M</div>
+                      <div className="text-[8px] uppercase tracking-wider text-white/40">Was</div>
+                    </div>
+                    <div className="rounded-md bg-black/30 py-1.5">
+                      <div className={`text-base font-mono font-black ${up ? "text-emerald-400" : "text-red-400"}`}>
+                        {up ? "+" : "−"}${Math.abs(p.delta).toFixed(1)}
+                      </div>
+                      <div className="text-[8px] uppercase tracking-wider text-white/40">Δ</div>
+                    </div>
+                    <div className="rounded-md bg-black/30 py-1.5">
+                      <div className="text-xs font-mono font-bold text-white">${p.new_salary.toFixed(1)}M</div>
+                      <div className="text-[8px] uppercase tracking-wider text-white/40">Now</div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
         {slide.payload.kind === "outro" && (
           <div className="h-full flex flex-col items-center justify-center text-center gap-5">
             <div className="text-amber-400">

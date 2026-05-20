@@ -502,6 +502,10 @@ serve(async (req: Request) => {
   try {
     const body = req.method === "POST" ? await req.json() : {};
     const type: string = (body.type || "FULL").toUpperCase();
+    // SALARY is now opt-in by default — dynamic salaries are managed by the
+    // `salary-adjust-gameday` job. Pass { allow_salary_sync: true } to
+    // override and accept the spreadsheet's salary column as a manual update.
+    const allowSalarySync: boolean = body.allow_salary_sync === true;
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const token = await getAccessToken();
@@ -519,7 +523,7 @@ serve(async (req: Request) => {
     const errors: string[] = [];
 
     try {
-      if (type === "SALARY" || type === "FULL") {
+      if ((type === "SALARY" || type === "FULL") && allowSalarySync) {
         try {
           const salaryResult = await syncSalaries(supabase, token);
           counts.salary_updated = salaryResult.updated;
@@ -529,6 +533,8 @@ serve(async (req: Request) => {
           errors.push(`SALARY: ${msg}`);
           console.error("Salary sync error:", e);
         }
+      } else if (type === "SALARY" && !allowSalarySync) {
+        counts.salary_skipped = "Pass allow_salary_sync=true to opt in (dynamic salaries are managed automatically).";
       }
 
       if (type === "GAMES" || type === "FULL") {

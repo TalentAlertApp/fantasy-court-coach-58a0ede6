@@ -11,6 +11,7 @@ export type SlideKind =
   | "outstanding"
   | "health_watch"
   | "next_games"
+  | "salary_shakeup"
   | "outro";
 
 export type StoryLabel =
@@ -226,6 +227,23 @@ export interface NextGamesPayload {
   games: NextGameRow[];
 }
 
+export interface SalaryShakeupRow {
+  player_id: number;
+  name: string;
+  team: string;
+  photo: string | null;
+  old_salary: number;
+  new_salary: number;
+  delta: number;
+  /** True when reading season-to-date totals (scheduled day); false for single-day. */
+  cumulative: boolean;
+}
+
+export interface SalaryShakeupPayload {
+  mode: "played" | "scheduled";
+  top: SalaryShakeupRow[];
+}
+
 export type SlidePayload =
   | { kind: "intro"; data: IntroPayload }
   | { kind: "performances"; data: TopPerformer[] }
@@ -237,6 +255,7 @@ export type SlidePayload =
   | { kind: "outstanding"; data: OutstandingGamePayload }
   | { kind: "health_watch"; data: HealthWatchPayload }
   | { kind: "next_games"; data: NextGamesPayload }
+  | { kind: "salary_shakeup"; data: SalaryShakeupPayload }
   | { kind: "outro"; data: OutroPayload };
 
 export interface CourtShowSlideItem {

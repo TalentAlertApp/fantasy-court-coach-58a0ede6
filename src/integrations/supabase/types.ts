@@ -277,6 +277,7 @@ export type Database = {
           created_at: string
           deadline_rule_set_id: string | null
           description: string | null
+          dynamic_salaries: boolean
           id: string
           is_active: boolean
           join_code: string | null
@@ -299,6 +300,7 @@ export type Database = {
           created_at?: string
           deadline_rule_set_id?: string | null
           description?: string | null
+          dynamic_salaries?: boolean
           id?: string
           is_active?: boolean
           join_code?: string | null
@@ -321,6 +323,7 @@ export type Database = {
           created_at?: string
           deadline_rule_set_id?: string | null
           description?: string | null
+          dynamic_salaries?: boolean
           id?: string
           is_active?: boolean
           join_code?: string | null
@@ -551,6 +554,48 @@ export type Database = {
           },
         ]
       }
+      player_salary_changes: {
+        Row: {
+          change_date: string
+          created_at: string
+          delta: number | null
+          fp_window: number | null
+          id: string
+          league_id: string
+          new_salary: number
+          notes: string | null
+          old_salary: number
+          player_id: number
+          reason: string
+        }
+        Insert: {
+          change_date: string
+          created_at?: string
+          delta?: number | null
+          fp_window?: number | null
+          id?: string
+          league_id: string
+          new_salary: number
+          notes?: string | null
+          old_salary: number
+          player_id: number
+          reason?: string
+        }
+        Update: {
+          change_date?: string
+          created_at?: string
+          delta?: number | null
+          fp_window?: number | null
+          id?: string
+          league_id?: string
+          new_salary?: number
+          notes?: string | null
+          old_salary?: number
+          player_id?: number
+          reason?: string
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           age: number
@@ -580,6 +625,8 @@ export type Database = {
           id: number
           injury: string | null
           jersey: number
+          last_salary_change_at: string | null
+          last_salary_delta: number
           league_id: string
           mpg: number
           mpg5: number
@@ -643,6 +690,8 @@ export type Database = {
           id: number
           injury?: string | null
           jersey?: number
+          last_salary_change_at?: string | null
+          last_salary_delta?: number
           league_id: string
           mpg?: number
           mpg5?: number
@@ -706,6 +755,8 @@ export type Database = {
           id?: number
           injury?: string | null
           jersey?: number
+          last_salary_change_at?: string | null
+          last_salary_delta?: number
           league_id?: string
           mpg?: number
           mpg5?: number
@@ -1298,6 +1349,15 @@ export type Database = {
           name: string
           owner_id: string
           owner_label: string
+        }[]
+      }
+      get_salary_movers: {
+        Args: { _days?: number; _league_id?: string }
+        Returns: {
+          changes_count: number
+          last_change_at: string
+          player_id: number
+          total_delta: number
         }[]
       }
       is_league_member: {

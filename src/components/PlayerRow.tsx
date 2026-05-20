@@ -16,6 +16,7 @@ import HealthTooltip from "@/components/health/HealthTooltip";
 import React from "react";
 import NationalityFlag from "@/components/NationalityFlag";
 import { countryLabel } from "@/lib/nationality";
+import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -42,6 +43,10 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
   const teamLogo = getTeamLogo(core.team);
   const totalFp = (player.season as any)?.total_fp ?? ((player.season as any)?.fp ?? 0) * (player.season?.gp ?? 0);
   const health = normalizePlayerHealth(player);
+  const d1 = (core as any).last_salary_delta as number | undefined;
+  const d7 = (core as any).salary_delta_7d as number | undefined;
+  const salaryToneCls = salaryDeltaColor(d1);
+  const salaryTip = salaryDeltaTooltip(d1, d7);
   // Pre-season heuristic: no games played anywhere → dash out perf stats.
   const preseason = isWnba && Number((player.season as any)?.gp ?? 0) === 0
     && Number(last5?.fp5 ?? 0) === 0;
@@ -174,7 +179,7 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           <span className="text-[11px] text-muted-foreground/50">—</span>
         )}
       </TableCell>
-      <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-[68px] tabular-nums">{formatSalary(core.salary)}</TableCell>
+      <TableCell title={salaryTip} className={`px-1.5 text-right text-[11px] w-[68px] tabular-nums font-bold ${salaryToneCls || "text-muted-foreground"}`}>{formatSalary(core.salary)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(computed?.value5, 2, preseason)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(lastGame?.fp, 1, preseason)}</TableCell>

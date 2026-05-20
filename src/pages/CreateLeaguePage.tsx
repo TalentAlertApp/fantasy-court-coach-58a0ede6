@@ -51,6 +51,7 @@ export default function CreateLeaguePage() {
   const [benchCount, setBenchCount] = useState(5);
   const [maxPerTeamEnabled, setMaxPerTeamEnabled] = useState(true);
   const [maxPerTeam, setMaxPerTeam] = useState(2);
+  const [dynamicSalaries, setDynamicSalaries] = useState(true);
 
   // Step 5
   const [deadlineType, setDeadlineType] = useState<"first_game_of_day" | "per_player_game_lock">("first_game_of_day");
@@ -117,6 +118,7 @@ export default function CreateLeaguePage() {
         max_players_per_team: maxPerTeamEnabled ? maxPerTeam : null,
       },
       deadline_type: deadlineType,
+      dynamic_salaries: dynamicSalaries,
       chips: {
         captain_enabled: captainEnabled,
         captain_multiplier: chipCaptainMult,
@@ -367,6 +369,15 @@ export default function CreateLeaguePage() {
                 </div>
                 <Input type="number" min={1} max={5} disabled={!maxPerTeamEnabled} value={maxPerTeam} onChange={(e) => setMaxPerTeam(Number(e.target.value))} className="h-8 text-sm" />
               </div>
+            </div>
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 flex items-start justify-between gap-3">
+              <div>
+                <Label className="text-xs font-heading uppercase tracking-wider text-amber-500">Dynamic Salaries</Label>
+                <p className="text-[11px] text-muted-foreground mt-1 max-w-md">
+                  Player salaries auto-adjust after each game day based on performance (max ±1% per gameday, $4M–$30M). Turn off for fixed pre-season salaries.
+                </p>
+              </div>
+              <Switch checked={dynamicSalaries} onCheckedChange={setDynamicSalaries} />
             </div>
             <p className="text-xs text-muted-foreground">All settings can be changed later while the league is in Draft.</p>
           </div>

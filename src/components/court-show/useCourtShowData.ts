@@ -76,6 +76,34 @@ export function useCourtShowData(gw: number, day: number) {
     [games],
   );
 
+  // Salary shake-up: latest day's biggest absolute deltas (played) OR season-to-date
+  // cumulative deltas (scheduled). Both run as cheap public-read queries.
+  const slateDate = useMemo(() => buildWeekDayDate(deadlines, gw, day), [deadlines, gw, day]);
+  const { data: salaryShakeupRaw } = useQuery({
+    queryKey: ["court-show-salary-shakeup", leagueId, slateDate, finalGameIds.length > 0],
+    enabled: !!leagueId && !!slateDate,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const isPlayed = finalGameIds.length > 0;
+      if (isPlayed) {
+        const { data } = await supabase
+          .from("player_salary_changes")
+          .select("player_id, old_salary, new_salary, delta")
+          .eq("league_id", leagueId!)
+          .eq("change_date", slateDate)
+          .order("delta", { ascending: false });
+        return { mode: "played" as const, rows: data ?? [] };
+      }
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("player_salary_changes")
+        .select("player_id, delta")
+        .eq("league_id", leagueId!)
+        .gte("change_date", since);
+      return { mode: "scheduled" as const, rows: data ?? [] };
+    },
+  });
+
   // ── Next gameday lookup (for the "Next Up" slide on played days) ────
   const nextDeadline = useMemo(() => {
     const nowMs = Date.now();
@@ -722,6 +750,63 @@ export function useCourtShowData(gw: number, day: number) {
       });
     }
 
+    // ── Salary Shake-Up (after Captain Radar) ─────────────────────────
+    if (salaryShakeupRaw) {
+      type Row = { player_id: number; old_salary?: number; new_salary?: number; delta: number };
+      let rows: Array<{ player_id: number; old_salary: number; new_salary: number; delta: number; cumulative: boolean }> = [];
+      if (salaryShakeupRaw.mode === "played") {
+        rows = (salaryShakeupRaw.rows as Row[])
+          .map((r) => ({
+            player_id: r.player_id,
+            old_salary: Number(r.old_salary ?? 0),
+            new_salary: Number(r.new_salary ?? 0),
+            delta: Number(r.delta),
+            cumulative: false,
+          }))
+          .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+          .slice(0, 3);
+      } else {
+        const sums = new Map<number, number>();
+        for (const r of (salaryShakeupRaw.rows as Row[])) {
+          sums.set(r.player_id, (sums.get(r.player_id) ?? 0) + Number(r.delta));
+        }
+        rows = [...sums.entries()]
+          .map(([pid, d]) => {
+            const p = playersById.get(pid);
+            const current = Number(p?.core?.salary ?? 0);
+            return {
+              player_id: pid,
+              old_salary: Math.round((current - d) * 10) / 10,
+              new_salary: current,
+              delta: Math.round(d * 10) / 10,
+              cumulative: true,
+            };
+          })
+          .filter((r) => r.delta !== 0)
+          .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
+          .slice(0, 3);
+      }
+      if (rows.length) {
+        const enriched = rows.map((r) => {
+          const p = playersById.get(r.player_id);
+          return {
+            ...r,
+            name: p?.core?.name ?? `#${r.player_id}`,
+            team: p?.core?.team ?? "",
+            photo: p?.core?.photo ?? null,
+          };
+        });
+        slides.push({
+          kind: "salary_shakeup",
+          title: "Salary Shake-Up",
+          subtitle: salaryShakeupRaw.mode === "played"
+            ? "Biggest movers from last night"
+            : "Biggest movers of the season",
+          payload: { kind: "salary_shakeup", data: { mode: salaryShakeupRaw.mode, top: enriched } },
+        });
+      }
+    }
+
     // ── Outro ─────────────────────────────────────────────────────────
     // ── Next Up (only when current slate has played games) ────────────
     if (healthWatchMode === "played" && nextDeadline && (nextGamesRaw?.length ?? 0) > 0) {
@@ -793,7 +878,7 @@ export function useCourtShowData(gw: number, day: number) {
       gamesCount: games.length,
       slides,
     };
-  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines, nextDeadline, nextGamesRaw]);
+  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines, nextDeadline, nextGamesRaw, salaryShakeupRaw]);
 
   return {
     data,

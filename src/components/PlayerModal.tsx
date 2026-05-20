@@ -26,6 +26,7 @@ import { HealthStatusIcon, HealthDetailsModal } from "@/components/health";
 import NationalityFlag from "@/components/NationalityFlag";
 import { normalizePlayerHealth, getHealthLabel } from "@/lib/health";
 import { Share2 } from "lucide-react";
+import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
 
 function BreakdownCard({ data }: { data: any }) {
   const [view, setView] = useState<"season" | "lastGame">("season");
@@ -221,9 +222,24 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                       <Badge variant={data.player.core.fc_bc === "FC" ? "destructive" : "default"} className="rounded-lg">
                         {data.player.core.fc_bc}
                       </Badge>
-                      <span className="font-mono text-sm font-bold px-2 py-0.5 rounded-md bg-foreground/10 border border-foreground/20">
-                        {data.player.core.salary > 0 ? `$${data.player.core.salary}M` : "TBD"}
-                      </span>
+                      {(() => {
+                        const d1 = (data.player.core as any).last_salary_delta as number | undefined;
+                        const d7 = (data.player.core as any).salary_delta_7d as number | undefined;
+                        const tone = salaryDeltaColor(d1);
+                        return (
+                          <span
+                            title={salaryDeltaTooltip(d1, d7)}
+                            className={`font-mono text-sm font-bold px-2 py-0.5 rounded-md bg-foreground/10 border border-foreground/20 ${tone}`}
+                          >
+                            {data.player.core.salary > 0 ? `$${data.player.core.salary}M` : "TBD"}
+                            {d1 ? (
+                              <span className="ml-1 text-[10px]">
+                                {d1 > 0 ? "▲" : "▼"}{Math.abs(d1).toFixed(1)}
+                              </span>
+                            ) : null}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
