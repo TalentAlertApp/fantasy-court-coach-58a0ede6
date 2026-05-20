@@ -804,6 +804,7 @@ export type Database = {
       }
       roster: {
         Row: {
+          acquired_salary: number
           created_at: string
           day: number
           gw: number
@@ -816,6 +817,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acquired_salary?: number
           created_at?: string
           day?: number
           gw?: number
@@ -828,6 +830,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acquired_salary?: number
           created_at?: string
           day?: number
           gw?: number
