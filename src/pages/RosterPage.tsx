@@ -981,6 +981,7 @@ export default function RosterPage() {
             onOpenChange={(o) => !o && setGameDetail(null)}
           />
           <AlertDialog open={!!captainConfirm} onOpenChange={(o) => { if (!o) setCaptainConfirm(null); }}>
+            {/* (captain confirm dialog below) */}
             <AlertDialogContent className="rounded-xl">
               <AlertDialogHeader>
                 <AlertDialogTitle>
@@ -1006,6 +1007,19 @@ export default function RosterPage() {
                 >
                   Captain anyway
                 </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog open={!!blockedSwap} onOpenChange={(o) => { if (!o) setBlockedSwap(null); }}>
+            <AlertDialogContent className="rounded-xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle>This change is not allowed</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {blockedSwap?.message ?? "Starting 5 must be 2 FC + 3 BC or 3 FC + 2 BC."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setBlockedSwap(null)}>OK</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
