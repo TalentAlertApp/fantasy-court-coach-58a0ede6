@@ -878,7 +878,7 @@ export function useCourtShowData(gw: number, day: number) {
       gamesCount: games.length,
       slides,
     };
-  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines, nextDeadline, nextGamesRaw]);
+  }, [gw, day, games, logs, playersData?.items, playersById, rosterIds, schedLoading, playersLoading, aiRow, deadlines, nextDeadline, nextGamesRaw, salaryShakeupRaw]);
 
   return {
     data,
