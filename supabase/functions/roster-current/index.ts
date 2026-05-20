@@ -77,6 +77,29 @@ Deno.serve(async (req) => {
 
     const salaryCap = settings?.salary_cap ?? 100;
 
+    // Free transfers = cap - SWAP/ADD transactions already logged this GW.
+    // Source of truth: the `transactions` table (written by both
+    // transactions-commit and roster-save).
+    let transferCap = 2;
+    if (teamLeagueId) {
+      // teamLeagueId here is sport_league_id; transfer_cap lives on the
+      // fantasy league row attached to the team.
+      const { data: teamRow2 } = await sb
+        .from("teams").select("league_id").eq("id", team_id).maybeSingle();
+      const fantasyLeagueId = teamRow2?.league_id ?? null;
+      if (fantasyLeagueId) {
+        const { data: lg } = await sb
+          .from("leagues").select("transfer_cap").eq("id", fantasyLeagueId).maybeSingle();
+        if (lg?.transfer_cap != null) transferCap = Number(lg.transfer_cap);
+      }
+    }
+    const { count: usedThisGw } = await sb
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", team_id)
+      .like("notes", `gw=${gw}%`);
+    const freeTransfers = Math.max(0, transferCap - (usedThisGw ?? 0));
+
     return okResponse({
       roster: {
         gw,
@@ -88,7 +111,8 @@ Deno.serve(async (req) => {
         bank_remaining: salaryCap - lockedTotal,
         locked_total: Math.round(lockedTotal * 100) / 100,
         market_total: Math.round(marketTotal * 100) / 100,
-        free_transfers_remaining: 2,
+        free_transfers_remaining: freeTransfers,
+        transfer_cap: transferCap,
         constraints: {
           salary_cap: salaryCap,
           starters_count: 5,
