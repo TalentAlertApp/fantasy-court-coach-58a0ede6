@@ -82,7 +82,10 @@ Deno.serve(async (req) => {
     // Trade-budget rule (uses CURRENT market for both sides of the trade):
     //   Σ market(IN) <= bank_before + Σ market(OUT)
     // bank_before = cap - Σ acquired(kept + OUT) = cap - locked_before
-    if (tradeCount > 0) {
+    // Initial roster draft (no prior roster on this team) is not a "transfer"
+    // and must bypass both the budget delta check and the GW transfer cap.
+    const isInitialDraft = oldIdSet.size === 0;
+    if (tradeCount > 0 && !isInitialDraft) {
       // We need OUT players' current market salary (they aren't in `playerIds`).
       const outMarket = new Map<number, number>();
       if (outIds.length > 0) {
