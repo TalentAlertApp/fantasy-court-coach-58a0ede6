@@ -156,13 +156,19 @@ Deno.serve(async (req) => {
     // (see `buildForeignTermChecker` below) so we can also flag current-league
     // teams that aren't actually playing tonight (off-slate leaks).
     let containsForeignTeamTerm: (text: string) => boolean = () => false;
+    const teamTerms = (t: { city: string; nickname: string }) => {
+      const terms = [t.city, t.nickname, `${t.city} ${t.nickname}`];
+      const nicknameParts = t.nickname.split(/\s+/).filter(Boolean);
+      if (nicknameParts.length > 1) terms.push(nicknameParts[nicknameParts.length - 1]);
+      return terms;
+    };
     const buildForeignTermChecker = (allowedTris: Set<string>) => {
       const terms: string[] = [];
       // Current-league teams are only legal if their tricode is on tonight's
       // slate. This blocks off-slate WNBA teams without blocking slate teams.
       for (const t of currentTable) {
         if (allowedTris.has(t.tri.toUpperCase())) continue;
-        for (const term of [t.city, t.nickname, `${t.city} ${t.nickname}`]) {
+        for (const term of teamTerms(t)) {
           if (term && term.length >= 3) terms.push(term);
         }
       }
@@ -171,6 +177,7 @@ Deno.serve(async (req) => {
         if (!allowedTris.has(t.tri.toUpperCase())) continue;
         onSlateTerms.add(t.city.toLowerCase());
         onSlateTerms.add(t.nickname.toLowerCase());
+        if (t.nickname.includes(" ")) onSlateTerms.add(t.nickname.split(/\s+/).pop()!.toLowerCase());
         onSlateTerms.add(`${t.city} ${t.nickname}`.toLowerCase());
       }
       // Foreign-league nicknames/full names are always illegal, even when the
@@ -179,7 +186,7 @@ Deno.serve(async (req) => {
       for (const t of foreignTable) {
         const city = t.city.toLowerCase();
         if (!onSlateTerms.has(city)) terms.push(t.city);
-        terms.push(t.nickname, `${t.city} ${t.nickname}`);
+        for (const term of teamTerms(t).filter((term) => term !== t.city)) terms.push(term);
       }
       const filtered = Array.from(new Set(terms)).filter(
         (term) => !onSlateTerms.has(term.toLowerCase()),
