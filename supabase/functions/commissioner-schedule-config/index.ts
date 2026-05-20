@@ -3,7 +3,7 @@ import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
 import { requireAdmin } from "../_shared/admin-guard.ts";
 
-const VALID_KEYS = new Set(["sync3", "all"]);
+const VALID_KEYS = new Set(["sync3", "all", "salary-auto"]);
 const TIME_RE = /^([01][0-9]|2[0-3]):[0-5][0-9]$/;
 
 Deno.serve(async (req) => {
@@ -32,7 +32,10 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { job_key, enabled, run_time_lisbon, include_recaps } = body ?? {};
       if (!VALID_KEYS.has(job_key)) {
-        return errorResponse("INVALID_INPUT", "job_key must be 'sync3' or 'all'");
+        return errorResponse(
+          "INVALID_INPUT",
+          "job_key must be 'sync3', 'all' or 'salary-auto'",
+        );
       }
       if (typeof run_time_lisbon !== "string" || !TIME_RE.test(run_time_lisbon)) {
         return errorResponse("INVALID_INPUT", "run_time_lisbon must be HH:MM (24h)");

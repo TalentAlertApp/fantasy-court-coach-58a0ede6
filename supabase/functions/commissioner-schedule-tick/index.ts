@@ -75,6 +75,11 @@ async function callFn(name: string, body: Record<string, unknown> | null) {
 }
 
 async function runJob(jobKey: string, includeRecaps: boolean) {
+  if (jobKey === "salary-auto") {
+    // Daily automated post-gameday salary adjustment (NBA + WNBA).
+    await callFn("salary-adjust-gameday", { league: "all" });
+    return;
+  }
   if (jobKey === "sync3") {
     await callFn("wnba-sheet-sync", { mode: "schedule" });
     await callFn("wnba-sheet-sync", { mode: "game-data" });
