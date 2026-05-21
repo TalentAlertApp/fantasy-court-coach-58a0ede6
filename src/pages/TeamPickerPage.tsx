@@ -113,7 +113,7 @@ export default function TeamPickerPage() {
                 key={t.id}
                 type="button"
                 onClick={() => handlePick(t.id)}
-                className="group relative text-left p-4 rounded-xl border border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all h-28 flex flex-col justify-between overflow-hidden"
+                className="group relative text-left p-4 rounded-xl border border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all min-h-[7rem] flex flex-col justify-between gap-2 overflow-hidden"
               >
                 <img
                   src={leagueLogo}
