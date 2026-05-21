@@ -6,6 +6,7 @@ import { useFirstRunGate } from "@/hooks/useFirstRunGate";
 import { createTeam } from "@/lib/api";
 import { deleteTeam } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
+import { FUNCTIONS_BASE, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import OnboardingHero from "@/components/onboarding/OnboardingHero";
@@ -163,29 +164,31 @@ export default function OnboardingPage() {
       let attachedCount = 0;
       for (const leagueId of extras) {
         try {
-          const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
-            body: { league_id: leagueId, team_id: teamId },
+          // Use direct fetch (not supabase.functions.invoke) so non-2xx
+          // responses like 409 ALREADY_HAS_TEAM don't trigger the SDK's
+          // internal console.error (which the runtime-error reporter picks
+          // up as a fatal RUNTIME_ERROR).
+          const { data: session } = await supabase.auth.getSession();
+          const token = session.session?.access_token ?? "";
+          const res = await fetch(`${FUNCTIONS_BASE}/leagues-manage/attach-team`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ league_id: leagueId, team_id: teamId }),
           });
-          // Non-2xx responses (e.g. 409 ALREADY_HAS_TEAM) surface as `error`
-          // (FunctionsHttpError) with the JSON body on error.context.
-          let errCode: string | undefined = (data as any)?.error?.code;
-          let errMsg: string | undefined = (data as any)?.error?.message;
-          if (error && (error as any).context && typeof (error as any).context.json === "function") {
-            try {
-              const body = await (error as any).context.json();
-              errCode = body?.error?.code ?? errCode;
-              errMsg = body?.error?.message ?? errMsg;
-            } catch { /* ignore */ }
-          }
+          const body: any = await res.json().catch(() => ({}));
+          const errCode: string | undefined = body?.error?.code;
+          const errMsg: string | undefined = body?.error?.message;
           if (errCode === "ALREADY_HAS_TEAM") {
-            // Soft success — user already has a team in this league.
             attachedCount++;
             continue;
           }
-          if (error || errCode) throw new Error(errMsg ?? error?.message ?? "attach failed");
+          if (!res.ok || errCode) throw new Error(errMsg ?? `attach failed (${res.status})`);
           attachedCount++;
         } catch (e: any) {
-          // Re-check for ALREADY_HAS_TEAM in case it was thrown via context.
           if (e?.message && /already have a team/i.test(e.message)) {
             attachedCount++;
             continue;
