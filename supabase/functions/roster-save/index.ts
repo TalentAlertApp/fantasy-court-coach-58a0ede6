@@ -91,7 +91,15 @@ Deno.serve(async (req) => {
     // team that was created with a single placeholder pick. In all these
     // cases the changes are not real transfers and must bypass both the
     // budget delta check and the GW transfer cap.
-    const isInitialDraft = oldIdSet.size < 10;
+    // Also treat as initial draft when the team has no committed transactions
+    // yet — i.e. it's still in the onboarding Step 3 phase where the user can
+    // re-run Auto-Draft / AI Coach / manual picks freely without burning
+    // transfer slots, even if a previous attempt already left 10 roster rows.
+    const { count: txnCountBefore } = await sb
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("team_id", team_id);
+    const isInitialDraft = oldIdSet.size < 10 || (txnCountBefore ?? 0) === 0;
     if (tradeCount > 0 && !isInitialDraft) {
       // We need OUT players' current market salary (they aren't in `playerIds`).
       const outMarket = new Map<number, number>();
