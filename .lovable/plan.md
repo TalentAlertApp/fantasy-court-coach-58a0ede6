@@ -1,57 +1,55 @@
-# Fixes
+## 1) Immediate refetch + UI update after attaching a team
 
-## 1) After drafting a brand new team, go straight to the Court (not Welcome Back)
+**Where:** `src/pages/LeaguesPage.tsx` → `handleAttach`.
 
-**Where:** `src/pages/OnboardingPage.tsx` → `handleFinish()` (called when `DraftPicker` finishes).
+**Problem:** `qc.invalidateQueries({queryKey:["teams"]})` only marks the query stale and schedules a background refetch. The dropdown re-renders from the old cache first, and on some screens the user perceives the just-attached team still listed under "Add Your Team". The `fantasy-leagues` count is similarly stale.
 
-Today it does:
-- `setSelectedTeamId(createdTeamId)`
-- `markTeamPickedThisSession()`
-- refetch teams + `navigate(returnTo /* "/" */)`
+**Fix:**
+- Replace both `invalidateQueries` calls with awaited `refetchQueries({queryKey:["teams"], type:"active"})` and `refetchQueries({queryKey:["fantasy-leagues"], type:"active"})` so the new `team_leagues` row is in cache before we drop `attachingLeagueId`.
+- Additionally do an optimistic cache update on the `["teams"]` query: append `league.id` to the target team's `league_ids` immediately on click, so the dropdown filter (`getAttachableTeamsFor` → `participatesIn`) hides the team in the same frame even before the network round-trip.
+- On error, roll the optimistic mutation back.
 
-Then `RequireAuth` runs at `/` and, because `isWelcomeBackSeenThisSession()` is still false, it renders `<WelcomeBackHero />` — that is the screen the user is seeing after the draft.
+No backend changes — `leagues-manage/attach-team` already upserts the `team_leagues` row and `teams` edge function already returns `league_ids`.
 
-**Change:**
-- In `handleFinish`, also call `markWelcomeBackSeenThisSession()` from `@/lib/welcome-back-store` so the recap is suppressed for the rest of this session (the user literally just created the team — there is nothing to "recap").
-- Change the destination from `returnTo` (which defaults to `/`) to `/roster` when the user just finished onboarding a brand new team. This sends them directly to the Court / My Roster.
-- Keep the "entry intro" (`BallersIQEntryIntro`) experience: trigger it on first land after onboarding by setting a one-shot flag (e.g. `sessionStorage` `nba_show_entry_intro_once = "1"`) inside `handleFinish`, and have `RequireAuth` read+consume that flag to open `BallersIQEntryIntro` once on the next render — independently of the Welcome Back gate. That gives the desired flow: **Draft → BallersIQ entry intro → Court / My Roster**, with no Welcome Back screen in between.
+## 2) Standings table fills available vertical space
 
-No other onboarding paths are affected (returning users coming back from picker / leagues still hit the normal `RequireAuth` Welcome Back logic).
+**Where:** `src/pages/ScoringPage.tsx` (LEAGUE tab) and the Standings panel container.
 
-## 2) "Add Your Team" dropdown still lists a team that is already in the league
+**Fix:**
+- Make the LEAGUE tab a column flex container with `min-h-0` and `flex-1`, anchored to the available viewport height (`h-[calc(100vh-<headerOffset>)]` or by wrapping in an `h-full` ancestor that already covers viewport).
+- Wrap the existing `<StandingsTable>` in a flex child with `flex-1 min-h-0 overflow-auto` so the inner scroll area grows down to the bottom of the screen instead of the current fixed/intrinsic height.
+- KPI tiles, league selector, sub-tabs, and the Standings header bar stay as fixed-height rows above; only the table region absorbs the remaining space.
 
-**Where:** `src/pages/LeaguesPage.tsx` → `getAttachableTeamsFor(league)`.
+Exact files to touch will be confirmed when implementing (likely `ScoringPage.tsx` + `src/components/standings/StandingsPanel.tsx` wrappers; no logic changes, only layout classes).
 
-The current filters use the *primary* `league_id` only:
-```ts
-const alreadyAttached = userTeams.some(
-  (t) => t.owner_id === user?.id && t.league_id === league.id,
-);
-...
-const matches = userTeams.filter(
-  (t) => t.owner_id === user?.id &&
-         (t.league_code ?? "nba") === league.sport &&
-         t.league_id !== league.id,
-);
-```
+## 3) Remove league chips from the sidebar team pill
 
-With the new many-to-many `team_leagues` model, a team that was *joined* into a custom league keeps its original primary `league_id`, but its `league_ids[]` includes the custom league. So the check above never matches and the team keeps appearing in the dropdown.
+**Where:** `src/components/TeamSwitcher.tsx`.
 
-**Change:**
-- Treat a team as participating in a league when **either** its primary `league_id` equals `league.id` **or** its `league_ids` array (already returned by the `teams` edge function) includes `league.id`.
-- Helper: `const participatesIn = (t, leagueId) => t.league_id === leagueId || (Array.isArray(t.league_ids) && t.league_ids.includes(leagueId));`
-- Use it in both the `alreadyAttached` check and the `matches` filter.
-- Keep the existing `(league.myTeamCount ?? 0) > 0` early-out as a belt-and-braces guard, but the fix above is the real one (since `myTeamCount` may lag until `fantasy-leagues` invalidation completes).
-- After a successful attach in `handleAttach`, the existing `qc.invalidateQueries(["teams"])` already refetches teams with updated `league_ids`, so the dropdown will hide the team immediately on re-render.
+**Problem:** Earlier we added `<TeamLeagueChips>` inside each `<SelectItem>`. shadcn's `<SelectValue>` mirrors the selected item's children into the trigger, so the chip row also renders inside the small sidebar pill, breaking its layout (screenshot 2).
 
-## Out of scope / not changed
+**Fix:**
+- Render the trigger content manually: replace `<SelectValue placeholder="Select team" />` with an explicit node that shows only the `LeagueLogoBadge` + truncated team name for the currently-selected team (no chips).
+- Keep `<TeamLeagueChips>` inside `<SelectItem>` so chips still appear in the open dropdown rows (that part is useful and stays per the previous request). If chips inside dropdown rows still feel noisy in the narrow popup, we can also drop them from the items — flag for confirmation when implementing.
 
-- Edge functions (`teams`, `leagues-manage`) — no changes needed; `league_ids` is already returned.
-- Database — no migration needed.
-- Existing Welcome Back behavior for returning users on subsequent sessions.
+No changes to `TeamLeagueChips.tsx` itself; `TeamPickerPage` continues to use it.
 
-## Files to edit
+## 4) Blank preview window — verification
 
-- `src/pages/OnboardingPage.tsx` (handleFinish + entry-intro flag)
-- `src/components/auth/RequireAuth.tsx` (consume one-shot entry-intro flag so the intro still plays after we bypass Welcome Back)
-- `src/pages/LeaguesPage.tsx` (`getAttachableTeamsFor` participation check)
+**Symptom:** The preview shows a blank gray viewport at `/welcome` (screenshot 3).
+
+**Likely cause:** `OnboardingPage` renders a transparent placeholder `<div className="h-screen w-full bg-background" aria-hidden />` while `!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague)`. For a returning user hitting `/welcome` directly with no nav state, this branch is hit while a `useEffect` schedules `navigate("/welcome/pick-team")`. If `ready` never flips true (e.g., `useFirstRunGate` stalls because `useTeam().isReady` stays false), the page stays blank forever — exactly what the screenshot shows.
+
+**Plan:**
+- Reproduce by visiting `/welcome` with no state on a returning user; check console + network for failed `teams` / `fantasy-leagues` calls.
+- If `ready` is stuck: replace the silent blank placeholder in `OnboardingPage` with the same neutral spinner used in `RequireAuth`, AND have the redirect effect fire regardless of `ready` when the user has already-loaded teams (use `teams.length >= 1` from `useTeam()` as a fallback trigger to push to `/welcome/pick-team`).
+- If the root cause is a failed teams fetch (HTTP 5xx), fix the cause and surface a retry instead of a permanent blank.
+- Verify after fix by hard-refreshing `/welcome` and `/` and confirming the picker (or destination page) renders.
+
+### Implementation order
+1. Sidebar pill fix (smallest, immediate visual relief).
+2. Optimistic + awaited refetch on attach.
+3. Standings table flex layout.
+4. Blank-screen investigation + targeted fix.
+
+No DB migrations, no edge function changes.
