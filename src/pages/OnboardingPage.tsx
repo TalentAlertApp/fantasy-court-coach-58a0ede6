@@ -331,6 +331,14 @@ export default function OnboardingPage() {
           onSubmit={handleLeagueSubmit}
           submitting={creating}
           lockedSport={pendingMainSport}
+          initialSelectedIds={resumedExtraLeagueIds}
+          onBeforeCreateLeague={(selectedIds) => {
+            setOnboardingDraft(user?.id, {
+              name: pendingName,
+              sport: pendingMainSport,
+              extraLeagueIds: selectedIds,
+            });
+          }}
         />
       )}
       {step === "draft" && (
