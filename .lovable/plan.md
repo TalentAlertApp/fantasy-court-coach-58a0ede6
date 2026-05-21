@@ -1,46 +1,58 @@
-# Plan
+## Scope
 
-## 1) Onboarding Step 3 — Back navigation
+All changes are in `src/pages/LeaguesPage.tsx`.
 
-**Current bug:** `handleDraftBack` in `src/pages/OnboardingPage.tsx` always returns to Step 1 ("name"). User expects to return to Step 2 ("Choose League").
+---
 
-**Scenarios & target behavior:**
+### 1) Remove the "Create Team" action from every league row/card
 
-| Entry path | Back from Step 3 goes to |
-|---|---|
-| Normal onboarding (Hero → Name → League → Draft) | **Step 2 — Choose League** |
-| Pre-selected league (from LeaguesPage; Step 2 was skipped) | **Step 1 — Name** |
-| "New Team" CTA from multi-team picker (`/welcome/pick-team`) | `/welcome/pick-team` (already correct) |
+The `UserPlus` button (compact list rows) and matching icon button on `LeagueCard` currently call `handleCreateTeam`, which routes to `/?newTeam=1&sport=...&league_id=...`. The `/` route is `MyRoster`, so the user just lands on their current roster — confusing and useless from `/leagues`.
 
-**Side-effect to handle:** the team is created at the Step 2 → Step 3 transition (`submitTeam`). Going back to Step 2 (or Step 1) leaves an orphan empty team. We'll DELETE the just-created team on back so the user can freely re-pick league/name without polluting `teams` or hitting the multi-team picker logic.
+- Remove the "Create Team" button from `LeagueListRow` (the `UserPlus` `<button>` next to "Open league").
+- Remove the equivalent secondary `UserPlus` button from `LeagueCard`.
+- Remove the now-unused `onCreateTeam` prop from both components and stop passing it from `LeaguesPage`.
+- Delete the `handleCreateTeam` function (no longer referenced).
+- Keep the "Create League" header CTA — that one is correct.
 
-**Edits:**
-- `src/pages/OnboardingPage.tsx` → rewrite `handleDraftBack`:
-  - if `ownedCount >= 2` (came from picker) → keep current behavior (navigate to `/welcome/pick-team`, no delete — that team pre-existed if owned≥2 only when picker route was used; we'll still delete the just-created `createdTeamId` to be safe, since the picker only routes here after a new-team click).
-  - else if `preselectedLeagueId` → delete created team, `setStep("name")`.
-  - else → delete created team, `setStep("league")` (restores `pendingName` & `pendingMainSport` which are still in state).
-  - After delete: invalidate `["teams"]`, clear `createdTeamId/Name`, clear persisted onboarding `teamId`.
+Note: the legitimate flow to add the user's existing team to a custom league stays via the "Add <team>" attach button (item 3 below).
 
-## 2) GW transfer cap error on AI Coach draft (WNBA + NBA)
+---
 
-**Root cause:** `supabase/functions/roster-save/index.ts` currently treats a save as "initial draft" only when `oldIdSet.size < 10`. But if the user already saved any roster in Step 3 (e.g. ran Auto-Draft, then switched to AI Coach, or re-generated AI Coach picks), the team already has 10 roster rows → `isInitialDraft=false` → the AI Coach's full 9–10 player replacement trips `GW_CAP_REACHED`. This affects both leagues identically.
+### 2) Rename status `draft` → `OPEN` in the pill
 
-**Fix:** redefine "initial draft" as "team has no committed transactions yet". A roster save without any prior `transactions` row is still part of the drafting phase, regardless of how many roster rows currently exist.
+In `StatusPill`, the label currently shows the raw `status` string ("DRAFT" rendered uppercase). User-created leagues sit in `draft` state until games start, which reads as "still being built" — but functionally it means "open to join".
 
-**Edit:** `supabase/functions/roster-save/index.ts`
-- Before the budget/cap check, query `transactions` count for this `team_id` once:
-  ```ts
-  const { count: txnCountBefore } = await sb
-    .from("transactions")
-    .select("id", { count: "exact", head: true })
-    .eq("team_id", team_id);
-  const isInitialDraft = (oldIdSet.size < 10) || ((txnCountBefore ?? 0) === 0);
-  ```
-- Use the same `isInitialDraft` for both the budget-delta guard and the transaction logging block (already structured that way).
-- No frontend changes — same fix covers NBA and WNBA since the function is league-agnostic.
+- In `StatusPill`, when `status === "draft"`, render the label `OPEN` (keeping the current amber styling). All other statuses unchanged.
+- Apply to both `MY LEAGUES` rows/cards and the `Discover` panel (same component).
 
-**Why this is safe:** once the team commits its first real transfer (post-onboarding), `transactions` has ≥1 row → normal cap rules apply from then on. During Step 3, no transactions exist yet, so any number of redraft iterations are allowed.
+---
 
-## Files changed
-- `src/pages/OnboardingPage.tsx`
-- `supabase/functions/roster-save/index.ts`
+### 3) "Add Your Team" with team-picker dropdown when multiple same-sport teams exist
+
+Today `getAttachableTeamFor` returns a single candidate (prefers sidebar team, else first same-sport team), and the row renders `+ Add "<that name>"`. When the user owns several same-sport teams (e.g. multiple WNBA teams), they can't choose which one joins.
+
+- Introduce `getAttachableTeamsFor(league)` returning the full list of user-owned teams that match `league.sport` and are not already attached to that league. Reuse current eligibility rules:
+  - skip Main leagues
+  - league status must be `draft` or `active`
+  - exclude teams already in the league (use `team.league_id !== league.id`)
+  - exclude teams already counted in `league.myTeamCount` only when the SAME team — multiple owned teams of the same sport may each join independently.
+- In `LeagueListRow` and `LeagueCard` replace the single-team `attachableTeam` prop with `attachableTeams: { id; name }[]`.
+- Rendering rules per row:
+  - `attachableTeams.length === 0` → render nothing (current behavior).
+  - `attachableTeams.length === 1` → keep today's single button `+ Add "<TeamName>"` (one click attaches).
+  - `attachableTeams.length >= 2` → render a `+ Add Your Team` button that opens a small `DropdownMenu` (shadcn) listing each candidate team name; clicking an item calls `onAttach(teamId)`.
+- Update `handleAttach` to accept an explicit `teamId` argument and pass it to the `leagues-manage/attach-team` edge function (replacing the current implicit single-team lookup). Toast shows the chosen team's name.
+- Keep both list-row and card variants visually consistent (icon + uppercase label).
+
+No edge-function or schema changes are required — `leagues-manage/attach-team` already takes `{ league_id, team_id }`.
+
+---
+
+## Files touched
+
+- `src/pages/LeaguesPage.tsx` — all three changes.
+
+## Out of scope
+
+- Edge functions, DB migrations, other pages.
+- Visual restyle of league rows beyond the affected buttons.
