@@ -116,6 +116,13 @@ export default function OnboardingPage() {
           const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
             body: { league_id: leagueId, team_id: teamId },
           });
+          const errCode = (data as any)?.error?.code;
+          if (errCode === "ALREADY_HAS_TEAM") {
+            // Soft success — user already has a team in this league (from a
+            // prior attempt); count it as attached and continue.
+            attachedCount++;
+            continue;
+          }
           if (error || (data && (data as any).error)) throw new Error((data as any)?.error?.message ?? error?.message ?? "attach failed");
           attachedCount++;
         } catch (e: any) {
@@ -245,7 +252,7 @@ export default function OnboardingPage() {
         onClick={toggleAudio}
         title={audioEnabled ? "Mute" : "Unmute"}
         aria-label={audioEnabled ? "Mute background music" : "Unmute background music"}
-        className="absolute top-4 right-4 z-50 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur hover:bg-card text-foreground/80 hover:text-foreground transition-colors"
+        className="absolute top-4 right-16 z-50 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur hover:bg-card text-foreground/80 hover:text-foreground transition-colors"
       >
         {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
       </button>

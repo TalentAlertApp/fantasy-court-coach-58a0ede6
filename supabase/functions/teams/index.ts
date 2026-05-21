@@ -1,9 +1,10 @@
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 async function leaguesByCode(sb: any): Promise<Record<string, string>> {
   const { data } = await sb.from("leagues").select("id, code");
@@ -34,10 +35,20 @@ Deno.serve(async (req) => {
   let userId: string | null = null;
   if (jwt) {
     try {
-      const { data, error } = await sb.auth.getUser(jwt);
-      if (!error && data.user) userId = data.user.id;
-    } catch (_) {
-      // ignore — treated as anonymous
+      // Verify the JWT using getClaims() — this is required for Supabase's
+      // signing-keys system (asymmetric ES256 tokens). getUser() with a
+      // service-role client does not verify these tokens.
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data, error } = await userClient.auth.getClaims(jwt);
+      if (error) {
+        console.warn("[teams] auth.getClaims error:", error.message);
+      } else if (data?.claims?.sub) {
+        userId = String(data.claims.sub);
+      }
+    } catch (e) {
+      console.warn("[teams] auth.getClaims threw:", (e as Error).message);
     }
   }
 

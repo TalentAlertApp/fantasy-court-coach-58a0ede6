@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ const TOTAL_STEPS = 7;
 
 export default function CreateLeaguePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? "/leagues";
   const { createLeague, isLoading, error } = useCreateLeague();
   const { setSelectedLeagueId } = useFantasyLeague();
 
@@ -135,7 +137,7 @@ export default function CreateLeaguePage() {
       const res = await createLeague(input);
       setSelectedLeagueId(res.league_id);
       toast.success(`League created! Share your invite code: ${res.join_code}`);
-      navigate("/leagues");
+      navigate(returnTo);
     } catch {
       // error state handled by hook
     }
