@@ -129,7 +129,7 @@ export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedS
         <div className="mt-6 grid sm:grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => navigate("/leagues/create")}
+            onClick={() => navigate("/leagues/create", { state: { returnTo: "/welcome" } })}
             disabled={submitting}
             className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/20 bg-foreground/[0.02] px-4 py-3 text-sm uppercase tracking-[0.15em] text-foreground/70 hover:border-accent hover:text-accent transition-colors"
           >
