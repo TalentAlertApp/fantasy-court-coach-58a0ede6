@@ -1,23 +1,52 @@
-## Plan
+# Fix new-team flow + draft polish
 
-1. **Make the sidebar team pill global**
-   - Update `TeamSwitcher` so the dropdown always lists every team in `teams`, not only teams matching the currently selected `/scoring` league.
-   - Keep the NBA/WNBA logo beside each team so cross-league teams remain clear.
+## 1. Remove league capacity & one-team-per-league limits
 
-2. **Keep the newly created team selected through onboarding completion**
-   - In `OnboardingPage`, after draft completion, explicitly re-set the newly created team as the selected team, invalidate/refetch team + roster queries, and navigate back to `/` only after React Query has the fresh team list.
-   - This should remove the “empty pill until hard refresh” state and avoid selecting the team sending the user back to the draft page again.
-   - Clear the onboarding state only after successful roster handoff so the app no longer thinks the just-created team is still mid-draft.
+**Goal** — Each user can create unlimited teams in any league (Main NBA, Main WNBA, or custom). Removes both the "league is full" error and the "you already have a team in this league" 409.
 
-3. **Fix the TeamContext reconciliation race**
-   - Adjust `TeamContext` so a newly selected team id is not auto-cleared during the small window before the invalidated `teams` query returns the new row.
-   - Make readiness/selection reconciliation tolerate a valid pending selection and avoid falling back to an older populated team while onboarding is creating/drafting a new team.
+**Changes**:
+- `supabase/functions/teams/index.ts`: drop the `teamCount >= max_teams` check in both branches (lines 130–137 for custom fantasy league, lines 148–154 for Main League).
+- `supabase/functions/leagues-manage/index.ts` (attach-team): drop the `FULL` check (~line 520) and the `ALREADY_HAS_TEAM` check (~line 531). Allow attaching multiple teams.
+- `supabase/functions/leagues-join/index.ts`: drop the `FULL` check (~line 60). (Membership of user is still tracked separately; multiple teams allowed.)
+- `src/pages/OnboardingPage.tsx`: simplify the attach-team error handling — remove the `ALREADY_HAS_TEAM` soft-success branch since it's no longer reachable. Keep the direct `fetch` call.
 
-4. **Block duplicate team names for the same user**
-   - Add a client-side validation in onboarding name submission (and rename flow) to detect existing same-user team names case-insensitively after trimming whitespace.
-   - Add the same server-side validation in the `teams` edge function for both `POST` create and `PATCH` rename so duplicate names are blocked even if the frontend is bypassed.
-   - Return a clear validation error like “You already have a team with this name.”
+Duplicate-name guard (per user) stays — that's a different rule the user asked for.
 
-5. **Validate the flow**
-   - Run a targeted check of the touched TypeScript files and inspect the updated logic.
-   - Verify that: New Team → name/sport → league → draft → `/` keeps the new team selected, the sidebar dropdown shows all user teams, and duplicate names are rejected.
+## 2. TeamContext guard against clearing selectedTeamId mid-handoff
+
+Symptom: right after team creation, `setSelectedTeamId(newId)` runs and `["teams"]` is invalidated. The auto-correct effect sees `selectedTeamId` not yet in stale `teams`, wipes it, and falls back to another team.
+
+Fix in `src/contexts/TeamContext.tsx`:
+- Track `lastSetTeamIdAt` timestamp inside `setSelectedTeamId`.
+- In the auto-correct effect, if the selected id is missing from `teams` but was set within the last ~5s, skip the wipe and wait for the next teams refetch.
+- Also use `useIsFetching({ queryKey: ["teams"] })` to skip auto-correct while a teams refetch is in flight.
+
+## 3. TeamSwitcher loading/skeleton
+
+In `src/components/TeamSwitcher.tsx`:
+- Use `useIsFetching({ queryKey: ["teams"] })`.
+- While `isLoading || (isFetching && teams.length === 0)`, render a small skeleton pill matching the trigger size instead of the empty Select.
+- When refetching with cached data present, keep the existing pill visible (no flicker).
+
+## 4. DRAFT step league watermark
+
+In `src/components/onboarding/DraftPicker.tsx` (thread `leagueCode` via `DraftStep` + `OnboardingPage` using `pendingMainSport` / selected team `league_code`):
+- Absolutely positioned NBA/WNBA logo (via `LeagueLogoBadge` or SVG) in the top-right corner, ~220–280px, `opacity-[0.08]`, blurred slightly, with a soft radial glow behind it tinted with `--primary`.
+- Fade-in on mount (`animate-in fade-in zoom-in-95 duration-700`) plus a slow pulse/float using existing Tailwind keyframes.
+- Sits below the step indicator and audio toggle (`z-0` watermark, content `z-10`), `pointer-events-none`.
+
+## 5. Validation
+
+- Create two teams under the same user in Main League NBA → both succeed.
+- Pill stays populated through onboarding handoff to `/` — no flicker, no fallback.
+- DRAFT step shows the correct NBA/WNBA watermark.
+
+## Technical scope
+
+- `supabase/functions/teams/index.ts` — remove capacity checks.
+- `supabase/functions/leagues-manage/index.ts` — remove FULL and ALREADY_HAS_TEAM checks in attach-team.
+- `supabase/functions/leagues-join/index.ts` — remove FULL check.
+- `src/pages/OnboardingPage.tsx` — simplify attach-team error handling.
+- `src/contexts/TeamContext.tsx` — recency + isFetching guard.
+- `src/components/TeamSwitcher.tsx` — skeleton state.
+- `src/components/onboarding/DraftPicker.tsx`, `DraftStep.tsx`, `OnboardingPage.tsx` — thread `leagueCode` and render watermark.

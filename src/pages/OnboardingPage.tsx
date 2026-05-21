@@ -183,17 +183,9 @@ export default function OnboardingPage() {
           const body: any = await res.json().catch(() => ({}));
           const errCode: string | undefined = body?.error?.code;
           const errMsg: string | undefined = body?.error?.message;
-          if (errCode === "ALREADY_HAS_TEAM") {
-            attachedCount++;
-            continue;
-          }
           if (!res.ok || errCode) throw new Error(errMsg ?? `attach failed (${res.status})`);
           attachedCount++;
         } catch (e: any) {
-          if (e?.message && /already have a team/i.test(e.message)) {
-            attachedCount++;
-            continue;
-          }
           console.error("[onboarding] attach-team failed:", leagueId, e);
           toast({
             title: "Could not attach to a league",
@@ -384,6 +376,7 @@ export default function OnboardingPage() {
       {step === "draft" && (
         <DraftStep
           teamName={createdTeamName}
+          leagueCode={pendingMainSport}
           onFinish={handleFinish}
           onBack={handleDraftBack}
         />

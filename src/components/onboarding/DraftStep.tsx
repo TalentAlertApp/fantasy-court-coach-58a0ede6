@@ -2,10 +2,11 @@ import DraftPicker from "./DraftPicker";
 
 interface Props {
   teamName: string;
+  leagueCode?: "nba" | "wnba";
   onFinish: () => void;
   onBack?: () => void;
 }
 
-export default function DraftStep({ teamName, onFinish, onBack }: Props) {
-  return <DraftPicker teamName={teamName} onFinish={onFinish} onBack={onBack} />;
+export default function DraftStep({ teamName, leagueCode, onFinish, onBack }: Props) {
+  return <DraftPicker teamName={teamName} leagueCode={leagueCode} onFinish={onFinish} onBack={onBack} />;
 }

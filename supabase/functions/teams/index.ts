@@ -127,14 +127,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           if (!mem) return errorResponse("UNAUTHORIZED", "You must be a member of this league.");
         }
-        // Capacity check
-        const { count: teamCount } = await sb
-          .from("teams")
-          .select("id", { count: "exact", head: true })
-          .eq("league_id", fantasy_league_id);
-        if (typeof teamCount === "number" && teamCount >= (fl.max_teams ?? 20)) {
-          return errorResponse("VALIDATION", "This league is full.");
-        }
+        // Capacity intentionally not enforced — users may own multiple teams in any league.
         targetLeagueId = fantasy_league_id;
         code = (fl.sport === "wnba" ? "wnba" : "nba");
       } else if (fantasy_league_id && typeof fantasy_league_id === "string" && MAIN_LEAGUE_IDS.has(fantasy_league_id)) {
@@ -145,13 +138,8 @@ Deno.serve(async (req) => {
           .select("id, sport, max_teams")
           .eq("id", fantasy_league_id)
           .maybeSingle();
-        const { count: teamCount } = await sb
-          .from("teams")
-          .select("id", { count: "exact", head: true })
-          .eq("league_id", fantasy_league_id);
-        if (typeof teamCount === "number" && teamCount >= (fl?.max_teams ?? 20)) {
-          return errorResponse("VALIDATION", "This league is full.");
-        }
+        // Capacity intentionally not enforced — Main League is free-entry and a user may own
+        // multiple teams in it.
         targetLeagueId = fantasy_league_id;
         code = (fl?.sport === "wnba" ? "wnba" : "nba");
       } else {

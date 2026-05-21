@@ -51,15 +51,7 @@ Deno.serve(async (req) => {
       return errorResponse("PRIVATE", "This league is private.", null, 403);
     }
 
-    // 3. Capacity check (count teams in league)
-    const { count: teamCount, error: cErr } = await sb
-      .from("teams")
-      .select("id", { count: "exact", head: true })
-      .eq("league_id", league.id);
-    if (cErr) return errorResponse("QUERY_FAILED", "Count failed", cErr.message, 500);
-    if ((teamCount ?? 0) >= (league.max_teams ?? 20)) {
-      return errorResponse("FULL", "This league is full.", null, 403);
-    }
+    // 3. Capacity intentionally not enforced — multiple teams per user are allowed.
 
     // 4. Already member?
     const { data: existing } = await sb
