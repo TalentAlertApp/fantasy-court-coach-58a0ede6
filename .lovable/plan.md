@@ -1,34 +1,37 @@
-## Findings
+## Goal
 
-**Issue 2 — intro leaks at login:** `RequireAuth` consumes `sessionStorage["nba_show_entry_intro_once"]` on *every* mount, regardless of route. The flag is intentionally set by `OnboardingPage.handleFinish` for the "brand-new team enters the Court" moment, but nothing prevents it from being read on `/welcome/pick-team` or other routes during a later sign-in within the same tab session.
+Play the existing onboarding background bed (`useOnboardingAudio` → `court-show-bed.mp3`) across every onboarding / team-setup / league-setup screen, not only on `WelcomeBackHero` and `OnboardingPage`.
 
-**Issue 1 — WB recap shown for a brand-new team:** `handleFinish` already calls `markWelcomeBackSeenThisSession()`, but in edge cases (navigation race, second mount of RequireAuth before sessionStorage settles) the recap can still slip through. The brand-new team flow can be made bulletproof by also treating the queued entry-intro flag as a hard "skip WB" signal.
+Today it's only mounted on:
+- `src/components/welcome-back/WelcomeBackHero.tsx`
+- `src/pages/OnboardingPage.tsx`
 
-User wants to **keep** the rotating-logo intro for the new-team "Enter the Court" moment (post-draft) — only remove the random pre-login appearance and the recap leak.
+Missing on:
+- `src/pages/TeamPickerPage.tsx` (the "Pick Your Team" screen the user just shared)
+- `src/pages/CreateLeaguePage.tsx` (multi-step league builder)
+
+All three already share the same `localStorage` toggle key (`courtshow.audio.enabled`) and the same volume-icon button pattern, so adding the hook + a tiny mute toggle in each header keeps everything in sync.
 
 ## Plan
 
 Two files, presentation only.
 
-### 1. `src/components/auth/RequireAuth.tsx`
+### 1. `src/pages/TeamPickerPage.tsx`
 
-- Keep `entryIntroOpen` state, the `BallersIQEntryIntro` import, and the overlay render.
-- Tighten the consumption useEffect:
-  - Only read/consume `sessionStorage["nba_show_entry_intro_once"]` when `location.pathname` is **not** `/welcome` and **not** `/welcome/pick-team`. On those routes do nothing — the flag stays queued for the next "real" app route (which is exactly where the new-team flow lands: `/roster`).
-  - Add a guard so the effect only fires once per pathname change (avoid re-consuming during in-route re-renders).
-- Inside the `welcomeOpen` useEffect, treat a present `nba_show_entry_intro_once` flag as equivalent to "WB already seen" — i.e. `setWelcomeOpen(false)` whenever that flag is queued. This guarantees the brand-new-team session never shows the recap, even if `markWelcomeBackSeenThisSession()` is racing.
-- Leave the WelcomeBackHero `onEnter` callback as-is: it still calls `setEntryIntroOpen(true)` so returning users continue to see the intro after Enter Court.
+- Import `useOnboardingAudio` and call `const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);`
+- Add a `Volume2 / VolumeX` toggle button in the top-right header bar next to the existing "Sign out" button, matching the style used in `WelcomeBackHero` (same classes, same `title`/`aria-label`).
+- No behavior or routing changes.
 
-### 2. `src/pages/OnboardingPage.tsx`
+### 2. `src/pages/CreateLeaguePage.tsx`
 
-No changes needed. `handleFinish` keeps setting `nba_show_entry_intro_once` and `markWelcomeBackSeenThisSession()` exactly as today; the RequireAuth changes make those signals behave correctly.
+- Same: import `useOnboardingAudio`, call it with `active=true`, add the matching volume toggle button in the page header.
+- The audio keeps playing as the user steps through wizard steps 1→7 (single component, single mount = no gaps).
+
+### Continuity note
+
+Each page mounts its own `<Audio>` element, so there is a brief gap on each route change (e.g. picker → WB → onboarding). This already happens between WB and Onboarding today and the user has not flagged it; matching that behavior keeps scope tight. If they later want gapless continuity, we can lift the hook to a shared provider — out of scope for now.
 
 ### Out of scope
 
-- `BallersIQEntryIntro`, `WelcomeBackHero`, `TeamPickerPage`, routing, contexts, queries — unchanged.
-
-### Expected behavior
-
-1. Brand-new team finishes draft → lands on `/roster` → rotating-logo intro plays (kept). No Welcome Back recap.
-2. Returning user signs in → either goes to `/welcome/pick-team` (multi-team) or sees Welcome Back recap (single-team) → rotating-logo intro never appears here.
-3. Returning user taps "Enter Court" on the recap → rotating-logo intro plays (kept).
+- `useOnboardingAudio` itself, the mp3 asset, the Court Show audio, RequireAuth, contexts, or any non-onboarding routes.
+- Gapless cross-route playback.
