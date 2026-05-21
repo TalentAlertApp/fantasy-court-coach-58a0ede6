@@ -35,20 +35,20 @@ Deno.serve(async (req) => {
   let userId: string | null = null;
   if (jwt) {
     try {
-      // Use an anon-key client with the user's Authorization header forwarded.
-      // The service-role client's getUser(jwt) does not verify asymmetric
-      // (ES256) tokens produced by Supabase's signing-keys system.
+      // Verify the JWT using getClaims() — this is required for Supabase's
+      // signing-keys system (asymmetric ES256 tokens). getUser() with a
+      // service-role client does not verify these tokens.
       const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data, error } = await userClient.auth.getUser(jwt);
+      const { data, error } = await userClient.auth.getClaims(jwt);
       if (error) {
-        console.warn("[teams] auth.getUser error:", error.message);
-      } else if (data?.user) {
-        userId = data.user.id;
+        console.warn("[teams] auth.getClaims error:", error.message);
+      } else if (data?.claims?.sub) {
+        userId = String(data.claims.sub);
       }
     } catch (e) {
-      console.warn("[teams] auth.getUser threw:", (e as Error).message);
+      console.warn("[teams] auth.getClaims threw:", (e as Error).message);
     }
   }
 
