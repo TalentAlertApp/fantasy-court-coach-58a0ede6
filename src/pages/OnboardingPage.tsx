@@ -180,11 +180,9 @@ export default function OnboardingPage() {
       navigate("/welcome/pick-team", { replace: true });
       return;
     }
-    if (preselectedLeagueId) {
-      setStep("name", { teamId: undefined, teamName: undefined });
-    } else {
-      setStep("league", { teamId: undefined, teamName: undefined });
-    }
+    const nextStep: Step = preselectedLeagueId ? "name" : "league";
+    setStepRaw(nextStep);
+    setOnboardingState(user?.id, { step: nextStep });
   };
 
   // Render-gate to prevent light→dark flash when bouncing back to /
