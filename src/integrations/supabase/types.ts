@@ -1204,6 +1204,39 @@ export type Database = {
           },
         ]
       }
+      team_leagues: {
+        Row: {
+          joined_at: string
+          league_id: string
+          team_id: string
+        }
+        Insert: {
+          joined_at?: string
+          league_id: string
+          team_id: string
+        }
+        Update: {
+          joined_at?: string
+          league_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_leagues_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_leagues_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_settings: {
         Row: {
           created_at: string
