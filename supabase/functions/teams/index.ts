@@ -1,9 +1,10 @@
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { okResponse, errorResponse } from "../_shared/envelope.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 async function leaguesByCode(sb: any): Promise<Record<string, string>> {
   const { data } = await sb.from("leagues").select("id, code");
@@ -34,10 +35,20 @@ Deno.serve(async (req) => {
   let userId: string | null = null;
   if (jwt) {
     try {
-      const { data, error } = await sb.auth.getUser(jwt);
-      if (!error && data.user) userId = data.user.id;
-    } catch (_) {
-      // ignore — treated as anonymous
+      // Use an anon-key client with the user's Authorization header forwarded.
+      // The service-role client's getUser(jwt) does not verify asymmetric
+      // (ES256) tokens produced by Supabase's signing-keys system.
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data, error } = await userClient.auth.getUser(jwt);
+      if (error) {
+        console.warn("[teams] auth.getUser error:", error.message);
+      } else if (data?.user) {
+        userId = data.user.id;
+      }
+    } catch (e) {
+      console.warn("[teams] auth.getUser threw:", (e as Error).message);
     }
   }
 
