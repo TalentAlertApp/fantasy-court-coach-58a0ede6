@@ -39,6 +39,14 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     if (!user?.id) return;
     // Force-open via ?welcomeback=1 for testing
     const forced = new URLSearchParams(location.search).get("welcomeback") === "1";
+    // If the brand-new-team entry-intro is queued, the user just finished
+    // onboarding — never show the Welcome Back recap in that case.
+    let introQueued = false;
+    try { introQueued = sessionStorage.getItem("nba_show_entry_intro_once") === "1"; } catch {}
+    if (introQueued && !forced) {
+      setWelcomeOpen(false);
+      return;
+    }
     // Show Welcome Back to any returning user (≥1 team) once per session.
     // Previously gated on a >1h sign-out gap; now always on for returning users.
     setWelcomeOpen(forced || !isWelcomeBackSeenThisSession());
@@ -48,13 +56,17 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   // intro on the next render (Welcome Back was bypassed on purpose).
   useEffect(() => {
     if (loading || !user?.id) return;
+    // Never consume the flag on the onboarding / picker routes — wait until
+    // the user lands on a real app route (e.g. /roster). This prevents the
+    // intro from leaking into /welcome/pick-team during a later sign-in.
+    if (location.pathname === "/welcome" || location.pathname === "/welcome/pick-team") return;
     try {
       if (sessionStorage.getItem("nba_show_entry_intro_once") === "1") {
         sessionStorage.removeItem("nba_show_entry_intro_once");
         setEntryIntroOpen(true);
       }
     } catch { /* noop */ }
-  }, [loading, user?.id]);
+  }, [loading, user?.id, location.pathname]);
 
   if (loading) {
     return (
