@@ -784,6 +784,7 @@ export const TeamSchema = z
     league_id: z.string().uuid().nullable().optional(),
     sport_league_id: z.string().uuid().nullable().optional(),
     league_code: z.enum(["nba", "wnba"]).optional(),
+    league_ids: z.array(z.string().uuid()).optional(),
   })
   .strict();
 
