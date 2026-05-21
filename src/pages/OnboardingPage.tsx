@@ -6,6 +6,7 @@ import { useFirstRunGate } from "@/hooks/useFirstRunGate";
 import { createTeam } from "@/lib/api";
 import { deleteTeam } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
+import { FUNCTIONS_BASE, SUPABASE_PUBLISHABLE_KEY } from "@/lib/supabase-config";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import OnboardingHero from "@/components/onboarding/OnboardingHero";
