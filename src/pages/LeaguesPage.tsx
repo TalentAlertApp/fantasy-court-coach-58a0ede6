@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
@@ -44,22 +45,22 @@ function StatusPill({ status }: { status: string }) {
     status === "active" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
     status === "draft"  ? "bg-amber-500/15 text-amber-300 border-amber-500/30" :
                           "bg-muted/40 text-muted-foreground border-border";
+  const label = status === "draft" ? "open" : status;
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] ${tone}`}>
-      {status}
+      {label}
     </span>
   );
 }
 
-function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, attachableTeam, onAttach, attaching }: {
+function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeams, onAttach, attaching }: {
   league: FantasyLeague;
   isMine: boolean;
   isMain: boolean;
   onOpen: () => void;
-  onCreateTeam: () => void;
   onSettings: () => void;
-  attachableTeam?: { id: string; name: string } | null;
-  onAttach?: () => void;
+  attachableTeams?: { id: string; name: string }[];
+  onAttach?: (teamId: string) => void;
   attaching?: boolean;
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
@@ -150,20 +151,40 @@ function LeagueCard({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, 
           <Button size="icon" onClick={onOpen} className="h-8 w-8" aria-label="Open league" title="Open league">
             <LayoutDashboard className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="secondary" onClick={onCreateTeam} className="h-8 w-8" aria-label="Create team" title="Create team">
-            <UserPlus className="h-4 w-4" />
-          </Button>
-          {attachableTeam && onAttach && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => { e.stopPropagation(); onAttach(); }}
-              disabled={attaching}
-              className="h-8 px-2 font-heading uppercase tracking-wider text-[9px]"
-              title={`Add "${attachableTeam.name}" to this league`}
-            >
-              <Plus className="h-3 w-3 mr-1" /> Add "{attachableTeam.name}"
-            </Button>
+          {attachableTeams && attachableTeams.length > 0 && onAttach && (
+            attachableTeams.length === 1 ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); onAttach(attachableTeams[0].id); }}
+                disabled={attaching}
+                className="h-8 px-2 font-heading uppercase tracking-wider text-[9px]"
+                title={`Add "${attachableTeams[0].name}" to this league`}
+              >
+                <Plus className="h-3 w-3 mr-1" /> Add "{attachableTeams[0].name}"
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={attaching}
+                    className="h-8 px-2 font-heading uppercase tracking-wider text-[9px]"
+                    title="Choose one of your teams to add"
+                  >
+                    <Plus className="h-3 w-3 mr-1" /> Add Your Team
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[180px]">
+                  {attachableTeams.map((t) => (
+                    <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs">
+                      {t.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )
           )}
           {isMine && !isMain && league.join_code && (
             <CopyCodeButton code={league.join_code} />
@@ -232,8 +253,8 @@ export default function LeaguesPage() {
     [userTeams, selectedTeamId],
   );
 
-  async function handleAttach(league: FantasyLeague) {
-    const target = getAttachableTeamFor(league);
+  async function handleAttach(league: FantasyLeague, teamId: string) {
+    const target = (userTeams ?? []).find((t: any) => t.id === teamId) as { id: string; name: string } | undefined;
     if (!target) return;
     setAttachingLeagueId(league.id);
     try {
@@ -252,19 +273,22 @@ export default function LeaguesPage() {
     }
   }
 
-  function getAttachableTeamFor(league: FantasyLeague): { id: string; name: string } | null {
-    if (isMainLeague(league.id)) return null;
-    if (!["draft", "active"].includes(league.status)) return null;
-    if ((league.myTeamCount ?? 0) > 0) return null;
-    // Pick a user-owned team whose sport matches the target league.
-    // Prefer the currently-active sidebar team, fall back to any same-sport team.
+  function getAttachableTeamsFor(league: FantasyLeague): { id: string; name: string }[] {
+    if (isMainLeague(league.id)) return [];
+    if (!["draft", "active"].includes(league.status)) return [];
     const matches = (userTeams ?? []).filter(
-      (t: any) => ((t.league_code ?? "nba") === league.sport) && t.league_id !== league.id,
+      (t: any) =>
+        t.owner_id === user?.id &&
+        ((t.league_code ?? "nba") === league.sport) &&
+        t.league_id !== league.id,
     );
-    if (matches.length === 0) return null;
-    const preferred =
-      matches.find((t: any) => t.id === activeSidebarTeam?.id) ?? matches[0];
-    return { id: preferred.id, name: preferred.name };
+    // Stable ordering: active sidebar team first, then alpha.
+    const sorted = [...matches].sort((a: any, b: any) => {
+      if (a.id === activeSidebarTeam?.id) return -1;
+      if (b.id === activeSidebarTeam?.id) return 1;
+      return String(a.name).localeCompare(String(b.name));
+    });
+    return sorted.map((t: any) => ({ id: t.id, name: t.name }));
   }
   const [joinOpen, setJoinOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
@@ -365,12 +389,6 @@ export default function LeaguesPage() {
   const handleOpen = (id: string) => {
     setSelectedLeagueId(id);
     navigate("/scoring");
-  };
-  const handleCreateTeam = (id: string) => {
-    const target = fantasyLeagues.find((l) => l.id === id);
-    setSelectedLeagueId(id);
-    const sport = target?.sport === "wnba" ? "wnba" : "nba";
-    navigate(`/?newTeam=1&sport=${sport}&league_id=${encodeURIComponent(id)}`);
   };
   const handleSettings = (id: string) => navigate(`/leagues/${id}/settings`);
 
@@ -563,10 +581,9 @@ export default function LeaguesPage() {
                   isMain={isMainLeague(l.id)}
                   isMine={!!user && l.owner_id === user.id}
                   onOpen={() => handleOpen(l.id)}
-                  onCreateTeam={() => handleCreateTeam(l.id)}
                   onSettings={() => handleSettings(l.id)}
-                  attachableTeam={getAttachableTeamFor(l)}
-                  onAttach={() => handleAttach(l)}
+                  attachableTeams={getAttachableTeamsFor(l)}
+                  onAttach={(teamId) => handleAttach(l, teamId)}
                   attaching={attachingLeagueId === l.id}
                 />
               ))}
@@ -580,10 +597,9 @@ export default function LeaguesPage() {
                   isMain={isMainLeague(l.id)}
                   isMine={!!user && l.owner_id === user.id}
                   onOpen={() => handleOpen(l.id)}
-                  onCreateTeam={() => handleCreateTeam(l.id)}
                   onSettings={() => handleSettings(l.id)}
-                  attachableTeam={getAttachableTeamFor(l)}
-                  onAttach={() => handleAttach(l)}
+                  attachableTeams={getAttachableTeamsFor(l)}
+                  onAttach={(teamId) => handleAttach(l, teamId)}
                   attaching={attachingLeagueId === l.id}
                 />
               ))}
@@ -918,15 +934,14 @@ function PublicLeagueCard({
   );
 }
 
-function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSettings, attachableTeam, onAttach, attaching }: {
+function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableTeams, onAttach, attaching }: {
   league: FantasyLeague;
   isMine: boolean;
   isMain: boolean;
   onOpen: () => void;
-  onCreateTeam: () => void;
   onSettings: () => void;
-  attachableTeam?: { id: string; name: string } | null;
-  onAttach?: () => void;
+  attachableTeams?: { id: string; name: string }[];
+  onAttach?: (teamId: string) => void;
   attaching?: boolean;
 }) {
   const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
@@ -971,19 +986,38 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onCreateTeam, onSetting
         <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
           <LayoutDashboard className="h-3.5 w-3.5" />
         </button>
-        <button type="button" onClick={onCreateTeam} className="inline-flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground transition-colors" aria-label="Create team" title="Create team">
-          <UserPlus className="h-3.5 w-3.5" />
-        </button>
-        {attachableTeam && onAttach && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onAttach(); }}
-            disabled={attaching}
-            className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-card/60 text-[9px] font-heading uppercase tracking-wider text-foreground/90 hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-50"
-            title={`Add "${attachableTeam.name}" to this league`}
-          >
-            <Plus className="h-3 w-3" /> Add "{attachableTeam.name}"
-          </button>
+        {attachableTeams && attachableTeams.length > 0 && onAttach && (
+          attachableTeams.length === 1 ? (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onAttach(attachableTeams[0].id); }}
+              disabled={attaching}
+              className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-card/60 text-[9px] font-heading uppercase tracking-wider text-foreground/90 hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-50"
+              title={`Add "${attachableTeams[0].name}" to this league`}
+            >
+              <Plus className="h-3 w-3" /> Add "{attachableTeams[0].name}"
+            </button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={attaching}
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-card/60 text-[9px] font-heading uppercase tracking-wider text-foreground/90 hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-50"
+                  title="Choose one of your teams to add"
+                >
+                  <Plus className="h-3 w-3" /> Add Your Team
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                {attachableTeams.map((t) => (
+                  <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs">
+                    {t.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )
         )}
         {isMine && !isMain && league.join_code && (
           <CopyCodeButton code={league.join_code} compact />
