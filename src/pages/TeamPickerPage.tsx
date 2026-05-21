@@ -2,16 +2,18 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
-import { Plus, LogOut, ChevronRight } from "lucide-react";
+import { Plus, LogOut, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import TeamLeagueChips from "@/components/TeamLeagueChips";
+import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 
 export default function TeamPickerPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId, isReady } = useTeam();
+  const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);
 
   const ownedTeams = useMemo(
     () => teams.filter((t: any) => t.owner_id === user?.id || !t.owner_id),
@@ -79,16 +81,27 @@ export default function TeamPickerPage() {
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={async () => {
-          await signOut();
-          navigate("/auth", { replace: true });
-        }}
-        className="absolute top-7 right-6 inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[11px] uppercase tracking-[0.25em] text-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors z-10"
-      >
-        <LogOut className="h-4 w-4" /> Sign out
-      </button>
+      <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={toggleAudio}
+          title={audioEnabled ? "Mute" : "Unmute"}
+          aria-label={audioEnabled ? "Mute background music" : "Unmute background music"}
+          className="h-9 w-9 rounded-full flex items-center justify-center border border-border bg-card/70 backdrop-blur text-foreground/80 hover:text-foreground hover:bg-card transition-colors"
+        >
+          {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </button>
+        <button
+          type="button"
+          onClick={async () => {
+            await signOut();
+            navigate("/auth", { replace: true });
+          }}
+          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full text-[11px] uppercase tracking-[0.25em] text-foreground/60 hover:text-foreground hover:bg-foreground/5 transition-colors"
+        >
+          <LogOut className="h-4 w-4" /> Sign out
+        </button>
+      </div>
 
       <div className="relative z-10 flex flex-col items-center flex-1 px-6 py-24 max-w-6xl mx-auto w-full">
         <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">
