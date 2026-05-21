@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Trophy, Swords, ExternalLink } from "lucide-react";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
@@ -188,7 +187,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="px-6 py-5 space-y-6">
               {/* Standings & metrics */}
               <section>
@@ -267,6 +266,10 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                             game_playbyplay_url: g.game_playbyplay_url,
                             game_recap_url: g.game_recap_url,
                             nba_game_url: g.nba_game_url,
+                            youtube_recap_id: g.youtube_recap_id,
+                            tipoff_utc: g.tipoff_utc,
+                            gw: g.gw ?? null,
+                            day: g.day ?? null,
                             played: !!isFinal,
                           })}
                           className="w-full grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg border border-border/50 bg-card/60 hover:bg-accent/30 hover:border-primary/40 transition-all px-3 py-2 text-left group"
@@ -305,7 +308,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                 )}
               </section>
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
       <GameDetailModal
