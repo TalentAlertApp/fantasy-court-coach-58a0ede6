@@ -245,7 +245,7 @@ export default function OnboardingPage() {
         onClick={toggleAudio}
         title={audioEnabled ? "Mute" : "Unmute"}
         aria-label={audioEnabled ? "Mute background music" : "Unmute background music"}
-        className="absolute top-4 right-4 z-50 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur hover:bg-card text-foreground/80 hover:text-foreground transition-colors"
+        className="absolute top-4 right-16 z-50 inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/70 backdrop-blur hover:bg-card text-foreground/80 hover:text-foreground transition-colors"
       >
         {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
       </button>
