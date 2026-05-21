@@ -376,6 +376,7 @@ export default function OnboardingPage() {
       {step === "draft" && (
         <DraftStep
           teamName={createdTeamName}
+          leagueCode={pendingMainSport}
           onFinish={handleFinish}
           onBack={handleDraftBack}
         />

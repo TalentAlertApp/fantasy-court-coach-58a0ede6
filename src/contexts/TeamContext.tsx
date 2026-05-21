@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
@@ -43,6 +43,7 @@ const LS_KEY = "nba_selected_team_id";
 
 export function TeamProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const teamsFetching = useIsFetching({ queryKey: ["teams"] });
   const { data, isLoading, isError, isSuccess } = useQuery({
     queryKey: ["teams"],
     queryFn: fetchTeams,
@@ -60,6 +61,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [selectedTeamId, setSelectedTeamIdRaw] = useState<string | null>(() => {
     return localStorage.getItem(LS_KEY);
   });
+  // Tracks when the selected id was last set explicitly. Used to skip the
+  // auto-correct fallback during the small window where a newly-created
+  // team is selected but the ["teams"] refetch hasn't returned yet.
+  const lastSetAtRef = useRef<number>(0);
 
   // Sync: if selectedTeamId doesn't exist in teams list, OR points to a team
   // with zero roster rows on initial load, fall back to a team that has data.
@@ -67,6 +72,18 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [autoCorrected, setAutoCorrected] = useState(false);
   useEffect(() => {
     if (isLoading || autoCorrected) return;
+    // While a teams refetch is in flight (e.g. just after team creation),
+    // don't run reconciliation against stale data.
+    if (teamsFetching > 0) return;
+    // If selectedTeamId was just set (<5s ago) and the new team hasn't
+    // landed in `teams` yet, wait for the refetch instead of wiping.
+    if (
+      selectedTeamId &&
+      !teams.some((t: any) => t.id === selectedTeamId) &&
+      Date.now() - lastSetAtRef.current < 5000
+    ) {
+      return;
+    }
     const exists = teams.some((t: any) => t.id === selectedTeamId);
 
     // No teams at all (e.g. brand-new signed-in user pre-onboarding):
@@ -130,7 +147,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
         else localStorage.removeItem(LS_KEY);
       }
     })();
-  }, [teams, selectedTeamId, defaultTeamId, isLoading, autoCorrected]);
+  }, [teams, selectedTeamId, defaultTeamId, isLoading, autoCorrected, teamsFetching]);
 
   // If teams query fails, KEEP the saved selection so a transient network
   // hiccup doesn't visually wipe the entire app. The next successful fetch
@@ -156,6 +173,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const setSelectedTeamId = useCallback((id: string) => {
     setSelectedTeamIdRaw(id);
     localStorage.setItem(LS_KEY, id);
+    lastSetAtRef.current = Date.now();
     lastChangeOriginRef.current = "team";
     // Invalidate all server-data caches because the active team controls the
     // effective sport for Main League views and team-scoped API requests.

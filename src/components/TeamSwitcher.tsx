@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTeam } from "@/contexts/TeamContext";
 import { updateTeam, deleteTeam } from "@/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -15,6 +15,7 @@ import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 export default function TeamSwitcher() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
   const queryClient = useQueryClient();
+  const teamsFetching = useIsFetching({ queryKey: ["teams"] });
   const navigate = useNavigate();
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -85,7 +86,13 @@ export default function TeamSwitcher() {
     }
   };
 
-  if (isLoading) return null;
+  if (isLoading || (teamsFetching > 0 && teams.length === 0)) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <div className="w-[150px] h-7 rounded-lg bg-white/10 border border-white/20 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <>
