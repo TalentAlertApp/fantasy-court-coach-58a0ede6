@@ -16,6 +16,7 @@ import ChooseLeagueStep from "@/components/onboarding/ChooseLeagueStep";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { Volume2, VolumeX } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
+import { markWelcomeBackSeenThisSession } from "@/lib/welcome-back-store";
 import {
   getOnboardingState,
   setOnboardingState,
@@ -269,12 +270,18 @@ export default function OnboardingPage() {
       setSelectedTeamId(createdTeamId);
       markTeamPickedThisSession();
     }
+    // Brand-new team: skip the Welcome Back recap (nothing to recap) and go
+    // straight to the Court, with a one-shot flag so RequireAuth still plays
+    // the BallersIQ entry intro.
+    markWelcomeBackSeenThisSession();
+    try { sessionStorage.setItem("nba_show_entry_intro_once", "1"); } catch { /* noop */ }
     clearOnboardingState(user?.id);
     // Refetch (not just invalidate) so TeamContext.teams contains the new
     // team by the time the destination page renders the pill.
     await queryClient.refetchQueries({ queryKey: ["teams"] });
     await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
-    navigate(returnTo, { replace: true });
+    const dest = returnTo && returnTo !== "/" ? returnTo : "/roster";
+    navigate(dest, { replace: true });
   };
 
   // Back from DraftStep:

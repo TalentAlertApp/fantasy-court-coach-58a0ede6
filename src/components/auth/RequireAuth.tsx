@@ -44,6 +44,18 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     setWelcomeOpen(forced || !isWelcomeBackSeenThisSession());
   }, [loading, user?.id, location.search]);
 
+  // One-shot: when onboarding just finished a brand-new team, play the entry
+  // intro on the next render (Welcome Back was bypassed on purpose).
+  useEffect(() => {
+    if (loading || !user?.id) return;
+    try {
+      if (sessionStorage.getItem("nba_show_entry_intro_once") === "1") {
+        sessionStorage.removeItem("nba_show_entry_intro_once");
+        setEntryIntroOpen(true);
+      }
+    } catch { /* noop */ }
+  }, [loading, user?.id]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
