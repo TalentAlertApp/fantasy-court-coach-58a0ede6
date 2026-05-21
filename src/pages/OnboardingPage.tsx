@@ -19,6 +19,9 @@ import {
   setOnboardingState,
   clearOnboardingState,
   setOnboardingSkipped,
+  getOnboardingDraft,
+  setOnboardingDraft,
+  clearOnboardingDraft,
   type OnboardingStep,
 } from "@/lib/onboarding-store";
 
@@ -27,11 +30,20 @@ type Step = OnboardingStep;
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const navState = (location.state ?? null) as { leagueId?: string; sport?: "nba" | "wnba"; returnTo?: string; forceNewTeam?: boolean } | null;
+  const navState = (location.state ?? null) as {
+    leagueId?: string;
+    sport?: "nba" | "wnba";
+    returnTo?: string;
+    forceNewTeam?: boolean;
+    resumeChooseLeague?: boolean;
+    newLeagueId?: string;
+  } | null;
   const preselectedLeagueId = navState?.leagueId ?? null;
   const preselectedSport = navState?.sport ?? null;
   const returnTo = navState?.returnTo ?? "/";
   const forceNewTeam = navState?.forceNewTeam === true;
+  const resumeChooseLeague = navState?.resumeChooseLeague === true;
+  const resumedNewLeagueId = navState?.newLeagueId ?? null;
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId } = useTeam();
   const { shouldOnboard, ready } = useFirstRunGate();
@@ -42,19 +54,25 @@ export default function OnboardingPage() {
   // Hydrate persisted onboarding state for this user (resume after refresh).
   // When forceNewTeam is set (returning user clicked "New Team" on the picker),
   // ignore stale state and start fresh at the NameStep.
+  // When resumeChooseLeague is set (user returning from /leagues/create), hydrate
+  // from the in-progress draft and jump straight to the league step.
+  const draft = useMemo(
+    () => (resumeChooseLeague ? getOnboardingDraft(user?.id) : null),
+    [user?.id, resumeChooseLeague]
+  );
   const initial = useMemo(
-    () => (forceNewTeam ? null : getOnboardingState(user?.id)),
-    [user?.id, forceNewTeam]
+    () => (forceNewTeam || resumeChooseLeague ? null : getOnboardingState(user?.id)),
+    [user?.id, forceNewTeam, resumeChooseLeague]
   );
   const [step, setStepRaw] = useState<Step>(
-    initial?.step ?? (forceNewTeam ? "name" : "hero")
+    resumeChooseLeague && draft ? "league" : (initial?.step ?? (forceNewTeam ? "name" : "hero"))
   );
   const [creating, setCreating] = useState(false);
   const [createdTeamName, setCreatedTeamName] = useState(
-    forceNewTeam ? "" : (initial?.teamName ?? "")
+    forceNewTeam || resumeChooseLeague ? "" : (initial?.teamName ?? "")
   );
   const [createdTeamId, setCreatedTeamId] = useState<string | null>(
-    forceNewTeam ? null : (initial?.teamId ?? null)
+    forceNewTeam || resumeChooseLeague ? null : (initial?.teamId ?? null)
   );
 
   // When forcing a new team, wipe any stale persisted onboarding state.
@@ -62,8 +80,22 @@ export default function OnboardingPage() {
     if (forceNewTeam) clearOnboardingState(user?.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceNewTeam, user?.id]);
-  const [pendingName, setPendingName] = useState<string>("");
-  const [pendingMainSport, setPendingMainSport] = useState<"nba" | "wnba">("nba");
+  const [pendingName, setPendingName] = useState<string>(draft?.name ?? "");
+  const [pendingMainSport, setPendingMainSport] = useState<"nba" | "wnba">(draft?.sport ?? "nba");
+  const [resumedExtraLeagueIds, setResumedExtraLeagueIds] = useState<string[]>(() => {
+    if (!draft) return [];
+    const ids = [...draft.extraLeagueIds];
+    if (resumedNewLeagueId && !ids.includes(resumedNewLeagueId)) ids.push(resumedNewLeagueId);
+    return ids;
+  });
+
+  // Clear the consumed draft once hydrated. We intentionally keep location.state
+  // intact so RequireAuth continues to honor resumeChooseLeague and doesn't
+  // bounce returning users to the multi-team picker mid-flow.
+  useEffect(() => {
+    if (resumeChooseLeague) clearOnboardingDraft(user?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setStep = (next: Step, extra?: { teamId?: string; teamName?: string }) => {
     setStepRaw(next);
@@ -105,10 +137,10 @@ export default function OnboardingPage() {
   // here intentionally to create another team (preselectedLeagueId set, e.g.
   // from /scoring empty-state CTA).
   useEffect(() => {
-    if (ready && !shouldOnboard && !preselectedLeagueId && !forceNewTeam) {
+    if (ready && !shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague) {
       navigate("/", { replace: true });
     }
-  }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam]);
+  }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam, resumeChooseLeague]);
 
   const submitTeam = async (
     name: string,
@@ -238,7 +270,7 @@ export default function OnboardingPage() {
   };
 
   // Render-gate to prevent light→dark flash when bouncing back to /
-  if (!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam)) {
+  if (!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague)) {
     return <div className="h-screen w-full bg-background" aria-hidden />;
   }
 
@@ -297,6 +329,14 @@ export default function OnboardingPage() {
           onSubmit={handleLeagueSubmit}
           submitting={creating}
           lockedSport={pendingMainSport}
+          initialSelectedIds={resumedExtraLeagueIds}
+          onBeforeCreateLeague={(selectedIds) => {
+            setOnboardingDraft(user?.id, {
+              name: pendingName,
+              sport: pendingMainSport,
+              extraLeagueIds: selectedIds,
+            });
+          }}
         />
       )}
       {step === "draft" && (

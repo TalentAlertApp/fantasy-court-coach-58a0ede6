@@ -129,7 +129,7 @@ export default function ScoringPage() {
   }, [selectedLeagueId, myTeams.length, teamReady]);
 
   return (
-    <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
+    <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto flex flex-col h-[calc(100vh-3.5rem)] min-h-0">
       {/* Header — premium NBA bar with court-line gradient */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
         <img
@@ -177,7 +177,7 @@ export default function ScoringPage() {
         )}
       />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex-1 min-h-0 flex flex-col">
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
         <div className="flex items-center gap-3 flex-wrap">
           <TabsList className="grid grid-cols-3 w-full max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
@@ -232,7 +232,7 @@ export default function ScoringPage() {
         </div>
 
         {/* ════════════════════════ LEAGUE TAB ════════════════════════ */}
-        <TabsContent value="league" className="space-y-5 mt-5">
+        <TabsContent value="league" className="space-y-5 mt-5 flex-1 min-h-0 flex flex-col data-[state=inactive]:hidden">
           <LeagueView
             data={standingsQuery.data}
             isLoading={standingsQuery.isLoading}
@@ -249,7 +249,7 @@ export default function ScoringPage() {
         </TabsContent>
 
         {/* ════════════════════════ YOUR TEAM TAB ════════════════════════ */}
-        <TabsContent value="team" className="space-y-5 mt-5">
+        <TabsContent value="team" className="space-y-5 mt-5 flex-1 min-h-0 overflow-auto">
           {!teamReady ? (
             <div className="h-64 rounded-xl bg-card border border-border animate-pulse" />
           ) : myTeams.length === 0 ? (
@@ -299,7 +299,7 @@ export default function ScoringPage() {
         </TabsContent>
 
         {/* ════════════════════════ TRANSACTIONS PULSE TAB ════════════════════════ */}
-        <TabsContent value="pulse" className="space-y-5 mt-5">
+        <TabsContent value="pulse" className="space-y-5 mt-5 flex-1 min-h-0 overflow-auto">
           <TransactionsPulseView
             onPlayerModal={setPlayerModalId}
             onTeamModal={setTeamModalTeam}
@@ -431,7 +431,7 @@ function LeagueView({
   return (
     <>
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
         <KpiCard
           icon={<Crown className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />}
           label="League Leader"
@@ -459,8 +459,8 @@ function LeagueView({
       </div>
 
       {/* Standings table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-muted/60 via-muted/30 to-transparent flex items-center justify-between gap-3 flex-wrap">
+      <div className="bg-card border border-border rounded-xl overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-muted/60 via-muted/30 to-transparent flex items-center justify-between gap-3 flex-wrap shrink-0">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-2">
             <Crown className="h-4 w-4 text-[hsl(var(--nba-yellow))]" /> Standings
           </h2>
@@ -495,10 +495,13 @@ function LeagueView({
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground bg-muted/20">
+        <div
+          className="overflow-auto flex-1 min-h-0"
+          style={{ maxHeight: "calc(10 * 2.5rem + 2.25rem)" }}
+        >
+          <table className="w-full text-sm border-separate border-spacing-0">
+            <thead className="sticky top-0 z-10">
+              <tr className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground [&>th]:bg-card [&>th]:border-b [&>th]:border-border">
                 <th
                   className="px-3 py-2 text-left w-12 cursor-pointer hover:text-foreground select-none"
                   onClick={() => toggleSort("rank")}

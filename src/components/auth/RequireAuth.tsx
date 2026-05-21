@@ -26,7 +26,9 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   const navigate = useNavigate();
   const { ready, shouldOnboard } = useFirstRunGate();
   const { teams, isReady: teamsReady } = useTeam();
-  const forceNewTeam = (location.state as { forceNewTeam?: boolean } | null)?.forceNewTeam === true;
+  const navStateAny = (location.state as { forceNewTeam?: boolean; resumeChooseLeague?: boolean } | null);
+  const forceNewTeam = navStateAny?.forceNewTeam === true;
+  const resumeChooseLeague = navStateAny?.resumeChooseLeague === true;
   // Recap is one-shot per session. Compute *after* auth resolves so the
   // user id is reliably available — initializing in useState would race
   // with the loading state and silently produce false.
@@ -55,7 +57,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   }
 
   // First-run onboarding redirect (only once teams have loaded; never bounces /welcome onto itself)
-  if (!skipOnboardingGate && ready && shouldOnboard) {
+  if (!skipOnboardingGate && location.pathname !== "/leagues/create" && ready && shouldOnboard) {
     return <Navigate to="/welcome" replace />;
   }
 
@@ -63,10 +65,13 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   // chosen one in this session, route to the picker. Skip on the picker
   // route itself to avoid an infinite redirect loop.
   const onPickerRoute = location.pathname === "/welcome/pick-team";
+  const onCreateLeagueRoute = location.pathname === "/leagues/create";
   if (
     !skipOnboardingGate &&
     !onPickerRoute &&
+    !onCreateLeagueRoute &&
     !forceNewTeam &&
+    !resumeChooseLeague &&
     ready &&
     !shouldOnboard &&
     teamsReady &&
@@ -82,6 +87,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   if (
     !skipOnboardingGate &&
     !forceNewTeam &&
+    !resumeChooseLeague &&
     ready &&
     !shouldOnboard &&
     welcomeOpen &&

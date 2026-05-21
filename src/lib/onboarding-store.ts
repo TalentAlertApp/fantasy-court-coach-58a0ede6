@@ -12,9 +12,52 @@ export interface OnboardingState {
 
 const SESSION_SKIP_KEY = "nba_onboarding_skipped";
 const STATE_KEY_PREFIX = "nba_onboarding_state:";
+const DRAFT_KEY_PREFIX = "nba_onboarding_draft:";
 
 function stateKey(userId: string): string {
   return `${STATE_KEY_PREFIX}${userId}`;
+}
+
+function draftKey(userId: string): string {
+  return `${DRAFT_KEY_PREFIX}${userId}`;
+}
+
+/* ---------------- In-progress draft (mid-onboarding) ---------------- */
+
+export interface OnboardingDraft {
+  name: string;
+  sport: "nba" | "wnba";
+  extraLeagueIds: string[];
+}
+
+export function getOnboardingDraft(userId: string | null | undefined): OnboardingDraft | null {
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(draftKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    if (typeof parsed.name !== "string") return null;
+    if (parsed.sport !== "nba" && parsed.sport !== "wnba") return null;
+    if (!Array.isArray(parsed.extraLeagueIds)) return null;
+    return parsed as OnboardingDraft;
+  } catch {
+    return null;
+  }
+}
+
+export function setOnboardingDraft(userId: string | null | undefined, draft: OnboardingDraft): void {
+  if (!userId) return;
+  try {
+    localStorage.setItem(draftKey(userId), JSON.stringify(draft));
+  } catch { /* ignore */ }
+}
+
+export function clearOnboardingDraft(userId: string | null | undefined): void {
+  if (!userId) return;
+  try {
+    localStorage.removeItem(draftKey(userId));
+  } catch { /* ignore */ }
 }
 
 /* ---------------- Session skip ---------------- */
