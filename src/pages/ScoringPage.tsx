@@ -129,7 +129,7 @@ export default function ScoringPage() {
   }, [selectedLeagueId, myTeams.length, teamReady]);
 
   return (
-    <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto flex flex-col h-[calc(100vh-3.5rem)] min-h-0">
+    <div className="space-y-5 max-w-[1400px] mx-auto flex flex-col h-full min-h-0">
       {/* Header — premium NBA bar with court-line gradient */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
         <img

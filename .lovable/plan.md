@@ -1,55 +1,67 @@
-## 1) Immediate refetch + UI update after attaching a team
+# Two targeted fixes
 
-**Where:** `src/pages/LeaguesPage.tsx` → `handleAttach`.
+## 1) Teams don't appear after signing in on a fresh browser (until hard refresh)
 
-**Problem:** `qc.invalidateQueries({queryKey:["teams"]})` only marks the query stale and schedules a background refetch. The dropdown re-renders from the old cache first, and on some screens the user perceives the just-attached team still listed under "Add Your Team". The `fantasy-leagues` count is similarly stale.
+### Root cause
+`TeamContext` runs `useQuery({ queryKey: ["teams"], queryFn: fetchTeams })` **on mount, unconditionally**, with no `enabled` gate and no `user.id` in the key. On a fresh browser:
 
-**Fix:**
-- Replace both `invalidateQueries` calls with awaited `refetchQueries({queryKey:["teams"], type:"active"})` and `refetchQueries({queryKey:["fantasy-leagues"], type:"active"})` so the new `team_leagues` row is in cache before we drop `attachingLeagueId`.
-- Additionally do an optimistic cache update on the `["teams"]` query: append `league.id` to the target team's `league_ids` immediately on click, so the dropdown filter (`getAttachableTeamsFor` → `participatesIn`) hides the team in the same frame even before the network round-trip.
-- On error, roll the optimistic mutation back.
+1. `AuthProvider` mounts with `loading: true`, no session yet.
+2. `TeamContext` immediately fires `fetchTeams()`. `supabase.auth.getSession()` returns `null` → request goes out without a `Authorization` bearer → `teams` edge function sees no caller → returns empty list (or 401 swallowed by `safeParse`).
+3. The empty result is cached under key `["teams"]` for `staleTime: 60_000`.
+4. `onAuthStateChange` fires `SIGNED_IN`, `user` populates — **but nothing invalidates `["teams"]`**, so React Query happily serves the cached empty list. The "Add your team" dropdown stays empty, `selectedTeamId` gets wiped by the auto-correct effect, no team is selectable.
+5. Hard refresh fixes it because the session is restored synchronously before the first `fetchTeams()` call on the new page load.
 
-No backend changes — `leagues-manage/attach-team` already upserts the `team_leagues` row and `teams` edge function already returns `league_ids`.
+### Fix (two small, defensive changes)
 
-## 2) Standings table fills available vertical space
+**A. `src/contexts/AuthContext.tsx`** — when auth flips to a signed-in state, blow away any cached server data that depends on the caller's identity.
 
-**Where:** `src/pages/ScoringPage.tsx` (LEAGUE tab) and the Standings panel container.
+- Pull in `useQueryClient` from `@tanstack/react-query`.
+- Track the previous `user.id` in a ref. Inside `onAuthStateChange`, if the new `user.id` is different from the previous one (including `null → id`), call `queryClient.invalidateQueries()` (broad, since most queries are user-scoped).
+- Also call it once after the initial `getSession()` resolves if it returned a session that the first render missed.
 
-**Fix:**
-- Make the LEAGUE tab a column flex container with `min-h-0` and `flex-1`, anchored to the available viewport height (`h-[calc(100vh-<headerOffset>)]` or by wrapping in an `h-full` ancestor that already covers viewport).
-- Wrap the existing `<StandingsTable>` in a flex child with `flex-1 min-h-0 overflow-auto` so the inner scroll area grows down to the bottom of the screen instead of the current fixed/intrinsic height.
-- KPI tiles, league selector, sub-tabs, and the Standings header bar stay as fixed-height rows above; only the table region absorbs the remaining space.
+**B. `src/contexts/TeamContext.tsx`** — make the teams query strictly correct so it can't cache an unauthenticated empty list:
 
-Exact files to touch will be confirmed when implementing (likely `ScoringPage.tsx` + `src/components/standings/StandingsPanel.tsx` wrappers; no logic changes, only layout classes).
+- Import `useAuth`.
+- Change the query to:
+  ```ts
+  useQuery({
+    queryKey: ["teams", user?.id ?? "anon"],
+    queryFn: fetchTeams,
+    enabled: !!user && !authLoading,
+    staleTime: 60_000,
+    retry: 3,
+  })
+  ```
+- This guarantees:
+  - No request fires before auth is ready.
+  - A different user (or transition from anon → signed-in) uses a different cache slot and forces a fresh fetch.
+- Downstream `isReady`/auto-correct logic is unchanged.
 
-## 3) Remove league chips from the sidebar team pill
+No edge-function or DB changes.
 
-**Where:** `src/components/TeamSwitcher.tsx`.
+---
 
-**Problem:** Earlier we added `<TeamLeagueChips>` inside each `<SelectItem>`. shadcn's `<SelectValue>` mirrors the selected item's children into the trigger, so the chip row also renders inside the small sidebar pill, breaking its layout (screenshot 2).
+## 2) Scoring › League › Standings table still leaves empty space at the bottom
 
-**Fix:**
-- Render the trigger content manually: replace `<SelectValue placeholder="Select team" />` with an explicit node that shows only the `LeagueLogoBadge` + truncated team name for the currently-selected team (no chips).
-- Keep `<TeamLeagueChips>` inside `<SelectItem>` so chips still appear in the open dropdown rows (that part is useful and stays per the previous request). If chips inside dropdown rows still feel noisy in the narrow popup, we can also drop them from the items — flag for confirmation when implementing.
+### Root cause
+`src/pages/ScoringPage.tsx` wraps its content in:
 
-No changes to `TeamLeagueChips.tsx` itself; `TeamPickerPage` continues to use it.
+```
+<div className="px-6 py-5 ... flex flex-col h-[calc(100vh-3.5rem)] min-h-0">
+```
 
-## 4) Blank preview window — verification
+But the outer `.page-scroll` (in `src/index.css`) is already `flex-1 overflow-y-auto px-6 py-5`. Two problems:
 
-**Symptom:** The preview shows a blank gray viewport at `/welcome` (screenshot 3).
+- `h-[calc(100vh-3.5rem)]` is a guess about the header height that doesn't include `.page-scroll`'s own `py-5` (2.5rem) or any other chrome — so the inner column is shorter than the actual available space.
+- Double padding (page-scroll's `px-6 py-5` + ScoringPage's `px-6 py-5`) also costs vertical room.
 
-**Likely cause:** `OnboardingPage` renders a transparent placeholder `<div className="h-screen w-full bg-background" aria-hidden />` while `!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague)`. For a returning user hitting `/welcome` directly with no nav state, this branch is hit while a `useEffect` schedules `navigate("/welcome/pick-team")`. If `ready` never flips true (e.g., `useFirstRunGate` stalls because `useTeam().isReady` stays false), the page stays blank forever — exactly what the screenshot shows.
+### Fix (`src/pages/ScoringPage.tsx` only)
 
-**Plan:**
-- Reproduce by visiting `/welcome` with no state on a returning user; check console + network for failed `teams` / `fantasy-leagues` calls.
-- If `ready` is stuck: replace the silent blank placeholder in `OnboardingPage` with the same neutral spinner used in `RequireAuth`, AND have the redirect effect fire regardless of `ready` when the user has already-loaded teams (use `teams.length >= 1` from `useTeam()` as a fallback trigger to push to `/welcome/pick-team`).
-- If the root cause is a failed teams fetch (HTTP 5xx), fix the cause and surface a retry instead of a permanent blank.
-- Verify after fix by hard-refreshing `/welcome` and `/` and confirming the picker (or destination page) renders.
+Replace the viewport-calc with a flex chain that consumes whatever the parent gives us:
 
-### Implementation order
-1. Sidebar pill fix (smallest, immediate visual relief).
-2. Optimistic + awaited refetch on attach.
-3. Standings table flex layout.
-4. Blank-screen investigation + targeted fix.
+- Outer wrapper: `className="space-y-5 max-w-[1400px] mx-auto flex flex-col h-full min-h-0"` (drop `px-6 py-5` since `.page-scroll` already pads, drop the `h-[calc(...)]`).
+- Leave the existing `Tabs` / `TabsContent` / standings container classes as-is (`flex-1 min-h-0 flex flex-col` on the LEAGUE tab and `overflow-auto flex-1 min-h-0` on the table scroller).
 
-No DB migrations, no edge function changes.
+Because `.page-scroll` is already `flex-1 flex-column overflow-y-auto` inside `.main-content` (`flex-1 flex flex-col overflow-hidden`), `h-full` on the page resolves to the real available height, and the standings table will stretch all the way to the bottom of the viewport on every screen size.
+
+No other pages are touched.

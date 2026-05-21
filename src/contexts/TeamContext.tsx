@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useIsFetching } from "@tanstack/react-query";
 import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { isMainLeague, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID } from "@/hooks/useFantasyLeagues";
 
 export type TeamRecord = {
@@ -45,13 +46,17 @@ const LS_KEY = "nba_selected_team_id";
 
 export function TeamProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const { user, loading: authLoading } = useAuth();
   const teamsFetching = useIsFetching({ queryKey: ["teams"] });
   const { data, isLoading, isError, isSuccess } = useQuery({
-    queryKey: ["teams"],
+    queryKey: ["teams", user?.id ?? "anon"],
     queryFn: fetchTeams,
     staleTime: 60_000,
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    // Don't fire before auth resolves — otherwise we cache an empty
+    // (unauthenticated) list and serve it forever to the signed-in user.
+    enabled: !authLoading && !!user,
     // Avoid refetching on every mount; cached successful data is preserved
     // across navigations and team-scoped queries don't collapse to empty
     // while a background refresh runs.
