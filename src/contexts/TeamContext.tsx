@@ -194,10 +194,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // Custom fantasy leagues: teams.league_id directly references the fantasy league row.
   // Main system leagues (NBA / WNBA): teams have league_id pointing at the SPORT league
   // row, not the fantasy main-league pseudo id — so fall back to matching by sport.
-  const teamsHaveLeagueId = teams.some((t: any) => t.league_id !== undefined);
   const sport = selectedLeague?.sport ?? null;
-  const teamsInSelectedLeague: TeamRecord[] = (selectedLeagueId && teamsHaveLeagueId)
+  const teamsInSelectedLeague: TeamRecord[] = selectedLeagueId
     ? teams.filter((t: any) => {
+        // Many-to-many: a team participates in many leagues via league_ids.
+        const ids: string[] = Array.isArray(t.league_ids) ? t.league_ids : [];
+        if (ids.includes(selectedLeagueId)) return true;
         if (t.league_id === selectedLeagueId) return true;
         if (isMainLeague(selectedLeagueId) && sport && (t.league_code ?? "nba") === sport) return true;
         return false;
