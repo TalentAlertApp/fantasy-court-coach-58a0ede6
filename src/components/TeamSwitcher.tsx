@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTeam } from "@/contexts/TeamContext";
-import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { updateTeam, deleteTeam } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
