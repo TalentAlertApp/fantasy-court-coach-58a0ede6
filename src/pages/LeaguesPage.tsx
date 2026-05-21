@@ -178,8 +178,9 @@ function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeam
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-[180px]">
                   {attachableTeams.map((t) => (
-                    <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs">
-                      {t.name}
+                    <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs gap-2">
+                      <img src={logo} alt="" aria-hidden className="h-4 w-4 object-contain shrink-0" />
+                      <span className="truncate">{t.name}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -276,6 +277,13 @@ export default function LeaguesPage() {
   function getAttachableTeamsFor(league: FantasyLeague): { id: string; name: string }[] {
     if (isMainLeague(league.id)) return [];
     if (!["draft", "active"].includes(league.status)) return [];
+    // Edge function permits at most one team per user per league. If we
+    // already own a team in this league, hide the attach dropdown entirely.
+    const alreadyAttached = (userTeams ?? []).some(
+      (t: any) => t.owner_id === user?.id && t.league_id === league.id,
+    );
+    if (alreadyAttached) return [];
+    if ((league.myTeamCount ?? 0) > 0) return [];
     const matches = (userTeams ?? []).filter(
       (t: any) =>
         t.owner_id === user?.id &&
@@ -1011,8 +1019,9 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[180px]">
                 {attachableTeams.map((t) => (
-                  <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs">
-                    {t.name}
+                  <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs gap-2">
+                    <img src={logo} alt="" aria-hidden className="h-4 w-4 object-contain shrink-0" />
+                    <span className="truncate">{t.name}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
