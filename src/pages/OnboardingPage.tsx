@@ -139,10 +139,10 @@ export default function OnboardingPage() {
   // here intentionally to create another team (preselectedLeagueId set, e.g.
   // from /scoring empty-state CTA).
   useEffect(() => {
-    if (ready && !shouldOnboard && !preselectedLeagueId && !forceNewTeam) {
+    if (ready && !shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague) {
       navigate("/", { replace: true });
     }
-  }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam]);
+  }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam, resumeChooseLeague]);
 
   const submitTeam = async (
     name: string,
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
   };
 
   // Render-gate to prevent light→dark flash when bouncing back to /
-  if (!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam)) {
+  if (!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague)) {
     return <div className="h-screen w-full bg-background" aria-hidden />;
   }
 
