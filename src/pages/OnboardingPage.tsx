@@ -141,7 +141,10 @@ export default function OnboardingPage() {
   // from /scoring empty-state CTA).
   useEffect(() => {
     if (ready && !shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague) {
-      navigate("/", { replace: true });
+      // Returning user with ≥1 owned team — go straight to the picker so the
+      // Draft hero never flashes between auth resolution and RequireAuth's
+      // own redirect.
+      navigate("/welcome/pick-team", { replace: true });
     }
   }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam, resumeChooseLeague]);
 

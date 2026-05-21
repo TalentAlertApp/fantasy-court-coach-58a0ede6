@@ -68,6 +68,17 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
 
+  // While teams are still loading, show a neutral loader instead of letting
+  // child routes render. This prevents the Draft hero from flashing in the
+  // one-frame window before the multi-team picker redirect fires.
+  if (!skipOnboardingGate && !teamsReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   // First-run onboarding redirect (only once teams have loaded; never bounces /welcome onto itself)
   if (!skipOnboardingGate && location.pathname !== "/leagues/create" && ready && shouldOnboard) {
     return <Navigate to="/welcome" replace />;

@@ -6,6 +6,7 @@ import { Plus, LogOut, ChevronRight } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import TeamLeagueChips from "@/components/TeamLeagueChips";
 
 export default function TeamPickerPage() {
   const navigate = useNavigate();
@@ -112,7 +113,7 @@ export default function TeamPickerPage() {
                 key={t.id}
                 type="button"
                 onClick={() => handlePick(t.id)}
-                className="group relative text-left p-4 rounded-xl border border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all h-28 flex flex-col justify-between overflow-hidden"
+                className="group relative text-left p-4 rounded-xl border border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all min-h-[7rem] flex flex-col justify-between gap-2 overflow-hidden"
               >
                 <img
                   src={leagueLogo}
@@ -132,6 +133,15 @@ export default function TeamPickerPage() {
                   </h3>
                   <ChevronRight className="h-4 w-4 text-foreground/30 group-hover:text-accent group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                 </div>
+                {Array.isArray(t.league_ids) && t.league_ids.length > 0 && (
+                  <div className="relative -mt-1">
+                    <TeamLeagueChips
+                      leagueIds={t.league_ids}
+                      primaryId={t.league_id}
+                      max={3}
+                    />
+                  </div>
+                )}
                 <span className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             );

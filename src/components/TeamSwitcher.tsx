@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
+import TeamLeagueChips from "@/components/TeamLeagueChips";
 
 export default function TeamSwitcher() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
@@ -126,9 +127,19 @@ export default function TeamSwitcher() {
           <SelectContent>
             {teams.map((t: any) => (
               <SelectItem key={t.id} value={t.id}>
-                <span className="flex items-center gap-1.5">
-                  <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
-                  {t.name}
+                <span className="flex flex-col items-start gap-0.5 min-w-0">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
+                    <span className="truncate">{t.name}</span>
+                  </span>
+                  {Array.isArray(t.league_ids) && t.league_ids.length > 0 && (
+                    <TeamLeagueChips
+                      leagueIds={t.league_ids}
+                      primaryId={t.league_id}
+                      max={3}
+                      className="pl-5"
+                    />
+                  )}
                 </span>
               </SelectItem>
             ))}
