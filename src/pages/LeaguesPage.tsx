@@ -276,6 +276,13 @@ export default function LeaguesPage() {
   function getAttachableTeamsFor(league: FantasyLeague): { id: string; name: string }[] {
     if (isMainLeague(league.id)) return [];
     if (!["draft", "active"].includes(league.status)) return [];
+    // Edge function permits at most one team per user per league. If we
+    // already own a team in this league, hide the attach dropdown entirely.
+    const alreadyAttached = (userTeams ?? []).some(
+      (t: any) => t.owner_id === user?.id && t.league_id === league.id,
+    );
+    if (alreadyAttached) return [];
+    if ((league.myTeamCount ?? 0) > 0) return [];
     const matches = (userTeams ?? []).filter(
       (t: any) =>
         t.owner_id === user?.id &&
