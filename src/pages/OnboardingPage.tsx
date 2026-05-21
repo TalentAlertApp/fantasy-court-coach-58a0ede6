@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { useFirstRunGate } from "@/hooks/useFirstRunGate";
 import { createTeam } from "@/lib/api";
+import { deleteTeam } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import OnboardingHero from "@/components/onboarding/OnboardingHero";
@@ -158,16 +159,31 @@ export default function OnboardingPage() {
     navigate(returnTo, { replace: true });
   };
 
-  // Back from DraftStep: if user already owns ≥2 teams, they reached this
-  // step via the "New Team" CTA on the multi-team picker — return there.
-  // Otherwise, go back to the NameStep as usual.
-  const handleDraftBack = () => {
+  // Back from DraftStep:
+  //  - ≥2 owned teams → came via "New Team" CTA on the picker; return there.
+  //  - preselected league (Step 2 was skipped) → back to Step 1 (Name).
+  //  - otherwise → back to Step 2 (Choose League).
+  // In all cases, delete the team we just created so the user doesn't end up
+  // with an orphan empty franchise after re-picking name/league.
+  const handleDraftBack = async () => {
     const ownedCount = teams.filter((t: any) => t.owner_id === user?.id).length;
+    const justCreatedId = createdTeamId;
+    if (justCreatedId) {
+      try { await deleteTeam(justCreatedId); } catch (e) { console.error("[onboarding] team delete failed:", e); }
+      setCreatedTeamId(null);
+      setCreatedTeamName("");
+      setSelectedTeamId(null as any);
+      await queryClient.invalidateQueries({ queryKey: ["teams"] });
+    }
     if (ownedCount >= 2) {
       clearOnboardingState(user?.id);
       navigate("/welcome/pick-team", { replace: true });
+      return;
+    }
+    if (preselectedLeagueId) {
+      setStep("name", { teamId: undefined, teamName: undefined });
     } else {
-      setStep("name");
+      setStep("league", { teamId: undefined, teamName: undefined });
     }
   };
 
