@@ -81,6 +81,21 @@ Deno.serve(async (req) => {
       if (!name || typeof name !== "string" || name.trim().length === 0) {
         return errorResponse("VALIDATION", "name is required");
       }
+      // Duplicate-name guard: a user can't own two teams with the same
+      // case-insensitive trimmed name.
+      const trimmedName = name.trim();
+      {
+        const { data: dupRows } = await sb
+          .from("teams")
+          .select("id, name")
+          .eq("owner_id", userId);
+        const exists = (dupRows ?? []).some(
+          (r: any) => String(r.name ?? "").trim().toLowerCase() === trimmedName.toLowerCase(),
+        );
+        if (exists) {
+          return errorResponse("DUPLICATE_NAME", "You already have a team with this name");
+        }
+      }
       const byCode = await leaguesByCode(sb);
       const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
       const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
@@ -155,7 +170,7 @@ Deno.serve(async (req) => {
       const { data: team, error } = await sb
         .from("teams")
         .insert({
-          name: name.trim(),
+          name: trimmedName,
           description: description ?? null,
           owner_id: userId,
           league_id: targetLeagueId,
@@ -183,7 +198,22 @@ Deno.serve(async (req) => {
         return errorResponse("VALIDATION", "league cannot be changed after team creation");
       }
       const updates: Record<string, any> = { updated_at: new Date().toISOString() };
-      if (body.name !== undefined) updates.name = body.name;
+      if (body.name !== undefined) {
+        const newName = String(body.name ?? "").trim();
+        if (!newName) return errorResponse("VALIDATION", "name is required");
+        const { data: dupRows } = await sb
+          .from("teams")
+          .select("id, name")
+          .eq("owner_id", userId)
+          .neq("id", teamIdParam);
+        const exists = (dupRows ?? []).some(
+          (r: any) => String(r.name ?? "").trim().toLowerCase() === newName.toLowerCase(),
+        );
+        if (exists) {
+          return errorResponse("DUPLICATE_NAME", "You already have a team with this name");
+        }
+        updates.name = newName;
+      }
       if (body.description !== undefined) updates.description = body.description;
       const { data: team, error } = await sb
         .from("teams")
