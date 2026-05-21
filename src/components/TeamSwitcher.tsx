@@ -145,7 +145,7 @@ export default function TeamSwitcher() {
               className="h-6 w-6 text-white/60 hover:text-white hover:bg-white/10"
               onClick={() => {
                 const team = teams.find((t) => t.id === selectedTeamId);
-                if (team) { setRenameId(team.id); setRenameName(team.name); setRenameOpen(true); }
+                if (team) { setRenameId(team.id); setRenameName(team.name); setRenameError(null); setRenameOpen(true); }
               }}
             >
               <Pencil className="h-3 w-3" />
@@ -163,10 +163,23 @@ export default function TeamSwitcher() {
         )}
       </div>
 
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <Dialog open={renameOpen} onOpenChange={(o) => { setRenameOpen(o); if (!o) setRenameError(null); }}>
         <DialogContent className="rounded-lg">
           <DialogHeader><DialogTitle className="font-heading">Rename Team</DialogTitle></DialogHeader>
-          <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleRename()} className="rounded-lg" />
+          <Input
+            value={renameName}
+            onChange={(e) => { setRenameName(e.target.value); if (renameError) setRenameError(null); }}
+            onKeyDown={(e) => e.key === "Enter" && handleRename()}
+            className="rounded-lg"
+          />
+          {renameError && (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {renameError}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
             <Button onClick={handleRename} disabled={renaming || !renameName.trim()}>{renaming ? "Saving..." : "Save"}</Button>
