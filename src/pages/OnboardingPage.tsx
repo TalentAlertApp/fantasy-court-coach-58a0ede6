@@ -16,6 +16,7 @@ import ChooseLeagueStep from "@/components/onboarding/ChooseLeagueStep";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { Volume2, VolumeX } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
+import { markWelcomeBackSeenThisSession } from "@/lib/welcome-back-store";
 import {
   getOnboardingState,
   setOnboardingState,

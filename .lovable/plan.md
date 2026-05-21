@@ -1,52 +1,57 @@
-# Fix new-team flow + draft polish
+# Fixes
 
-## 1. Remove league capacity & one-team-per-league limits
+## 1) After drafting a brand new team, go straight to the Court (not Welcome Back)
 
-**Goal** — Each user can create unlimited teams in any league (Main NBA, Main WNBA, or custom). Removes both the "league is full" error and the "you already have a team in this league" 409.
+**Where:** `src/pages/OnboardingPage.tsx` → `handleFinish()` (called when `DraftPicker` finishes).
 
-**Changes**:
-- `supabase/functions/teams/index.ts`: drop the `teamCount >= max_teams` check in both branches (lines 130–137 for custom fantasy league, lines 148–154 for Main League).
-- `supabase/functions/leagues-manage/index.ts` (attach-team): drop the `FULL` check (~line 520) and the `ALREADY_HAS_TEAM` check (~line 531). Allow attaching multiple teams.
-- `supabase/functions/leagues-join/index.ts`: drop the `FULL` check (~line 60). (Membership of user is still tracked separately; multiple teams allowed.)
-- `src/pages/OnboardingPage.tsx`: simplify the attach-team error handling — remove the `ALREADY_HAS_TEAM` soft-success branch since it's no longer reachable. Keep the direct `fetch` call.
+Today it does:
+- `setSelectedTeamId(createdTeamId)`
+- `markTeamPickedThisSession()`
+- refetch teams + `navigate(returnTo /* "/" */)`
 
-Duplicate-name guard (per user) stays — that's a different rule the user asked for.
+Then `RequireAuth` runs at `/` and, because `isWelcomeBackSeenThisSession()` is still false, it renders `<WelcomeBackHero />` — that is the screen the user is seeing after the draft.
 
-## 2. TeamContext guard against clearing selectedTeamId mid-handoff
+**Change:**
+- In `handleFinish`, also call `markWelcomeBackSeenThisSession()` from `@/lib/welcome-back-store` so the recap is suppressed for the rest of this session (the user literally just created the team — there is nothing to "recap").
+- Change the destination from `returnTo` (which defaults to `/`) to `/roster` when the user just finished onboarding a brand new team. This sends them directly to the Court / My Roster.
+- Keep the "entry intro" (`BallersIQEntryIntro`) experience: trigger it on first land after onboarding by setting a one-shot flag (e.g. `sessionStorage` `nba_show_entry_intro_once = "1"`) inside `handleFinish`, and have `RequireAuth` read+consume that flag to open `BallersIQEntryIntro` once on the next render — independently of the Welcome Back gate. That gives the desired flow: **Draft → BallersIQ entry intro → Court / My Roster**, with no Welcome Back screen in between.
 
-Symptom: right after team creation, `setSelectedTeamId(newId)` runs and `["teams"]` is invalidated. The auto-correct effect sees `selectedTeamId` not yet in stale `teams`, wipes it, and falls back to another team.
+No other onboarding paths are affected (returning users coming back from picker / leagues still hit the normal `RequireAuth` Welcome Back logic).
 
-Fix in `src/contexts/TeamContext.tsx`:
-- Track `lastSetTeamIdAt` timestamp inside `setSelectedTeamId`.
-- In the auto-correct effect, if the selected id is missing from `teams` but was set within the last ~5s, skip the wipe and wait for the next teams refetch.
-- Also use `useIsFetching({ queryKey: ["teams"] })` to skip auto-correct while a teams refetch is in flight.
+## 2) "Add Your Team" dropdown still lists a team that is already in the league
 
-## 3. TeamSwitcher loading/skeleton
+**Where:** `src/pages/LeaguesPage.tsx` → `getAttachableTeamsFor(league)`.
 
-In `src/components/TeamSwitcher.tsx`:
-- Use `useIsFetching({ queryKey: ["teams"] })`.
-- While `isLoading || (isFetching && teams.length === 0)`, render a small skeleton pill matching the trigger size instead of the empty Select.
-- When refetching with cached data present, keep the existing pill visible (no flicker).
+The current filters use the *primary* `league_id` only:
+```ts
+const alreadyAttached = userTeams.some(
+  (t) => t.owner_id === user?.id && t.league_id === league.id,
+);
+...
+const matches = userTeams.filter(
+  (t) => t.owner_id === user?.id &&
+         (t.league_code ?? "nba") === league.sport &&
+         t.league_id !== league.id,
+);
+```
 
-## 4. DRAFT step league watermark
+With the new many-to-many `team_leagues` model, a team that was *joined* into a custom league keeps its original primary `league_id`, but its `league_ids[]` includes the custom league. So the check above never matches and the team keeps appearing in the dropdown.
 
-In `src/components/onboarding/DraftPicker.tsx` (thread `leagueCode` via `DraftStep` + `OnboardingPage` using `pendingMainSport` / selected team `league_code`):
-- Absolutely positioned NBA/WNBA logo (via `LeagueLogoBadge` or SVG) in the top-right corner, ~220–280px, `opacity-[0.08]`, blurred slightly, with a soft radial glow behind it tinted with `--primary`.
-- Fade-in on mount (`animate-in fade-in zoom-in-95 duration-700`) plus a slow pulse/float using existing Tailwind keyframes.
-- Sits below the step indicator and audio toggle (`z-0` watermark, content `z-10`), `pointer-events-none`.
+**Change:**
+- Treat a team as participating in a league when **either** its primary `league_id` equals `league.id` **or** its `league_ids` array (already returned by the `teams` edge function) includes `league.id`.
+- Helper: `const participatesIn = (t, leagueId) => t.league_id === leagueId || (Array.isArray(t.league_ids) && t.league_ids.includes(leagueId));`
+- Use it in both the `alreadyAttached` check and the `matches` filter.
+- Keep the existing `(league.myTeamCount ?? 0) > 0` early-out as a belt-and-braces guard, but the fix above is the real one (since `myTeamCount` may lag until `fantasy-leagues` invalidation completes).
+- After a successful attach in `handleAttach`, the existing `qc.invalidateQueries(["teams"])` already refetches teams with updated `league_ids`, so the dropdown will hide the team immediately on re-render.
 
-## 5. Validation
+## Out of scope / not changed
 
-- Create two teams under the same user in Main League NBA → both succeed.
-- Pill stays populated through onboarding handoff to `/` — no flicker, no fallback.
-- DRAFT step shows the correct NBA/WNBA watermark.
+- Edge functions (`teams`, `leagues-manage`) — no changes needed; `league_ids` is already returned.
+- Database — no migration needed.
+- Existing Welcome Back behavior for returning users on subsequent sessions.
 
-## Technical scope
+## Files to edit
 
-- `supabase/functions/teams/index.ts` — remove capacity checks.
-- `supabase/functions/leagues-manage/index.ts` — remove FULL and ALREADY_HAS_TEAM checks in attach-team.
-- `supabase/functions/leagues-join/index.ts` — remove FULL check.
-- `src/pages/OnboardingPage.tsx` — simplify attach-team error handling.
-- `src/contexts/TeamContext.tsx` — recency + isFetching guard.
-- `src/components/TeamSwitcher.tsx` — skeleton state.
-- `src/components/onboarding/DraftPicker.tsx`, `DraftStep.tsx`, `OnboardingPage.tsx` — thread `leagueCode` and render watermark.
+- `src/pages/OnboardingPage.tsx` (handleFinish + entry-intro flag)
+- `src/components/auth/RequireAuth.tsx` (consume one-shot entry-intro flag so the intro still plays after we bypass Welcome Back)
+- `src/pages/LeaguesPage.tsx` (`getAttachableTeamsFor` participation check)
