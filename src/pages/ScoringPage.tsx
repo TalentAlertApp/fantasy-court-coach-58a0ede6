@@ -249,7 +249,7 @@ export default function ScoringPage() {
         </TabsContent>
 
         {/* ════════════════════════ YOUR TEAM TAB ════════════════════════ */}
-        <TabsContent value="team" className="space-y-5 mt-5">
+        <TabsContent value="team" className="space-y-5 mt-5 flex-1 min-h-0 overflow-auto">
           {!teamReady ? (
             <div className="h-64 rounded-xl bg-card border border-border animate-pulse" />
           ) : myTeams.length === 0 ? (
@@ -299,7 +299,7 @@ export default function ScoringPage() {
         </TabsContent>
 
         {/* ════════════════════════ TRANSACTIONS PULSE TAB ════════════════════════ */}
-        <TabsContent value="pulse" className="space-y-5 mt-5">
+        <TabsContent value="pulse" className="space-y-5 mt-5 flex-1 min-h-0 overflow-auto">
           <TransactionsPulseView
             onPlayerModal={setPlayerModalId}
             onTeamModal={setTeamModalTeam}
