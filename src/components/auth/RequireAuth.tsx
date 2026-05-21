@@ -26,7 +26,9 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   const navigate = useNavigate();
   const { ready, shouldOnboard } = useFirstRunGate();
   const { teams, isReady: teamsReady } = useTeam();
-  const forceNewTeam = (location.state as { forceNewTeam?: boolean } | null)?.forceNewTeam === true;
+  const navStateAny = (location.state as { forceNewTeam?: boolean; resumeChooseLeague?: boolean } | null);
+  const forceNewTeam = navStateAny?.forceNewTeam === true;
+  const resumeChooseLeague = navStateAny?.resumeChooseLeague === true;
   // Recap is one-shot per session. Compute *after* auth resolves so the
   // user id is reliably available — initializing in useState would race
   // with the loading state and silently produce false.
@@ -69,6 +71,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
     !onPickerRoute &&
     !onCreateLeagueRoute &&
     !forceNewTeam &&
+    !resumeChooseLeague &&
     ready &&
     !shouldOnboard &&
     teamsReady &&
