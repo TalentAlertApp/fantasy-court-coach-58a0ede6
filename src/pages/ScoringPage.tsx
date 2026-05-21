@@ -431,7 +431,7 @@ function LeagueView({
   return (
     <>
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 shrink-0">
         <KpiCard
           icon={<Crown className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />}
           label="League Leader"
@@ -459,8 +459,8 @@ function LeagueView({
       </div>
 
       {/* Standings table */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-muted/60 via-muted/30 to-transparent flex items-center justify-between gap-3 flex-wrap">
+      <div className="bg-card border border-border rounded-xl overflow-hidden flex-1 min-h-0 flex flex-col">
+        <div className="px-4 py-3 border-b border-border bg-gradient-to-r from-muted/60 via-muted/30 to-transparent flex items-center justify-between gap-3 flex-wrap shrink-0">
           <h2 className="text-sm font-heading font-bold uppercase tracking-wider text-muted-foreground inline-flex items-center gap-2">
             <Crown className="h-4 w-4 text-[hsl(var(--nba-yellow))]" /> Standings
           </h2>
@@ -495,10 +495,13 @@ function LeagueView({
             </Button>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-[10px] font-heading uppercase tracking-wider text-muted-foreground bg-muted/20">
+        <div
+          className="overflow-auto flex-1 min-h-0"
+          style={{ maxHeight: "calc(10 * 2.5rem + 2.25rem)" }}
+        >
+          <table className="w-full text-sm border-separate border-spacing-0">
+            <thead className="sticky top-0 z-10">
+              <tr className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground [&>th]:bg-card [&>th]:border-b [&>th]:border-border">
                 <th
                   className="px-3 py-2 text-left w-12 cursor-pointer hover:text-foreground select-none"
                   onClick={() => toggleSort("rank")}
