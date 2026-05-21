@@ -512,23 +512,8 @@ Deno.serve(async (req) => {
         await sb.from("leagues").update({ sport_league_id: resolvedSportLeagueId }).eq("id", targetLeagueId);
       }
 
-      // Capacity
-      const { count: teamCount } = await sb
-        .from("teams")
-        .select("id", { count: "exact", head: true })
-        .eq("league_id", targetLeagueId);
-      if ((teamCount ?? 0) >= (tgtLeague.max_teams ?? 20)) {
-        return jsonError(403, "FULL", "This league is full");
-      }
-
-      // Already has a team in target?
-      const { data: existingTeam } = await sb
-        .from("teams")
-        .select("id")
-        .eq("league_id", targetLeagueId)
-        .eq("owner_id", userId)
-        .maybeSingle();
-      if (existingTeam) return jsonError(409, "ALREADY_HAS_TEAM", "You already have a team in this league");
+      // Capacity and per-user uniqueness intentionally not enforced — users may attach
+      // multiple teams to the same league.
 
       // Name collision → suffix
       let cloneName = srcTeam.name;
