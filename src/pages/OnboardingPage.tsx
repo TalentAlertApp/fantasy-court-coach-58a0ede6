@@ -116,6 +116,13 @@ export default function OnboardingPage() {
           const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
             body: { league_id: leagueId, team_id: teamId },
           });
+          const errCode = (data as any)?.error?.code;
+          if (errCode === "ALREADY_HAS_TEAM") {
+            // Soft success — user already has a team in this league (from a
+            // prior attempt); count it as attached and continue.
+            attachedCount++;
+            continue;
+          }
           if (error || (data && (data as any).error)) throw new Error((data as any)?.error?.message ?? error?.message ?? "attach failed");
           attachedCount++;
         } catch (e: any) {
