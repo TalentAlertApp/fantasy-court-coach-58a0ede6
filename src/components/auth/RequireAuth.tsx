@@ -87,6 +87,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   if (
     !skipOnboardingGate &&
     !forceNewTeam &&
+    !resumeChooseLeague &&
     ready &&
     !shouldOnboard &&
     welcomeOpen &&
