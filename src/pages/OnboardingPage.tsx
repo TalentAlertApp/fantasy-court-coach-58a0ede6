@@ -166,16 +166,30 @@ export default function OnboardingPage() {
           const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
             body: { league_id: leagueId, team_id: teamId },
           });
-          const errCode = (data as any)?.error?.code;
+          // Non-2xx responses (e.g. 409 ALREADY_HAS_TEAM) surface as `error`
+          // (FunctionsHttpError) with the JSON body on error.context.
+          let errCode: string | undefined = (data as any)?.error?.code;
+          let errMsg: string | undefined = (data as any)?.error?.message;
+          if (error && (error as any).context && typeof (error as any).context.json === "function") {
+            try {
+              const body = await (error as any).context.json();
+              errCode = body?.error?.code ?? errCode;
+              errMsg = body?.error?.message ?? errMsg;
+            } catch { /* ignore */ }
+          }
           if (errCode === "ALREADY_HAS_TEAM") {
-            // Soft success — user already has a team in this league (from a
-            // prior attempt); count it as attached and continue.
+            // Soft success — user already has a team in this league.
             attachedCount++;
             continue;
           }
-          if (error || (data && (data as any).error)) throw new Error((data as any)?.error?.message ?? error?.message ?? "attach failed");
+          if (error || errCode) throw new Error(errMsg ?? error?.message ?? "attach failed");
           attachedCount++;
         } catch (e: any) {
+          // Re-check for ALREADY_HAS_TEAM in case it was thrown via context.
+          if (e?.message && /already have a team/i.test(e.message)) {
+            attachedCount++;
+            continue;
+          }
           console.error("[onboarding] attach-team failed:", leagueId, e);
           toast({
             title: "Could not attach to a league",
