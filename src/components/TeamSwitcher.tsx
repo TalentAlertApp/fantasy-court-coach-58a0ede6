@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useTeam } from "@/contexts/TeamContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
-import { createTeam, updateTeam, deleteTeam } from "@/lib/api";
+import { updateTeam, deleteTeam } from "@/lib/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -12,16 +12,12 @@ import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
-import LeaguePickerCards from "@/components/LeaguePickerCards";
 
 export default function TeamSwitcher() {
   const { teams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
   const { selectedLeague } = useFantasyLeague();
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newLeague, setNewLeague] = useState<"nba" | "wnba">("nba");
-  const [creating, setCreating] = useState(false);
+  const navigate = useNavigate();
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
@@ -31,38 +27,18 @@ export default function TeamSwitcher() {
   const [deleting, setDeleting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Open create-team dialog when arriving via ?newTeam=1 (e.g. from /leagues "Create Team").
+  // Route to onboarding when arriving via ?newTeam=1 (e.g. from /leagues "Create Team").
   useEffect(() => {
     if (searchParams.get("newTeam") === "1") {
-      const sp = searchParams.get("sport");
-      if (sp === "wnba" || sp === "nba") setNewLeague(sp);
-      setCreateOpen(true);
       const next = new URLSearchParams(searchParams);
       next.delete("newTeam");
       next.delete("sport");
       next.delete("league_id");
       setSearchParams(next, { replace: true });
+      navigate("/welcome", { state: { forceNewTeam: true } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const handleCreate = async () => {
-    if (!newName.trim()) return;
-    setCreating(true);
-    try {
-      const res = await createTeam({ name: newName.trim(), league_code: newLeague });
-      await queryClient.invalidateQueries({ queryKey: ["teams"] });
-      setSelectedTeamId(res.team.id);
-      setCreateOpen(false);
-      setNewName("");
-      setNewLeague("nba");
-      toast({ title: `Team "${res.team.name}" created!` });
-    } catch (e: any) {
-      toast({ title: "Error creating team", description: e.message, variant: "destructive" });
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const handleRename = async () => {
     if (!renameId || !renameName.trim()) return;
@@ -117,7 +93,7 @@ export default function TeamSwitcher() {
     <>
       <div className="flex items-center gap-1.5">
         <Select value={selectedTeamId ?? ""} onValueChange={(v) => {
-          if (v === "__new__") setCreateOpen(true);
+          if (v === "__new__") navigate("/welcome", { state: { forceNewTeam: true } });
           else setSelectedTeamId(v);
         }}>
           <SelectTrigger className="w-[150px] h-7 bg-white/10 border-white/20 text-white text-xs font-heading uppercase rounded-lg">
@@ -167,21 +143,6 @@ export default function TeamSwitcher() {
           </div>
         )}
       </div>
-
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="rounded-lg">
-          <DialogHeader><DialogTitle className="font-heading">Create New Team</DialogTitle></DialogHeader>
-          <Input placeholder="Team name..." value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleCreate()} className="rounded-lg" />
-          <div className="pt-2">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-2">League</div>
-            <LeaguePickerCards value={newLeague} onChange={setNewLeague} size="md" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={creating || !newName.trim()}>{creating ? "Creating..." : "Create"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
         <DialogContent className="rounded-lg">
