@@ -27,10 +27,11 @@ type Step = OnboardingStep;
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const navState = (location.state ?? null) as { leagueId?: string; sport?: "nba" | "wnba"; returnTo?: string } | null;
+  const navState = (location.state ?? null) as { leagueId?: string; sport?: "nba" | "wnba"; returnTo?: string; forceNewTeam?: boolean } | null;
   const preselectedLeagueId = navState?.leagueId ?? null;
   const preselectedSport = navState?.sport ?? null;
   const returnTo = navState?.returnTo ?? "/";
+  const forceNewTeam = navState?.forceNewTeam === true;
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId } = useTeam();
   const { shouldOnboard, ready } = useFirstRunGate();
@@ -38,12 +39,29 @@ export default function OnboardingPage() {
   const queryClient = useQueryClient();
   const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);
 
-  // Hydrate persisted onboarding state for this user (resume after refresh)
-  const initial = useMemo(() => getOnboardingState(user?.id), [user?.id]);
-  const [step, setStepRaw] = useState<Step>(initial?.step ?? "hero");
+  // Hydrate persisted onboarding state for this user (resume after refresh).
+  // When forceNewTeam is set (returning user clicked "New Team" on the picker),
+  // ignore stale state and start fresh at the NameStep.
+  const initial = useMemo(
+    () => (forceNewTeam ? null : getOnboardingState(user?.id)),
+    [user?.id, forceNewTeam]
+  );
+  const [step, setStepRaw] = useState<Step>(
+    initial?.step ?? (forceNewTeam ? "name" : "hero")
+  );
   const [creating, setCreating] = useState(false);
-  const [createdTeamName, setCreatedTeamName] = useState(initial?.teamName ?? "");
-  const [createdTeamId, setCreatedTeamId] = useState<string | null>(initial?.teamId ?? null);
+  const [createdTeamName, setCreatedTeamName] = useState(
+    forceNewTeam ? "" : (initial?.teamName ?? "")
+  );
+  const [createdTeamId, setCreatedTeamId] = useState<string | null>(
+    forceNewTeam ? null : (initial?.teamId ?? null)
+  );
+
+  // When forcing a new team, wipe any stale persisted onboarding state.
+  useEffect(() => {
+    if (forceNewTeam) clearOnboardingState(user?.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceNewTeam, user?.id]);
   const [pendingName, setPendingName] = useState<string>("");
   const [pendingMainSport, setPendingMainSport] = useState<"nba" | "wnba">("nba");
 
@@ -87,10 +105,10 @@ export default function OnboardingPage() {
   // here intentionally to create another team (preselectedLeagueId set, e.g.
   // from /scoring empty-state CTA).
   useEffect(() => {
-    if (ready && !shouldOnboard && !preselectedLeagueId) {
+    if (ready && !shouldOnboard && !preselectedLeagueId && !forceNewTeam) {
       navigate("/", { replace: true });
     }
-  }, [ready, shouldOnboard, navigate, preselectedLeagueId]);
+  }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam]);
 
   const submitTeam = async (
     name: string,
@@ -220,7 +238,7 @@ export default function OnboardingPage() {
   };
 
   // Render-gate to prevent light→dark flash when bouncing back to /
-  if (!ready || !shouldOnboard) {
+  if (!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam)) {
     return <div className="h-screen w-full bg-background" aria-hidden />;
   }
 

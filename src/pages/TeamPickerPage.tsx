@@ -2,8 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
-import { Button } from "@/components/ui/button";
-import { Plus, Shield, LogOut } from "lucide-react";
+import { Plus, LogOut, ChevronRight } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -17,6 +16,16 @@ export default function TeamPickerPage() {
     () => teams.filter((t: any) => t.owner_id === user?.id || !t.owner_id),
     [teams, user?.id]
   );
+
+  const displayName = useMemo(() => {
+    const meta = (user?.user_metadata ?? {}) as Record<string, any>;
+    return (
+      meta.full_name ||
+      meta.name ||
+      meta.display_name ||
+      (user?.email ? user.email.split("@")[0] : "Manager")
+    );
+  }, [user]);
 
   // Auto-bypass when user actually has 0 or 1 owned team (defensive guard).
   useEffect(() => {
@@ -33,8 +42,7 @@ export default function TeamPickerPage() {
   };
 
   const handleCreateNew = () => {
-    markTeamPickedThisSession();
-    navigate("/welcome", { replace: true });
+    navigate("/welcome", { state: { forceNewTeam: true } });
   };
 
   if (!isReady || ownedTeams.length < 1) {
@@ -43,7 +51,7 @@ export default function TeamPickerPage() {
 
   return (
     <div
-      className="relative h-screen w-full bg-background text-foreground overflow-hidden flex flex-col"
+      className="relative min-h-screen w-full bg-background text-foreground flex flex-col"
       style={{
         backgroundImage: `
           radial-gradient(ellipse at 20% 10%, hsl(var(--primary) / 0.18), transparent 55%),
@@ -53,7 +61,7 @@ export default function TeamPickerPage() {
       }}
     >
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        className="pointer-events-none fixed inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
             "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)",
@@ -81,11 +89,13 @@ export default function TeamPickerPage() {
         <LogOut className="h-4 w-4" /> Sign out
       </button>
 
-      <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-6 max-w-5xl mx-auto w-full">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Welcome back</p>
+      <div className="relative z-10 flex flex-col items-center flex-1 px-6 py-24 max-w-6xl mx-auto w-full">
+        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">
+          Welcome back · <span className="text-foreground/80">{displayName}</span>
+        </p>
         <h1
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground text-center"
-          style={{ fontSize: "clamp(2rem, 6vh, 4rem)", lineHeight: 1 }}
+          style={{ fontSize: "clamp(1.75rem, 5vh, 3.25rem)", lineHeight: 1 }}
         >
           Pick <span className="text-accent">Your Team</span>
         </h1>
@@ -93,34 +103,36 @@ export default function TeamPickerPage() {
           Which team will you manage today?
         </p>
 
-        <div className="mt-10 grid gap-4 w-full" style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}>
+        <div className="mt-10 grid gap-3 w-full" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(220px, 1fr))` }}>
           {ownedTeams.map((t: any) => {
             const leagueLogo = t.league_code === "wnba" ? wnbaLogo : nbaLogo;
+            const leagueCode = (t.league_code ?? "nba").toUpperCase();
             return (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => handlePick(t.id)}
-                className="group relative text-left p-5 rounded-2xl border-2 border-foreground/10 bg-foreground/[0.02] hover:border-accent hover:bg-accent/5 hover:shadow-[0_0_40px_-15px_hsl(var(--accent))] transition-all h-44 flex flex-col overflow-hidden"
+                className="group relative text-left p-4 rounded-xl border border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all h-28 flex flex-col justify-between overflow-hidden"
               >
-                {/* League watermark — top-right, same effect as TeamModal header */}
                 <img
                   src={leagueLogo}
                   alt=""
                   aria-hidden
-                  className="pointer-events-none absolute -top-6 -right-6 h-28 w-28 object-contain opacity-[0.18] rotate-12 select-none blur-[1px] group-hover:opacity-30 group-hover:rotate-6 transition-all duration-500"
+                  className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 object-contain opacity-[0.12] select-none group-hover:opacity-25 group-hover:scale-110 transition-all duration-500"
                 />
-                <div className="relative h-11 w-11 rounded-xl flex items-center justify-center mb-3 bg-foreground/10 text-foreground/70 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-                  <Shield className="h-6 w-6" />
+                <div className="relative flex items-center gap-2">
+                  <img src={leagueLogo} alt={leagueCode} className="h-6 w-6 object-contain" />
+                  <span className="text-[9px] uppercase tracking-[0.3em] text-foreground/50">
+                    {leagueCode}
+                  </span>
                 </div>
-                <h3 className="relative font-heading uppercase tracking-[0.12em] text-base text-foreground truncate">
-                  {t.name}
-                </h3>
-                {t.description && (
-                  <p className="relative mt-1.5 text-xs text-foreground/60 leading-relaxed line-clamp-2">
-                    {t.description}
-                  </p>
-                )}
+                <div className="relative flex items-end justify-between gap-2">
+                  <h3 className="font-heading uppercase tracking-[0.12em] text-sm text-foreground truncate">
+                    {t.name}
+                  </h3>
+                  <ChevronRight className="h-4 w-4 text-foreground/30 group-hover:text-accent group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                </div>
+                <span className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             );
           })}
@@ -128,17 +140,19 @@ export default function TeamPickerPage() {
           <button
             type="button"
             onClick={handleCreateNew}
-            className="group relative text-left p-5 rounded-2xl border-2 border-dashed border-foreground/15 bg-transparent hover:border-accent hover:bg-accent/5 transition-all h-44 flex flex-col overflow-hidden"
+            className="group relative text-left p-4 rounded-xl border border-dashed border-foreground/15 bg-transparent hover:border-accent hover:bg-accent/5 transition-all h-28 flex flex-col justify-between overflow-hidden"
           >
-            <div className="h-11 w-11 rounded-xl flex items-center justify-center mb-3 bg-foreground/5 text-foreground/60 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
-              <Plus className="h-6 w-6" />
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-foreground/5 text-foreground/60 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
+              <Plus className="h-4 w-4" />
             </div>
-            <h3 className="font-heading uppercase tracking-[0.12em] text-base text-foreground/80">
-              New Team
-            </h3>
-            <p className="mt-1.5 text-xs text-foreground/50 leading-relaxed">
-              Start fresh.
-            </p>
+            <div>
+              <h3 className="font-heading uppercase tracking-[0.12em] text-sm text-foreground/80">
+                New Team
+              </h3>
+              <p className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-foreground/40">
+                Start fresh
+              </p>
+            </div>
           </button>
         </div>
       </div>

@@ -26,6 +26,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   const navigate = useNavigate();
   const { ready, shouldOnboard } = useFirstRunGate();
   const { teams, isReady: teamsReady } = useTeam();
+  const forceNewTeam = (location.state as { forceNewTeam?: boolean } | null)?.forceNewTeam === true;
   // Recap is one-shot per session. Compute *after* auth resolves so the
   // user id is reliably available — initializing in useState would race
   // with the loading state and silently produce false.
@@ -65,6 +66,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   if (
     !skipOnboardingGate &&
     !onPickerRoute &&
+    !forceNewTeam &&
     ready &&
     !shouldOnboard &&
     teamsReady &&
@@ -79,6 +81,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   // One-shot welcome-back recap for returning users (post-onboarding only)
   if (
     !skipOnboardingGate &&
+    !forceNewTeam &&
     ready &&
     !shouldOnboard &&
     welcomeOpen &&
