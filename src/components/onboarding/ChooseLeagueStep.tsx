@@ -15,15 +15,21 @@ interface Props {
   onSubmit: (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: "nba" | "wnba" }) => void | Promise<void>;
   submitting: boolean;
   lockedSport: "nba" | "wnba";
+  initialSelectedIds?: string[];
+  onBeforeCreateLeague?: (selectedIds: string[]) => void;
 }
 
-export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedSport }: Props) {
+export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedSport, initialSelectedIds, onBeforeCreateLeague }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: leagues = [], isLoading } = useFantasyLeagues();
   const mainId = lockedSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set([mainId]));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
+    const seed = new Set<string>([mainId]);
+    (initialSelectedIds ?? []).forEach((id) => seed.add(id));
+    return seed;
+  });
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
   const leagueLogo = lockedSport === "wnba" ? wnbaLogo : nbaLogo;
@@ -129,7 +135,10 @@ export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedS
         <div className="mt-6 grid sm:grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => navigate("/leagues/create", { state: { returnTo: "/welcome" } })}
+            onClick={() => {
+              onBeforeCreateLeague?.(Array.from(selectedIds));
+              navigate("/leagues/create", { state: { returnTo: "/welcome", fromOnboarding: true } });
+            }}
             disabled={submitting}
             className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-foreground/20 bg-foreground/[0.02] px-4 py-3 text-sm uppercase tracking-[0.15em] text-foreground/70 hover:border-accent hover:text-accent transition-colors"
           >
