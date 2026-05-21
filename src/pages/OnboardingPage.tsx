@@ -5,6 +5,7 @@ import { useTeam } from "@/contexts/TeamContext";
 import { useFirstRunGate } from "@/hooks/useFirstRunGate";
 import { createTeam } from "@/lib/api";
 import { deleteTeam } from "@/lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import OnboardingHero from "@/components/onboarding/OnboardingHero";
@@ -93,7 +94,7 @@ export default function OnboardingPage() {
 
   const submitTeam = async (
     name: string,
-    args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba" }
+    args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba"; extraLeagueIds?: string[] }
   ) => {
     setCreating(true);
     try {
@@ -106,6 +107,32 @@ export default function OnboardingPage() {
       setSelectedTeamId(teamId);
       setCreatedTeamId(teamId);
       setCreatedTeamName(res.team.name);
+
+      // Attach team to any extra leagues the user picked.
+      const extras = (args.extraLeagueIds ?? []).filter(Boolean);
+      let attachedCount = 0;
+      for (const leagueId of extras) {
+        try {
+          const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
+            body: { league_id: leagueId, team_id: teamId },
+          });
+          if (error || (data && (data as any).error)) throw new Error((data as any)?.error?.message ?? error?.message ?? "attach failed");
+          attachedCount++;
+        } catch (e: any) {
+          console.error("[onboarding] attach-team failed:", leagueId, e);
+          toast({
+            title: "Could not attach to a league",
+            description: e?.message ?? "Skipped one league; continuing.",
+            variant: "destructive",
+          });
+        }
+      }
+      if (attachedCount > 0) {
+        toast({
+          title: `Added to ${attachedCount + 1} league${attachedCount + 1 === 1 ? "" : "s"}`,
+        });
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
       await queryClient.invalidateQueries({ queryKey: ["fantasy-leagues"] });
       setStep("draft", { teamId, teamName: res.team.name });
@@ -134,7 +161,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleLeagueSubmit = async (args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba" }) => {
+  const handleLeagueSubmit = async (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: "nba" | "wnba" }) => {
     if (!pendingName) {
       setStep("name");
       return;

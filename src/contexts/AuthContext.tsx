@@ -2,7 +2,11 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { clearAllOnboardingStorage } from "@/lib/onboarding-store";
-import { recordSignOut } from "@/lib/welcome-back-store";
+import {
+  recordSignOut,
+  clearTeamPickedThisSession,
+  clearWelcomeBackSeenThisSession,
+} from "@/lib/welcome-back-store";
 
 interface AuthContextValue {
   user: User | null;
@@ -50,6 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("nba_selected_team_id");
     // Clear onboarding skip + per-user resume state
     clearAllOnboardingStorage();
+    // Clear per-session UX flags so the next sign-in (same tab) re-shows
+    // the team picker and welcome-back recap as expected.
+    clearTeamPickedThisSession();
+    clearWelcomeBackSeenThisSession();
     await supabase.auth.signOut();
   };
 

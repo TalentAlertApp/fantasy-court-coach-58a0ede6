@@ -86,3 +86,10 @@ export function clearTeamPickedThisSession() {
     sessionStorage.removeItem(TEAM_PICKED_SESSION_KEY);
   } catch { /* noop */ }
 }
+
+/** Clears the welcome-back-seen flag for this tab session. */
+export function clearWelcomeBackSeenThisSession() {
+  try {
+    sessionStorage.removeItem(SESSION_SEEN_KEY);
+  } catch { /* noop */ }
+}

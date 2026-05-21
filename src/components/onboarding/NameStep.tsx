@@ -34,7 +34,6 @@ export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: 
       <StepIndicator step={2} />
 
       <div className="w-full max-w-2xl text-center animate-fade-in">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 2 of 3</p>
         <h2
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
           style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}
