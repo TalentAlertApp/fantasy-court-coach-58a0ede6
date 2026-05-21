@@ -137,7 +137,14 @@ export default function CreateLeaguePage() {
       const res = await createLeague(input);
       setSelectedLeagueId(res.league_id);
       toast.success(`League created! Share your invite code: ${res.join_code}`);
-      navigate(returnTo);
+      if (returnTo === "/welcome") {
+        navigate("/welcome", {
+          replace: true,
+          state: { resumeChooseLeague: true, newLeagueId: res.league_id },
+        });
+      } else {
+        navigate(returnTo);
+      }
     } catch {
       // error state handled by hook
     }
