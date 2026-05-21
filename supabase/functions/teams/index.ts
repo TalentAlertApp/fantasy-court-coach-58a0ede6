@@ -32,7 +32,6 @@ Deno.serve(async (req) => {
   // Resolve the calling user from the Authorization header (if any).
   const authHeader = req.headers.get("Authorization") ?? "";
   const jwt = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  console.log("[teams] req method:", req.method, "hasAuth:", !!jwt, "jwtLen:", jwt.length);
   let userId: string | null = null;
   if (jwt) {
     try {
@@ -47,14 +46,11 @@ Deno.serve(async (req) => {
         console.warn("[teams] auth.getClaims error:", error.message);
       } else if (data?.claims?.sub) {
         userId = String(data.claims.sub);
-      } else {
-        console.warn("[teams] auth.getClaims returned no claims", JSON.stringify(data));
       }
     } catch (e) {
       console.warn("[teams] auth.getClaims threw:", (e as Error).message);
     }
   }
-  console.log("[teams] resolved userId:", userId);
 
   try {
     if (req.method === "GET") {
