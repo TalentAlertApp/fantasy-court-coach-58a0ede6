@@ -178,8 +178,9 @@ function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeam
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-[180px]">
                   {attachableTeams.map((t) => (
-                    <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs">
-                      {t.name}
+                    <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs gap-2">
+                      <img src={logo} alt="" aria-hidden className="h-4 w-4 object-contain shrink-0" />
+                      <span className="truncate">{t.name}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -1018,8 +1019,9 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[180px]">
                 {attachableTeams.map((t) => (
-                  <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs">
-                    {t.name}
+                  <DropdownMenuItem key={t.id} onClick={() => onAttach(t.id)} className="text-xs gap-2">
+                    <img src={logo} alt="" aria-hidden className="h-4 w-4 object-contain shrink-0" />
+                    <span className="truncate">{t.name}</span>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
