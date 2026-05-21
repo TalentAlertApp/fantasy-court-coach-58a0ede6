@@ -14,6 +14,8 @@ import { getCurrentGameday } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { playSfx } from "@/hooks/useSfx";
+import nbaLogo from "@/assets/nba-logo.svg";
+import wnbaLogo from "@/assets/wnba-logo.png";
 
 type Strategy = "auto" | "manual" | "ai";
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -22,11 +24,14 @@ const SALARY_CAP = 100;
 
 interface Props {
   teamName: string;
+  leagueCode?: "nba" | "wnba";
   onFinish: () => void;
   onBack?: () => void;
 }
 
-export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
+export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: Props) {
+  const watermarkSrc = leagueCode === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLabel = (leagueCode ?? "nba").toUpperCase();
   const { toast } = useToast();
   const { selectedTeamId } = useTeam();
   const queryClient = useQueryClient();
@@ -177,6 +182,26 @@ export default function DraftPicker({ teamName, onFinish, onBack }: Props) {
   return (
     <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
       {(drafting || success) && <DraftingOverlay success={success} />}
+
+      {leagueCode && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-4 right-6 z-0 animate-in fade-in zoom-in-95 duration-700"
+        >
+          <div className="relative">
+            <div
+              className="absolute inset-0 rounded-full blur-3xl opacity-60"
+              style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, transparent 70%)" }}
+            />
+            <img
+              src={watermarkSrc}
+              alt={watermarkLabel}
+              className="relative h-56 w-56 md:h-64 md:w-64 object-contain opacity-[0.10] animate-pulse"
+              style={{ animationDuration: "4s", filter: "blur(0.3px)" }}
+            />
+          </div>
+        </div>
+      )}
 
       <StepIndicator step={3} />
 
