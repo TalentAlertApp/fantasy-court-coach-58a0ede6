@@ -66,10 +66,29 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       const byCode = await leaguesByCode(sb);
-      const enriched = (teams ?? []).map((t: any) => ({
-        ...t,
-        league_code: codeForLeagueId(byCode, t.sport_league_id),
-      }));
+      // Fetch league participations for these teams (many-to-many).
+      const teamIds = (teams ?? []).map((t: any) => t.id);
+      const leagueIdsByTeam: Record<string, string[]> = {};
+      if (teamIds.length > 0) {
+        const { data: tl } = await sb
+          .from("team_leagues")
+          .select("team_id, league_id")
+          .in("team_id", teamIds);
+        for (const r of (tl ?? []) as any[]) {
+          (leagueIdsByTeam[r.team_id] ??= []).push(r.league_id);
+        }
+      }
+      const enriched = (teams ?? []).map((t: any) => {
+        const ids = leagueIdsByTeam[t.id] ?? [];
+        // Backstop: always include the primary league_id even if the join row
+        // is missing (defensive — backfill should cover this).
+        if (t.league_id && !ids.includes(t.league_id)) ids.push(t.league_id);
+        return {
+          ...t,
+          league_code: codeForLeagueId(byCode, t.sport_league_id),
+          league_ids: ids,
+        };
+      });
       const defaultTeamId = (teams && teams.length > 0) ? teams[0].id : null;
       return okResponse({ items: enriched, default_team_id: defaultTeamId });
     }
@@ -167,7 +186,12 @@ Deno.serve(async (req) => {
         .select()
         .single();
       if (error) throw error;
-      return okResponse({ team: { ...team, league_code: code } });
+      // Always create the (team, primary_league) join row so all readers
+      // that go through team_leagues see this team immediately.
+      await sb
+        .from("team_leagues")
+        .insert({ team_id: (team as any).id, league_id: targetLeagueId });
+      return okResponse({ team: { ...team, league_code: code, league_ids: [targetLeagueId] } });
     }
 
     if (req.method === "PATCH") {
