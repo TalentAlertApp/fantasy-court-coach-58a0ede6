@@ -14,8 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 
 export default function TeamSwitcher() {
-  const { teams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
-  const { selectedLeague } = useFantasyLeague();
+  const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [renameOpen, setRenameOpen] = useState(false);
@@ -100,12 +99,7 @@ export default function TeamSwitcher() {
             <SelectValue placeholder="Select team" />
           </SelectTrigger>
           <SelectContent>
-            {(() => {
-              if (teamsInSelectedLeague.length) return teamsInSelectedLeague;
-              const sport = (selectedLeague?.sport ?? "nba") as "nba" | "wnba";
-              const sportTeams = teams.filter((t: any) => (t.league_code ?? "nba") === sport);
-              return sportTeams.length ? sportTeams : teams;
-            })().map((t: any) => (
+            {teams.map((t: any) => (
               <SelectItem key={t.id} value={t.id}>
                 <span className="flex items-center gap-1.5">
                   <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
