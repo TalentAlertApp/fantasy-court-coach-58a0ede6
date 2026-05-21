@@ -277,18 +277,16 @@ export default function LeaguesPage() {
   function getAttachableTeamsFor(league: FantasyLeague): { id: string; name: string }[] {
     if (isMainLeague(league.id)) return [];
     if (!["draft", "active"].includes(league.status)) return [];
-    // Edge function permits at most one team per user per league. If we
-    // already own a team in this league, hide the attach dropdown entirely.
-    const alreadyAttached = (userTeams ?? []).some(
-      (t: any) => t.owner_id === user?.id && t.league_id === league.id,
-    );
-    if (alreadyAttached) return [];
-    if ((league.myTeamCount ?? 0) > 0) return [];
+    // With many-to-many team_leagues, a team participates in a league when
+    // either its primary league_id matches OR its league_ids[] includes it.
+    const participatesIn = (t: any, leagueId: string) =>
+      t.league_id === leagueId ||
+      (Array.isArray(t.league_ids) && t.league_ids.includes(leagueId));
     const matches = (userTeams ?? []).filter(
       (t: any) =>
         t.owner_id === user?.id &&
         ((t.league_code ?? "nba") === league.sport) &&
-        t.league_id !== league.id,
+        !participatesIn(t, league.id),
     );
     // Stable ordering: active sidebar team first, then alpha.
     const sorted = [...matches].sort((a: any, b: any) => {
