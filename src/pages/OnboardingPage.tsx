@@ -89,13 +89,11 @@ export default function OnboardingPage() {
     return ids;
   });
 
-  // Clear the consumed draft + navigation state once hydrated, so a refresh
-  // doesn't re-trigger resume from the same state.
+  // Clear the consumed draft once hydrated. We intentionally keep location.state
+  // intact so RequireAuth continues to honor resumeChooseLeague and doesn't
+  // bounce returning users to the multi-team picker mid-flow.
   useEffect(() => {
-    if (resumeChooseLeague) {
-      clearOnboardingDraft(user?.id);
-      navigate(location.pathname, { replace: true });
-    }
+    if (resumeChooseLeague) clearOnboardingDraft(user?.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
