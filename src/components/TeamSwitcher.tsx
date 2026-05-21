@@ -21,6 +21,7 @@ export default function TeamSwitcher() {
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -41,14 +42,32 @@ export default function TeamSwitcher() {
 
   const handleRename = async () => {
     if (!renameId || !renameName.trim()) return;
+    const trimmed = renameName.trim();
+    // Client-side duplicate guard so we never hit the server's 400 and don't
+    // surface that as a runtime error overlay.
+    const dup = teams.some(
+      (t: any) =>
+        t.id !== renameId &&
+        String(t.name ?? "").trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (dup) {
+      setRenameError("You already have a team with this name. Pick a different one.");
+      return;
+    }
     setRenaming(true);
+    setRenameError(null);
     try {
-      await updateTeam(renameId, { name: renameName.trim() });
+      await updateTeam(renameId, { name: trimmed });
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
       setRenameOpen(false);
       toast({ title: "Team renamed!" });
     } catch (e: any) {
-      toast({ title: "Error renaming team", description: e.message, variant: "destructive" });
+      const msg = String(e?.message ?? "");
+      if (/DUPLICATE_NAME|already have a team with this name/i.test(msg)) {
+        setRenameError("You already have a team with this name. Pick a different one.");
+      } else {
+        setRenameError(msg || "Could not rename team. Try again.");
+      }
     } finally {
       setRenaming(false);
     }
