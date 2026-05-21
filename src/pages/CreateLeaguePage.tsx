@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Loader2, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Check, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useCreateLeague, type CreateLeagueInput } from "@/hooks/useCreateLeague";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -30,6 +31,7 @@ export default function CreateLeaguePage() {
   const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? "/leagues";
   const { createLeague, isLoading, error } = useCreateLeague();
   const { setSelectedLeagueId } = useFantasyLeague();
+  const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);
 
   const [step, setStep] = useState(1);
 
@@ -175,7 +177,16 @@ export default function CreateLeaguePage() {
               Step {step} of {TOTAL_STEPS}
             </p>
           </div>
-          <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <button
+              type="button"
+              onClick={toggleAudio}
+              title={audioEnabled ? "Mute" : "Unmute"}
+              aria-label={audioEnabled ? "Mute background music" : "Unmute background music"}
+              className="h-8 w-8 rounded-full flex items-center justify-center border border-border bg-card/70 backdrop-blur text-foreground/80 hover:text-foreground hover:bg-card transition-colors mr-1"
+            >
+              {audioEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            </button>
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
               const n = i + 1;
               const active = n === step;
