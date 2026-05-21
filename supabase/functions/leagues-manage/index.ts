@@ -88,13 +88,16 @@ Deno.serve(async (req) => {
         const userIds = (members ?? []).map((m: any) => m.user_id);
         const teamCounts = new Map<string, number>();
         if (userIds.length) {
-          const { data: teams } = await sb
-            .from("teams")
-            .select("owner_id")
-            .eq("league_id", leagueId)
-            .in("owner_id", userIds);
-          for (const t of teams ?? []) {
-            teamCounts.set(t.owner_id, (teamCounts.get(t.owner_id) ?? 0) + 1);
+          // Count teams that PARTICIPATE in this league via team_leagues.
+          const { data: tl } = await sb
+            .from("team_leagues")
+            .select("team_id, teams!inner(owner_id)")
+            .eq("league_id", leagueId);
+          for (const r of (tl ?? []) as any[]) {
+            const oid = r.teams?.owner_id;
+            if (oid && userIds.includes(oid)) {
+              teamCounts.set(oid, (teamCounts.get(oid) ?? 0) + 1);
+            }
           }
         }
 
@@ -158,19 +161,27 @@ Deno.serve(async (req) => {
           return jsonError(400, "CANNOT_REMOVE_OWNER", "The league owner cannot be removed");
         }
 
-        // Find target's teams in this league and clean up their dependent rows
-        const { data: targetTeams } = await sb
-          .from("teams")
-          .select("id")
-          .eq("league_id", leagueId)
-          .eq("owner_id", targetUserId);
-        const teamIds = (targetTeams ?? []).map((t: any) => t.id);
-        if (teamIds.length) {
-          await sb.from("roster").delete().in("team_id", teamIds);
-          await sb.from("team_chips").delete().in("team_id", teamIds);
-          await sb.from("team_settings").delete().in("team_id", teamIds);
-          await sb.from("transactions").delete().in("team_id", teamIds);
-          await sb.from("teams").delete().in("id", teamIds);
+        // Find target's teams that participate in this league via team_leagues.
+        const { data: tlRows } = await sb
+          .from("team_leagues")
+          .select("team_id, teams!inner(id, owner_id, league_id)")
+          .eq("league_id", leagueId);
+        const targetTeamRows = (tlRows ?? []).filter((r: any) => r.teams?.owner_id === targetUserId);
+        const allTeamIds = targetTeamRows.map((r: any) => r.teams.id);
+        // Detach from this league.
+        if (allTeamIds.length) {
+          await sb.from("team_leagues").delete().eq("league_id", leagueId).in("team_id", allTeamIds);
+        }
+        // For teams whose PRIMARY league is this league, fully delete (no home left).
+        const primaryHere = targetTeamRows
+          .filter((r: any) => r.teams.league_id === leagueId)
+          .map((r: any) => r.teams.id);
+        if (primaryHere.length) {
+          await sb.from("roster").delete().in("team_id", primaryHere);
+          await sb.from("team_chips").delete().in("team_id", primaryHere);
+          await sb.from("team_settings").delete().in("team_id", primaryHere);
+          await sb.from("transactions").delete().in("team_id", primaryHere);
+          await sb.from("teams").delete().in("id", primaryHere);
         }
 
         const { error: lmErr } = await sb
@@ -195,8 +206,8 @@ Deno.serve(async (req) => {
       if (owned.league.status !== "draft") return jsonError(400, "INVALID_STATUS", "Only draft leagues can be activated");
 
       const { count, error: cErr } = await sb
-        .from("teams")
-        .select("id", { count: "exact", head: true })
+        .from("team_leagues")
+        .select("team_id", { count: "exact", head: true })
         .eq("league_id", leagueId);
       if (cErr) return jsonError(500, "QUERY_FAILED", "Failed to count teams", cErr.message);
       if ((count ?? 0) < 2) return jsonError(400, "TOO_FEW_TEAMS", "League must have at least 2 teams to activate");
@@ -245,8 +256,8 @@ Deno.serve(async (req) => {
       if (owned.league.status !== "draft") return jsonError(400, "INVALID_STATUS", "Only draft leagues can be deleted");
 
       const { count: teamCount } = await sb
-        .from("teams")
-        .select("id", { count: "exact", head: true })
+        .from("team_leagues")
+        .select("team_id", { count: "exact", head: true })
         .eq("league_id", leagueId);
       if ((teamCount ?? 0) > 0) return jsonError(400, "HAS_TEAMS", "Remove all teams before deleting the league");
 
@@ -419,20 +430,29 @@ Deno.serve(async (req) => {
       if (!league) return jsonError(404, "NOT_FOUND", "League not found");
       if (league.owner_id === userId) return jsonError(400, "OWNER_CANNOT_LEAVE", "Commissioner cannot leave their own league");
 
-      const { data: myTeams } = await sb.from("teams").select("id").eq("league_id", leagueId).eq("owner_id", userId);
-      const teamIds = (myTeams ?? []).map((t: any) => t.id);
-      if (teamIds.length) {
-        await sb.from("roster").delete().in("team_id", teamIds);
-        await sb.from("team_chips").delete().in("team_id", teamIds);
-        await sb.from("team_settings").delete().in("team_id", teamIds);
-        await sb.from("transactions").delete().in("team_id", teamIds);
-        await sb.from("teams").delete().in("id", teamIds);
+      // Find my teams participating in this league.
+      const { data: myTL } = await sb
+        .from("team_leagues")
+        .select("team_id, teams!inner(id, owner_id, league_id)")
+        .eq("league_id", leagueId);
+      const mine = (myTL ?? []).filter((r: any) => r.teams?.owner_id === userId);
+      const myTeamIds = mine.map((r: any) => r.teams.id);
+      if (myTeamIds.length) {
+        await sb.from("team_leagues").delete().eq("league_id", leagueId).in("team_id", myTeamIds);
+      }
+      const primaryHere = mine.filter((r: any) => r.teams.league_id === leagueId).map((r: any) => r.teams.id);
+      if (primaryHere.length) {
+        await sb.from("roster").delete().in("team_id", primaryHere);
+        await sb.from("team_chips").delete().in("team_id", primaryHere);
+        await sb.from("team_settings").delete().in("team_id", primaryHere);
+        await sb.from("transactions").delete().in("team_id", primaryHere);
+        await sb.from("teams").delete().in("id", primaryHere);
       }
       await sb.from("league_members").delete().eq("league_id", leagueId).eq("user_id", userId);
       return okResponse({ ok: true });
     }
 
-    // ─────────────────────── ATTACH EXISTING TEAM TO LEAGUE (clone) ───────────────────────
+    // ─────────────────────── ATTACH EXISTING TEAM TO LEAGUE (join row, no clone) ───────────────────────
     if (action === "attach-team" && req.method === "POST") {
       const body = await req.json().catch(() => ({}));
       const targetLeagueId = String(body?.league_id ?? "");
@@ -441,7 +461,6 @@ Deno.serve(async (req) => {
         return jsonError(400, "BAD_REQUEST", "league_id and team_id are required");
       }
 
-      // Source team must be owned by caller
       const { data: srcTeam, error: stErr } = await sb
         .from("teams")
         .select("id, name, description, owner_id, league_id, sport_league_id")
@@ -450,10 +469,6 @@ Deno.serve(async (req) => {
       if (stErr || !srcTeam) return jsonError(404, "NOT_FOUND", "Source team not found");
       if (srcTeam.owner_id !== userId) return jsonError(403, "FORBIDDEN", "You do not own this team");
 
-      // Source sport — derive from the team's sport_league_id (authoritative),
-      // falling back to its league_id only if sport_league_id is missing. The
-      // fantasy league_id can point to a different sport than the team in
-      // legacy rows, so trusting it here causes false SPORT_MISMATCH errors.
       let srcSport: string = "nba";
       if (srcTeam.sport_league_id) {
         const { data: sportRow } = await sb
@@ -471,7 +486,6 @@ Deno.serve(async (req) => {
         if (srcLeague?.sport) srcSport = srcLeague.sport;
       }
 
-      // Target league
       const { data: tgtLeague, error: tlErr } = await sb
         .from("leagues")
         .select("id, name, sport, kind, status, visibility, max_teams, sport_league_id")
@@ -486,95 +500,13 @@ Deno.serve(async (req) => {
         return jsonError(400, "SPORT_MISMATCH", `Team is ${srcSport.toUpperCase()}, league is ${String(tgtLeague.sport).toUpperCase()}`);
       }
 
-      // Resolve a valid sport_league_id for the target. teams.sport_league_id is
-      // NOT NULL, and many user-created fantasy leagues were saved with a null
-      // sport_league_id. Look up the canonical sport league row by sport code.
-      let resolvedSportLeagueId: string | null =
-        (tgtLeague.sport_league_id as string | null) ?? (srcTeam.sport_league_id as string | null) ?? null;
-      if (!resolvedSportLeagueId) {
-        const { data: sportRow } = await sb
-          .from("leagues")
-          .select("id")
-          .eq("kind", "sport")
-          .eq("sport", tgtLeague.sport)
-          .maybeSingle();
-        resolvedSportLeagueId = (sportRow?.id as string | undefined) ?? null;
-      }
-      if (!resolvedSportLeagueId) {
-        return jsonError(
-          500,
-          "SPORT_LEAGUE_UNRESOLVED",
-          `Could not resolve a sport league for ${String(tgtLeague.sport).toUpperCase()}`,
-        );
-      }
-      // Persist back onto the target league so future attaches skip the lookup.
-      if (!tgtLeague.sport_league_id) {
-        await sb.from("leagues").update({ sport_league_id: resolvedSportLeagueId }).eq("id", targetLeagueId);
-      }
-
-      // Capacity and per-user uniqueness intentionally not enforced — users may attach
-      // multiple teams to the same league.
-
-      // Name collision → suffix
-      let cloneName = srcTeam.name;
-      const { data: nameClash } = await sb
-        .from("teams")
-        .select("id")
-        .eq("league_id", targetLeagueId)
-        .eq("name", cloneName)
-        .maybeSingle();
-      if (nameClash) cloneName = `${srcTeam.name} (2)`.slice(0, 40);
-
-      // Insert cloned team
-      const { data: newTeam, error: insErr } = await sb
-        .from("teams")
-        .insert({
-          name: cloneName,
-          description: srcTeam.description ?? null,
-          owner_id: userId,
-          league_id: targetLeagueId,
-          sport_league_id: resolvedSportLeagueId,
-        })
-        .select("id, name")
-        .single();
-      if (insErr || !newTeam) {
-        console.error("[attach-team] INSERT_TEAM_FAILED", insErr);
-        return jsonError(500, "INSERT_TEAM_FAILED", "Failed to create team", insErr?.message ?? null);
-      }
-
-      // Copy roster (current entries from source team) into the new team
-      const { data: srcRoster } = await sb
-        .from("roster")
-        .select("slot, player_id, is_captain, gw, day, acquired_salary")
-        .eq("team_id", sourceTeamId);
-      if (srcRoster && srcRoster.length) {
-        const rows = srcRoster.map((r: any) => ({
-          team_id: newTeam.id,
-          league_id: targetLeagueId,
-          slot: r.slot,
-          player_id: r.player_id,
-          is_captain: r.is_captain,
-          gw: r.gw ?? 1,
-          day: r.day ?? 1,
-          acquired_salary: Number(r.acquired_salary ?? 0),
-        }));
-        const { error: rosterErr } = await sb.from("roster").insert(rows);
-        if (rosterErr) {
-          // Roster clone is best-effort — don't block the attach but surface
-          // the underlying error in logs so we can chase mismatches later.
-          console.error("[attach-team] roster clone failed (continuing)", rosterErr);
-        }
-      }
-
-      // Copy team_settings if present
-      const { data: srcSettings } = await sb
-        .from("team_settings")
-        .select("salary_cap, starter_fc_min, starter_bc_min")
-        .eq("team_id", sourceTeamId)
-        .maybeSingle();
-      if (srcSettings) {
-        const { error: tsErr } = await sb.from("team_settings").insert({ team_id: newTeam.id, ...srcSettings });
-        if (tsErr) console.error("[attach-team] team_settings clone failed", tsErr);
+      // Idempotent join — one team, many leagues, shared roster.
+      const { error: joinErr } = await sb
+        .from("team_leagues")
+        .upsert({ team_id: sourceTeamId, league_id: targetLeagueId }, { onConflict: "team_id,league_id" });
+      if (joinErr) {
+        console.error("[attach-team] join insert failed", joinErr);
+        return jsonError(500, "ATTACH_FAILED", "Failed to attach team", joinErr.message);
       }
 
       // Ensure league membership row exists
@@ -592,7 +524,30 @@ Deno.serve(async (req) => {
         });
       }
 
-      return okResponse({ team_id: newTeam.id, team_name: newTeam.name, league_id: targetLeagueId, league_name: tgtLeague.name });
+      return okResponse({ team_id: sourceTeamId, team_name: srcTeam.name, league_id: targetLeagueId, league_name: tgtLeague.name });
+    }
+
+    // ─────────────────────── DETACH TEAM FROM LEAGUE ───────────────────────
+    if (action === "detach-team" && req.method === "POST") {
+      const body = await req.json().catch(() => ({}));
+      const targetLeagueId = String(body?.league_id ?? "");
+      const teamId = String(body?.team_id ?? "");
+      if (!targetLeagueId || !teamId) {
+        return jsonError(400, "BAD_REQUEST", "league_id and team_id are required");
+      }
+      const { data: t } = await sb.from("teams").select("owner_id, league_id").eq("id", teamId).maybeSingle();
+      if (!t) return jsonError(404, "NOT_FOUND", "Team not found");
+      if (t.owner_id !== userId) return jsonError(403, "FORBIDDEN", "You do not own this team");
+      if (t.league_id === targetLeagueId) {
+        return jsonError(400, "PRIMARY_LEAGUE", "Cannot detach a team from its primary league. Delete the team instead.");
+      }
+      const { error } = await sb
+        .from("team_leagues")
+        .delete()
+        .eq("team_id", teamId)
+        .eq("league_id", targetLeagueId);
+      if (error) return jsonError(500, "DETACH_FAILED", "Failed to detach team", error.message);
+      return okResponse({ ok: true });
     }
 
     return jsonError(404, "UNKNOWN_ACTION", `Unknown action: ${action || "(root)"} ${req.method}`);
