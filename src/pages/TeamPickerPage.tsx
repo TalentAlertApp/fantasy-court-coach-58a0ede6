@@ -6,6 +6,7 @@ import { Plus, LogOut, ChevronRight } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import TeamLeagueChips from "@/components/TeamLeagueChips";
 
 export default function TeamPickerPage() {
   const navigate = useNavigate();
@@ -132,6 +133,15 @@ export default function TeamPickerPage() {
                   </h3>
                   <ChevronRight className="h-4 w-4 text-foreground/30 group-hover:text-accent group-hover:translate-x-0.5 transition-all flex-shrink-0" />
                 </div>
+                {Array.isArray(t.league_ids) && t.league_ids.length > 0 && (
+                  <div className="relative -mt-1">
+                    <TeamLeagueChips
+                      leagueIds={t.league_ids}
+                      primaryId={t.league_id}
+                      max={3}
+                    />
+                  </div>
+                )}
                 <span className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             );
