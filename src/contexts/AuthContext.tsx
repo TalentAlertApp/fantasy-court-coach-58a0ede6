@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { clearAllOnboardingStorage } from "@/lib/onboarding-store";
 import {
   recordSignOut,
@@ -26,25 +27,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const prevUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // CRITICAL: subscribe BEFORE getSession to avoid missing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      const nextId = newSession?.user?.id ?? null;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       setLoading(false);
+      if (nextId !== prevUserIdRef.current) {
+        prevUserIdRef.current = nextId;
+        // Caller identity changed (sign-in, sign-out, account switch) —
+        // wipe any cached server data tied to the previous (or anonymous) caller
+        // so user-scoped queries (teams, rosters, …) refetch with the right JWT.
+        queryClient.invalidateQueries();
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session: initial } }) => {
+      const nextId = initial?.user?.id ?? null;
       setSession(initial);
       setUser(initial?.user ?? null);
       setLoading(false);
+      if (nextId !== prevUserIdRef.current) {
+        prevUserIdRef.current = nextId;
+        queryClient.invalidateQueries();
+      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const signOut = async () => {
     // Record sign-out timestamp BEFORE clearing the session so we can show
