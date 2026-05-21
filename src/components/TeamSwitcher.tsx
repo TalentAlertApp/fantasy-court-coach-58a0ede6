@@ -21,6 +21,7 @@ export default function TeamSwitcher() {
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -41,14 +42,32 @@ export default function TeamSwitcher() {
 
   const handleRename = async () => {
     if (!renameId || !renameName.trim()) return;
+    const trimmed = renameName.trim();
+    // Client-side duplicate guard so we never hit the server's 400 and don't
+    // surface that as a runtime error overlay.
+    const dup = teams.some(
+      (t: any) =>
+        t.id !== renameId &&
+        String(t.name ?? "").trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (dup) {
+      setRenameError("You already have a team with this name. Pick a different one.");
+      return;
+    }
     setRenaming(true);
+    setRenameError(null);
     try {
-      await updateTeam(renameId, { name: renameName.trim() });
+      await updateTeam(renameId, { name: trimmed });
       await queryClient.invalidateQueries({ queryKey: ["teams"] });
       setRenameOpen(false);
       toast({ title: "Team renamed!" });
     } catch (e: any) {
-      toast({ title: "Error renaming team", description: e.message, variant: "destructive" });
+      const msg = String(e?.message ?? "");
+      if (/DUPLICATE_NAME|already have a team with this name/i.test(msg)) {
+        setRenameError("You already have a team with this name. Pick a different one.");
+      } else {
+        setRenameError(msg || "Could not rename team. Try again.");
+      }
     } finally {
       setRenaming(false);
     }
@@ -126,7 +145,7 @@ export default function TeamSwitcher() {
               className="h-6 w-6 text-white/60 hover:text-white hover:bg-white/10"
               onClick={() => {
                 const team = teams.find((t) => t.id === selectedTeamId);
-                if (team) { setRenameId(team.id); setRenameName(team.name); setRenameOpen(true); }
+                if (team) { setRenameId(team.id); setRenameName(team.name); setRenameError(null); setRenameOpen(true); }
               }}
             >
               <Pencil className="h-3 w-3" />
@@ -144,10 +163,23 @@ export default function TeamSwitcher() {
         )}
       </div>
 
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+      <Dialog open={renameOpen} onOpenChange={(o) => { setRenameOpen(o); if (!o) setRenameError(null); }}>
         <DialogContent className="rounded-lg">
           <DialogHeader><DialogTitle className="font-heading">Rename Team</DialogTitle></DialogHeader>
-          <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleRename()} className="rounded-lg" />
+          <Input
+            value={renameName}
+            onChange={(e) => { setRenameName(e.target.value); if (renameError) setRenameError(null); }}
+            onKeyDown={(e) => e.key === "Enter" && handleRename()}
+            className="rounded-lg"
+          />
+          {renameError && (
+            <div
+              role="alert"
+              className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {renameError}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
             <Button onClick={handleRename} disabled={renaming || !renameName.trim()}>{renaming ? "Saving..." : "Save"}</Button>
