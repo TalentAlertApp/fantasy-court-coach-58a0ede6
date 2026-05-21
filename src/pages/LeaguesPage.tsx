@@ -258,6 +258,21 @@ export default function LeaguesPage() {
     const target = (userTeams ?? []).find((t: any) => t.id === teamId) as { id: string; name: string } | undefined;
     if (!target) return;
     setAttachingLeagueId(league.id);
+    // Optimistic update: append league.id to the team's league_ids so the
+    // "Add Your Team" dropdown hides it in the same frame.
+    const prevTeamsSnapshot = qc.getQueryData<any>(["teams"]);
+    qc.setQueryData<any>(["teams"], (curr: any) => {
+      if (!curr?.items) return curr;
+      return {
+        ...curr,
+        items: curr.items.map((t: any) => {
+          if (t.id !== teamId) return t;
+          const ids: string[] = Array.isArray(t.league_ids) ? [...t.league_ids] : [];
+          if (!ids.includes(league.id)) ids.push(league.id);
+          return { ...t, league_ids: ids };
+        }),
+      };
+    });
     try {
       const { data, error } = await supabase.functions.invoke("leagues-manage/attach-team", {
         body: { league_id: league.id, team_id: target.id },
@@ -265,9 +280,15 @@ export default function LeaguesPage() {
       const env = data as { ok?: boolean; data?: any; error?: { message?: string } } | null;
       if (error || !env?.ok) throw new Error(env?.error?.message ?? error?.message ?? "Failed to attach team");
       toast.success(`Added "${target.name}" to ${league.name}`);
-      await qc.invalidateQueries({ queryKey: ["teams"] });
-      await qc.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+      // Force an immediate refetch so cache reflects the server state before
+      // we release the spinner; the dropdown will then re-derive correctly.
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ["teams"], type: "active" }),
+        qc.refetchQueries({ queryKey: ["fantasy-leagues"], type: "active" }),
+      ]);
     } catch (e: any) {
+      // Roll the optimistic mutation back on failure.
+      if (prevTeamsSnapshot) qc.setQueryData(["teams"], prevTeamsSnapshot);
       toast.error(e?.message ?? "Could not attach team");
     } finally {
       setAttachingLeagueId(null);

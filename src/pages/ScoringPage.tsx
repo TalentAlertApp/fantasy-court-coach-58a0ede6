@@ -495,10 +495,7 @@ function LeagueView({
             </Button>
           </div>
         </div>
-        <div
-          className="overflow-auto flex-1 min-h-0"
-          style={{ maxHeight: "calc(10 * 2.5rem + 2.25rem)" }}
-        >
+        <div className="overflow-auto flex-1 min-h-0">
           <table className="w-full text-sm border-separate border-spacing-0">
             <thead className="sticky top-0 z-10">
               <tr className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground [&>th]:bg-card [&>th]:border-b [&>th]:border-border">

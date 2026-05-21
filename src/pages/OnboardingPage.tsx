@@ -14,7 +14,7 @@ import NameStep from "@/components/onboarding/NameStep";
 import DraftStep from "@/components/onboarding/DraftStep";
 import ChooseLeagueStep from "@/components/onboarding/ChooseLeagueStep";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Loader2 } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import { markWelcomeBackSeenThisSession } from "@/lib/welcome-back-store";
 import {
@@ -147,6 +147,19 @@ export default function OnboardingPage() {
       navigate("/welcome/pick-team", { replace: true });
     }
   }, [ready, shouldOnboard, navigate, preselectedLeagueId, forceNewTeam, resumeChooseLeague]);
+
+  // Fallback redirect: if the first-run gate stalls (e.g., a slow teams
+  // refetch) but we already have at least one owned team in cache, push the
+  // user to the picker so /welcome never becomes a permanent blank screen.
+  useEffect(() => {
+    if (preselectedLeagueId || forceNewTeam || resumeChooseLeague) return;
+    if (!user?.id) return;
+    const owned = teams.filter((t: any) => t.owner_id === user.id || !t.owner_id);
+    if (owned.length >= 1) {
+      navigate("/welcome/pick-team", { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams, user?.id]);
 
   const submitTeam = async (
     name: string,
@@ -313,9 +326,16 @@ export default function OnboardingPage() {
     setOnboardingState(user?.id, { step: nextStep });
   };
 
-  // Render-gate to prevent light→dark flash when bouncing back to /
+  // Render-gate to prevent light→dark flash when bouncing back to /.
+  // Show a visible spinner instead of a silent placeholder so the page
+  // never appears as a permanent blank screen if the redirect effects don't
+  // fire (e.g., teams query still in flight).
   if (!ready || (!shouldOnboard && !preselectedLeagueId && !forceNewTeam && !resumeChooseLeague)) {
-    return <div className="h-screen w-full bg-background" aria-hidden />;
+    return (
+      <div className="h-screen w-full bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
