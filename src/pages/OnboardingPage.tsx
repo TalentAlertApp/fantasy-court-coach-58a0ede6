@@ -15,6 +15,7 @@ import DraftStep from "@/components/onboarding/DraftStep";
 import ChooseLeagueStep from "@/components/onboarding/ChooseLeagueStep";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { Volume2, VolumeX } from "lucide-react";
+import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import {
   getOnboardingState,
   setOnboardingState,
@@ -225,6 +226,21 @@ export default function OnboardingPage() {
   // the name and either skip to draft (if a league is preselected) or go to
   // the Choose League step.
   const handleNameSubmit = async (name: string, leagueCode: "nba" | "wnba") => {
+    // Block duplicate franchise name for this user (case-insensitive, trimmed).
+    const trimmed = name.trim();
+    const dup = teams.some(
+      (t: any) =>
+        (t.owner_id ?? null) === (user?.id ?? null) &&
+        String(t.name ?? "").trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (dup) {
+      toast({
+        title: "Name already taken",
+        description: "You already have a team with this name. Pick a different one.",
+        variant: "destructive",
+      });
+      return;
+    }
     setPendingName(name);
     setPendingMainSport(leagueCode);
     if (preselectedLeagueId) {
@@ -254,8 +270,17 @@ export default function OnboardingPage() {
   };
 
   const handleFinish = async () => {
+    // Pin the newly-created team as the active selection and mark a pick for
+    // this session so RequireAuth doesn't bounce to /welcome/pick-team and
+    // strand the user on the previous team.
+    if (createdTeamId) {
+      setSelectedTeamId(createdTeamId);
+      markTeamPickedThisSession();
+    }
     clearOnboardingState(user?.id);
-    await queryClient.invalidateQueries({ queryKey: ["teams"] });
+    // Refetch (not just invalidate) so TeamContext.teams contains the new
+    // team by the time the destination page renders the pill.
+    await queryClient.refetchQueries({ queryKey: ["teams"] });
     await queryClient.invalidateQueries({ queryKey: ["roster-current"] });
     navigate(returnTo, { replace: true });
   };
