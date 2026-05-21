@@ -109,6 +109,7 @@ export default function RequireAuth({ children, skipOnboardingGate }: Props) {
   // One-shot welcome-back recap for returning users (post-onboarding only)
   if (
     !skipOnboardingGate &&
+    !onCreateLeagueRoute &&
     !forceNewTeam &&
     !resumeChooseLeague &&
     ready &&
