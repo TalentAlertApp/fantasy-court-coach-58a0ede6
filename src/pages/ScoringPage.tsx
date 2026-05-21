@@ -129,7 +129,7 @@ export default function ScoringPage() {
   }, [selectedLeagueId, myTeams.length, teamReady]);
 
   return (
-    <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
+    <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto flex flex-col h-[calc(100vh-3.5rem)] min-h-0">
       {/* Header — premium NBA bar with court-line gradient */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
         <img
@@ -177,7 +177,7 @@ export default function ScoringPage() {
         )}
       />
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex-1 min-h-0 flex flex-col">
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
         <div className="flex items-center gap-3 flex-wrap">
           <TabsList className="grid grid-cols-3 w-full max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
@@ -232,7 +232,7 @@ export default function ScoringPage() {
         </div>
 
         {/* ════════════════════════ LEAGUE TAB ════════════════════════ */}
-        <TabsContent value="league" className="space-y-5 mt-5">
+        <TabsContent value="league" className="space-y-5 mt-5 flex-1 min-h-0 flex flex-col data-[state=inactive]:hidden">
           <LeagueView
             data={standingsQuery.data}
             isLoading={standingsQuery.isLoading}
