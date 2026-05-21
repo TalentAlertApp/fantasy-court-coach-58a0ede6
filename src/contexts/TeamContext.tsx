@@ -13,6 +13,8 @@ export type TeamRecord = {
   sport_league_id?: string | null;
   owner_id?: string | null;
   league_id?: string | null;
+  /** All fantasy leagues this team participates in (via team_leagues). */
+  league_ids?: string[];
 };
 
 interface TeamContextValue {
