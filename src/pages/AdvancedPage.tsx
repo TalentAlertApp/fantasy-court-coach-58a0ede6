@@ -813,60 +813,38 @@ function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
 export default function AdvancedPage() {
   const { league } = useLeague();
   const competition = getCompetition(league);
-
   // Advanced / PLAY SEARCH is gated by the competition registry. Competitions
-  // that don't expose play-by-play data (e.g. EuroLeague today) render a
-  // notice instead of mounting the heavy data hooks below.
-  if (!competition.hasAdvancedPlaySearch) {
-    return (
-      <div className="max-w-3xl mx-auto py-16 px-4">
-        <div className="rounded-2xl border border-foreground/15 bg-gradient-to-b from-foreground/5 to-transparent p-10 text-center space-y-5">
-          <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
-            Advanced · {competition.label}
-          </span>
-          <h1 className="text-2xl font-heading font-black uppercase tracking-[0.15em]">
-            Advanced Play Search is not available for {competition.label} yet
-          </h1>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Play-by-play data isn't ingested for {competition.label} today.
-            In the meantime, explore the {competition.label} roster catalog or
-            season stats.
-          </p>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <Button asChild variant="default" className="font-heading uppercase tracking-wider">
-              <Link to="/transactions"><Users className="size-4 mr-2" />Players</Link>
-            </Button>
-            <Button asChild variant="outline" className="font-heading uppercase tracking-wider">
-              <Link to="/scoring"><BarChart3 className="size-4 mr-2" />Stats</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // that don't expose play-by-play data (e.g. EuroLeague today) still get
+  // Playing Time / Advanced Stats / Trending — we just hide the Play Search tab.
+  const showPlaySearch = competition.hasAdvancedPlaySearch;
   const { data, isLoading } = usePlayingTimeTrends();
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
-  const [tab, setTab] = useState<AdvancedTab>(() => getLastAdvancedTab() ?? "play-search");
+  const [tab, setTab] = useState<AdvancedTab>(() => {
+    const last = getLastAdvancedTab() ?? (showPlaySearch ? "play-search" : "playing-time");
+    return last === "play-search" && !showPlaySearch ? "playing-time" : last;
+  });
   useEffect(() => { setLastAdvancedTab(tab); }, [tab]);
+
+  const tabsDef = ([
+    ...(showPlaySearch ? [["play-search", "Play Search"] as const] : []),
+    ["playing-time", "Playing Time"] as const,
+    ["advanced-stats", "Advanced Stats"] as const,
+    ["trending", "Trending"] as const,
+  ]);
+  const gridColsCls = tabsDef.length === 4 ? "grid-cols-4" : "grid-cols-3";
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
-          Advanced · NBA Insights
+          Advanced · {competition.label} Insights
         </span>
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as AdvancedTab)} className="space-y-4">
         <div className="border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg">
-          <TabsList className="bg-transparent p-0 h-auto grid grid-cols-4 w-full max-w-3xl mx-auto">
-            {([
-              ["play-search", "Play Search"],
-              ["playing-time", "Playing Time"],
-              ["advanced-stats", "Advanced Stats"],
-              ["trending", "Trending"],
-            ] as const).map(([v, label]) => (
+          <TabsList className={`bg-transparent p-0 h-auto grid ${gridColsCls} w-full max-w-3xl mx-auto`}>
+            {tabsDef.map(([v, label]) => (
               <TabsTrigger
                 key={v}
                 value={v}
@@ -878,9 +856,11 @@ export default function AdvancedPage() {
           </TabsList>
         </div>
 
-        <TabsContent value="play-search">
-          <NBAPlaySearchSection />
-        </TabsContent>
+        {showPlaySearch && (
+          <TabsContent value="play-search">
+            <NBAPlaySearchSection />
+          </TabsContent>
+        )}
 
         <TabsContent value="playing-time" className="space-y-4">
           <div className="flex items-center justify-between">

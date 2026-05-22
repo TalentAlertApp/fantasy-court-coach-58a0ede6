@@ -32,6 +32,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   const currentGw = (deadlines.length > 0 ? getCurrentGamedayFrom(deadlines)?.gw : undefined) ?? getCurrentGameday().gw;
   const { league } = useLeague();
   const leagueLogo = getLeagueLogo(league);
+  const showCollege = league !== "euroleague";
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -59,10 +60,12 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
     <TableHeader>
       <TableRow className="hover:bg-transparent border-b-2 border-border/60">
         <TableHead className="px-2 font-heading uppercase tracking-wider text-[10px]">Player</TableHead>
-        <TableHead className="px-1.5 text-center w-[88px] font-heading uppercase tracking-wider text-[10px]" title="Date of Birth (Age)">DOB (Age)</TableHead>
+        <TableHead className="px-1.5 text-center w-[96px] font-heading uppercase tracking-wider text-[10px]" title="Date of Birth (Age)">DOB (Age)</TableHead>
         <TableHead className="px-1.5 text-center w-12 font-heading uppercase tracking-wider text-[10px]">HT</TableHead>
-        <TableHead className="px-1.5 w-32 font-heading uppercase tracking-wider text-[10px]">College</TableHead>
-        <TableHead className="px-1.5 w-32 font-heading uppercase tracking-wider text-[10px]">Nation</TableHead>
+        {showCollege && (
+          <TableHead className="px-1.5 w-32 font-heading uppercase tracking-wider text-[10px]">College</TableHead>
+        )}
+        <TableHead className="px-1.5 w-36 font-heading uppercase tracking-wider text-[10px]">Nation</TableHead>
         <TableHead className="px-1.5 text-center w-14 font-heading uppercase tracking-wider text-[10px]">FC/BC</TableHead>
         <TableHead className="px-1.5 text-center w-12 font-heading uppercase tracking-wider text-[10px]" title="Health status">Health</TableHead>
         <TableHead className="px-1.5 text-right w-[68px] font-heading uppercase tracking-wider text-[10px]">Salary</TableHead>
@@ -90,6 +93,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       difficultyMap={difficultyMap}
       onSlotClick={onSlotClick}
       gameLogs={gameLogsByPlayer?.[p.core.id]}
+      showCollege={showCollege}
     />
   );
 
@@ -105,7 +109,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">STARTING 5</div>
         <div className="overflow-x-auto premium-scroll">
-          <Table className="min-w-[1080px]">{header}
+          <Table className={showCollege ? "min-w-[1080px]" : "min-w-[980px]"}>{header}
             <TableBody>{starters.map(renderRow)}</TableBody>
           </Table>
         </div>
@@ -113,7 +117,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">BENCH</div>
         <div className="overflow-x-auto premium-scroll">
-          <Table className="min-w-[1080px]">{header}
+          <Table className={showCollege ? "min-w-[1080px]" : "min-w-[980px]"}>{header}
             <TableBody>{bench.map(renderRow)}</TableBody>
           </Table>
         </div>

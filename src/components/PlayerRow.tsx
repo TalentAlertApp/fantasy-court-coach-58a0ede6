@@ -35,9 +35,11 @@ interface PlayerRowProps {
   difficultyMap?: Record<string, BIQTeamDifficulty>;
   onSlotClick?: (g: UpcomingGame) => void;
   gameLogs?: Record<string, { fp: number; mp: number; pts: number }>;
+  /** Hide the College column (e.g. EuroLeague). Default true (show). */
+  showCollege?: boolean;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs, showCollege = true }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const { isWnba } = useLeague();
   const teamLogo = getTeamLogo(core.team);
@@ -150,14 +152,16 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           </div>
         </div>
       </TableCell>
-      <TableCell className="px-1.5 text-center w-[88px] text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
+      <TableCell className="px-1.5 text-center w-[96px] text-[11px] text-muted-foreground tabular-nums whitespace-nowrap">
         {dobLabel} ({core.age || "—"})
       </TableCell>
       <TableCell className="px-1.5 text-center w-12 text-[11px] text-muted-foreground">{core.height ?? "—"}</TableCell>
-      <TableCell className="px-1.5 w-32 text-[11px] text-muted-foreground whitespace-nowrap truncate max-w-[128px]" title={core.college ?? undefined}>
-        {core.college ?? "—"}
-      </TableCell>
-      <TableCell className="px-1.5 w-32 text-[11px] text-muted-foreground whitespace-nowrap truncate max-w-[128px]" title={countryLabel(core.nationality) ?? undefined}>
+      {showCollege && (
+        <TableCell className="px-1.5 w-32 text-[11px] text-muted-foreground whitespace-nowrap truncate max-w-[128px]" title={core.college ?? undefined}>
+          {core.college ?? "—"}
+        </TableCell>
+      )}
+      <TableCell className="px-1.5 w-36 text-[11px] text-muted-foreground whitespace-nowrap truncate max-w-[144px]" title={countryLabel(core.nationality) ?? undefined}>
         {core.nationality ? (
           <span className="inline-flex items-center gap-1.5 truncate">
             <NationalityFlag country={core.nationality} size="xs" />

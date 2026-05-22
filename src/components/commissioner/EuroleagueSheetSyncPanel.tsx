@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Database, Loader2, CalendarDays, Trophy, Users, BarChart3, RefreshCw, Shield, ListChecks,
-  DollarSign, Tv2,
+  DollarSign, Tv2, Film,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -60,6 +60,26 @@ export default function EuroleagueSheetSyncPanel() {
   } | null>(null);
   const [recapBusy, setRecapBusy] = useState(false);
   const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+  const [scrapeBusy, setScrapeBusy] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<{ processed: number; found: number; remaining: number | null } | null>(null);
+
+  const runRecapScrape = async () => {
+    setScrapeBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("euroleague-recap-scrape", {
+        body: null,
+        headers: { "x-admin-secret": adminSecret() },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error?.message ?? "Unknown error");
+      setScrapeResult(data.data);
+      toast.success(`Recap scrape: ${data.data.found} found / ${data.data.processed} processed`);
+    } catch (e) {
+      toast.error(`Recap scrape failed: ${(e as Error).message}`);
+    } finally {
+      setScrapeBusy(false);
+    }
+  };
 
   const runRecapLookup = async () => {
     setRecapBusy(true);
@@ -187,7 +207,27 @@ export default function EuroleagueSheetSyncPanel() {
             : <Tv2 className="h-4 w-4 mr-2" />}
           Find YouTube Recaps
         </Button>
+        <Button
+          onClick={runRecapScrape}
+          disabled={busyMode !== null || scrapeBusy}
+          variant="default"
+          size="sm"
+        >
+          {scrapeBusy
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <Film className="h-4 w-4 mr-2" />}
+          Scrape Recaps from Euroleague.net
+        </Button>
       </div>
+
+      {scrapeResult && (
+        <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
+          <span className="font-semibold">recap scrape</span>
+          <span>processed: <b>{scrapeResult.processed}</b></span>
+          <span>found: <b>{scrapeResult.found}</b></span>
+          <span>remaining: <b>{scrapeResult.remaining ?? "—"}</b></span>
+        </div>
+      )}
 
       {recapResult && (
         <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
