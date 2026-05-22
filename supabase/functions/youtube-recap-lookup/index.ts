@@ -324,12 +324,14 @@ serve(async (req: Request) => {
         // Primary: channel-scoped — both teams + highlights + date strongly preferred.
         // WNBA titles often omit "Full Game", so accept a slightly lower minScore.
         // Relaxed mode lowers thresholds further so manual refreshes catch late posts.
-        const primaryMin = relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6);
+        const primaryMin = isEuro ? 4 : (relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6));
         let { id: videoId } = scoreItems(items, primaryMin);
 
         // Fallback: open YouTube search if channel-scoped lookup found no confident match.
         if (!videoId) {
-          const fbQuery = isWnba
+          const fbQuery = isEuro
+            ? `${awayFull} vs ${homeFull} ${dateStr} euroleague highlights`.trim()
+            : isWnba
             ? `${awayFull} vs ${homeFull} ${dateStr} wnba highlights`.trim()
             : `${awayFull} vs ${homeFull} ${dateStr} full game highlights recap`.trim();
           const fbUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(fbQuery)}&type=video&videoEmbeddable=true&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
@@ -337,7 +339,7 @@ serve(async (req: Request) => {
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
-            videoId = scoreItems(fbItems, isWnba ? 5 : 6).id;
+            videoId = scoreItems(fbItems, isEuro ? 4 : (isWnba ? 5 : 6)).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             quotaExhausted = true;
