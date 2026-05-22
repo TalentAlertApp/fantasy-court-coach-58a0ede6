@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
+import { EUROLEAGUE_TEAMS } from "@/lib/euroleague-teams";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCcw, Youtube, ScanSearch } from "lucide-react";
@@ -15,15 +16,16 @@ interface MissingRow {
   status: string;
 }
 
-const LEAGUE_ID: Record<"nba" | "wnba", string> = {
+const LEAGUE_ID: Record<"nba" | "wnba" | "euroleague", string> = {
   nba: "c4f2eb76-9ac4-4988-b402-5827aa41861b",
   wnba: "d9825d6d-67bf-417d-aca6-1b4481eb14b5",
+  euroleague: "00000000-0000-0000-0000-000000000003",
 };
 
-export default function MissingRecapsPanel({ league }: { league: "nba" | "wnba" }) {
+export default function MissingRecapsPanel({ league }: { league: "nba" | "wnba" | "euroleague" }) {
   const logoByTri = useMemo(() => {
     const m = new Map<string, string>();
-    const src = league === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
+    const src = league === "wnba" ? WNBA_TEAMS : league === "euroleague" ? EUROLEAGUE_TEAMS : NBA_TEAMS;
     for (const t of src) m.set(t.tricode, t.logo);
     return m;
   }, [league]);
