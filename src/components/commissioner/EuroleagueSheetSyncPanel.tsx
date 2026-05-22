@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Database, Loader2, CalendarDays, Trophy, Users, BarChart3, RefreshCw, Shield, ListChecks,
-  DollarSign, Tv2, Film,
+  DollarSign, Tv2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -60,26 +60,6 @@ export default function EuroleagueSheetSyncPanel() {
   } | null>(null);
   const [recapBusy, setRecapBusy] = useState(false);
   const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
-  const [scrapeBusy, setScrapeBusy] = useState(false);
-  const [scrapeResult, setScrapeResult] = useState<{ processed: number; found: number; remaining: number | null } | null>(null);
-
-  const runRecapScrape = async () => {
-    setScrapeBusy(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("euroleague-recap-scrape", {
-        body: null,
-        headers: { "x-admin-secret": adminSecret() },
-      });
-      if (error) throw error;
-      if (!data?.ok) throw new Error(data?.error?.message ?? "Unknown error");
-      setScrapeResult(data.data);
-      toast.success(`Recap scrape: ${data.data.found} found / ${data.data.processed} processed`);
-    } catch (e) {
-      toast.error(`Recap scrape failed: ${(e as Error).message}`);
-    } finally {
-      setScrapeBusy(false);
-    }
-  };
 
   const runRecapLookup = async () => {
     setRecapBusy(true);
