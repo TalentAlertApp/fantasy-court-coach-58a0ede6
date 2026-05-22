@@ -184,7 +184,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 )}
                 <div className="relative z-10 flex items-center gap-3">
                   {data.player.core.photo ? (
-                    <img src={data.player.core.photo} alt="" className="w-16 h-16 rounded-lg object-cover object-top bg-muted ring-2 ring-background" />
+                    <img src={data.player.core.photo} alt="" className="w-16 h-16 rounded-lg object-cover object-[center_15%] bg-muted ring-2 ring-background" />
                   ) : (
                     <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center text-lg font-heading font-bold text-muted-foreground ring-2 ring-background">
                       {data.player.core.name.substring(0, 2).toUpperCase()}
@@ -478,7 +478,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-green-500 hover:text-green-400 transition-colors p-0.5"
-                                        title="Watch Recap on NBA.com"
+                                        title={
+                                          league === "euroleague"
+                                            ? "Watch Recap on YouTube"
+                                            : league === "wnba"
+                                            ? "Watch Recap on WNBA.com"
+                                            : "Watch Recap on NBA.com"
+                                        }
                                       >
                                         <Tv2 className="h-3 w-3" />
                                       </a>

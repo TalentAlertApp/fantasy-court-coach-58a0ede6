@@ -48,6 +48,19 @@ const WNBA_TEAM_CITY: Record<string, string> = {
 const GAMETIME_CHANNEL_ID = "UC0LrZO9wORIqn_aRJtKdgfA";
 // Official @WNBA channel — posts "{Away Full} vs. {Home Full} | FULL GAME HIGHLIGHTS | {Month D, YYYY}".
 const WNBA_CHANNEL_ID = "UCO9a_ryN_l7DIDS-VIt-zmw";
+// Official @EuroLeague channel. Used as a hint only; for EuroLeague we run an
+// OPEN YouTube search (no channelId filter) because highlights are uploaded by
+// many partners (EuroLeague, clubs, broadcasters), so locking to one channel
+// would miss most games.
+const EUROLEAGUE_TEAM_NICKNAMES: Record<string, string> = {
+  EFS: "anadolu efes",       ASM: "monaco",            CZV: "crvena zvezda",
+  DUB: "dubai",              EA7: "olimpia milano",    BAR: "barcelona",
+  BAY: "bayern",             FBB: "fenerbahce",        HTA: "hapoel tel aviv",
+  BKN: "baskonia",           ASV: "asvel",             MTA: "maccabi",
+  OLY: "olympiacos",         PAO: "panathinaikos",     PAR: "paris basketball",
+  PBB: "partizan",           RMB: "real madrid",       VBC: "valencia",
+  VIR: "virtus bologna",     ZAL: "zalgiris",
+};
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 serve(async (req: Request) => {
@@ -79,8 +92,10 @@ serve(async (req: Request) => {
     // user passes a single game_id or ids list, the league filter is ignored
     // because those calls are already explicit.
     const leagueParam = (url.searchParams.get("league") || "both").toLowerCase();
-    const leagueFilter: "nba" | "wnba" | "both" =
-      leagueParam === "nba" || leagueParam === "wnba" ? leagueParam : "both";
+    const leagueFilter: "nba" | "wnba" | "euroleague" | "both" =
+      leagueParam === "nba" || leagueParam === "wnba" || leagueParam === "euroleague"
+        ? (leagueParam as "nba" | "wnba" | "euroleague")
+        : "both";
     // Relaxed mode = explicit user-driven refresh (single game_id OR ids list).
     // Widens the YouTube date window and lowers the minScore so manual retries
     // can pick up recaps that were posted late or with non-standard titles.
@@ -207,10 +222,19 @@ serve(async (req: Request) => {
       try {
         const leagueCode = leagueCodeById.get((game as any).league_id) ?? "nba";
         const isWnba = leagueCode === "wnba";
-        const bucket = isWnba ? perLeague.wnba : perLeague.nba;
+        const isEuro = leagueCode === "euroleague";
+        const bucket = isEuro
+          ? ((perLeague as any).euroleague ??= { processed: 0, found: 0 })
+          : isWnba
+          ? perLeague.wnba
+          : perLeague.nba;
         bucket.processed += 1;
-        const fullMap = isWnba ? WNBA_TEAM_FULL_NAME : TEAM_FULL_NAME;
-        const cityMap = isWnba ? WNBA_TEAM_CITY : TEAM_CITY;
+        const fullMap = isEuro
+          ? EUROLEAGUE_TEAM_NICKNAMES
+          : isWnba ? WNBA_TEAM_FULL_NAME : TEAM_FULL_NAME;
+        const cityMap = isEuro
+          ? EUROLEAGUE_TEAM_NICKNAMES
+          : isWnba ? WNBA_TEAM_CITY : TEAM_CITY;
         const awayFull = fullMap[game.away_team] ?? game.away_team;
         const homeFull = fullMap[game.home_team] ?? game.home_team;
         const tipoff = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
@@ -229,12 +253,13 @@ serve(async (req: Request) => {
           ? new Date(tipoff.getTime() + afterMs).toISOString()
           : undefined;
 
-        const query = isWnba
+        const query = isEuro
+          ? `${awayFull} vs ${homeFull} EuroLeague highlights ${dateStr}`
+          : isWnba
           ? `${awayFull} vs. ${homeFull} FULL GAME HIGHLIGHTS`
           : `${awayFull} vs ${homeFull} Full Game Highlights`;
         const params = new URLSearchParams({
           part: "snippet",
-          channelId: isWnba ? WNBA_CHANNEL_ID : GAMETIME_CHANNEL_ID,
           q: query,
           type: "video",
           videoEmbeddable: "true",
@@ -242,6 +267,8 @@ serve(async (req: Request) => {
           maxResults: "10",
           key: YOUTUBE_API_KEY,
         });
+        // EuroLeague: open search (many publishers). NBA/WNBA: scope to channel.
+        if (!isEuro) params.set("channelId", isWnba ? WNBA_CHANNEL_ID : GAMETIME_CHANNEL_ID);
         if (publishedAfter) params.set("publishedAfter", publishedAfter);
         if (publishedBefore) params.set("publishedBefore", publishedBefore);
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
@@ -297,12 +324,14 @@ serve(async (req: Request) => {
         // Primary: channel-scoped — both teams + highlights + date strongly preferred.
         // WNBA titles often omit "Full Game", so accept a slightly lower minScore.
         // Relaxed mode lowers thresholds further so manual refreshes catch late posts.
-        const primaryMin = relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6);
+        const primaryMin = isEuro ? 4 : (relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6));
         let { id: videoId } = scoreItems(items, primaryMin);
 
         // Fallback: open YouTube search if channel-scoped lookup found no confident match.
         if (!videoId) {
-          const fbQuery = isWnba
+          const fbQuery = isEuro
+            ? `${awayFull} vs ${homeFull} ${dateStr} euroleague highlights`.trim()
+            : isWnba
             ? `${awayFull} vs ${homeFull} ${dateStr} wnba highlights`.trim()
             : `${awayFull} vs ${homeFull} ${dateStr} full game highlights recap`.trim();
           const fbUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(fbQuery)}&type=video&videoEmbeddable=true&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
@@ -310,7 +339,7 @@ serve(async (req: Request) => {
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
-            videoId = scoreItems(fbItems, isWnba ? 5 : 6).id;
+            videoId = scoreItems(fbItems, isEuro ? 4 : (isWnba ? 5 : 6)).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             quotaExhausted = true;

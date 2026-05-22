@@ -203,6 +203,25 @@ function calcAge(dob: string | null): number {
   return age;
 }
 
+/** Normalize nationality strings from the sheet into values that match
+ *  `<NationalityFlag>`'s country lookup. The flag component is forgiving but
+ *  we still trim the long ISO names that the sheet uses (e.g. "United States
+ *  of America") and the Republic-of variants so the flag resolves. */
+function normalizeNationality(raw: string): string {
+  const s = raw.trim();
+  if (!s) return s;
+  const u = s.toUpperCase();
+  if (u === "USA" || u === "U.S.A." || u === "UNITED STATES OF AMERICA") return "United States";
+  if (u === "UK" || u === "GREAT BRITAIN") return "United Kingdom";
+  if (u === "BIH") return "Bosnia and Herzegovina";
+  if (u === "DR CONGO" || u === "DEMOCRATIC REPUBLIC OF THE CONGO" || u === "DEMOCRATIC REPUBLIC OF CONGO") return "Congo";
+  if (u === "REPUBLIC OF NORTH MACEDONIA" || u === "NORTH MACEDONIA") return "North Macedonia";
+  if (u === "REPUBLIC OF KOREA") return "South Korea";
+  if (u === "RUSSIAN FEDERATION") return "Russia";
+  if (u === "CZECH REPUBLIC") return "Czechia";
+  return s;
+}
+
 function makeSb() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -269,9 +288,7 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
       let name = String(r[3] ?? "").trim();
       if (/\?/.test(name) && existingName.get(id)) name = existingName.get(id)!;
       const rawNat = nullable(r[15]);
-      const nationality = rawNat
-        ? (rawNat.trim().toUpperCase() === "USA" ? "United States" : rawNat.trim())
-        : null;
+      const nationality = rawNat ? normalizeNationality(rawNat) : null;
       return {
         id,
         league_id: leagueId,
