@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -137,7 +138,7 @@ export default function FiltersPanel({
 
       {/* NBA FANTASY branding at bottom */}
       <div className="mt-auto pt-4 flex items-center justify-center gap-2 opacity-30">
-        <img src={league === "wnba" ? wnbaLogo : nbaLogo} alt={league.toUpperCase()} className="h-6 w-auto" />
+        <img src={getLeagueLogo(league)} alt={league.toUpperCase()} className="h-6 w-auto" />
         <span className="text-[10px] font-heading font-bold uppercase tracking-[0.2em]">Fantasy</span>
       </div>
     </div>

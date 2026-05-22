@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -148,7 +149,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     : playerHealth.status === "PROB"
     ? "Probable — monitor updates"
     : `Availability risk — ${playerHealth.injury_type ?? playerHealth.reason ?? getHealthLabel(playerHealth)}`;
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
 
   return (
     <>

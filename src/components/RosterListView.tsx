@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getLeagueLogo } from "@/lib/competitions";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
@@ -30,7 +31,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   const { deadlines } = useLeagueDeadlines();
   const currentGw = (deadlines.length > 0 ? getCurrentGamedayFrom(deadlines)?.gw : undefined) ?? getCurrentGameday().gw;
   const { league } = useLeague();
-  const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(league);
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
@@ -75,7 +76,7 @@ export default function GameBoxScoreTable({
   const { league } = useLeague();
   const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
   const teamWatermark = externallyFiltered ? logoFor(externalFilterTeam as string) : null;
-  const watermarkLogo = teamWatermark ?? (league === "wnba" ? wnbaLogo : nbaLogo);
+  const watermarkLogo = teamWatermark ?? (getLeagueLogo(league));
   const watermarkOpacity = teamWatermark ? "opacity-[0.10]" : "opacity-[0.05]";
 
   if (isLoading) {

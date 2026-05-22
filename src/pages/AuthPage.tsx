@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Mail, Lock } from "lucide-react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.svg";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -110,6 +111,8 @@ export default function AuthPage() {
             <img src={nbaLogo} alt="NBA" className="h-12 w-auto" />
             <span className="h-8 w-px bg-border/60" aria-hidden="true" />
             <img src={wnbaLogo} alt="WNBA" className="h-12 w-auto object-contain" />
+            <span className="h-8 w-px bg-border/60" aria-hidden="true" />
+            <img src={euroleagueLogo} alt="EuroLeague" className="h-12 w-auto object-contain" />
           </div>
           <h1 className="text-2xl font-heading font-bold uppercase tracking-[0.2em] text-foreground">
             Fantasy

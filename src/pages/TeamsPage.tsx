@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAMS, getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
@@ -48,7 +49,7 @@ export default function TeamsPage() {
     setStandingsView(league === "wnba" ? "league" : "division");
   }, [league]);
   const { data: leagueId } = useLeagueId();
-  const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(league);
   const headerTitle = league === "wnba" ? "WNBA Teams" : "NBA Teams";
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({

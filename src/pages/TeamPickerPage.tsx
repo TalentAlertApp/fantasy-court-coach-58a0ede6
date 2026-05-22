@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
@@ -119,7 +120,7 @@ export default function TeamPickerPage() {
 
         <div className="mt-10 grid gap-3 w-full" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(220px, 1fr))` }}>
           {ownedTeams.map((t: any) => {
-            const leagueLogo = t.league_code === "wnba" ? wnbaLogo : nbaLogo;
+            const leagueLogo = getLeagueLogo(t.league_code);
             const leagueCode = (t.league_code ?? "nba").toUpperCase();
             return (
               <button

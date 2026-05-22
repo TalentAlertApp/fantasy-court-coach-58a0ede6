@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,7 +35,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const { data: leagueId } = useLeagueId();
   const team = tricode ? (leagueTeams.find((t) => t.tricode === tricode) ?? null) : null;
   const getOppLogo = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);

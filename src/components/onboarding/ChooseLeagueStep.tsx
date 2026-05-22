@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { CompetitionCode } from "@/lib/competitions";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Loader2, Plus, Check, Users } from "lucide-react";
-import { useFantasyLeagues, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_IDS } from "@/hooks/useFantasyLeagues";
+import { useFantasyLeagues, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_EUROLEAGUE_ID, MAIN_LEAGUE_IDS } from "@/hooks/useFantasyLeagues";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,7 +26,12 @@ export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedS
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: leagues = [], isLoading } = useFantasyLeagues();
-  const mainId = lockedSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+  const mainId =
+    lockedSport === "wnba"
+      ? MAIN_LEAGUE_WNBA_ID
+      : lockedSport === "euroleague"
+        ? MAIN_LEAGUE_EUROLEAGUE_ID
+        : MAIN_LEAGUE_NBA_ID;
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => {
     const seed = new Set<string>([mainId]);
     (initialSelectedIds ?? []).forEach((id) => seed.add(id));
@@ -33,7 +39,7 @@ export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedS
   });
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
-  const leagueLogo = lockedSport === "wnba" ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(lockedSport);
 
   const main = leagues.find((l) => l.id === mainId);
   const others = leagues.filter((l) => !MAIN_LEAGUE_IDS.has(l.id) && l.sport === lockedSport);

@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import type { CompetitionCode } from "@/lib/competitions";
+import { getLeagueLogo } from "@/lib/competitions";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Wand2, MousePointerClick, Sparkles, Bot, Loader2, Check, ChevronLeft, ListPlus } from "lucide-react";
@@ -31,7 +32,7 @@ interface Props {
 }
 
 export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: Props) {
-  const watermarkSrc = leagueCode === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkSrc = getLeagueLogo(leagueCode);
   const watermarkLabel = (leagueCode ?? "nba").toUpperCase();
   const { toast } = useToast();
   const { selectedTeamId } = useTeam();

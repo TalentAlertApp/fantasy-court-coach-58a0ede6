@@ -1,4 +1,5 @@
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -108,7 +109,7 @@ export default function RosterPane({
   onPlayerClick,
 }: RosterPaneProps) {
   const { league } = useLeague();
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
   // Single continuous list — all FC first (sub-sorted by salary DESC), then all BC (DESC).
   const all = [...starters, ...bench];
   const sorted = all.sort((a, b) => {

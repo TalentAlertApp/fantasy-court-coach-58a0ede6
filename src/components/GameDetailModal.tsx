@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tv2, Table2, BarChart3, Mic, ExternalLink, X, MapPin, Columns2 } from "lucide-react";
@@ -316,7 +317,7 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const { standingsByTeam, last5DetailByTeam, isLoading } = useStandingsContext();
   const { data: isPreseason } = useIsPreseason();
   const { league } = useLeague();
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
   const [historyGame, setHistoryGame] = useState<GameDetailGame | null>(null);
 
   const a = standingsByTeam[game.away_team];

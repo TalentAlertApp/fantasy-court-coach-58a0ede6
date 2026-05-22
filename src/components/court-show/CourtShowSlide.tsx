@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
+import type { CompetitionCode } from "@/lib/competitions";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, Bandage, PlayCircle, Crown, Medal } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
@@ -222,7 +224,7 @@ interface Props {
   /** Per-page duration for paginated slides (e.g. Played Games Recap). */
   pageMs?: number;
   /** Active league for watermarks and branding. */
-  leagueCode?: "nba" | "wnba";
+  leagueCode?: CompetitionCode;
 }
 
 function fmtDeadline(iso: string | null): string {
@@ -261,7 +263,7 @@ function AICardView({
   card: AIBallersIQCard;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
-  leagueCode?: "nba" | "wnba";
+  leagueCode?: CompetitionCode;
 }) {
   const meta = AI_KIND_META[card.kind] ?? AI_KIND_META.form_index;
   const Icon = meta.icon;
@@ -272,7 +274,7 @@ function AICardView({
   // Watermark logic: game → league logo; team/player → team logo; else league logo.
   const teamForWatermark = cleanTeam ?? null;
   const isWnba = leagueCode === "wnba";
-  const leagueLogo = isWnba ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(leagueCode);
   const teamLogo = teamForWatermark
     ? (isWnba ? getWnbaTeamLogo(teamForWatermark) : getTeamLogo(teamForWatermark))
     : null;
@@ -1196,7 +1198,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
       (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
       (salaryShakeupTopPositive?.team ?? null) ||
       null;
-  const leagueWatermarkSrc = useLeagueWatermark ? (leagueCode === "wnba" ? wnbaLogo : nbaLogo) : null;
+  const leagueWatermarkSrc = useLeagueWatermark ? (getLeagueLogo(leagueCode)) : null;
   const watermarkLogo = watermarkTri
     ? (leagueCode === "wnba" ? getWnbaTeamLogo(watermarkTri) : getTeamLogo(watermarkTri))
     : null;

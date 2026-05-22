@@ -127,3 +127,13 @@ export function tryGetCompetition(
 
 /** Default competition for first-run users / unauthenticated previews. */
 export const DEFAULT_COMPETITION: CompetitionCode = "nba";
+
+/**
+ * Resolve the bundled logo asset for a league code. Falls back to the NBA
+ * logo for unknown codes so that legacy callers never render a broken image,
+ * but new code should pass a validated CompetitionCode.
+ */
+export function getLeagueLogo(code: string | null | undefined): string {
+  const comp = tryGetCompetition(code);
+  return (comp ?? COMPETITIONS.nba).logo;
+}

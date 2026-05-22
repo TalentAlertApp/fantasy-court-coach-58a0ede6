@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -225,7 +226,7 @@ function relativeTime(iso: string): string {
 
 export default function InjuryReportModal({ open, onOpenChange, initialTeams }: InjuryReportModalProps) {
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
-  const { isWnba } = useLeague();
+  const { isWnba, league } = useLeague();
   const queryClient = useQueryClient();
   const getTeamByTricode = useCallback(
     (tc: string) => LEAGUE_TEAMS.find((t) => t.tricode === tc),
@@ -479,7 +480,7 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
         <div className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
           {/* League logo watermark */}
           <img
-            src={isWnba ? wnbaLogo : nbaLogo}
+            src={getLeagueLogo(league)}
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 m-auto w-1/4 max-w-[140px] opacity-[0.035]"

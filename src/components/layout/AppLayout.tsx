@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { getLeagueLogo } from "@/lib/competitions";
 import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
@@ -8,6 +9,7 @@ import PlayerModal from "@/components/PlayerModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.svg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useNavigate } from "react-router-dom";
@@ -50,7 +52,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user, signOut } = useAuth();
-  const { isWnba } = useLeague();
+  const { isWnba, league } = useLeague();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
@@ -92,6 +94,12 @@ export default function AppLayout() {
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute -top-3 -right-5 h-24 w-24 object-contain opacity-[0.08] rotate-12 select-none"
+              />
+              <img
+                src={euroleagueLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 h-16 w-16 object-contain opacity-[0.06] select-none"
               />
             </>
           )}
@@ -136,7 +144,7 @@ export default function AppLayout() {
           )}
           {collapsed && (
             <img
-              src={isWnba ? wnbaLogo : nbaLogo}
+              src={getLeagueLogo(league)}
               alt={isWnba ? "WNBA" : "NBA"}
               className="h-8 w-auto flex-shrink-0 relative z-10"
             />

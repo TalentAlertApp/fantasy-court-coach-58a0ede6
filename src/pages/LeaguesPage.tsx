@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useNavigate } from "react-router-dom";
 import { Swords, Plus, KeyRound, Crown, LayoutDashboard, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon, Copy } from "lucide-react";
 import { toast } from "sonner";
@@ -63,7 +64,7 @@ function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeam
   onAttach?: (teamId: string) => void;
   attaching?: boolean;
 }) {
-  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  const logo = getLeagueLogo(league.sport);
   const chips = league.chipRules;
   return (
     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
@@ -546,7 +547,7 @@ export default function LeaguesPage() {
                 </button>
               );
             }
-            const src = s === "wnba" ? wnbaLogo : nbaLogo;
+            const src = getLeagueLogo(s);
             return (
               <button
                 key={s}
@@ -774,7 +775,7 @@ function DiscoverPanel({
                 </button>
               );
             }
-            const src = s === "wnba" ? wnbaLogo : nbaLogo;
+            const src = getLeagueLogo(s);
             return (
               <button
                 key={s}
@@ -890,7 +891,7 @@ function PublicLeagueCard({
   onJoin: () => void;
   onOpen: () => void;
 }) {
-  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  const logo = getLeagueLogo(league.sport);
   return (
     <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
       <img
@@ -971,7 +972,7 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
   onAttach?: (teamId: string) => void;
   attaching?: boolean;
 }) {
-  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  const logo = getLeagueLogo(league.sport);
   return (
     <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
       <img
@@ -1067,7 +1068,7 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
   onJoin: () => void;
   onOpen: () => void;
 }) {
-  const logo = league.sport === "wnba" ? wnbaLogo : nbaLogo;
+  const logo = getLeagueLogo(league.sport);
   return (
     <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
       <img
