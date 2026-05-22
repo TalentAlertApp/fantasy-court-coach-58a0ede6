@@ -29,9 +29,11 @@ import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import MissingRecapsPanel from "@/components/commissioner/MissingRecapsPanel";
 import WnbaSheetSyncPanel from "@/components/commissioner/WnbaSheetSyncPanel";
+import EuroleagueSheetSyncPanel from "@/components/commissioner/EuroleagueSheetSyncPanel";
 import SalaryAutoSchedulePanel from "@/components/commissioner/SalaryAutoSchedulePanel";
 import nbaLogoSrc from "@/assets/nba-logo.svg";
 import wnbaLogoSrc from "@/assets/wnba-logo.png";
+import euroleagueLogoSrc from "@/assets/euroleague-logo.svg";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
@@ -206,11 +208,11 @@ export default function CommissionerPage() {
   };
 
   // League selector — drives league_code sent with every import
-  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">(() => {
+  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba" | "euroleague">(() => {
     if (typeof window === "undefined") return "nba";
-    return ((localStorage.getItem("commissioner_league") as "nba" | "wnba") ?? "nba");
+    return ((localStorage.getItem("commissioner_league") as "nba" | "wnba" | "euroleague") ?? "nba");
   });
-  const handleLeagueChange = (v: "nba" | "wnba") => {
+  const handleLeagueChange = (v: "nba" | "wnba" | "euroleague") => {
     setLeagueCode(v);
     try { localStorage.setItem("commissioner_league", v); } catch { /* noop */ }
   };
@@ -557,7 +559,7 @@ export default function CommissionerPage() {
         const isFirst = b === 0;
         setGameProgress(`Importing batch ${b + 1}/${totalBatches} (${batch.length} rows)…`);
 
-        const result = await importGameDataLeague(batch, replaceGames && isFirst, leagueCode);
+        const result = await importGameDataLeague(batch, replaceGames && isFirst, leagueCode as "nba" | "wnba");
         totalGames += result.games_imported;
         totalLogs += result.player_logs_imported;
         if (result.errors?.length) totalErrors.push(...result.errors);
@@ -682,7 +684,7 @@ export default function CommissionerPage() {
     }
     setIsImportingSchedule(true);
     try {
-      const result = await importSchedule(schedulePendingPayload, replaceSchedule, leagueCode);
+      const result = await importSchedule(schedulePendingPayload, replaceSchedule, leagueCode as "nba" | "wnba");
       setLastScheduleResult({ games: result.games_imported });
       toast.success(`Imported ${result.games_imported} schedule games`);
       if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
@@ -854,7 +856,7 @@ export default function CommissionerPage() {
       {/* League Selector — scopes Players & Schedule imports to this league */}
       <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
         <Label className="text-sm font-semibold whitespace-nowrap">Import league:</Label>
-        <Select value={leagueCode} onValueChange={(v) => handleLeagueChange(v as "nba" | "wnba")}>
+        <Select value={leagueCode} onValueChange={(v) => handleLeagueChange(v as "nba" | "wnba" | "euroleague")}>
           <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
@@ -869,6 +871,12 @@ export default function CommissionerPage() {
               <span className="inline-flex items-center gap-2">
                 <img src={wnbaLogoSrc} alt="WNBA" className="h-4 w-4 object-contain" />
                 WNBA
+              </span>
+            </SelectItem>
+            <SelectItem value="euroleague">
+              <span className="inline-flex items-center gap-2">
+                <img src={euroleagueLogoSrc} alt="EuroLeague" className="h-4 w-4 object-contain" />
+                EuroLeague
               </span>
             </SelectItem>
           </SelectContent>
@@ -1430,9 +1438,10 @@ export default function CommissionerPage() {
         )}
       </div>
 
-      <MissingRecapsPanel league={leagueCode} />
+      {leagueCode !== "euroleague" && <MissingRecapsPanel league={leagueCode} />}
 
       {leagueCode === "wnba" && <WnbaSheetSyncPanel />}
+      {leagueCode === "euroleague" && <EuroleagueSheetSyncPanel />}
         </TabsContent>
       </Tabs>
 
