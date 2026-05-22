@@ -267,15 +267,30 @@ async function getEuroleagueSportLeagueId(sb: ReturnType<typeof makeSb>): Promis
 // ── per-mode handlers ──
 
 async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueId: string) {
-  // DB_Players: A URL, B ID, C PHOTO, D NAME, E TEAM, F FC_BC,
-  //             G $ (IGNORED), H # jersey, I COLLEGE, J WEIGHT, K HEIGHT,
-  //             L AGE, M DOB, N EXP, O POS, P NAT (nationality, EuroLeague only)
+  // DB_Players (EuroLeague): A URL, B ID, C PHOTO, D NAME, E TEAM, F FC_BC,
+  //             G $ (IGNORED), H # jersey, I HEIGHT, J AGE, K DOB, L POS, M NAT
+  //             (no COLLEGE / WEIGHT / EXP columns — those are NBA/WNBA only.)
   const rows = await fetchTab("DB_Players", "A1:P5000", token);
   const header = (rows[0] ?? []).map((s) => String(s).trim().toUpperCase());
   if (header[1] !== "ID" || header[3] !== "NAME") {
     throw new Error(`DB_Players HEADER_MISMATCH (got: ${header.slice(0, 6).join("|")})`);
   }
   const data = rows.slice(1).filter((r) => r.length > 0 && String(r[1] ?? "").trim() !== "");
+
+  // Detect column layout from header — EuroLeague sheet has HEIGHT at index 8
+  // where NBA/WNBA have COLLEGE. We map indices dynamically so future header
+  // tweaks (e.g. inserting a column) don't silently corrupt the payload.
+  const find = (name: string): number => header.findIndex((h) => h === name);
+  const idx = {
+    college: find("COLLEGE"),
+    weight:  find("WEIGHT"),
+    height:  find("HEIGHT"),
+    age:     find("AGE"),
+    dob:     find("DOB"),
+    exp:     find("EXP"),
+    pos:     find("POS"),
+    nat:     find("NAT"),
+  };
 
   // SALARY (column G / r[6]) is intentionally never read from the sheet and never
   // written by this sync. Existing DB values are preserved by omitting `salary`
@@ -296,12 +311,12 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
     const payload = batch.map((r) => {
       const id = intOrZero(r[1]);
       if (id <= 0) return null;
-      const dob = normDate(r[12]);
-      const sheetAge = intOrZero(r[11]);
+      const dob = idx.dob >= 0 ? normDate(r[idx.dob]) : null;
+      const sheetAge = idx.age >= 0 ? intOrZero(r[idx.age]) : 0;
       const age = sheetAge > 0 ? sheetAge : calcAge(dob);
       let name = String(r[3] ?? "").trim();
       if (/\?/.test(name) && existingName.get(id)) name = existingName.get(id)!;
-      const rawNat = nullable(r[15]);
+      const rawNat = idx.nat >= 0 ? nullable(r[idx.nat]) : null;
       const nationality = rawNat ? normalizeNationality(rawNat) : null;
       return {
         id,
@@ -316,13 +331,13 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
         fc_bc: String(r[5] ?? "FC").trim().toUpperCase() === "BC" ? "BC" : "FC",
         // r[6] = $ (salary) — DELIBERATELY NOT INCLUDED. Do not add it back.
         jersey: intOrZero(r[7]),
-        college: nullable(r[8]),
-        weight: intOrZero(r[9]),
-        height: nullable(r[10]),
+        college: idx.college >= 0 ? nullable(r[idx.college]) : null,
+        weight: idx.weight  >= 0 ? intOrZero(r[idx.weight]) : 0,
+        height: idx.height  >= 0 ? nullable(r[idx.height])  : null,
         age,
         dob,
-        exp: intOrZero(r[13]),
-        pos: nullable(r[14]),
+        exp: idx.exp >= 0 ? intOrZero(r[idx.exp]) : 0,
+        pos: idx.pos >= 0 ? nullable(r[idx.pos]) : null,
         nationality,
         updated_at: new Date().toISOString(),
       };
