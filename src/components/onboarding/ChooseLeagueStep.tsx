@@ -12,9 +12,9 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 
 interface Props {
   onBack: () => void;
-  onSubmit: (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: "nba" | "wnba" }) => void | Promise<void>;
+  onSubmit: (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: CompetitionCode }) => void | Promise<void>;
   submitting: boolean;
-  lockedSport: "nba" | "wnba";
+  lockedSport: CompetitionCode;
   initialSelectedIds?: string[];
   onBeforeCreateLeague?: (selectedIds: string[]) => void;
 }

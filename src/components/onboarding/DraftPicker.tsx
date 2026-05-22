@@ -24,7 +24,7 @@ const SALARY_CAP = 100;
 
 interface Props {
   teamName: string;
-  leagueCode?: "nba" | "wnba";
+  leagueCode?: CompetitionCode;
   onFinish: () => void;
   onBack?: () => void;
 }
