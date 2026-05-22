@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Database, Loader2, CalendarDays, Trophy, Users, BarChart3, RefreshCw, Shield, ListChecks,
-  DollarSign,
+  DollarSign, Tv2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,6 +57,32 @@ export default function EuroleagueSheetSyncPanel() {
     updated: number; failed: number; min: number; max: number;
     source_breakdown?: { computed: number; placeholder: number };
   } | null>(null);
+  const [recapBusy, setRecapBusy] = useState(false);
+  const [recapResult, setRecapResult] = useState<{ processed: number; found: number; remaining: number } | null>(null);
+
+  const runRecapLookup = async () => {
+    setRecapBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("youtube-recap-lookup", {
+        body: null,
+        headers: { "x-admin-secret": adminSecret() },
+        method: "GET" as any,
+      } as any);
+      // The function reads ?league=euroleague from query params, but invoke()
+      // doesn't pass them — fall back to fetch.
+      const url = `https://jtewuekavaujgnynmpaq.supabase.co/functions/v1/youtube-recap-lookup?league=euroleague&limit=100`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!json?.ok) throw new Error(json?.error?.message ?? "Unknown error");
+      setRecapResult(json.data);
+      toast.success(`Recap lookup: ${json.data.found} found / ${json.data.processed} processed`);
+      void data; void error;
+    } catch (e) {
+      toast.error(`Recap lookup failed: ${(e as Error).message}`);
+    } finally {
+      setRecapBusy(false);
+    }
+  };
 
   const runSalary = async () => {
     setSalaryBusy(true);
@@ -149,7 +175,27 @@ export default function EuroleagueSheetSyncPanel() {
             : <DollarSign className="h-4 w-4 mr-2" />}
           Recalculate Salaries
         </Button>
+        <Button
+          onClick={runRecapLookup}
+          disabled={busyMode !== null || recapBusy}
+          variant="secondary"
+          size="sm"
+        >
+          {recapBusy
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <Tv2 className="h-4 w-4 mr-2" />}
+          Find YouTube Recaps
+        </Button>
       </div>
+
+      {recapResult && (
+        <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
+          <span className="font-semibold">recap lookup</span>
+          <span>processed: <b>{recapResult.processed}</b></span>
+          <span>found: <b>{recapResult.found}</b></span>
+          <span>remaining: <b>{recapResult.remaining}</b></span>
+        </div>
+      )}
 
       {salaryResult && (
         <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
