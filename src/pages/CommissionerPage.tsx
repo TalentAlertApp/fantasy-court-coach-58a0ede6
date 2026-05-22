@@ -559,7 +559,7 @@ export default function CommissionerPage() {
         const isFirst = b === 0;
         setGameProgress(`Importing batch ${b + 1}/${totalBatches} (${batch.length} rows)…`);
 
-        const result = await importGameDataLeague(batch, replaceGames && isFirst, leagueCode);
+        const result = await importGameDataLeague(batch, replaceGames && isFirst, leagueCode as "nba" | "wnba");
         totalGames += result.games_imported;
         totalLogs += result.player_logs_imported;
         if (result.errors?.length) totalErrors.push(...result.errors);
@@ -684,7 +684,7 @@ export default function CommissionerPage() {
     }
     setIsImportingSchedule(true);
     try {
-      const result = await importSchedule(schedulePendingPayload, replaceSchedule, leagueCode);
+      const result = await importSchedule(schedulePendingPayload, replaceSchedule, leagueCode as "nba" | "wnba");
       setLastScheduleResult({ games: result.games_imported });
       toast.success(`Imported ${result.games_imported} schedule games`);
       if (result.errors?.length) { toast.warning(`${result.errors.length} errors`); console.warn("Schedule errors:", result.errors); }
@@ -1432,7 +1432,7 @@ export default function CommissionerPage() {
         )}
       </div>
 
-      <MissingRecapsPanel league={leagueCode} />
+      {leagueCode !== "euroleague" && <MissingRecapsPanel league={leagueCode} />}
 
       {leagueCode === "wnba" && <WnbaSheetSyncPanel />}
         </TabsContent>
