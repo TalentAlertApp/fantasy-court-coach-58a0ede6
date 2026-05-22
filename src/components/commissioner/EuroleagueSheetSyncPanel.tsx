@@ -32,6 +32,8 @@ interface SyncResult {
   notes?: string;
   errors?: string[];
   skipped_players?: Array<{ id: number; name: string }>;
+  aliased_players?: Array<{ from: number; to: number; name: string }>;
+  stubs_created?: Array<{ id: number; name: string; team: string }>;
   results?: Record<string, SyncResult>;
 }
 
@@ -195,6 +197,34 @@ export default function EuroleagueSheetSyncPanel() {
                       {r.skipped_players.map((p, i) => (
                         <li key={`${p.id}-${i}`}>
                           <code className="font-mono">{p.id}</code> — {p.name || "(no name)"}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {r.aliased_players && r.aliased_players.length > 0 && (
+                  <details className="basis-full mt-1">
+                    <summary className="cursor-pointer text-blue-600 dark:text-blue-400">
+                      {r.aliased_players.length} player id{r.aliased_players.length === 1 ? "" : "s"} aliased to canonical DB_Players row — click to expand
+                    </summary>
+                    <ul className="mt-1 ml-4 list-disc text-muted-foreground space-y-0.5">
+                      {r.aliased_players.map((p, i) => (
+                        <li key={`${p.from}-${i}`}>
+                          <code className="font-mono">{p.from}</code> → <code className="font-mono">{p.to}</code> — {p.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                {r.stubs_created && r.stubs_created.length > 0 && (
+                  <details className="basis-full mt-1">
+                    <summary className="cursor-pointer text-emerald-600 dark:text-emerald-400">
+                      {r.stubs_created.length} stub player{r.stubs_created.length === 1 ? "" : "s"} auto-created (salary=0) — click to expand
+                    </summary>
+                    <ul className="mt-1 ml-4 list-disc text-muted-foreground space-y-0.5">
+                      {r.stubs_created.map((p, i) => (
+                        <li key={`${p.id}-${i}`}>
+                          <code className="font-mono">{p.id}</code> — {p.name} ({p.team})
                         </li>
                       ))}
                     </ul>
