@@ -667,6 +667,8 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
                   onSelect={(id) => setOpenPlayerId(id)}
                 />
               </div>
+              </>
+              )}
             </>
           )}
         </div>
