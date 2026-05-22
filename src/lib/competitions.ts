@@ -39,6 +39,8 @@ export interface Competition {
   mainFantasyLeagueId: string;
   /** Subtle brand tint used by selector cards (Tailwind gradient stops). */
   tint: string;
+  /** Optional logo size multiplier when rendered in selector cards (PNG badges with built-in padding need a boost). */
+  logoScale?: number;
 }
 
 export const COMPETITIONS: Record<CompetitionCode, Competition> = {
@@ -80,7 +82,7 @@ export const COMPETITIONS: Record<CompetitionCode, Competition> = {
     shortLabel: "EL",
     season: "2025-26",
     logo: euroleagueLogo,
-    publicLogo: "/leagues/euroleague.svg",
+    publicLogo: "/leagues/euroleague.png",
     standingsMode: "single_table",
     hasAdvancedPlaySearch: false,
     hasConferences: false,
@@ -89,6 +91,7 @@ export const COMPETITIONS: Record<CompetitionCode, Competition> = {
     sportLeagueId: "00000000-0000-0000-0000-000000000003",
     mainFantasyLeagueId: "00000000-0000-0000-0000-000000000030",
     tint: "from-[#fa5500]/30 via-[#fa5500]/10 to-transparent",
+    logoScale: 1.25,
   },
 };
 
