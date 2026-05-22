@@ -269,9 +269,7 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
       let name = String(r[3] ?? "").trim();
       if (/\?/.test(name) && existingName.get(id)) name = existingName.get(id)!;
       const rawNat = nullable(r[15]);
-      const nationality = rawNat
-        ? (rawNat.trim().toUpperCase() === "USA" ? "United States" : rawNat.trim())
-        : null;
+      const nationality = rawNat ? normalizeNationality(rawNat) : null;
       return {
         id,
         league_id: leagueId,
