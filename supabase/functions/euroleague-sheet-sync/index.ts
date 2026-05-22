@@ -552,6 +552,83 @@ async function syncAdvancedStats(token: string, sb: ReturnType<typeof makeSb>, l
   };
 }
 
+/**
+ * Teams sync — diagnostic only. EuroLeague clubs are managed in code
+ * (src/lib/euroleague-teams.ts), so this just confirms the sheet is reachable
+ * and reports the row counts. Never writes to NBA/WNBA tables.
+ */
+async function syncTeams(token: string, _sb: ReturnType<typeof makeSb>, _leagueId: string) {
+  const rows = await fetchTab("DB_Teams", "A1:Z200", token);
+  const header = (rows[0] ?? []).map((s) => String(s).trim());
+  const data = rows.slice(1).filter((r) => String(r[0] ?? "").trim() !== "");
+  return {
+    tab: "DB_Teams",
+    rows_read: data.length,
+    upserted: 0,
+    skipped: data.length,
+    nulled_out: 0,
+    notes: "Read-only — EuroLeague teams catalog lives in code.",
+    header_cols: header.length,
+    errors: [] as string[],
+  };
+}
+
+/**
+ * Standings sync — derives standings from schedule_games for the EuroLeague
+ * league only. No standings table exists yet, so we return the computed table
+ * as diagnostic JSON. This keeps the UI honest about what was processed
+ * without touching NBA/WNBA data.
+ */
+async function syncStandings(_token: string, sb: ReturnType<typeof makeSb>, leagueId: string) {
+  const { data: games, error } = await sb
+    .from("schedule_games")
+    .select("home_team, away_team, home_pts, away_pts, status")
+    .eq("league_id", leagueId);
+  if (error) {
+    return {
+      tab: "(standings derived)",
+      rows_read: 0, upserted: 0, skipped: 0, nulled_out: 0,
+      errors: [error.message],
+    };
+  }
+  type Row = { w: number; l: number; pf: number; pa: number };
+  const table = new Map<string, Row>();
+  const bump = (team: string) => {
+    if (!team) return;
+    if (!table.has(team)) table.set(team, { w: 0, l: 0, pf: 0, pa: 0 });
+  };
+  let counted = 0;
+  for (const g of games ?? []) {
+    const status = String((g as { status?: string }).status ?? "").toUpperCase();
+    if (!status.startsWith("FINAL")) continue;
+    const home = String((g as { home_team?: string }).home_team ?? "").trim();
+    const away = String((g as { away_team?: string }).away_team ?? "").trim();
+    const hp = Number((g as { home_pts?: number }).home_pts ?? 0);
+    const ap = Number((g as { away_pts?: number }).away_pts ?? 0);
+    bump(home); bump(away);
+    const h = table.get(home)!;
+    const a = table.get(away)!;
+    h.pf += hp; h.pa += ap;
+    a.pf += ap; a.pa += hp;
+    if (hp > ap) { h.w++; a.l++; } else if (ap > hp) { a.w++; h.l++; }
+    counted++;
+  }
+  const standings = [...table.entries()]
+    .map(([team, r]) => ({ team, ...r, pct: r.w + r.l > 0 ? r.w / (r.w + r.l) : 0 }))
+    .sort((x, y) => y.pct - x.pct || (y.pf - y.pa) - (x.pf - x.pa));
+  return {
+    tab: "(standings derived)",
+    rows_read: games?.length ?? 0,
+    upserted: 0,
+    skipped: 0,
+    nulled_out: 0,
+    games_counted: counted,
+    teams_ranked: standings.length,
+    standings,
+    errors: [] as string[],
+  };
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
