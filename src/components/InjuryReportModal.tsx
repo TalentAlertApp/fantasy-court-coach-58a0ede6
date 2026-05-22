@@ -647,7 +647,6 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
                 />
               </div>
               </>
-              )}
             </>
           )}
         </div>
