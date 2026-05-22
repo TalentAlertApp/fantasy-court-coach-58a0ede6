@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Database, Loader2, CalendarDays, Trophy, Users, BarChart3, RefreshCw, Shield, ListChecks,
+  DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +50,28 @@ export default function EuroleagueSheetSyncPanel() {
   const [busyMode, setBusyMode] = useState<string | null>(null);
   const [inspect, setInspect] = useState<InspectResult | null>(null);
   const [results, setResults] = useState<Record<string, SyncResult>>({});
+  const [salaryBusy, setSalaryBusy] = useState(false);
+  const [salaryResult, setSalaryResult] = useState<{
+    updated: number; failed: number; min: number; max: number;
+    source_breakdown?: { computed: number; placeholder: number };
+  } | null>(null);
+
+  const runSalary = async () => {
+    setSalaryBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("euroleague-salary-recalc", {
+        headers: { "x-admin-secret": adminSecret() },
+      });
+      if (error) throw error;
+      if (!data?.ok) throw new Error(data?.error?.message ?? "Unknown error");
+      setSalaryResult(data.data);
+      toast.success(`Recalculated ${data.data.updated} EuroLeague salaries`);
+    } catch (e) {
+      toast.error(`Salary recalc failed: ${(e as Error).message}`);
+    } finally {
+      setSalaryBusy(false);
+    }
+  };
 
   const run = async (mode: string, label: string) => {
     setBusyMode(mode);
@@ -113,7 +136,32 @@ export default function EuroleagueSheetSyncPanel() {
         <Btn mode="advanced-stats" label="Sync Advanced Stats"  icon={BarChart3} />
         <Btn mode="standings"      label="Sync Standings"       icon={ListChecks} />
         <Btn mode="all"            label="Sync ALL"             icon={RefreshCw} primary />
+        <Button
+          onClick={runSalary}
+          disabled={busyMode !== null || salaryBusy}
+          variant="secondary"
+          size="sm"
+        >
+          {salaryBusy
+            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            : <DollarSign className="h-4 w-4 mr-2" />}
+          Recalculate Salaries
+        </Button>
       </div>
+
+      {salaryResult && (
+        <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
+          <span className="font-semibold">salary recalc</span>
+          <span>updated: <b>{salaryResult.updated}</b></span>
+          {salaryResult.failed > 0 && <span className="text-destructive">failed: {salaryResult.failed}</span>}
+          <span>range: <b>${salaryResult.min}M – ${salaryResult.max}M</b></span>
+          {salaryResult.source_breakdown && (
+            <span>
+              computed: <b>{salaryResult.source_breakdown.computed}</b> · placeholder: <b>{salaryResult.source_breakdown.placeholder}</b>
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Per-mode sync results */}
       {Object.entries(results).filter(([k]) => k !== "all").length > 0 && (
