@@ -187,27 +187,7 @@ export default function EuroleagueSheetSyncPanel() {
             : <Tv2 className="h-4 w-4 mr-2" />}
           Find YouTube Recaps
         </Button>
-        <Button
-          onClick={runRecapScrape}
-          disabled={busyMode !== null || scrapeBusy}
-          variant="default"
-          size="sm"
-        >
-          {scrapeBusy
-            ? <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            : <Film className="h-4 w-4 mr-2" />}
-          Scrape Recaps from Euroleague.net
-        </Button>
       </div>
-
-      {scrapeResult && (
-        <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
-          <span className="font-semibold">recap scrape</span>
-          <span>processed: <b>{scrapeResult.processed}</b></span>
-          <span>found: <b>{scrapeResult.found}</b></span>
-          <span>remaining: <b>{scrapeResult.remaining ?? "—"}</b></span>
-        </div>
-      )}
 
       {recapResult && (
         <div className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1 bg-muted/30">
