@@ -1129,6 +1129,54 @@ export type Database = {
         }
         Relationships: []
       }
+      sport_teams: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          roster_url: string | null
+          short_name: string | null
+          sport_league_id: string
+          team_code: string
+          updated_at: string
+          venue_image_url: string | null
+          venue_name: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          roster_url?: string | null
+          short_name?: string | null
+          sport_league_id: string
+          team_code: string
+          updated_at?: string
+          venue_image_url?: string | null
+          venue_name?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          roster_url?: string | null
+          short_name?: string | null
+          sport_league_id?: string
+          team_code?: string
+          updated_at?: string
+          venue_image_url?: string | null
+          venue_name?: string | null
+        }
+        Relationships: []
+      }
       sync_runs: {
         Row: {
           created_at: string

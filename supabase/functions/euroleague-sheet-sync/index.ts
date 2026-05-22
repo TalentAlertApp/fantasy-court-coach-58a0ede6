@@ -7,12 +7,13 @@ import { requireAdmin } from "../_shared/admin-guard.ts";
  *
  * Modes:
  *   - inspect         : returns headers + sample rows (diagnostic)
- *   - teams           : DB_Teams (read-only diagnostic — EuroLeague clubs live in code)
+ *   - teams           : DB_Teams → sport_teams (EuroLeague club catalog)
  *   - players         : DB_Players → players (EuroLeague-scoped). Salary IGNORED.
  *   - schedule        : Schedule → schedule_games (EuroLeague-scoped)
  *   - game-data       : Player_Games_byGameday_data → player_game_logs +
  *                       player_last_game + season/last5 aggregates
  *   - advanced-stats  : Players_AdvStats_Season_Accum → players adv columns
+ *                       (alias: advanced-stats-season-accum)
  *   - standings       : derives league standings from schedule_games (diagnostic)
  *   - all             : runs teams → players → schedule → game-data →
  *                       advanced-stats → standings
@@ -212,6 +213,22 @@ async function getEuroleagueLeagueId(sb: ReturnType<typeof makeSb>): Promise<str
   const { data, error } = await sb.from("leagues").select("id").eq("code", "euroleague").maybeSingle();
   if (error || !data?.id) throw new Error(`EuroLeague league not found: ${error?.message ?? "missing row"}`);
   return data.id as string;
+}
+
+/** Sport-league id for EuroLeague — used as the FK target for sport_teams.
+ *  Falls back to the canonical seed id when the legacy `sport` league row is
+ *  missing a self-reference. */
+async function getEuroleagueSportLeagueId(sb: ReturnType<typeof makeSb>): Promise<string> {
+  const { data } = await sb
+    .from("leagues")
+    .select("id, sport_league_id")
+    .eq("code", "main_euroleague")
+    .maybeSingle();
+  if (data?.sport_league_id) return data.sport_league_id as string;
+  // Fallback: sport row id itself
+  const { data: sp } = await sb.from("leagues").select("id").eq("code", "euroleague").maybeSingle();
+  if (!sp?.id) throw new Error("EuroLeague sport_league not found");
+  return sp.id as string;
 }
 
 // ── per-mode handlers ──
