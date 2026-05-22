@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       .eq("visibility", "public")
       .in("status", ["draft", "active"]);
 
-    if (sport === "nba" || sport === "wnba") q = q.eq("sport", sport);
+    if (sport === "nba" || sport === "wnba" || sport === "euroleague") q = q.eq("sport", sport);
     if (search) q = q.ilike("name", `%${search}%`);
 
     if (sort === "newest") q = q.order("created_at", { ascending: false });
