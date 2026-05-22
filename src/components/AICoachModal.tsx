@@ -48,9 +48,9 @@ function getTeamFullName(tricode: string): string {
 export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) {
   const { toast } = useToast();
   const { selectedTeamId, teams } = useTeam();
-  const { isWnba } = useLeague();
+  const { isWnba, league } = useLeague();
   const { deadlines } = useLeagueDeadlines();
-  const leagueLogo = isWnba ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(league);
   const resolveGameday = () => getCurrentGamedayFrom(deadlines) ?? getCurrentGameday();
   const { data: rosterData } = useRosterQuery();
   const { data: playersData } = usePlayersQuery({ limit: 1000 });

@@ -50,7 +50,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user, signOut } = useAuth();
-  const { isWnba } = useLeague();
+  const { isWnba, league } = useLeague();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
@@ -136,7 +136,7 @@ export default function AppLayout() {
           )}
           {collapsed && (
             <img
-              src={isWnba ? wnbaLogo : nbaLogo}
+              src={getLeagueLogo(league)}
               alt={isWnba ? "WNBA" : "NBA"}
               className="h-8 w-auto flex-shrink-0 relative z-10"
             />

@@ -272,7 +272,7 @@ function AICardView({
   // Watermark logic: game → league logo; team/player → team logo; else league logo.
   const teamForWatermark = cleanTeam ?? null;
   const isWnba = leagueCode === "wnba";
-  const leagueLogo = isWnba ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(leagueCode);
   const teamLogo = teamForWatermark
     ? (isWnba ? getWnbaTeamLogo(teamForWatermark) : getTeamLogo(teamForWatermark))
     : null;
