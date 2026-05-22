@@ -856,7 +856,7 @@ export default function CommissionerPage() {
       {/* League Selector — scopes Players & Schedule imports to this league */}
       <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
         <Label className="text-sm font-semibold whitespace-nowrap">Import league:</Label>
-        <Select value={leagueCode} onValueChange={(v) => handleLeagueChange(v as "nba" | "wnba")}>
+        <Select value={leagueCode} onValueChange={(v) => handleLeagueChange(v as "nba" | "wnba" | "euroleague")}>
           <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
@@ -871,6 +871,12 @@ export default function CommissionerPage() {
               <span className="inline-flex items-center gap-2">
                 <img src={wnbaLogoSrc} alt="WNBA" className="h-4 w-4 object-contain" />
                 WNBA
+              </span>
+            </SelectItem>
+            <SelectItem value="euroleague">
+              <span className="inline-flex items-center gap-2">
+                <img src={euroleagueLogoSrc} alt="EuroLeague" className="h-4 w-4 object-contain" />
+                EuroLeague
               </span>
             </SelectItem>
           </SelectContent>
