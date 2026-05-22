@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CompetitionCode } from "@/lib/competitions";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
