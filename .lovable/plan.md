@@ -1,75 +1,66 @@
-## 1) `/` MY ROSTER — list view
+# Plan — Nationality flags + Recap scraper diagnosis
 
-**a) Remove COLLEGE column (EuroLeague only)**
-- `src/components/RosterListView.tsx`: drop the `College` `<TableHead>` when `league === "euroleague"`.
-- `src/components/PlayerRow.tsx`: drop the matching `<TableCell>` (line 157) under the same league check.
-- Rebalance spacing for the remaining columns (Player / DOB(Age) / HT / Nation / FC-BC / Health / Salary / FP5 / Value5 / Last FP / Total FP / action). Concretely:
-  - Drop `min-w-[1080px]` to `min-w-[980px]` to remove the orphan whitespace.
-  - Slightly widen the now-visible Nation cell from `w-32` to `w-36` so flag + label breathe; bump DOB cell from `w-[88px]` to `w-[96px]`.
-- NBA/WNBA stays exactly as-is (College stays).
+## 1) Nationality flags — root cause
 
-**b) Wrong page header (`GAMEWEEK 25 — DAY 6, Deadline Sun 12 Apr 01:00`)**
-Root cause — `src/pages/RosterPage.tsx` lines 184–190:
-```ts
-if (league === "wnba") {
-  const gd = getCurrentGamedayFrom(leagueDeadlines);
-  if (gd) return gd;
-}
-return getCurrentGameday();   // ← NBA static table, wrong for EL
+`src/lib/nationality.ts` ships a hand-written `COUNTRY_ISO` map seeded for NBA/WNBA only. Every EuroLeague country that isn't already in that map renders as "no flag", and any value with diacritics or an alternate spelling (Türkiye, Côte d'Ivoire, Cabo Verde, etc.) silently misses the lookup because the key compare is a plain lowercase string match.
+
+### Fix
+
+Rework `nationality.ts` so the lookup is resilient and the map is comprehensive:
+
+- Normalize the input before lookup: lowercase + strip diacritics (`String.prototype.normalize("NFD").replace(/\p{Diacritic}/gu, "")`) + collapse whitespace + drop punctuation (apostrophes, periods).
+- Add **aliases** so each ISO code can be reached via every common spelling we see in `DB_Players`:
+  - Turkey: `turkey`, `turkiye`, `türkiye`, `republic of turkey`
+  - Ivory Coast: `ivory coast`, `cote divoire`, `côte d'ivoire`, `cote d ivoire`
+  - Cape Verde: `cape verde`, `cabo verde`
+  - North Macedonia: `north macedonia`, `macedonia`, `fyrom`
+  - Czech Republic: `czech republic`, `czechia`
+  - Denmark: `denmark`
+  - Cuba: `cuba`
+  - Angola: `angola`
+  - Chile: `chile`
+  - Colombia: `colombia`
+  - Plus the rest of EuroLeague-relevant nations not in the current map: Argentina, Israel (already in), Egypt, Tunisia, Algeria, Morocco, South Africa, Iceland, Norway, Estonia, Romania, Bulgaria, Slovakia, Belarus, Armenia, Kosovo, Albania, Venezuela, Uruguay, Panama, DR Congo (variants), Ireland, Ghana, Kenya, Sudan, Cyprus, Luxembourg, Iran, Lebanon.
+- Keep `countryLabel` returning a clean display name (map "Turkiye" → "Türkiye", "Cabo Verde" → "Cabo Verde", etc. for the tooltip).
+- Add a tiny vitest covering the problematic spellings so regressions surface.
+
+Files touched: `src/lib/nationality.ts` (+ one test under `src/test/`).
+No DB or schema changes — flag rendering is purely client-side.
+
+## 2) "Scrape Recaps from Euroleague.net" — 0 / 200 explained
+
+Diagnosis run from this sandbox against two known recap URLs:
+
+```text
+HTTP 429  SIZE ~33 KB   (Euroleague.net anti-bot challenge page)
 ```
-EuroLeague falls through to the NBA static deadlines table (`src/lib/deadlines.ts`), which is why it lands on the NBA's GW 25 / Day 6 / 12 Apr.
 
-Fix: extend the branch so EuroLeague also reads from `useLeagueDeadlines()` (which already pulls EL tipoffs from `schedule_games` and applies the `-30 min` Lisbon-time rule we wired last loop):
-```ts
-if (league === "wnba" || league === "euroleague") {
-  const gd = getCurrentGamedayFrom(leagueDeadlines);
-  if (gd) return gd;
-}
-return getCurrentGameday();
-```
-No other roster logic changes — `useDeadlineStatus` and the lock badge already operate on `currentGameday.deadline_utc`.
+The page is **blocked at the edge**. Supabase Edge Functions hit the same WAF from a cloud IP and almost certainly get the same 429 (or a JS challenge) — our regex finds 0 YouTube IDs because the body returned is a block page, not the highlights page. Even when the page does load, the embed is served by Euroleague's own player (Brightcove/Diva), not a raw YouTube iframe, so the YT ID would still need to come from a side channel.
 
-## 2) `/advanced` — Stats button + missing tabs (EuroLeague)
+### Recommended pivot (no more scraping euroleaguebasketball.net)
 
-Root cause — `src/pages/AdvancedPage.tsx` lines 820–846: when `competition.hasAdvancedPlaySearch` is `false` (EL), the whole page short-circuits to the "not available" card whose secondary CTA links to `/scoring`. So users never see Playing Time / Advanced Stats / Trending, even though those tabs run off the same Supabase tables that EL is already populating.
+Replace the scrape path with a **YouTube Data API search scoped to the official EuroLeague channel + game date**, which is the same approach that works for NBA/WNBA:
 
-Fix: instead of returning an early fallback, render the existing `<Tabs>` block with `play-search` hidden when `!competition.hasAdvancedPlaySearch`:
-- Build the tab list dynamically: include `["play-search", "Play Search"]` only when `competition.hasAdvancedPlaySearch`.
-- Change `grid-cols-4` → `grid-cols-${tabs.length}`.
-- Default tab: if persisted tab is `play-search` but the league no longer supports it, fall back to `"playing-time"`.
-- Remove the early-return fallback block entirely (or keep a tiny inline "Play Search is NBA-only" note above the Playing Time tab — optional, ask if you want it).
-- Header label "Advanced · NBA Insights" → use `competition.label` so EL shows "Advanced · EuroLeague Insights".
+- Channel: `UCXC0cXl5kIeBM0Aau-T7yKw` (official @EuroLeague).
+- For each game missing `youtube_recap_id`:
+  1. `search.list` with `channelId=<EuroLeague>`, `q="<away alias> <home alias> highlights"`, `publishedAfter = tipoff`, `publishedBefore = tipoff + 72h`, `maxResults=10`.
+  2. Score titles using the existing `EUROLEAGUE_TEAM_ALIASES` (require ≥1 alias from each side, bonus for "highlights"/"round").
+  3. If channel-scoped search yields nothing, fall back to an open search (current `youtube-recap-lookup` behaviour) — but still date-bounded.
+- Persist the chosen `youtube_recap_id`. Player stays YouTube on the modal (already the case — that "NBA.com" link was patched last round).
 
-The three remaining tabs (`PlayingTimeTrends`, `AdvancedStatsTab`, `TrendingTab`) already read via `useLeagueId()` / league-scoped queries, so they will populate from the EuroLeague rows you've already synced — no edge-function changes required.
+Concretely:
+- Retire the `euroleague-recap-scrape` button (keep the edge function file for now, just hide the UI trigger; or delete both — your call).
+- Extend `youtube-recap-lookup` to accept `league=euroleague`, add a `EUROLEAGUE_CHANNEL_ID` constant, and run the channel-scoped pass before the open one. Keep date windowing strict to avoid pulling pre-game preview clips.
+- In `EuroleagueSheetSyncPanel.tsx`, route the existing "Find YouTube Recaps" button at EuroLeague mode.
 
-## 3) YouTube recap pipeline — leverage the official page
+### Why this should resolve nearly all 433 missing
 
-Today `youtube-recap-lookup` calls YouTube's Search API with alias scoring. Hit rate is poor (last run: 0/100). But every EuroLeague game already carries a deterministic recap URL on `euroleaguebasketball.net`, and that page embeds the exact YouTube video the user wants. So we can pivot to a **scrape-first, search-fallback** strategy.
+The official @EuroLeague channel publishes a "{Away} vs {Home} | Highlights" video for every game within ~12 h of tipoff. Channel-scoped + date-bounded search has near-100 % precision on NBA/WNBA today; aliases already cover the city/nickname variants.
 
-**New edge function: `euroleague-recap-scrape`**
-- Accepts `?league=euroleague&limit=N` (admin-secret guarded, same shape as the existing recap lookup).
-- For each EL game missing `youtube_recap_id`:
-  1. Build the deterministic Euroleague videos URL pattern from `away_team`, `home_team`, `round`, season. Two strategies, tried in order:
-     - **Strategy A (preferred):** fetch the round index page `https://www.euroleaguebasketball.net/euroleague/game-center/round-{round}/2025-26/` and parse the game cell that matches `{away}-{home}` (uses the slugs we already store).
-     - **Strategy B (fallback):** construct the canonical highlights URL `https://www.euroleaguebasketball.net/euroleague/videos/{away-slug}-{home-slug}-round-{ROUND_CODE}-highlights-2025-26-euroleague/` and probe it (HEAD/GET).
-  2. Once the official page HTML is loaded, extract the YouTube ID by regex over the page source:
-     - `youtube\.com/(?:watch\?v=|embed/)([A-Za-z0-9_-]{11})`
-     - `youtu\.be/([A-Za-z0-9_-]{11})`
-     - JSON-LD `"embedUrl":"https://www.youtube.com/embed/<id>"`
-  3. On match, update `schedule_games.youtube_recap_id` and `recap_source = 'euroleague.net'`.
-- No YouTube Data API quota burn. Existing `youtube-recap-lookup` stays as a backup for misses.
+### Quota note
 
-**Commissioner UI**
-- `EuroleagueSheetSyncPanel.tsx`: add a new button **"Scrape Recaps from Euroleague.net"** alongside "Find YouTube Recaps", calling the new function and showing `processed / found / remaining` like today.
+YouTube Data API `search.list` costs 100 units/request. 433 games × 1 call ≈ 43 300 units — under the daily 10 000-per-key limit only if we batch across a few days, or request a quota bump. Easiest path: process in nightly chunks of ~80 games (8 000 units) via the existing schedule tick, OR ask the user to request a one-off quota lift (free) before a single backfill run.
 
-**Answer to your "which job do I run":** after we ship this, you run **Scrape Recaps from Euroleague.net** first (it should resolve nearly all 433 missing). Re-run **Find YouTube Recaps** only as the long-tail fallback. No DB migrations — `youtube_recap_id` already exists.
+## Action for the user
 
-## Files touched
-- `src/components/RosterListView.tsx` (conditional column)
-- `src/components/PlayerRow.tsx` (conditional cell)
-- `src/pages/RosterPage.tsx` (deadline branch)
-- `src/pages/AdvancedPage.tsx` (drop short-circuit, dynamic tabs)
-- `src/components/commissioner/EuroleagueSheetSyncPanel.tsx` (new button + result row)
-- `supabase/functions/euroleague-recap-scrape/index.ts` (new)
-
-No schema migrations.
+- Approve the plan; on implement I'll ship (1) immediately and (2) as a single change to `youtube-recap-lookup` + the panel button. After deploy, run **Find YouTube Recaps** with EuroLeague selected — the scrape button can be ignored / removed.
