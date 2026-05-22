@@ -48,10 +48,12 @@ const WNBA_TEAM_CITY: Record<string, string> = {
 const GAMETIME_CHANNEL_ID = "UC0LrZO9wORIqn_aRJtKdgfA";
 // Official @WNBA channel — posts "{Away Full} vs. {Home Full} | FULL GAME HIGHLIGHTS | {Month D, YYYY}".
 const WNBA_CHANNEL_ID = "UCO9a_ryN_l7DIDS-VIt-zmw";
-// Official @EuroLeague channel. Used as a hint only; for EuroLeague we run an
-// OPEN YouTube search (no channelId filter) because highlights are uploaded by
-// many partners (EuroLeague, clubs, broadcasters), so locking to one channel
-// would miss most games.
+// Official @EuroLeague channel — posts the canonical
+// "{Away} vs {Home} | Highlights | Round X | {Season}" recap within ~12h of
+// tipoff. We use it as the PRIMARY search channel; if a game has no hit
+// there we fall back to an open YouTube search across all uploaders
+// (clubs, broadcasters, Eurohoops, etc.) as a long-tail safety net.
+const EUROLEAGUE_CHANNEL_ID = "UCXC0cXl5kIeBM0Aau-T7yKw";
 // EuroLeague titles vary wildly across uploaders (official channel, clubs,
 // Eurohoops, broadcasters). We accept ANY one of the aliases per team as
 // "team mentioned" so we don't false-negative because a title says "Efes" or
@@ -301,6 +303,7 @@ serve(async (req: Request) => {
         });
         // EuroLeague: open search (many publishers). NBA/WNBA: scope to channel.
         if (!isEuro) params.set("channelId", isWnba ? WNBA_CHANNEL_ID : GAMETIME_CHANNEL_ID);
+        else params.set("channelId", EUROLEAGUE_CHANNEL_ID);
         if (publishedAfter) params.set("publishedAfter", publishedAfter);
         if (publishedBefore) params.set("publishedBefore", publishedBefore);
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
