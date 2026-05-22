@@ -182,7 +182,7 @@ export default function RosterPage() {
   }, [allPlayers, missingPlayersData]);
 
   const currentGameday = useMemo(() => {
-    if (league === "wnba") {
+    if (league === "wnba" || league === "euroleague") {
       const gd = getCurrentGamedayFrom(leagueDeadlines);
       if (gd) return gd;
     }
