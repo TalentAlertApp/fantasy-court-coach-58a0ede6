@@ -1,0 +1,2 @@
+UPDATE public.leagues SET name = 'EuroLeague 2025-26' WHERE id = '00000000-0000-0000-0000-000000000003' AND kind = 'sport' AND code = 'euroleague';
+UPDATE public.leagues SET name = 'Main EuroLeague', visibility = 'public' WHERE id = '00000000-0000-0000-0000-000000000030' AND kind = 'fantasy' AND code = 'main_euroleague';
