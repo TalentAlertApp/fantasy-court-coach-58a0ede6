@@ -9,6 +9,7 @@ import PlayerModal from "@/components/PlayerModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.svg";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useNavigate } from "react-router-dom";
@@ -93,6 +94,12 @@ export default function AppLayout() {
                 alt=""
                 aria-hidden
                 className="pointer-events-none absolute -top-3 -right-5 h-24 w-24 object-contain opacity-[0.08] rotate-12 select-none"
+              />
+              <img
+                src={euroleagueLogo}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 h-16 w-16 object-contain opacity-[0.06] select-none"
               />
             </>
           )}
