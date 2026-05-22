@@ -1,37 +1,52 @@
-## Goal
+# Add Nationality to NBA Players
 
-Play the existing onboarding background bed (`useOnboardingAudio` → `court-show-bed.mp3`) across every onboarding / team-setup / league-setup screen, not only on `WelcomeBackHero` and `OnboardingPage`.
+## Current State (WNBA)
 
-Today it's only mounted on:
-- `src/components/welcome-back/WelcomeBackHero.tsx`
-- `src/pages/OnboardingPage.tsx`
+WNBA already shows nationality everywhere. The data flows through `players.nationality` (already populated for 258/258 WNBA players via `wnba-sheet-sync`), and the UI is league-agnostic — it just renders whatever the API returns.
 
-Missing on:
-- `src/pages/TeamPickerPage.tsx` (the "Pick Your Team" screen the user just shared)
-- `src/pages/CreateLeaguePage.tsx` (multi-step league builder)
+**Where the flag/label appears today** (will automatically light up for NBA once the column is populated):
 
-All three already share the same `localStorage` toggle key (`courtshow.audio.enabled`) and the same volume-icon button pattern, so adding the hook + a tiny mute toggle in each header keeps everything in sync.
+| Surface | File | Treatment |
+|---|---|---|
+| Players table row | `src/components/PlayerRow.tsx` (col after team) | Round flag (xs, ~14px) + country label, truncated to 128px |
+| Player modal header | `src/components/PlayerModal.tsx` | Tiny round flag (xs, forced 12px) next to bio line |
+| Team modal roster rows | `src/components/TeamModal.tsx` | Round flag (xs) next to player name |
+
+API:
+- `supabase/functions/players-list/index.ts` — already returns `nationality`
+- `supabase/functions/player-detail/index.ts` — already returns `nationality`
+
+Country → ISO mapping lives in `src/lib/nationality.ts`, rendered via `flagcdn.com` in `src/components/NationalityFlag.tsx`.
+
+NBA today: 592 players, 0 with nationality. Uploaded CSV `NBA_ID_Nation.csv` maps NBA player ID → country (593 rows). Spot-checked IDs (203999 Jokić, 1641705 Wembanyama) match `players.id` directly.
 
 ## Plan
 
-Two files, presentation only.
+### 1. Extend country → ISO map (`src/lib/nationality.ts`)
 
-### 1. `src/pages/TeamPickerPage.tsx`
+The CSV introduces ~25 countries not yet in the map. Add the missing ones so flags render:
 
-- Import `useOnboardingAudio` and call `const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);`
-- Add a `Volume2 / VolumeX` toggle button in the top-right header bar next to the existing "Sign out" button, matching the style used in `WelcomeBackHero` (same classes, same `title`/`aria-label`).
-- No behavior or routing changes.
+Austria (AT), Croatia (HR), Democratic Republic of Congo / DRC (CD), Dominican Republic (DO), Georgia (GE), Guinea (GN), Haiti (HT), Israel (IL), Jamaica (JM), Japan (JP), Latvia (LV), Montenegro (ME), Nicaragua (NI), Nigeria (NG), Poland (PL), Portugal (PT), Puerto Rico (PR), Saint Lucia (LC), Senegal (SN), South Sudan (SS), Sweden (SE), Switzerland (CH), Turkey (TR), Ukraine (UA).
 
-### 2. `src/pages/CreateLeaguePage.tsx`
+(Existing entries — USA, France, Canada, Serbia, Slovenia, Germany, Spain, Italy, etc. — already cover the rest. Also remove the misleading "WNBA-only" comment at the top of the file.)
 
-- Same: import `useOnboardingAudio`, call it with `active=true`, add the matching volume toggle button in the page header.
-- The audio keeps playing as the user steps through wizard steps 1→7 (single component, single mount = no gaps).
+### 2. One-shot NBA nationality import (Supabase migration)
 
-### Continuity note
+Create a new timestamped migration under `supabase/migrations/` that:
 
-Each page mounts its own `<Audio>` element, so there is a brief gap on each route change (e.g. picker → WB → onboarding). This already happens between WB and Onboarding today and the user has not flagged it; matching that behavior keeps scope tight. If they later want gapless continuity, we can lift the hook to a shared provider — out of scope for now.
+- Resolves `league_id` for `code='nba'`.
+- Runs a single `UPDATE public.players SET nationality = v.nat FROM (VALUES (203999,'Serbia'), (1641705,'France'), …all 593 rows…) AS v(id, nat) WHERE players.id = v.id AND players.league_id = <nba_league_id>;`
+- Leaves WNBA rows untouched.
 
-### Out of scope
+No schema change — the `nationality` column already exists and is used by WNBA.
 
-- `useOnboardingAudio` itself, the mp3 asset, the Court Show audio, RequireAuth, contexts, or any non-onboarding routes.
-- Gapless cross-route playback.
+### 3. No UI changes required
+
+Because `PlayerRow`, `PlayerModal`, and `TeamModal` already read `core.nationality` / `player.nationality` from the existing API responses, NBA will get the exact same flag + label treatment as WNBA the moment the column is populated. Size, position, truncation, and styling are unchanged.
+
+## Verification
+
+- After migration: `SELECT COUNT(*) FILTER (WHERE nationality IS NOT NULL) FROM players JOIN leagues …` returns ~593 for NBA.
+- Players page (NBA league): nationality column shows flag + country.
+- Open a player modal (NBA): tiny flag next to bio.
+- Open a team modal (NBA): flag next to roster names.
