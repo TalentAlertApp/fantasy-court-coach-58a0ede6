@@ -12,6 +12,7 @@ import { Table2, BarChart3, Mic, ExternalLink, Tv2, Swords } from "lucide-react"
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import TeamCompareModal from "@/components/TeamCompareModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -34,6 +35,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const { league } = useLeague();
   const { data: leagueId } = useLeagueId();
   const team = tricode ? (leagueTeams.find((t) => t.tricode === tricode) ?? null) : null;
+  const euroleagueMeta = league === "euroleague" ? getEuroLeagueTeamRecord(tricode ?? undefined) : undefined;
   const getOppLogo = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
   const watermarkLogo = getLeagueLogo(league);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
@@ -169,6 +171,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                 <DialogTitle className="font-heading uppercase tracking-wide text-base leading-tight truncate">
                   {team?.name ?? tricode}
                 </DialogTitle>
+                {league === "euroleague" && (euroleagueMeta || team?.venueName) && (
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground truncate">
+                    {[tricode, euroleagueMeta?.city, euroleagueMeta?.country, euroleagueMeta?.venue_name ?? team?.venueName]
+                      .filter(Boolean).join(" · ")}
+                  </p>
+                )}
                 <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                   <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
                     <span className="text-foreground font-bold">{played.length}</span> GP
