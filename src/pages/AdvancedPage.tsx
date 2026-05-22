@@ -834,10 +834,10 @@ export default function AdvancedPage() {
           </p>
           <div className="flex items-center justify-center gap-3 pt-2">
             <Button asChild variant="default" className="font-heading uppercase tracking-wider">
-              <Link to="/players"><Users className="size-4 mr-2" />Players</Link>
+              <Link to="/transactions"><Users className="size-4 mr-2" />Players</Link>
             </Button>
             <Button asChild variant="outline" className="font-heading uppercase tracking-wider">
-              <Link to="/stats"><BarChart3 className="size-4 mr-2" />Stats</Link>
+              <Link to="/scoring"><BarChart3 className="size-4 mr-2" />Stats</Link>
             </Button>
           </div>
         </div>
