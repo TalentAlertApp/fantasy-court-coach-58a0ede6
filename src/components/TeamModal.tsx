@@ -314,7 +314,13 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                                   rel="noreferrer"
                                   className="text-green-500 hover:text-green-400 transition-colors p-0.5"
                                   onClick={(e) => e.stopPropagation()}
-                                  title="Watch Recap on NBA.com"
+                                  title={
+                                    league === "euroleague"
+                                      ? "Watch Recap on YouTube"
+                                      : league === "wnba"
+                                      ? "Watch Recap on WNBA.com"
+                                      : "Watch Recap on NBA.com"
+                                  }
                                 >
                                   <Tv2 className="h-3.5 w-3.5" />
                                 </a>

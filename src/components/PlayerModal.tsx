@@ -478,7 +478,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                         target="_blank"
                                         rel="noreferrer"
                                         className="text-green-500 hover:text-green-400 transition-colors p-0.5"
-                                        title="Watch Recap on NBA.com"
+                                        title={
+                                          league === "euroleague"
+                                            ? "Watch Recap on YouTube"
+                                            : league === "wnba"
+                                            ? "Watch Recap on WNBA.com"
+                                            : "Watch Recap on NBA.com"
+                                        }
                                       >
                                         <Tv2 className="h-3 w-3" />
                                       </a>
