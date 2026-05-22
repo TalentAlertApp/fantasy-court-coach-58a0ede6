@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
@@ -764,6 +765,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
   const [injuryPair, setInjuryPair] = useState<{ a: string; b: string } | null>(null);
   const colsPerRow = useColsPerRow();
+  // Hydrate the EuroLeague team registry so getVenue() can resolve venue
+  // backdrops on /schedule cards (NBA/WNBA already use static catalogs).
+  useLeagueTeams();
 
   // Prefetch box-scores for finished games so "Outstanding Players" blurbs render inline.
   const finalGameIds = games.filter((g) => isGameFinal(g.status)).map((g) => g.game_id);

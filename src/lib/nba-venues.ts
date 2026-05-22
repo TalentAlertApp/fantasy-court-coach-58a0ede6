@@ -4,6 +4,7 @@ export interface VenueMeta {
 }
 
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
+import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
 
 // Home arena name + Wikimedia-hosted exterior/interior photo for each NBA team.
 // Images use Wikimedia Commons URLs (CC-licensed, hot-link friendly).
@@ -49,6 +50,11 @@ export function getVenue(tricode: string): VenueMeta | null {
   const w = WNBA_TEAMS.find((x) => x.tricode === t);
   if (w?.venueImage || w?.venueName) {
     return { name: w.venueName ?? "", image: w.venueImage ?? "" };
+  }
+  // EuroLeague fallback: pull from the runtime registry hydrated by useLeagueTeams.
+  const e = getEuroLeagueTeamRecord(t);
+  if (e?.venue_image_url || e?.venue_name) {
+    return { name: e.venue_name ?? "", image: e.venue_image_url ?? "" };
   }
   return null;
 }

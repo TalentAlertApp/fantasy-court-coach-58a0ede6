@@ -373,10 +373,19 @@ async function syncGameData(token: string, sb: ReturnType<typeof makeSb>, league
   const data = rows.slice(1).filter((r) => String(r[11] ?? "").trim() !== "");
 
   // League-scoped player team map (for home_away resolution)
-  const { data: players } = await sb.from("players").select("id, team").eq("league_id", leagueId);
+  const { data: players } = await sb.from("players").select("id, name, team").eq("league_id", leagueId);
   const teamById = new Map<number, string>(
-    (players ?? []).map((p: { id: number; team: string }) => [p.id, p.team]),
+    (players ?? []).map((p: { id: number; name: string; team: string }) => [p.id, p.team]),
   );
+  // Secondary lookup: normalized "name|team" → canonical player id.
+  const normName = (s: string) =>
+    s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+  const idByNameTeam = new Map<string, number>();
+  for (const p of (players ?? []) as Array<{ id: number; name: string; team: string }>) {
+    if (p.name && p.team) idByNameTeam.set(`${normName(p.name)}|${p.team.toUpperCase()}`, p.id);
+  }
+  const aliasedPlayers: Array<{ from: number; to: number; name: string }> = [];
+  const stubsCreated: Array<{ id: number; name: string; team: string }> = [];
 
   const errors: string[] = [];
   const skippedPlayers: Array<{ id: number; name: string }> = [];
@@ -417,15 +426,50 @@ async function syncGameData(token: string, sb: ReturnType<typeof makeSb>, league
         });
       }
 
-      const playerTeam = teamById.get(playerId);
+      let resolvedPlayerId = playerId;
+      let playerTeam = teamById.get(playerId);
+      if (!playerTeam && playerName) {
+        // Try name+team alias against either home or away team.
+        const nk = normName(playerName);
+        const altHome = idByNameTeam.get(`${nk}|${homeTeam.toUpperCase()}`);
+        const altAway = idByNameTeam.get(`${nk}|${awayTeam.toUpperCase()}`);
+        const alt = altHome ?? altAway;
+        if (alt) {
+          aliasedPlayers.push({ from: playerId, to: alt, name: playerName });
+          resolvedPlayerId = alt;
+          playerTeam = teamById.get(alt);
+        }
+      }
       if (!playerTeam) {
-        skippedPlayers.push({ id: playerId, name: playerName });
-        continue;
+        // Auto-insert a stub so the game log can land. Team is whichever side
+        // the sheet recorded the row under — best we have without DB_Players.
+        const guessTeam = homeTeam || awayTeam || "";
+        if (guessTeam && playerName) {
+          const stub = {
+            id: playerId,
+            league_id: leagueId,
+            name: playerName,
+            team: guessTeam,
+            fc_bc: "BC",
+            salary: 0,
+            jersey: 0,
+          };
+          const { error: insErr } = await sb.from("players").upsert(stub, { onConflict: "id" });
+          if (!insErr) {
+            teamById.set(playerId, guessTeam);
+            stubsCreated.push({ id: playerId, name: playerName, team: guessTeam });
+            playerTeam = guessTeam;
+          }
+        }
+        if (!playerTeam) {
+          skippedPlayers.push({ id: playerId, name: playerName });
+          continue;
+        }
       }
       const home_away = playerTeam === homeTeam ? "H" : "A";
       const opp = home_away === "H" ? awayTeam : homeTeam;
       playerLogs.push({
-        player_id: playerId,
+        player_id: resolvedPlayerId,
         game_id: gameId,
         game_date: isoDate,
         mp: intOrZero(r[14]),
@@ -528,6 +572,8 @@ async function syncGameData(token: string, sb: ReturnType<typeof makeSb>, league
     last_game_updated: lastGameUpdated,
     players_aggregated: aggregatesUpdated,
     skipped_players: skippedPlayers.length ? skippedPlayers.slice(0, 25) : undefined,
+    aliased_players: aliasedPlayers.length ? aliasedPlayers.slice(0, 50) : undefined,
+    stubs_created: stubsCreated.length ? stubsCreated.slice(0, 50) : undefined,
     errors,
   };
 }

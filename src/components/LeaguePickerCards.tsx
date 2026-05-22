@@ -25,7 +25,7 @@ export default function LeaguePickerCards({
   const big = size === "lg";
   const cardCls = big ? "min-h-44 md:min-h-52 py-4" : "min-h-32 py-3";
   const logoCls = big ? "h-24 w-24 md:h-28 md:w-28" : "h-16 w-16";
-  const nameCls = big ? "text-xl tracking-[0.3em]" : "text-sm tracking-[0.25em]";
+  const nameCls = big ? "text-lg md:text-xl tracking-[0.15em]" : "text-sm tracking-[0.2em]";
 
   const gridCols = FANTASY_COMPETITIONS.length >= 3 ? "grid-cols-3" : "grid-cols-2";
 
@@ -33,7 +33,7 @@ export default function LeaguePickerCards({
     <div className={cn("grid gap-4", gridCols, className)}>
       {FANTASY_COMPETITIONS.map((comp) => {
         const c = comp.code;
-        const m = { name: comp.label, full: FULL_NAME[c], logo: comp.logo, tint: comp.tint };
+        const m = { name: comp.label, full: FULL_NAME[c], logo: comp.logo, tint: comp.tint, scale: comp.logoScale ?? 1 };
         const active = value === c;
         return (
           <button
@@ -74,13 +74,14 @@ export default function LeaguePickerCards({
               <img
                 src={m.logo}
                 alt={m.name}
+                style={m.scale !== 1 ? { transform: `scale(${m.scale})` } : undefined}
                 className={cn(
                   logoCls,
                   "object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-transform duration-300",
                   active ? "scale-105" : "group-hover:scale-105",
                 )}
               />
-              <span className={cn("font-heading font-black uppercase", nameCls, active ? "text-foreground" : "text-foreground/80")}>
+              <span className={cn("font-heading font-black uppercase text-center break-words leading-tight max-w-full px-1", nameCls, active ? "text-foreground" : "text-foreground/80")}>
                 {m.name}
               </span>
               {showSubtitle && (

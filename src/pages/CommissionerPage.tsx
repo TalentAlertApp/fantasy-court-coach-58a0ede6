@@ -33,7 +33,7 @@ import EuroleagueSheetSyncPanel from "@/components/commissioner/EuroleagueSheetS
 import SalaryAutoSchedulePanel from "@/components/commissioner/SalaryAutoSchedulePanel";
 import nbaLogoSrc from "@/assets/nba-logo.svg";
 import wnbaLogoSrc from "@/assets/wnba-logo.png";
-import euroleagueLogoSrc from "@/assets/euroleague-logo.svg";
+import euroleagueLogoSrc from "@/assets/euroleague-logo.png";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),

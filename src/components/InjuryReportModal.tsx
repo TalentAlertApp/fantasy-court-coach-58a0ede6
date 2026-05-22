@@ -265,6 +265,19 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
   const load = useCallback(async (force = false) => {
     setError(null);
 
+    // EuroLeague: no injury data source yet — render empty state and skip fetch.
+    if (league === "euroleague") {
+      setPayload({
+        generated_at: new Date().toISOString(),
+        total_players: 0,
+        by_team: {},
+        all: [],
+      });
+      setRosterMap(new Map());
+      setLoading(false);
+      return;
+    }
+
     if (!force) {
       const cached = readCache();
       if (cached) {
@@ -326,7 +339,7 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
     } finally {
       setLoading(false);
     }
-  }, [isWnba, queryClient]);
+  }, [isWnba, league, queryClient]);
 
   useEffect(() => {
     if (open && !payload && !loading) {
@@ -507,6 +520,18 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
 
           {!loading && !error && payload && (
             <>
+              {league === "euroleague" && (
+                <div className="relative flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
+                  <Shield className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm font-semibold">EuroLeague injury feed coming soon</p>
+                  <p className="text-xs text-muted-foreground max-w-sm">
+                    We're not wiring the NBA injury source to EuroLeague. A dedicated
+                    EuroLeague feed will be added later.
+                  </p>
+                </div>
+              )}
+              {league !== "euroleague" && (
+              <>
               {/* ALL | Team dropdown header bar (sticky-ish, equal widths) */}
               <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border/50 bg-background/95 backdrop-blur-sm relative z-20">
                 <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 max-w-xl mx-auto w-full">
@@ -642,6 +667,8 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
                   onSelect={(id) => setOpenPlayerId(id)}
                 />
               </div>
+              </>
+              )}
             </>
           )}
         </div>

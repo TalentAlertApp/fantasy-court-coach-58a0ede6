@@ -10,7 +10,7 @@
  * are imported. Replacing `logo` per club is purely additive.
  */
 
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 
 export interface EuroLeagueTeam {
   id: string;
