@@ -208,11 +208,11 @@ export default function CommissionerPage() {
   };
 
   // League selector — drives league_code sent with every import
-  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">(() => {
+  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba" | "euroleague">(() => {
     if (typeof window === "undefined") return "nba";
-    return ((localStorage.getItem("commissioner_league") as "nba" | "wnba") ?? "nba");
+    return ((localStorage.getItem("commissioner_league") as "nba" | "wnba" | "euroleague") ?? "nba");
   });
-  const handleLeagueChange = (v: "nba" | "wnba") => {
+  const handleLeagueChange = (v: "nba" | "wnba" | "euroleague") => {
     setLeagueCode(v);
     try { localStorage.setItem("commissioner_league", v); } catch { /* noop */ }
   };
