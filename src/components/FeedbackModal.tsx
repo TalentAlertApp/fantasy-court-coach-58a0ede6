@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.svg";
 
 const FEEDBACK_EMAIL = "alertadetalento@gmail.com";
 
@@ -213,6 +214,14 @@ export default function FeedbackModal({ open, onOpenChange }: Props) {
             aria-hidden
             className="absolute top-10 left-14 h-24 w-24 object-contain opacity-[0.07] dark:opacity-[0.10] select-none"
             style={{ transform: "rotate(12deg)" }}
+            draggable={false}
+          />
+          <img
+            src={euroleagueLogo}
+            alt=""
+            aria-hidden
+            className="absolute top-2 left-32 h-20 w-20 object-contain opacity-[0.07] dark:opacity-[0.10] select-none"
+            style={{ transform: "rotate(-6deg)" }}
             draggable={false}
           />
         </div>
