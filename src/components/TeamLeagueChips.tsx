@@ -25,7 +25,7 @@ export default function TeamLeagueChips({
   max = 4,
 }: Props) {
   const { data: leagues } = useFantasyLeagues();
-  const byId = new Map<string, { name: string; sport: "nba" | "wnba" }>();
+  const byId = new Map<string, { name: string; sport: "nba" | "wnba" | "euroleague" }>();
   for (const l of leagues ?? []) byId.set(l.id, { name: l.name, sport: l.sport });
 
   const ordered = [...leagueIds].sort((a, b) => {

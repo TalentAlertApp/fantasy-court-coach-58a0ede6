@@ -5,7 +5,7 @@ export type PublicLeague = {
   id: string;
   name: string;
   description: string | null;
-  sport: "nba" | "wnba";
+  sport: "nba" | "wnba" | "euroleague";
   status: string;
   join_code: string | null;
   team_count: number;

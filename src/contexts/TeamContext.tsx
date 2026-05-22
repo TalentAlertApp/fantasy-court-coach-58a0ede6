@@ -10,7 +10,7 @@ export type TeamRecord = {
   id: string;
   name: string;
   description: string | null;
-  league_code?: "nba" | "wnba";
+  league_code?: "nba" | "wnba" | "euroleague";
   sport_league_id?: string | null;
   owner_id?: string | null;
   league_id?: string | null;

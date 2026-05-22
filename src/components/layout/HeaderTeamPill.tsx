@@ -9,7 +9,7 @@ export default function HeaderTeamPill() {
 
   const active = teams.find((t) => t.id === selectedTeamId) as any;
   const activeName = active?.name ?? "Select team";
-  const activeLeague = (active?.league_code ?? "nba") as "nba" | "wnba";
+  const activeLeague = (active?.league_code ?? "nba") as "nba" | "wnba" | "euroleague";
 
   return (
     <div className="flex items-center gap-2 bg-card border border-border rounded-full pl-3 pr-1 py-1 shadow-sm">
