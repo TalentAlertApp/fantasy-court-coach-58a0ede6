@@ -269,7 +269,7 @@ export default function PlayerCard({
           <img
             src={core.photo}
             alt={core.name}
-            className={`w-28 h-28 md:w-36 md:h-36 rounded-full object-cover bg-black/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 ${
+            className={`w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-[center_15%] bg-black/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 ${
               isOut ? "ring-2 ring-red-500/70" : isRisky ? "ring-2 ring-amber-400/60" : ""
             }`}
           />
