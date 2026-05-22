@@ -13,10 +13,14 @@ async function leaguesByCode(sb: any): Promise<Record<string, string>> {
   return m;
 }
 
-function codeForLeagueId(byCode: Record<string, string>, id: string | null | undefined): "nba" | "wnba" {
+type SportCode = "nba" | "wnba" | "euroleague";
+
+function codeForLeagueId(byCode: Record<string, string>, id: string | null | undefined): SportCode {
   if (!id) return "nba";
   for (const [code, lid] of Object.entries(byCode)) {
-    if (lid === id && (code === "nba" || code === "wnba")) return code as "nba" | "wnba";
+    if (lid === id && (code === "nba" || code === "wnba" || code === "euroleague")) {
+      return code as SportCode;
+    }
   }
   return "nba";
 }
@@ -118,10 +122,18 @@ Deno.serve(async (req) => {
       const byCode = await leaguesByCode(sb);
       const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
       const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
-      const MAIN_LEAGUE_IDS = new Set<string>([MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID]);
+      const MAIN_LEAGUE_EUROLEAGUE_ID = "00000000-0000-0000-0000-000000000030";
+      const MAIN_LEAGUE_IDS = new Set<string>([
+        MAIN_LEAGUE_NBA_ID,
+        MAIN_LEAGUE_WNBA_ID,
+        MAIN_LEAGUE_EUROLEAGUE_ID,
+      ]);
+
+      const resolveSportCode = (sport: string | null | undefined): SportCode =>
+        sport === "wnba" ? "wnba" : sport === "euroleague" ? "euroleague" : "nba";
 
       let targetLeagueId: string = MAIN_LEAGUE_NBA_ID;
-      let code: "nba" | "wnba" = "nba";
+      let code: SportCode = "nba";
 
       if (fantasy_league_id && typeof fantasy_league_id === "string" && !MAIN_LEAGUE_IDS.has(fantasy_league_id)) {
         // Look up the fantasy league
@@ -148,7 +160,7 @@ Deno.serve(async (req) => {
         }
         // Capacity intentionally not enforced — users may own multiple teams in any league.
         targetLeagueId = fantasy_league_id;
-        code = (fl.sport === "wnba" ? "wnba" : "nba");
+        code = resolveSportCode(fl.sport);
       } else if (fantasy_league_id && typeof fantasy_league_id === "string" && MAIN_LEAGUE_IDS.has(fantasy_league_id)) {
         // Main league (NBA or WNBA) — free entry, no membership check.
         // Resolve sport from the league row itself (ignore caller-supplied league_code).
@@ -160,15 +172,20 @@ Deno.serve(async (req) => {
         // Capacity intentionally not enforced — Main League is free-entry and a user may own
         // multiple teams in it.
         targetLeagueId = fantasy_league_id;
-        code = (fl?.sport === "wnba" ? "wnba" : "nba");
+        code = resolveSportCode(fl?.sport);
       } else {
         // Backward compatible: Main League with optional NBA/WNBA selector
         const c = String(league_code ?? "nba").toLowerCase();
-        if (c !== "nba" && c !== "wnba") {
-          return errorResponse("VALIDATION", "league_code must be 'nba' or 'wnba'");
+        if (c !== "nba" && c !== "wnba" && c !== "euroleague") {
+          return errorResponse("VALIDATION", "league_code must be 'nba', 'wnba', or 'euroleague'");
         }
-        code = c as "nba" | "wnba";
-        targetLeagueId = code === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+        code = c as SportCode;
+        targetLeagueId =
+          code === "wnba"
+            ? MAIN_LEAGUE_WNBA_ID
+            : code === "euroleague"
+              ? MAIN_LEAGUE_EUROLEAGUE_ID
+              : MAIN_LEAGUE_NBA_ID;
       }
 
       const sportLeagueId = byCode[code];
