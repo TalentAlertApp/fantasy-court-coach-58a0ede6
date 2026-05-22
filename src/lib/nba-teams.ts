@@ -54,6 +54,7 @@ const NAME_TO_TRICODE: Record<string, string> = {
 
 import { getWnbaTeamByTricode, getWnbaTeamLogo, WNBA_TEAMS } from "@/lib/wnba-teams";
 import { EUROLEAGUE_TEAMS, getEuroLeagueTeamByTricode } from "@/lib/euroleague-teams";
+import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
 import { getCurrentLeague, type LeagueCode } from "@/contexts/LeagueContext";
 
 /** Look up a team by tricode (e.g. "LAL") — case-insensitive. League-aware. */
@@ -86,6 +87,9 @@ export function getTeamLogo(teamStr: string, league?: LeagueCode): string | unde
   }
   if (lg === "euroleague") {
     const upper = teamStr.toUpperCase();
+    // Prefer the synced sport_teams logo when available.
+    const rec = getEuroLeagueTeamRecord(teamStr);
+    if (rec?.logo_url) return rec.logo_url;
     const byTri = EUROLEAGUE_TEAMS.find((t) => t.tricode === upper);
     if (byTri) return byTri.logo;
     const lower = teamStr.toLowerCase();
