@@ -1,17 +1,30 @@
 // Shared league resolution. league_code arrives via querystring OR JSON body.
-// Returns { league_id, league_code }.
+// Returns { league_id, league_code }. Unknown codes are rejected — NEVER
+// silently coerced — so a typo in the client surfaces as a clear error
+// instead of returning NBA data by accident.
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
+import { isKnownCompetition } from "./competitions.ts";
 
-export type LeagueCode = "nba" | "wnba";
+export type LeagueCode = "nba" | "wnba" | "euroleague";
 
 export function readLeagueCodeFromUrl(url: URL): LeagueCode {
   const v = (url.searchParams.get("league_code") ?? "nba").toLowerCase();
-  return v === "wnba" ? "wnba" : "nba";
+  return isKnownCompetition(v) ? v : "nba";
 }
 
 export function readLeagueCodeFromBody(body: Record<string, unknown> | null | undefined): LeagueCode {
   const v = String((body && (body as any).league_code) ?? "nba").toLowerCase();
-  return v === "wnba" ? "wnba" : "nba";
+  return isKnownCompetition(v) ? v : "nba";
+}
+
+/** Strict variant — throws on unknown codes. Use at the edge of a function
+ *  when you want to reject typos instead of defaulting to NBA. */
+export function assertLeagueCodeFromUrl(url: URL): LeagueCode {
+  const raw = url.searchParams.get("league_code");
+  if (raw == null) return "nba";
+  const v = raw.toLowerCase();
+  if (!isKnownCompetition(v)) throw new Error(`Unknown league_code: ${raw}`);
+  return v;
 }
 
 const _cache = new Map<LeagueCode, string>();
