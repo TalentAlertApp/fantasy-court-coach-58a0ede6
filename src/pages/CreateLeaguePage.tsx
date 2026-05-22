@@ -13,6 +13,7 @@ import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.svg";
 
 type StatKey = "pts" | "reb" | "ast" | "stl" | "blk" | "to";
 type Preset = "classic" | "guards_boost" | "bigs_boost" | "custom";
@@ -257,6 +258,7 @@ export default function CreateLeaguePage() {
               {([
                 { key: "nba" as const, name: "NBA", full: "National Basketball Association", count: "450+ players", logo: nbaLogo },
                 { key: "wnba" as const, name: "WNBA", full: "Women's National Basketball Association", count: "140+ players", logo: wnbaLogo },
+                { key: "euroleague" as const, name: "EuroLeague", full: "Turkish Airlines EuroLeague", count: "18 clubs", logo: euroleagueLogo },
               ]).map((opt) => (
                 <button
                   key={opt.key}
