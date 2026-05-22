@@ -272,9 +272,10 @@ export default function SchedulePage() {
             ref={weekScrollRef}
             className={
               league === "euroleague"
-                ? "grid grid-cols-19 gap-0.5 py-1 pr-2"
+                ? "grid gap-0.5 py-1 pr-2"
                 : "flex gap-0.5 overflow-x-auto scrollbar-hide py-1 pr-2"
             }
+            style={league === "euroleague" ? { gridTemplateColumns: "repeat(19, minmax(0, 1fr))" } : undefined}
           >
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
