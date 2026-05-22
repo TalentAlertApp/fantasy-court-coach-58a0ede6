@@ -1,53 +1,113 @@
-## Root cause for issues 2–5 (one bug)
+## Goal
 
-`syncPlayers` in `supabase/functions/euroleague-sheet-sync/index.ts` still uses the NBA/WNBA column layout (A URL, B ID, C PHOTO, D NAME, E TEAM, F FC_BC, G $, H #, **I COLLEGE, J WEIGHT, K HEIGHT, L AGE, M DOB, N EXP, O POS, P NAT**).
+Fix the 3 EuroLeague sync paths flagged in the log:
 
-The EuroLeague `DB_Players` sheet does NOT have COLLEGE / WEIGHT / EXP columns. Its real layout (confirmed against current DB rows) is:
-`A URL, B ID, C PHOTO, D NAME, E TEAM, F FC_BC, G $, H #, I HEIGHT, J AGE, K DOB, L POS, M NAT`.
-
-Consequence today:
-- `college` ← actually HEIGHT ("1.96")
-- `height` ← actually DOB ("07/02/1989")
-- `dob` ← actually POS (unparseable → null)
-- `nationality` ← read from `r[15]` (empty → null)
-
-That single mismatch explains: list-view DOB empty, HT showing the DOB string, "College" showing the height number, NATION empty, and NAT flag missing in both PlayerModal header and TeamModal Roster tab.
-
-## Issue 1 — Venue images for EA7, PBB, PAO, EFS
-
-Their `venue_image_url` in `sport_teams` is a Wikipedia article URL (`…/wiki/X#/media/File:Y.jpg`), not a real image, so `<img>` fails. Fix in `euroleague-sheet-sync` (Teams sync): when a URL matches `…wikipedia.org/wiki/<page>#/media/File:<filename>`, rewrite it to `https://commons.wikimedia.org/wiki/Special:FilePath/<filename>` (which resolves to the actual JPG). Apply the same transform when reading existing rows so re-running Teams sync repairs the four broken records.
-
-## Issue 6 — Game modal says "Watch Recap on NBA.com" for EuroLeague
-
-`GameDetailModal.tsx` line 77 hardcodes:
-```ts
-const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
 ```
-Add the EuroLeague case → `"EuroLeagueBasketball.net"`. Same applies to the `ExternalLink` label `leagueName` (line 206) — extend so EuroLeague reads "EuroLeague".
+recap lookup  processed: 100  found: 0   remaining: 433
+teams         read: 21        upserted: 20  skipped: 1
+players       read: 335       upserted: 335 skipped: 0
+```
 
-## Issue 5 — Video Recaps plan
+Players already imports cleanly (335/335) — verified, no change needed; the rest of the work is in the other two syncs.
 
-Current state in the DB (verified): EuroLeague `schedule_games` have `game_recap_url` pointing to `euroleaguebasketball.net/euroleague/videos/...` and `youtube_recap_id` is NULL for every row. `GameDetailModal.toYouTubeEmbed()` therefore cannot embed and falls back to the outbound link (which is what triggers issue 6).
+---
 
-Plan:
-1. Keep the existing `euroleaguebasketball.net` URL as the outbound fallback (label fixed by issue 6).
-2. Backfill `youtube_recap_id` using the already-extended `youtube-recap-lookup` edge function. The Commissioner panel already has a **"Find YouTube Recaps"** button — document it and confirm it batches over `schedule_games` where `youtube_recap_id IS NULL AND status ILIKE 'FINAL%'`.
-3. Once IDs are filled, the existing embed code in `GameDetailModal` will render the YouTube iframe inline exactly like NBA/WNBA — no further UI changes needed.
+## 1. EuroLeague YouTube recap lookup — 0/100 matches
 
-## Files to change
+### Why nothing matches today
 
-- `supabase/functions/euroleague-sheet-sync/index.ts`
-  - `syncPlayers`: remap columns to `I HEIGHT, J AGE, K DOB, L POS, M NAT`. Detect layout from the header row (presence of "HEIGHT" at index 8 vs "COLLEGE") to stay forward-compatible.
-  - `syncTeams` (or wherever `venue_image_url` is written): add `normaliseWikiImageUrl()` helper and apply to incoming + existing rows for this league only.
-- `src/components/GameDetailModal.tsx`
-  - Add `euroleague` branch to `recapHost` and `leagueName`.
-- `src/components/PlayerModal.tsx` line 486, `src/components/TeamModal.tsx` line 322
-  - Already handle `league === "wnba"`; add `euroleague === "Watch Recap on YouTube"` (already done previously, just verifying the path is reached when `youtube_recap_id` is null — adjust so EuroLeague always says "Watch Recap on EuroLeagueBasketball.net" when embed is unavailable, "on YouTube" when it is).
+In `youtube-recap-lookup/index.ts` the scorer hard-requires that the title contain the *full* nickname from `EUROLEAGUE_TEAM_NICKNAMES` (e.g. `"anadolu efes"`, `"olimpia milano"`, `"crvena zvezda"`, `"panathinaikos"`). Official EuroLeague / club / Eurohoops upload titles almost never use that exact phrase — they shorten to `Efes`, `Olimpia`, `Milan`, `Zvezda`, `Pana`, `Madrid`, `Olympiakos`, etc. Result: both-teams hard check fails every time → 0 found, ~80 quota burned.
 
-## Post-deploy actions (one-click in Commissioner)
+### Fix
 
-1. Run **Sync → Teams** → repairs the 4 broken venue images.
-2. Run **Sync → Players** → fills nationality, fixes DOB/Height/Age/Position for all ~250 EuroLeague players. Existing salaries are preserved (G column already ignored).
-3. Run **Find YouTube Recaps** → fills `youtube_recap_id` so game modals embed instead of linking out.
+Replace the single-nickname `EUROLEAGUE_TEAM_NICKNAMES` map with a per-team **alias list**, and change the EuroLeague scoring path so a team is "present" if **any one alias** is found in the title.
 
-No database migrations needed (all columns already exist).
+```ts
+const EUROLEAGUE_TEAM_ALIASES: Record<string, string[]> = {
+  EFS: ["anadolu efes", "efes"],
+  ASM: ["monaco"],
+  CZV: ["crvena zvezda", "zvezda", "red star"],
+  DUB: ["dubai"],
+  EA7: ["olimpia milano", "olimpia milan", "ea7", "milano", "milan"],
+  BAR: ["barcelona", "barça", "barca"],
+  BAY: ["bayern", "munich", "münchen"],
+  FBB: ["fenerbahce", "fenerbahçe"],
+  HTA: ["hapoel tel aviv", "hapoel"],
+  BKN: ["baskonia"],
+  ASV: ["asvel", "villeurbanne"],
+  MTA: ["maccabi tel aviv", "maccabi"],
+  OLY: ["olympiacos", "olympiakos"],
+  PAO: ["panathinaikos", "pana"],
+  PAR: ["paris basketball", "paris"],
+  PBB: ["partizan"],
+  RMB: ["real madrid", "madrid"],
+  VBC: ["valencia"],
+  VIR: ["virtus bologna", "virtus", "bologna"],
+  ZAL: ["zalgiris", "žalgiris", "kaunas"],
+};
+```
+
+In the EuroLeague branch:
+- Replace `awayCity`/`homeCity` substring check with `aliases.some(a => title.includes(a))` per team.
+- Keep the "both teams must appear" requirement.
+- Keep `+1 highlights`, `+2 full game`, `+3 long date` scoring; add `+1 round` when title contains `"round"` (very common in EL titles).
+- Lower EuroLeague `minScore` from 4 → **5** (alias matches are cheaper to get, so we tighten slightly to avoid noise).
+- Disable `same-night cross-team rejection` for EuroLeague — `sameNightTeamCities` is built from NBA `TEAM_CITY` and is meaningless for EL anyway (it's effectively empty, so this is a no-op cleanup).
+- Bump `maxResults` from 10 → 15 for EuroLeague primary search and add a second query variant `"{away} {home} highlights round {date}"` when the first returns 0 items, before falling back to open search.
+
+### Schedule prerequisite
+
+Before re-running recaps, check that EuroLeague `schedule_games.status` rows actually flipped to `FINAL` for completed games — the lookup only considers `FINAL` rows. If not, that's a separate ingestion issue; flag it in the run summary rather than silently filter to zero candidates.
+
+---
+
+## 2. Teams sync — 1 row skipped + EA7 venue image still broken
+
+### a) Surface the skip reason
+
+`syncTeams` already collects `warnings[]` (e.g. `row #N: missing TEAM_CODE — skipped`), but the commissioner panel only renders `read / upserted / skipped`. Extend the rendered response so the 1 skipped row is explained:
+
+- Return `warnings` in the JSON (already present) and render them as a small text block under the Teams row in `EuroleagueSheetSyncPanel.tsx` when `warnings.length > 0`.
+- No DB change.
+
+This lets the user see exactly which row was skipped (likely an empty/edited trailing row) without guessing.
+
+### b) Extend `normalizeWikiImageUrl` to handle Wikidata + plain Commons file pages
+
+Current normalizer only rewrites `*.wikipedia.org/wiki/...#/media/File:...`. The EA7 venue is still `https://www.wikidata.org/wiki/Q604681#/media/File:Forum_Assago_Parquet_2.jpg`, which `<img>` cannot render.
+
+Generalize to match **any** `…#/media/File:<filename>` (wikidata, wikimedia, wikipedia in any language) and also a bare `commons.wikimedia.org/wiki/File:<filename>` form:
+
+```ts
+function normalizeWikiImageUrl(raw: string | null): string | null {
+  if (!raw) return raw;
+  const m1 = raw.match(/#\/media\/File:(.+)$/i);
+  if (m1) return `https://commons.wikimedia.org/wiki/Special:FilePath/${m1[1].split("?")[0]}`;
+  const m2 = raw.match(/commons\.wikimedia\.org\/wiki\/File:(.+)$/i);
+  if (m2) return `https://commons.wikimedia.org/wiki/Special:FilePath/${m2[1].split("?")[0]}`;
+  return raw;
+}
+```
+
+After re-running **Sync → Teams**, EA7's `venue_image_url` becomes a renderable Commons FilePath URL like the EFS/PAO/PBB rows already do.
+
+---
+
+## 3. Players sync — verify only, no code change
+
+Log says `read: 335 / upserted: 335 / skipped: 0`. The dynamic-header column mapping (`find("HEIGHT") / find("DOB") / find("NAT") / …`) already lands the right values in the right DB columns (verified in code). No change.
+
+---
+
+## Files
+
+- `supabase/functions/youtube-recap-lookup/index.ts` — alias map + alias-aware EuroLeague scorer + minScore tweak + 2-query primary path.
+- `supabase/functions/euroleague-sheet-sync/index.ts` — generalize `normalizeWikiImageUrl`.
+- `src/components/commissioner/EuroleagueSheetSyncPanel.tsx` — render `warnings[]` under the Teams row.
+
+## Post-deploy
+
+1. **Sync → Teams** (fixes EA7 venue image; surfaces the skipped-row reason).
+2. **Find YouTube Recaps** (EuroLeague) — expect a meaningful non-zero `found` count this time.
+
+No DB migrations.
