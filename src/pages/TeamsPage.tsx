@@ -38,19 +38,24 @@ export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("teams");
   const { league } = useLeague();
+  const isEuroleague = league === "euroleague";
   const [standingsView, setStandingsView] = useState<StandingsView>(
-    league === "wnba" ? "league" : "division"
+    league === "wnba" || league === "euroleague" ? "league" : "division"
   );
   const { teams: leagueTeams } = useLeagueTeams();
 
-  // Reset the default standings view when switching leagues so WNBA always
-  // opens on League and NBA on Division.
+  // Reset the default standings view when switching leagues so WNBA and
+  // EuroLeague always open on League (single table), NBA on Division.
   useEffect(() => {
-    setStandingsView(league === "wnba" ? "league" : "division");
+    setStandingsView(league === "wnba" || league === "euroleague" ? "league" : "division");
   }, [league]);
   const { data: leagueId } = useLeagueId();
   const leagueLogo = getLeagueLogo(league);
-  const headerTitle = league === "wnba" ? "WNBA Teams" : "NBA Teams";
+  const headerTitle = isEuroleague
+    ? (tab === "standings" ? "EuroLeague Standings" : "EuroLeague Teams")
+    : league === "wnba"
+      ? (tab === "standings" ? "WNBA Standings" : "WNBA Teams")
+      : (tab === "standings" ? "NBA Standings" : "NBA Teams");
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["teams-schedule-stats", leagueId],
@@ -84,7 +89,18 @@ export default function TeamsPage() {
     staleTime: 120_000,
   });
 
-  const standings = useNBAStandings(scheduleData ?? undefined, leagueTeams);
+  const baseStandings = useNBAStandings(scheduleData ?? undefined, leagueTeams);
+  // EuroLeague uses a single league table with explicit tiebreakers:
+  //   W desc → L asc → DIFF desc → PF desc
+  const standings = useMemo(() => {
+    if (!isEuroleague) return baseStandings;
+    return [...baseStandings].sort((a, b) =>
+      b.w - a.w ||
+      a.l - b.l ||
+      b.diff - a.diff ||
+      b.ppg - a.ppg
+    );
+  }, [baseStandings, isEuroleague]);
 
   const teams = useMemo<NbaTeamSummary[]>(() => {
     const records: Record<string, { w: number; l: number; remaining: number }> = {};
@@ -145,7 +161,7 @@ export default function TeamsPage() {
             </button>
           ))}
         </div>
-        {tab === "standings" && (
+        {tab === "standings" && !isEuroleague && (
           <div className="ml-2">
             <StandingsFilters view={standingsView} onChange={setStandingsView} />
           </div>
