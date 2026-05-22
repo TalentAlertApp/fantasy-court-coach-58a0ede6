@@ -30,6 +30,7 @@ interface SyncResult {
   teams_ranked?: number;
   notes?: string;
   errors?: string[];
+  skipped_players?: Array<{ id: number; name: string }>;
   results?: Record<string, SyncResult>;
 }
 
@@ -136,6 +137,20 @@ export default function EuroleagueSheetSyncPanel() {
                 {r.notes && <span className="text-muted-foreground italic">{r.notes}</span>}
                 {r.errors && r.errors.length > 0 && (
                   <span className="text-destructive">errors: {r.errors.length}</span>
+                )}
+                {r.skipped_players && r.skipped_players.length > 0 && (
+                  <details className="basis-full mt-1">
+                    <summary className="cursor-pointer text-amber-600 dark:text-amber-400">
+                      {r.skipped_players.length} player{r.skipped_players.length === 1 ? "" : "s"} skipped (not found in DB_Players) — click to expand
+                    </summary>
+                    <ul className="mt-1 ml-4 list-disc text-muted-foreground space-y-0.5">
+                      {r.skipped_players.map((p, i) => (
+                        <li key={`${p.id}-${i}`}>
+                          <code className="font-mono">{p.id}</code> — {p.name || "(no name)"}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
               </div>
             ))}

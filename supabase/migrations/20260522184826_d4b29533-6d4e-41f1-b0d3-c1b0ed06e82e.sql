@@ -1,0 +1,1 @@
+UPDATE public.deadline_rule_sets SET minutes_before_game = 30 WHERE id = '00000000-0000-0000-0002-000000000001';

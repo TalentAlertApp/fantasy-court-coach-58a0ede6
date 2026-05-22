@@ -1,6 +1,6 @@
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 
 /**
  * Competition registry — the single source of truth for which basketball

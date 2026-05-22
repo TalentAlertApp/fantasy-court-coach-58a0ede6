@@ -23,7 +23,7 @@ export default function LeaguePickerCards({
   value, onChange, size = "md", disabled, showSubtitle, className,
 }: Props) {
   const big = size === "lg";
-  const cardCls = big ? "h-44 md:h-52" : "h-32";
+  const cardCls = big ? "min-h-44 md:min-h-52 py-4" : "min-h-32 py-3";
   const logoCls = big ? "h-24 w-24 md:h-28 md:w-28" : "h-16 w-16";
   const nameCls = big ? "text-xl tracking-[0.3em]" : "text-sm tracking-[0.25em]";
 
@@ -84,7 +84,7 @@ export default function LeaguePickerCards({
                 {m.name}
               </span>
               {showSubtitle && (
-                <span className="text-[10px] uppercase tracking-[0.2em] text-foreground/50 text-center px-2">
+                <span className="text-[10px] uppercase tracking-[0.2em] leading-relaxed text-foreground/50 text-center break-words max-w-[14ch]">
                   {m.full}
                 </span>
               )}
