@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import type { CompetitionCode } from "@/lib/competitions";
 
 type StatKey = "pts" | "reb" | "ast" | "stl" | "blk" | "to";
 type Preset = "classic" | "guards_boost" | "bigs_boost" | "custom";
