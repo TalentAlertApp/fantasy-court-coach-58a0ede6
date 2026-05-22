@@ -193,7 +193,7 @@ function PlayerCombobox({
 }
 
 function NBAPlaySearchSection() {
-  const { league } = useLeague();
+  const { league, isWnba } = useLeague();
   const { data: leagueId } = useLeagueId();
   const { teams: leagueTeams } = useLeagueTeams();
   const TEAM_NAME = useMemo<Record<string, string>>(
