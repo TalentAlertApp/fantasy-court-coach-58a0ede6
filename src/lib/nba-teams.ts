@@ -86,6 +86,13 @@ export function getTeamLogo(teamStr: string, league?: LeagueCode): string | unde
   }
   if (lg === "euroleague") {
     const upper = teamStr.toUpperCase();
+    // Prefer the synced sport_teams logo when available.
+    // Lazy import to avoid circular dep at module load.
+    try {
+      const { getEuroLeagueTeamRecord } = require("@/lib/euroleague-team-registry");
+      const rec = getEuroLeagueTeamRecord(teamStr);
+      if (rec?.logo_url) return rec.logo_url as string;
+    } catch {}
     const byTri = EUROLEAGUE_TEAMS.find((t) => t.tricode === upper);
     if (byTri) return byTri.logo;
     const lower = teamStr.toLowerCase();
