@@ -54,6 +54,7 @@ const NAME_TO_TRICODE: Record<string, string> = {
 
 import { getWnbaTeamByTricode, getWnbaTeamLogo, WNBA_TEAMS } from "@/lib/wnba-teams";
 import { EUROLEAGUE_TEAMS, getEuroLeagueTeamByTricode } from "@/lib/euroleague-teams";
+import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
 import { getCurrentLeague, type LeagueCode } from "@/contexts/LeagueContext";
 
 /** Look up a team by tricode (e.g. "LAL") — case-insensitive. League-aware. */
