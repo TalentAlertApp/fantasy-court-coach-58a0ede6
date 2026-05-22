@@ -92,8 +92,10 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function fetchTab(tab: string, range: string, token: string): Promise<string[][]> {
-  const sheetId = Deno.env.get("EUROLEAGUE_GSHEET_ID");
-  if (!sheetId) throw new Error("EUROLEAGUE_GSHEET_ID not set");
+  // Falls back to the canonical EuroLeague sheet id baked at deploy time so a
+  // missing/unconfigured secret never silently breaks this function.
+  const sheetId = Deno.env.get("EUROLEAGUE_GSHEET_ID")
+    ?? "15sp2N0A3bscbLOWRhzXjMe-7JLor3jF_FQUa0Dxcbes";
   const fullRange = `'${tab}'!${range}`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${fullRange}?valueRenderOption=FORMATTED_VALUE`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -103,6 +105,7 @@ async function fetchTab(tab: string, range: string, token: string): Promise<stri
 }
 
 const TABS = [
+  { key: "teams",          tab: "DB_Teams",                       range: "A1:Z6"  },
   { key: "schedule",       tab: "Schedule",                       range: "A1:Z6"  },
   { key: "game-data",      tab: "Player_Games_byGameday_data",    range: "A1:AZ6" },
   { key: "advanced-stats", tab: "Players_AdvStats_Season_Accum",  range: "A1:AZ6" },
