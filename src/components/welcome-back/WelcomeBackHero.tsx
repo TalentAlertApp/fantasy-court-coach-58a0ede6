@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.svg";
 import PlayerMarquee from "@/components/onboarding/PlayerMarquee";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
@@ -116,6 +117,7 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
           <div className="flex items-center gap-3">
             <img src={wnbaLogo} alt="WNBA" className="h-9 w-auto object-contain" />
             <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
+            <img src={euroleagueLogo} alt="EuroLeague" className="h-9 w-auto object-contain" />
             <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
               Fantasy
             </span>
