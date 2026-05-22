@@ -96,8 +96,26 @@ serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const YOUTUBE_API_KEY = Deno.env.get("YOUTUBE_API_KEY");
-    if (!YOUTUBE_API_KEY) throw new Error("YOUTUBE_API_KEY not configured");
+    // Key rotation: read primary + optional backup keys. Each entry uses a
+    // separate daily YouTube Data API quota (10k units), so two keys ≈ 200
+    // recap lookups/day instead of 100. On a 403 quotaExceeded from the
+    // current key we advance to the next one and retry the SAME game once.
+    const YT_KEYS = [
+      Deno.env.get("YOUTUBE_API_KEY"),
+      Deno.env.get("YOUTUBE_API_KEY_2"),
+    ].filter((k): k is string => !!k && k.length > 0);
+    if (YT_KEYS.length === 0) throw new Error("YOUTUBE_API_KEY not configured");
+    let keyIndex = 0;
+    let rotated = false;
+    const currentKey = () => YT_KEYS[keyIndex];
+    const advanceKey = (): boolean => {
+      if (keyIndex < YT_KEYS.length - 1) {
+        keyIndex += 1;
+        rotated = true;
+        return true;
+      }
+      return false;
+    };
 
     const url = new URL(req.url);
     const limitParam = url.searchParams.get("limit");
@@ -292,27 +310,31 @@ serve(async (req: Request) => {
           : isWnba
           ? `${awayFull} vs. ${homeFull} FULL GAME HIGHLIGHTS`
           : `${awayFull} vs ${homeFull} Full Game Highlights`;
-        const params = new URLSearchParams({
-          part: "snippet",
-          q: query,
-          type: "video",
-          videoEmbeddable: "true",
-          order: "date",
-          maxResults: isEuro ? "15" : "10",
-          key: YOUTUBE_API_KEY,
-        });
-        // EuroLeague: open search (many publishers). NBA/WNBA: scope to channel.
-        if (!isEuro) params.set("channelId", isWnba ? WNBA_CHANNEL_ID : GAMETIME_CHANNEL_ID);
-        else params.set("channelId", EUROLEAGUE_CHANNEL_ID);
-        if (publishedAfter) params.set("publishedAfter", publishedAfter);
-        if (publishedBefore) params.set("publishedBefore", publishedBefore);
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+        const buildSearchUrl = (): string => {
+          const params = new URLSearchParams({
+            part: "snippet",
+            q: query,
+            type: "video",
+            videoEmbeddable: "true",
+            order: "date",
+            maxResults: isEuro ? "15" : "10",
+            key: currentKey(),
+          });
+          if (!isEuro) params.set("channelId", isWnba ? WNBA_CHANNEL_ID : GAMETIME_CHANNEL_ID);
+          else params.set("channelId", EUROLEAGUE_CHANNEL_ID);
+          if (publishedAfter) params.set("publishedAfter", publishedAfter);
+          if (publishedBefore) params.set("publishedBefore", publishedBefore);
+          return `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+        };
 
-        let ytRes = await fetch(searchUrl);
+        // Try the primary search with key rotation on 403.
+        let ytRes = await fetch(buildSearchUrl());
+        while (!ytRes.ok && ytRes.status === 403 && advanceKey()) {
+          ytRes = await fetch(buildSearchUrl());
+        }
         if (!ytRes.ok) {
-          const errBody = await ytRes.text();
           if (ytRes.status === 403) {
-            errors.push(`YouTube API quota exceeded after ${found} lookups`);
+            errors.push(`YouTube API quota exceeded on all ${YT_KEYS.length} key(s) after ${found} lookups`);
             quotaExhausted = true;
             break;
           }
@@ -372,14 +394,18 @@ serve(async (req: Request) => {
             : isWnba
             ? `${awayFull} vs ${homeFull} ${dateStr} wnba highlights`.trim()
             : `${awayFull} vs ${homeFull} ${dateStr} full game highlights recap`.trim();
-          const fbUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(fbQuery)}&type=video&videoEmbeddable=true&order=relevance&maxResults=8&key=${YOUTUBE_API_KEY}`;
-          const fbRes = await fetch(fbUrl);
+          const buildFbUrl = () =>
+            `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(fbQuery)}&type=video&videoEmbeddable=true&order=relevance&maxResults=8&key=${currentKey()}`;
+          let fbRes = await fetch(buildFbUrl());
+          while (!fbRes.ok && fbRes.status === 403 && advanceKey()) {
+            fbRes = await fetch(buildFbUrl());
+          }
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
             videoId = scoreItems(fbItems, isEuro ? 5 : (isWnba ? 5 : 6)).id;
           } else if (fbRes.status === 403) {
-            errors.push(`YouTube API quota exceeded after ${found} lookups`);
+            errors.push(`YouTube API quota exceeded on all ${YT_KEYS.length} key(s) after ${found} lookups`);
             quotaExhausted = true;
             break;
           }
@@ -431,6 +457,9 @@ serve(async (req: Request) => {
         processed: games.length, found, remaining: count ?? 0,
         per_league: perLeague,
         quota_exhausted: quotaExhausted,
+        keys_used: keyIndex + 1,
+        keys_total: YT_KEYS.length,
+        rotated,
         errors: errors.length ? errors : undefined,
       },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

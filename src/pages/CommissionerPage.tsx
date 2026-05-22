@@ -1438,7 +1438,7 @@ export default function CommissionerPage() {
         )}
       </div>
 
-      {leagueCode !== "euroleague" && <MissingRecapsPanel league={leagueCode} />}
+      <MissingRecapsPanel league={leagueCode} />
 
       {leagueCode === "wnba" && <WnbaSheetSyncPanel />}
       {leagueCode === "euroleague" && <EuroleagueSheetSyncPanel />}
