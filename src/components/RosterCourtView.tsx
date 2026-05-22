@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getLeagueLogo } from "@/lib/competitions";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerCard from "./PlayerCard";
 import RosterSidebar from "./RosterSidebar";

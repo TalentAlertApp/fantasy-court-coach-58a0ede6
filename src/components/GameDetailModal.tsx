@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tv2, Table2, BarChart3, Mic, ExternalLink, X, MapPin, Columns2 } from "lucide-react";

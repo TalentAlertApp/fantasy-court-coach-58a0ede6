@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getLeagueLogo } from "@/lib/competitions";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";

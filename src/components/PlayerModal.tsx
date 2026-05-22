@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";

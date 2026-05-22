@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";

@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

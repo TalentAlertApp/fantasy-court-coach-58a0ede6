@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getLeagueLogo } from "@/lib/competitions";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, Bandage, PlayCircle, Crown, Medal } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";

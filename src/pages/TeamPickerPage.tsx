@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { getLeagueLogo } from "@/lib/competitions";
 import { useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
