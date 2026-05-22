@@ -34,6 +34,7 @@ interface SyncResult {
   skipped_players?: Array<{ id: number; name: string }>;
   aliased_players?: Array<{ from: number; to: number; name: string }>;
   stubs_created?: Array<{ id: number; name: string; team: string }>;
+  warnings?: string[];
   results?: Record<string, SyncResult>;
 }
 
@@ -233,6 +234,18 @@ export default function EuroleagueSheetSyncPanel() {
                 {r.notes && <span className="text-muted-foreground italic">{r.notes}</span>}
                 {r.errors && r.errors.length > 0 && (
                   <span className="text-destructive">errors: {r.errors.length}</span>
+                )}
+                {r.warnings && r.warnings.length > 0 && (
+                  <details className="basis-full mt-1">
+                    <summary className="cursor-pointer text-amber-600 dark:text-amber-400">
+                      {r.warnings.length} warning{r.warnings.length === 1 ? "" : "s"} — click to expand
+                    </summary>
+                    <ul className="mt-1 ml-4 list-disc text-muted-foreground space-y-0.5">
+                      {r.warnings.map((w, i) => (
+                        <li key={i}>{w}</li>
+                      ))}
+                    </ul>
+                  </details>
                 )}
                 {r.skipped_players && r.skipped_players.length > 0 && (
                   <details className="basis-full mt-1">
