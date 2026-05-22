@@ -1269,13 +1269,13 @@ function FantasyLeagueSelector({
   onSelect,
   teamCounts,
 }: {
-  leagues: Array<{ id: string; name: string; sport: "nba" | "wnba" }>;
-  selectedLeague: { id: string; name: string; sport: "nba" | "wnba" } | null;
+  leagues: Array<{ id: string; name: string; sport: "nba" | "wnba" | "euroleague" }>;
+  selectedLeague: { id: string; name: string; sport: "nba" | "wnba" | "euroleague" } | null;
   onSelect: (id: string) => void;
   teamCounts: Record<string, number>;
 }) {
   if (!selectedLeague) return null;
-  const logoFor = (sport: "nba" | "wnba") => (sport === "wnba" ? wnbaLogo : nbaLogo);
+  const logoFor = (sport: "nba" | "wnba" | "euroleague") => (sport === "wnba" ? wnbaLogo : nbaLogo);
   const onlyOne = leagues.length <= 1;
 
   if (onlyOne) {
