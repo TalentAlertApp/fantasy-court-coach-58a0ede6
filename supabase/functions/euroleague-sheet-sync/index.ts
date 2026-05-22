@@ -715,7 +715,7 @@ async function syncTeams(token: string, sb: ReturnType<typeof makeSb>) {
       country:    col.country    >= 0 ? nullable(r[col.country])    : null,
       venue_name: col.venueName  >= 0 ? nullable(r[col.venueName])  : null,
       logo_url:   logo,
-      venue_image_url: col.venueImage >= 0 ? nullable(r[col.venueImage]) : null,
+      venue_image_url: normalizeWikiImageUrl(col.venueImage >= 0 ? nullable(r[col.venueImage]) : null),
       roster_url: col.rosterUrl  >= 0 ? nullable(r[col.rosterUrl])  : null,
       updated_at: new Date().toISOString(),
     });
