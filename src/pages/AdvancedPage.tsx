@@ -336,7 +336,7 @@ function NBAPlaySearchSection() {
     if (subFilters.isbuzzerbeater) params.set("isBuzzerBeater", "true");
     if (subFilters.shotdistancemin != null) params.set("shotdistancemin", String(subFilters.shotdistancemin));
     if (subFilters.shotdistancemax != null) params.set("shotdistancemax", String(subFilters.shotdistancemax));
-    const url = `https://www.nbaplaydb.com/search?${params.toString()}`;
+    const url = `https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}search?${params.toString()}`;
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
@@ -412,7 +412,7 @@ function NBAPlaySearchSection() {
     if (subFilters.isbuzzerbeater) params.set("isBuzzerBeater", "true");
     if (subFilters.shotdistancemin != null) params.set("shotdistancemin", String(subFilters.shotdistancemin));
     if (subFilters.shotdistancemax != null) params.set("shotdistancemax", String(subFilters.shotdistancemax));
-    return `https://www.nbaplaydb.com/search?${params.toString()}`;
+    return `https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}search?${params.toString()}`;
   };
 
   return (
