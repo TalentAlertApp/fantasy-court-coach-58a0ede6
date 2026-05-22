@@ -7,12 +7,13 @@ import { requireAdmin } from "../_shared/admin-guard.ts";
  *
  * Modes:
  *   - inspect         : returns headers + sample rows (diagnostic)
- *   - teams           : DB_Teams (read-only diagnostic — EuroLeague clubs live in code)
+ *   - teams           : DB_Teams → sport_teams (EuroLeague club catalog)
  *   - players         : DB_Players → players (EuroLeague-scoped). Salary IGNORED.
  *   - schedule        : Schedule → schedule_games (EuroLeague-scoped)
  *   - game-data       : Player_Games_byGameday_data → player_game_logs +
  *                       player_last_game + season/last5 aggregates
  *   - advanced-stats  : Players_AdvStats_Season_Accum → players adv columns
+ *                       (alias: advanced-stats-season-accum)
  *   - standings       : derives league standings from schedule_games (diagnostic)
  *   - all             : runs teams → players → schedule → game-data →
  *                       advanced-stats → standings
@@ -212,6 +213,22 @@ async function getEuroleagueLeagueId(sb: ReturnType<typeof makeSb>): Promise<str
   const { data, error } = await sb.from("leagues").select("id").eq("code", "euroleague").maybeSingle();
   if (error || !data?.id) throw new Error(`EuroLeague league not found: ${error?.message ?? "missing row"}`);
   return data.id as string;
+}
+
+/** Sport-league id for EuroLeague — used as the FK target for sport_teams.
+ *  Falls back to the canonical seed id when the legacy `sport` league row is
+ *  missing a self-reference. */
+async function getEuroleagueSportLeagueId(sb: ReturnType<typeof makeSb>): Promise<string> {
+  const { data } = await sb
+    .from("leagues")
+    .select("id, sport_league_id")
+    .eq("code", "main_euroleague")
+    .maybeSingle();
+  if (data?.sport_league_id) return data.sport_league_id as string;
+  // Fallback: sport row id itself
+  const { data: sp } = await sb.from("leagues").select("id").eq("code", "euroleague").maybeSingle();
+  if (!sp?.id) throw new Error("EuroLeague sport_league not found");
+  return sp.id as string;
 }
 
 // ── per-mode handlers ──
@@ -553,23 +570,115 @@ async function syncAdvancedStats(token: string, sb: ReturnType<typeof makeSb>, l
 }
 
 /**
- * Teams sync — diagnostic only. EuroLeague clubs are managed in code
- * (src/lib/euroleague-teams.ts), so this just confirms the sheet is reachable
- * and reports the row counts. Never writes to NBA/WNBA tables.
+ * Teams sync — DB_Teams → public.sport_teams (EuroLeague-scoped).
+ *
+ * Sheet columns (header-driven, order-tolerant):
+ *   ROSTER_URL | TEAM_NAME | TEAM_CODE | SHORT_NAME | CITY | COUNTRY
+ *   VENUE_NAME | LOGO_URL | VENUE_IMAGE
+ *
+ * Rules:
+ *   - TEAM_CODE is the canonical EuroLeague team key (unique per sport_league)
+ *   - TEAM_CODE + TEAM_NAME required; duplicates abort the sync
+ *   - All writes scoped by EuroLeague sport_league_id; NBA/WNBA untouched
  */
-async function syncTeams(token: string, _sb: ReturnType<typeof makeSb>, _leagueId: string) {
+async function syncTeams(token: string, sb: ReturnType<typeof makeSb>) {
   const rows = await fetchTab("DB_Teams", "A1:Z200", token);
-  const header = (rows[0] ?? []).map((s) => String(s).trim());
-  const data = rows.slice(1).filter((r) => String(r[0] ?? "").trim() !== "");
+  if (rows.length === 0) {
+    return { tab: "DB_Teams", rows_read: 0, upserted: 0, skipped: 0, errors: ["empty sheet"] };
+  }
+
+  const header = (rows[0] ?? []).map((s) => String(s).trim().toUpperCase());
+  const idx = (name: string) => header.indexOf(name);
+  const need = ["TEAM_CODE", "TEAM_NAME"];
+  for (const n of need) {
+    if (idx(n) < 0) {
+      throw new Error(`DB_Teams HEADER_MISMATCH — missing required column '${n}' (got: ${header.join("|")})`);
+    }
+  }
+
+  const col = {
+    rosterUrl:  idx("ROSTER_URL"),
+    name:       idx("TEAM_NAME"),
+    code:       idx("TEAM_CODE"),
+    shortName:  idx("SHORT_NAME"),
+    city:       idx("CITY"),
+    country:    idx("COUNTRY"),
+    venueName:  idx("VENUE_NAME"),
+    logoUrl:    idx("LOGO_URL"),
+    venueImage: idx("VENUE_IMAGE"),
+  };
+
+  const sportLeagueId = await getEuroleagueSportLeagueId(sb);
+  const data = rows.slice(1).filter((r) => r.some((c) => String(c ?? "").trim() !== ""));
+
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const seenCodes = new Map<string, number>();
+  const payload: Record<string, unknown>[] = [];
+  let skipped = 0;
+
+  data.forEach((r, i) => {
+    const code = String(r[col.code] ?? "").trim().toUpperCase();
+    const name = String(r[col.name] ?? "").trim();
+    if (!code) { skipped++; warnings.push(`row #${i + 2}: missing TEAM_CODE — skipped`); return; }
+    if (!name) { skipped++; warnings.push(`row #${i + 2}: missing TEAM_NAME for '${code}' — skipped`); return; }
+    if (seenCodes.has(code)) {
+      errors.push(`DUPLICATE_TEAM_CODE '${code}' on rows #${seenCodes.get(code)! + 2} and #${i + 2}`);
+      return;
+    }
+    seenCodes.set(code, i);
+    const logo = col.logoUrl >= 0 ? nullable(r[col.logoUrl]) : null;
+    if (!logo) warnings.push(`row #${i + 2}: '${code}' has no LOGO_URL`);
+    payload.push({
+      sport_league_id: sportLeagueId,
+      team_code: code,
+      name,
+      short_name: col.shortName  >= 0 ? nullable(r[col.shortName])  : null,
+      city:       col.city       >= 0 ? nullable(r[col.city])       : null,
+      country:    col.country    >= 0 ? nullable(r[col.country])    : null,
+      venue_name: col.venueName  >= 0 ? nullable(r[col.venueName])  : null,
+      logo_url:   logo,
+      venue_image_url: col.venueImage >= 0 ? nullable(r[col.venueImage]) : null,
+      roster_url: col.rosterUrl  >= 0 ? nullable(r[col.rosterUrl])  : null,
+      updated_at: new Date().toISOString(),
+    });
+  });
+
+  if (errors.length > 0) {
+    // Hard fail — never silently overwrite on duplicate TEAM_CODE
+    return {
+      tab: "DB_Teams",
+      rows_read: data.length,
+      upserted: 0,
+      skipped: data.length,
+      errors,
+      warnings,
+    };
+  }
+
+  let upserted = 0;
+  const BATCH = 100;
+  for (let i = 0; i < payload.length; i += BATCH) {
+    const batch = payload.slice(i, i + BATCH);
+    const { error } = await sb
+      .from("sport_teams")
+      .upsert(batch, { onConflict: "sport_league_id,team_code" });
+    if (error) errors.push(`batch ${i}: ${error.message}`);
+    else upserted += batch.length;
+  }
+
+  if (payload.length !== 20) {
+    warnings.push(`Expected 20 EuroLeague teams, got ${payload.length}`);
+  }
+
   return {
     tab: "DB_Teams",
     rows_read: data.length,
-    upserted: 0,
-    skipped: data.length,
-    nulled_out: 0,
-    notes: "Read-only — EuroLeague teams catalog lives in code.",
-    header_cols: header.length,
-    errors: [] as string[],
+    upserted,
+    skipped,
+    teams: payload.length,
+    errors,
+    warnings,
   };
 }
 
@@ -665,7 +774,7 @@ serve(async (req: Request) => {
     const leagueId = await getEuroleagueLeagueId(sb);
 
     if (mode === "teams") {
-      const r = await syncTeams(token, sb, leagueId);
+      const r = await syncTeams(token, sb);
       return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
     }
     if (mode === "players") {
@@ -680,7 +789,7 @@ serve(async (req: Request) => {
       const r = await syncGameData(token, sb, leagueId);
       return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
     }
-    if (mode === "advanced-stats") {
+    if (mode === "advanced-stats" || mode === "advanced-stats-season-accum") {
       const r = await syncAdvancedStats(token, sb, leagueId);
       return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
     }
@@ -689,7 +798,7 @@ serve(async (req: Request) => {
       return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
     }
     if (mode === "all") {
-      const teams = await syncTeams(token, sb, leagueId);
+      const teams = await syncTeams(token, sb);
       const players = await syncPlayers(token, sb, leagueId);
       const schedule = await syncSchedule(token, sb, leagueId);
       const gameData = await syncGameData(token, sb, leagueId);
