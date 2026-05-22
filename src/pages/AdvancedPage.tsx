@@ -32,6 +32,8 @@ import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advan
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ShareSearchDialog from "@/components/advanced/ShareSearchDialog";
 import { getCompetition } from "@/lib/competitions";
+import { Link } from "react-router-dom";
+import { Users, BarChart3 } from "lucide-react";
 
 const PUBLIC_ORIGIN = "https://hoopsfantasy.app";
 /** Build a clean canonical share URL on hoopsfantasy.app — never the lovable preview host. */
@@ -818,17 +820,26 @@ export default function AdvancedPage() {
   if (!competition.hasAdvancedPlaySearch) {
     return (
       <div className="max-w-3xl mx-auto py-16 px-4">
-        <div className="rounded-2xl border border-foreground/15 bg-foreground/5 p-10 text-center space-y-3">
+        <div className="rounded-2xl border border-foreground/15 bg-gradient-to-b from-foreground/5 to-transparent p-10 text-center space-y-5">
           <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
-            Advanced
+            Advanced · {competition.label}
           </span>
           <h1 className="text-2xl font-heading font-black uppercase tracking-[0.15em]">
-            Not available for {competition.label} yet
+            Advanced Play Search is not available for {competition.label} yet
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Play Search and the related advanced views are currently supported for
-            NBA and WNBA only. Switch competitions from the header to continue.
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Play-by-play data isn't ingested for {competition.label} today.
+            In the meantime, explore the {competition.label} roster catalog or
+            season stats.
           </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button asChild variant="default" className="font-heading uppercase tracking-wider">
+              <Link to="/transactions"><Users className="size-4 mr-2" />Players</Link>
+            </Button>
+            <Button asChild variant="outline" className="font-heading uppercase tracking-wider">
+              <Link to="/scoring"><BarChart3 className="size-4 mr-2" />Stats</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
