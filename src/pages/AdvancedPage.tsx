@@ -31,6 +31,7 @@ import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ShareSearchDialog from "@/components/advanced/ShareSearchDialog";
+import { getCompetition } from "@/lib/competitions";
 
 const PUBLIC_ORIGIN = "https://hoopsfantasy.app";
 /** Build a clean canonical share URL on hoopsfantasy.app — never the lovable preview host. */
@@ -808,6 +809,31 @@ function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
 }
 
 export default function AdvancedPage() {
+  const { league } = useLeague();
+  const competition = getCompetition(league);
+
+  // Advanced / PLAY SEARCH is gated by the competition registry. Competitions
+  // that don't expose play-by-play data (e.g. EuroLeague today) render a
+  // notice instead of mounting the heavy data hooks below.
+  if (!competition.hasAdvancedPlaySearch) {
+    return (
+      <div className="max-w-3xl mx-auto py-16 px-4">
+        <div className="rounded-2xl border border-foreground/15 bg-foreground/5 p-10 text-center space-y-3">
+          <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
+            Advanced
+          </span>
+          <h1 className="text-2xl font-heading font-black uppercase tracking-[0.15em]">
+            Not available for {competition.label} yet
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Play Search and the related advanced views are currently supported for
+            NBA and WNBA only. Switch competitions from the header to continue.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const { data, isLoading } = usePlayingTimeTrends();
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);

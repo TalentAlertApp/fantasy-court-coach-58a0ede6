@@ -267,7 +267,7 @@ export async function fetchTeams() {
   return unwrap(await apiFetch("teams", TeamListResponseSchema));
 }
 
-export async function createTeam(body: { name: string; description?: string | null; league_code?: "nba" | "wnba"; fantasy_league_id?: string }) {
+export async function createTeam(body: { name: string; description?: string | null; league_code?: "nba" | "wnba" | "euroleague"; fantasy_league_id?: string }) {
   return unwrap(await apiFetch("teams", TeamCreateResponseSchema, {
     method: "POST", body: JSON.stringify(body),
   }));

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { CompetitionCode } from "@/lib/competitions";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +13,9 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 
 interface Props {
   onBack: () => void;
-  onSubmit: (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: "nba" | "wnba" }) => void | Promise<void>;
+  onSubmit: (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: CompetitionCode }) => void | Promise<void>;
   submitting: boolean;
-  lockedSport: "nba" | "wnba";
+  lockedSport: CompetitionCode;
   initialSelectedIds?: string[];
   onBeforeCreateLeague?: (selectedIds: string[]) => void;
 }

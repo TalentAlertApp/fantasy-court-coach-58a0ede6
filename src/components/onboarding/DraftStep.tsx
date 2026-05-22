@@ -1,8 +1,9 @@
 import DraftPicker from "./DraftPicker";
+import type { CompetitionCode } from "@/lib/competitions";
 
 interface Props {
   teamName: string;
-  leagueCode?: "nba" | "wnba";
+  leagueCode?: CompetitionCode;
   onFinish: () => void;
   onBack?: () => void;
 }

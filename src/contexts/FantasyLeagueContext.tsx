@@ -9,6 +9,7 @@ import {
   type ChipRuleSet,
   type ScoringRule,
 } from "@/hooks/useFantasyLeagues";
+import { isKnownCompetition, type CompetitionCode, DEFAULT_COMPETITION } from "@/lib/competitions";
 
 const LS_KEY = "fcc_fantasy_league_id";
 
@@ -21,7 +22,7 @@ interface FantasyLeagueContextValue {
   rosterRules: RosterRuleSet | null;
   deadlineRules: DeadlineRuleSet | null;
   chipRules: ChipRuleSet | null;
-  sportCode: "nba" | "wnba";
+  sportCode: CompetitionCode;
   isLoading: boolean;
 }
 
@@ -39,8 +40,8 @@ const FantasyLeagueContext = createContext<FantasyLeagueContextValue>({
 });
 
 /** Module-level mirror so non-React modules can read the current sport. */
-let _currentSport: "nba" | "wnba" = "nba";
-export function getCurrentFantasySport(): "nba" | "wnba" {
+let _currentSport: CompetitionCode = DEFAULT_COMPETITION;
+export function getCurrentFantasySport(): CompetitionCode {
   return _currentSport;
 }
 
@@ -78,7 +79,8 @@ export function FantasyLeagueProvider({ children }: { children: ReactNode }) {
     [leagues, selectedLeagueId],
   );
 
-  const sportCode: "nba" | "wnba" = selectedLeague?.sport ?? "nba";
+  const rawSport = selectedLeague?.sport ?? DEFAULT_COMPETITION;
+  const sportCode: CompetitionCode = isKnownCompetition(rawSport) ? rawSport : DEFAULT_COMPETITION;
 
   useEffect(() => { _currentSport = sportCode; }, [sportCode]);
 

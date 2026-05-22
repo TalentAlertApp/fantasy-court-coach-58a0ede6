@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type CreateLeagueInput = {
   name: string;
   description?: string;
-  sport: "nba" | "wnba";
+  sport: "nba" | "wnba" | "euroleague";
   visibility: "private" | "invite_only" | "public";
   scoring: {
     preset: "classic" | "guards_boost" | "bigs_boost" | "custom";

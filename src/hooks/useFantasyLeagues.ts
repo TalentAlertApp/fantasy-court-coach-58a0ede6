@@ -5,7 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 export const MAIN_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
 export const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
 export const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
-export const MAIN_LEAGUE_IDS = new Set<string>([MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID]);
+export const MAIN_LEAGUE_EUROLEAGUE_ID = "00000000-0000-0000-0000-000000000030";
+export const MAIN_LEAGUE_IDS = new Set<string>([
+  MAIN_LEAGUE_NBA_ID,
+  MAIN_LEAGUE_WNBA_ID,
+  MAIN_LEAGUE_EUROLEAGUE_ID,
+]);
 export function isMainLeague(id: string): boolean {
   return MAIN_LEAGUE_IDS.has(id);
 }
@@ -70,7 +75,7 @@ export type FantasyLeague = {
   name: string;
   description: string | null;
   kind: string;
-  sport: "nba" | "wnba";
+  sport: "nba" | "wnba" | "euroleague";
   visibility: string;
   status: string;
   join_code: string | null;
@@ -170,7 +175,7 @@ async function fetchFantasyLeagues(userId: string | null): Promise<FantasyLeague
     name: l.name,
     description: l.description ?? null,
     kind: l.kind,
-    sport: (l.sport === "wnba" ? "wnba" : "nba") as "nba" | "wnba",
+    sport: (l.sport === "wnba" ? "wnba" : l.sport === "euroleague" ? "euroleague" : "nba") as "nba" | "wnba" | "euroleague",
     visibility: l.visibility,
     status: l.status,
     join_code: l.join_code ?? null,

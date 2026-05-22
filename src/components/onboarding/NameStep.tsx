@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Loader2, Shuffle } from "lucide-react";
 import LeaguePickerCards from "@/components/LeaguePickerCards";
+import type { CompetitionCode } from "@/lib/competitions";
 
 const SUGGESTIONS = [
   "Court Kings", "Splash Lab", "Triple Threat", "Glass Cleaners",
@@ -16,15 +17,15 @@ function pickRandom(): string {
 
 interface Props {
   onBack: () => void;
-  onSubmit: (name: string, leagueCode: "nba" | "wnba") => void | Promise<void>;
+  onSubmit: (name: string, leagueCode: CompetitionCode) => void | Promise<void>;
   submitting: boolean;
-  lockedSport?: "nba" | "wnba" | null;
+  lockedSport?: CompetitionCode | null;
 }
 
 export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: Props) {
   const initial = useMemo(() => pickRandom(), []);
   const [name, setName] = useState(initial);
-  const [leagueCode, setLeagueCode] = useState<"nba" | "wnba">(lockedSport ?? "nba");
+  const [leagueCode, setLeagueCode] = useState<CompetitionCode>(lockedSport ?? "nba");
 
   const trimmed = name.trim();
   const canSubmit = trimmed.length >= 2 && !submitting;

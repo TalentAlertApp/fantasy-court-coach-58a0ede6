@@ -1,23 +1,13 @@
-import nbaLogo from "@/assets/nba-logo.svg";
-import wnbaLogo from "@/assets/wnba-logo.png";
 import { cn } from "@/lib/utils";
+import { FANTASY_COMPETITIONS, type CompetitionCode } from "@/lib/competitions";
 
-type League = "nba" | "wnba";
+type League = CompetitionCode;
 type Size = "md" | "lg";
 
-const META: Record<League, { name: string; full: string; logo: string; tint: string }> = {
-  nba: {
-    name: "NBA",
-    full: "National Basketball Association",
-    logo: nbaLogo,
-    tint: "from-[#1d428a]/30 via-[#1d428a]/10 to-transparent",
-  },
-  wnba: {
-    name: "WNBA",
-    full: "Women's National Basketball Association",
-    logo: wnbaLogo,
-    tint: "from-[#ff6b00]/30 via-[#ff6b00]/10 to-transparent",
-  },
+const FULL_NAME: Record<League, string> = {
+  nba: "National Basketball Association",
+  wnba: "Women's National Basketball Association",
+  euroleague: "Turkish Airlines EuroLeague",
 };
 
 interface Props {
@@ -37,10 +27,13 @@ export default function LeaguePickerCards({
   const logoCls = big ? "h-24 w-24 md:h-28 md:w-28" : "h-16 w-16";
   const nameCls = big ? "text-xl tracking-[0.3em]" : "text-sm tracking-[0.25em]";
 
+  const gridCols = FANTASY_COMPETITIONS.length >= 3 ? "grid-cols-3" : "grid-cols-2";
+
   return (
-    <div className={cn("grid grid-cols-2 gap-4", className)}>
-      {(["nba", "wnba"] as const).map((c) => {
-        const m = META[c];
+    <div className={cn("grid gap-4", gridCols, className)}>
+      {FANTASY_COMPETITIONS.map((comp) => {
+        const c = comp.code;
+        const m = { name: comp.label, full: FULL_NAME[c], logo: comp.logo, tint: comp.tint };
         const active = value === c;
         return (
           <button

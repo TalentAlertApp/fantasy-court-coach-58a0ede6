@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { CompetitionCode } from "@/lib/competitions";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
@@ -35,7 +36,7 @@ export default function OnboardingPage() {
   const location = useLocation();
   const navState = (location.state ?? null) as {
     leagueId?: string;
-    sport?: "nba" | "wnba";
+    sport?: CompetitionCode;
     returnTo?: string;
     forceNewTeam?: boolean;
     resumeChooseLeague?: boolean;
@@ -84,7 +85,7 @@ export default function OnboardingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceNewTeam, user?.id]);
   const [pendingName, setPendingName] = useState<string>(draft?.name ?? "");
-  const [pendingMainSport, setPendingMainSport] = useState<"nba" | "wnba">(draft?.sport ?? "nba");
+  const [pendingMainSport, setPendingMainSport] = useState<CompetitionCode>(draft?.sport ?? "nba");
   const [resumedExtraLeagueIds, setResumedExtraLeagueIds] = useState<string[]>(() => {
     if (!draft) return [];
     const ids = [...draft.extraLeagueIds];
@@ -163,7 +164,7 @@ export default function OnboardingPage() {
 
   const submitTeam = async (
     name: string,
-    args: { fantasyLeagueId?: string; leagueCode: "nba" | "wnba"; extraLeagueIds?: string[] }
+    args: { fantasyLeagueId?: string; leagueCode: CompetitionCode; extraLeagueIds?: string[] }
   ) => {
     setCreating(true);
     try {
@@ -234,7 +235,7 @@ export default function OnboardingPage() {
   // NameStep submits with a leagueCode (kept for backward-compat); we capture
   // the name and either skip to draft (if a league is preselected) or go to
   // the Choose League step.
-  const handleNameSubmit = async (name: string, leagueCode: "nba" | "wnba") => {
+  const handleNameSubmit = async (name: string, leagueCode: CompetitionCode) => {
     // Block duplicate franchise name for this user (case-insensitive, trimmed).
     const trimmed = name.trim();
     const dup = teams.some(
@@ -260,7 +261,7 @@ export default function OnboardingPage() {
     }
   };
 
-  const handleLeagueSubmit = async (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: "nba" | "wnba" }) => {
+  const handleLeagueSubmit = async (args: { fantasyLeagueId: string; extraLeagueIds: string[]; leagueCode: CompetitionCode }) => {
     if (!pendingName) {
       setStep("name");
       return;
