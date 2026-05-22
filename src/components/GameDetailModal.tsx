@@ -316,7 +316,7 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
   const { standingsByTeam, last5DetailByTeam, isLoading } = useStandingsContext();
   const { data: isPreseason } = useIsPreseason();
   const { league } = useLeague();
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
   const [historyGame, setHistoryGame] = useState<GameDetailGame | null>(null);
 
   const a = standingsByTeam[game.away_team];

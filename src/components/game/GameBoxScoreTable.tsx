@@ -75,7 +75,7 @@ export default function GameBoxScoreTable({
   const { league } = useLeague();
   const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
   const teamWatermark = externallyFiltered ? logoFor(externalFilterTeam as string) : null;
-  const watermarkLogo = teamWatermark ?? (league === "wnba" ? wnbaLogo : nbaLogo);
+  const watermarkLogo = teamWatermark ?? (getLeagueLogo(league));
   const watermarkOpacity = teamWatermark ? "opacity-[0.10]" : "opacity-[0.05]";
 
   if (isLoading) {

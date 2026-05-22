@@ -48,7 +48,7 @@ export default function TeamsPage() {
     setStandingsView(league === "wnba" ? "league" : "division");
   }, [league]);
   const { data: leagueId } = useLeagueId();
-  const leagueLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(league);
   const headerTitle = league === "wnba" ? "WNBA Teams" : "NBA Teams";
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({

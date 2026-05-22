@@ -1196,7 +1196,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
       (slide.payload.kind === "captain" && slide.payload.data[0]?.team) ||
       (salaryShakeupTopPositive?.team ?? null) ||
       null;
-  const leagueWatermarkSrc = useLeagueWatermark ? (leagueCode === "wnba" ? wnbaLogo : nbaLogo) : null;
+  const leagueWatermarkSrc = useLeagueWatermark ? (getLeagueLogo(leagueCode)) : null;
   const watermarkLogo = watermarkTri
     ? (leagueCode === "wnba" ? getWnbaTeamLogo(watermarkTri) : getTeamLogo(watermarkTri))
     : null;

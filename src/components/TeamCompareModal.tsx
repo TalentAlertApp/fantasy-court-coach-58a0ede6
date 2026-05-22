@@ -84,7 +84,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
   const { data: isPreseason } = useIsPreseason();
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
   const teamLookup = (tri: string) => {
     const lt = leagueTeams.find((t) => t.tricode === tri);
     if (lt) return { name: lt.name, logo: lt.logo };

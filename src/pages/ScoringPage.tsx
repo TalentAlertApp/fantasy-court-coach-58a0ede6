@@ -52,7 +52,7 @@ export default function ScoringPage() {
   const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId } = useFantasyLeague();
   const { league: activeLeagueCode } = useLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
-  const headerLogo = activeLeagueCode === "wnba" ? wnbaLogo : nbaLogo;
+  const headerLogo = getLeagueLogo(activeLeagueCode);
 
   const [tab, setTab] = useState<TabValue>(() => {
     if (typeof window === "undefined") return "league";
@@ -210,7 +210,7 @@ export default function ScoringPage() {
                 <SelectContent>
                   {myTeams.map((t: any) => {
                     const code = t.league_code === "wnba" ? "wnba" : "nba";
-                    const lgLogo = code === "wnba" ? wnbaLogo : nbaLogo;
+                    const lgLogo = getLeagueLogo(code);
                     return (
                       <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
                         <span className="relative flex items-center pr-7 min-w-[180px]">
@@ -1275,7 +1275,7 @@ function FantasyLeagueSelector({
   teamCounts: Record<string, number>;
 }) {
   if (!selectedLeague) return null;
-  const logoFor = (sport: "nba" | "wnba" | "euroleague") => (sport === "wnba" ? wnbaLogo : nbaLogo);
+  const logoFor = (sport: "nba" | "wnba" | "euroleague") => (getLeagueLogo(sport));
   const onlyOne = leagues.length <= 1;
 
   if (onlyOne) {

@@ -148,7 +148,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
     : playerHealth.status === "PROB"
     ? "Probable — monitor updates"
     : `Availability risk — ${playerHealth.injury_type ?? playerHealth.reason ?? getHealthLabel(playerHealth)}`;
-  const watermarkLogo = league === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkLogo = getLeagueLogo(league);
 
   return (
     <>

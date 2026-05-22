@@ -33,7 +33,7 @@ export default function ChooseLeagueStep({ onBack, onSubmit, submitting, lockedS
   });
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
-  const leagueLogo = lockedSport === "wnba" ? wnbaLogo : nbaLogo;
+  const leagueLogo = getLeagueLogo(lockedSport);
 
   const main = leagues.find((l) => l.id === mainId);
   const others = leagues.filter((l) => !MAIN_LEAGUE_IDS.has(l.id) && l.sport === lockedSport);

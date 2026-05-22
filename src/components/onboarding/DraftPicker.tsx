@@ -31,7 +31,7 @@ interface Props {
 }
 
 export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: Props) {
-  const watermarkSrc = leagueCode === "wnba" ? wnbaLogo : nbaLogo;
+  const watermarkSrc = getLeagueLogo(leagueCode);
   const watermarkLabel = (leagueCode ?? "nba").toUpperCase();
   const { toast } = useToast();
   const { selectedTeamId } = useTeam();
