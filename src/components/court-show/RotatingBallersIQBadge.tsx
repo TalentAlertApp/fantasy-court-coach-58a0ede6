@@ -15,11 +15,14 @@ export default function RotatingBallersIQBadge({
 }) {
   const { league } = useLeague();
   const [paused, setPaused] = useState(false);
-  const isWnba = league === "wnba";
-  const front = isWnba
-    ? "/brand/ballers-iq-card-front-wnba.png"
-    : "/brand/ballers-iq-card-front-nba.png";
-  const leagueLabel = isWnba ? "WNBA" : "NBA";
+  const front =
+    league === "wnba"
+      ? "/brand/ballers-iq-card-front-wnba.png"
+      : league === "euroleague"
+        ? "/brand/ballers-iq-card-front-euroleague.png"
+        : "/brand/ballers-iq-card-front-nba.png";
+  const leagueLabel =
+    league === "wnba" ? "WNBA" : league === "euroleague" ? "EUROLEAGUE" : "NBA";
 
   // Aspect ratio of the supplied artwork (~2.4:1).
   const aspect = 2.4;
