@@ -701,7 +701,16 @@ function NBAPlaySearchSection() {
               <div className="flex items-center gap-2">
                 <Button
                   disabled={gameSearchDisabled}
-                  onClick={() => selectedGame && open(`https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}games/${yyyymmdd}-${selectedGame.away_team}${selectedGame.home_team}`)}
+                  onClick={() => {
+                    if (!selectedGame) return;
+                    const gameDateET = new Intl.DateTimeFormat("en-CA", {
+                      timeZone: "America/New_York",
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    }).format(new Date(selectedGame.tipoff_utc)).replace(/-/g, "");
+                    open(`https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}games/${gameDateET}-${selectedGame.away_team}${selectedGame.home_team}`);
+                  }}
                   className="rounded-lg h-10"
                 >
                   Open Game on NBAPlayDB <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
