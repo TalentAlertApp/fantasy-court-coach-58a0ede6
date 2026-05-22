@@ -3,7 +3,7 @@ import { ChevronRight, LogOut } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 import PlayerMarquee from "./PlayerMarquee";
 
 interface Props {

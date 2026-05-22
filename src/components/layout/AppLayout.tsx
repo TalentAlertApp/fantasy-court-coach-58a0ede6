@@ -9,7 +9,7 @@ import PlayerModal from "@/components/PlayerModal";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useNavigate } from "react-router-dom";

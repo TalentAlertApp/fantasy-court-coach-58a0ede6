@@ -17,7 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 
 const FEEDBACK_EMAIL = "alertadetalento@gmail.com";
 

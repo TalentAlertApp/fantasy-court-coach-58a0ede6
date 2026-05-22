@@ -13,7 +13,7 @@ import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { cn } from "@/lib/utils";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 import type { CompetitionCode } from "@/lib/competitions";
 
 type StatKey = "pts" | "reb" | "ast" | "stl" | "blk" | "to";

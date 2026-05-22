@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2, Mail, Lock } from "lucide-react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.svg";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 
 export default function AuthPage() {
   const navigate = useNavigate();
