@@ -55,8 +55,8 @@ Deno.serve(async (req) => {
     }
     const description = body.description ? String(body.description).slice(0, 500) : null;
     const sport = String(body.sport ?? "");
-    if (sport !== "nba" && sport !== "wnba") {
-      return errorResponse("VALIDATION", "Sport must be 'nba' or 'wnba'", null, 400);
+    if (sport !== "nba" && sport !== "wnba" && sport !== "euroleague") {
+      return errorResponse("VALIDATION", "Sport must be 'nba', 'wnba', or 'euroleague'", null, 400);
     }
     const visibility = String(body.visibility ?? "private");
     if (!["private", "invite_only", "public"].includes(visibility)) {
