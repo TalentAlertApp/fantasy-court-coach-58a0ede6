@@ -1,113 +1,75 @@
-## Goal
+## 1) `/` MY ROSTER — list view
 
-Fix the 3 EuroLeague sync paths flagged in the log:
+**a) Remove COLLEGE column (EuroLeague only)**
+- `src/components/RosterListView.tsx`: drop the `College` `<TableHead>` when `league === "euroleague"`.
+- `src/components/PlayerRow.tsx`: drop the matching `<TableCell>` (line 157) under the same league check.
+- Rebalance spacing for the remaining columns (Player / DOB(Age) / HT / Nation / FC-BC / Health / Salary / FP5 / Value5 / Last FP / Total FP / action). Concretely:
+  - Drop `min-w-[1080px]` to `min-w-[980px]` to remove the orphan whitespace.
+  - Slightly widen the now-visible Nation cell from `w-32` to `w-36` so flag + label breathe; bump DOB cell from `w-[88px]` to `w-[96px]`.
+- NBA/WNBA stays exactly as-is (College stays).
 
-```
-recap lookup  processed: 100  found: 0   remaining: 433
-teams         read: 21        upserted: 20  skipped: 1
-players       read: 335       upserted: 335 skipped: 0
-```
-
-Players already imports cleanly (335/335) — verified, no change needed; the rest of the work is in the other two syncs.
-
----
-
-## 1. EuroLeague YouTube recap lookup — 0/100 matches
-
-### Why nothing matches today
-
-In `youtube-recap-lookup/index.ts` the scorer hard-requires that the title contain the *full* nickname from `EUROLEAGUE_TEAM_NICKNAMES` (e.g. `"anadolu efes"`, `"olimpia milano"`, `"crvena zvezda"`, `"panathinaikos"`). Official EuroLeague / club / Eurohoops upload titles almost never use that exact phrase — they shorten to `Efes`, `Olimpia`, `Milan`, `Zvezda`, `Pana`, `Madrid`, `Olympiakos`, etc. Result: both-teams hard check fails every time → 0 found, ~80 quota burned.
-
-### Fix
-
-Replace the single-nickname `EUROLEAGUE_TEAM_NICKNAMES` map with a per-team **alias list**, and change the EuroLeague scoring path so a team is "present" if **any one alias** is found in the title.
-
+**b) Wrong page header (`GAMEWEEK 25 — DAY 6, Deadline Sun 12 Apr 01:00`)**
+Root cause — `src/pages/RosterPage.tsx` lines 184–190:
 ```ts
-const EUROLEAGUE_TEAM_ALIASES: Record<string, string[]> = {
-  EFS: ["anadolu efes", "efes"],
-  ASM: ["monaco"],
-  CZV: ["crvena zvezda", "zvezda", "red star"],
-  DUB: ["dubai"],
-  EA7: ["olimpia milano", "olimpia milan", "ea7", "milano", "milan"],
-  BAR: ["barcelona", "barça", "barca"],
-  BAY: ["bayern", "munich", "münchen"],
-  FBB: ["fenerbahce", "fenerbahçe"],
-  HTA: ["hapoel tel aviv", "hapoel"],
-  BKN: ["baskonia"],
-  ASV: ["asvel", "villeurbanne"],
-  MTA: ["maccabi tel aviv", "maccabi"],
-  OLY: ["olympiacos", "olympiakos"],
-  PAO: ["panathinaikos", "pana"],
-  PAR: ["paris basketball", "paris"],
-  PBB: ["partizan"],
-  RMB: ["real madrid", "madrid"],
-  VBC: ["valencia"],
-  VIR: ["virtus bologna", "virtus", "bologna"],
-  ZAL: ["zalgiris", "žalgiris", "kaunas"],
-};
-```
-
-In the EuroLeague branch:
-- Replace `awayCity`/`homeCity` substring check with `aliases.some(a => title.includes(a))` per team.
-- Keep the "both teams must appear" requirement.
-- Keep `+1 highlights`, `+2 full game`, `+3 long date` scoring; add `+1 round` when title contains `"round"` (very common in EL titles).
-- Lower EuroLeague `minScore` from 4 → **5** (alias matches are cheaper to get, so we tighten slightly to avoid noise).
-- Disable `same-night cross-team rejection` for EuroLeague — `sameNightTeamCities` is built from NBA `TEAM_CITY` and is meaningless for EL anyway (it's effectively empty, so this is a no-op cleanup).
-- Bump `maxResults` from 10 → 15 for EuroLeague primary search and add a second query variant `"{away} {home} highlights round {date}"` when the first returns 0 items, before falling back to open search.
-
-### Schedule prerequisite
-
-Before re-running recaps, check that EuroLeague `schedule_games.status` rows actually flipped to `FINAL` for completed games — the lookup only considers `FINAL` rows. If not, that's a separate ingestion issue; flag it in the run summary rather than silently filter to zero candidates.
-
----
-
-## 2. Teams sync — 1 row skipped + EA7 venue image still broken
-
-### a) Surface the skip reason
-
-`syncTeams` already collects `warnings[]` (e.g. `row #N: missing TEAM_CODE — skipped`), but the commissioner panel only renders `read / upserted / skipped`. Extend the rendered response so the 1 skipped row is explained:
-
-- Return `warnings` in the JSON (already present) and render them as a small text block under the Teams row in `EuroleagueSheetSyncPanel.tsx` when `warnings.length > 0`.
-- No DB change.
-
-This lets the user see exactly which row was skipped (likely an empty/edited trailing row) without guessing.
-
-### b) Extend `normalizeWikiImageUrl` to handle Wikidata + plain Commons file pages
-
-Current normalizer only rewrites `*.wikipedia.org/wiki/...#/media/File:...`. The EA7 venue is still `https://www.wikidata.org/wiki/Q604681#/media/File:Forum_Assago_Parquet_2.jpg`, which `<img>` cannot render.
-
-Generalize to match **any** `…#/media/File:<filename>` (wikidata, wikimedia, wikipedia in any language) and also a bare `commons.wikimedia.org/wiki/File:<filename>` form:
-
-```ts
-function normalizeWikiImageUrl(raw: string | null): string | null {
-  if (!raw) return raw;
-  const m1 = raw.match(/#\/media\/File:(.+)$/i);
-  if (m1) return `https://commons.wikimedia.org/wiki/Special:FilePath/${m1[1].split("?")[0]}`;
-  const m2 = raw.match(/commons\.wikimedia\.org\/wiki\/File:(.+)$/i);
-  if (m2) return `https://commons.wikimedia.org/wiki/Special:FilePath/${m2[1].split("?")[0]}`;
-  return raw;
+if (league === "wnba") {
+  const gd = getCurrentGamedayFrom(leagueDeadlines);
+  if (gd) return gd;
 }
+return getCurrentGameday();   // ← NBA static table, wrong for EL
 ```
+EuroLeague falls through to the NBA static deadlines table (`src/lib/deadlines.ts`), which is why it lands on the NBA's GW 25 / Day 6 / 12 Apr.
 
-After re-running **Sync → Teams**, EA7's `venue_image_url` becomes a renderable Commons FilePath URL like the EFS/PAO/PBB rows already do.
+Fix: extend the branch so EuroLeague also reads from `useLeagueDeadlines()` (which already pulls EL tipoffs from `schedule_games` and applies the `-30 min` Lisbon-time rule we wired last loop):
+```ts
+if (league === "wnba" || league === "euroleague") {
+  const gd = getCurrentGamedayFrom(leagueDeadlines);
+  if (gd) return gd;
+}
+return getCurrentGameday();
+```
+No other roster logic changes — `useDeadlineStatus` and the lock badge already operate on `currentGameday.deadline_utc`.
 
----
+## 2) `/advanced` — Stats button + missing tabs (EuroLeague)
 
-## 3. Players sync — verify only, no code change
+Root cause — `src/pages/AdvancedPage.tsx` lines 820–846: when `competition.hasAdvancedPlaySearch` is `false` (EL), the whole page short-circuits to the "not available" card whose secondary CTA links to `/scoring`. So users never see Playing Time / Advanced Stats / Trending, even though those tabs run off the same Supabase tables that EL is already populating.
 
-Log says `read: 335 / upserted: 335 / skipped: 0`. The dynamic-header column mapping (`find("HEIGHT") / find("DOB") / find("NAT") / …`) already lands the right values in the right DB columns (verified in code). No change.
+Fix: instead of returning an early fallback, render the existing `<Tabs>` block with `play-search` hidden when `!competition.hasAdvancedPlaySearch`:
+- Build the tab list dynamically: include `["play-search", "Play Search"]` only when `competition.hasAdvancedPlaySearch`.
+- Change `grid-cols-4` → `grid-cols-${tabs.length}`.
+- Default tab: if persisted tab is `play-search` but the league no longer supports it, fall back to `"playing-time"`.
+- Remove the early-return fallback block entirely (or keep a tiny inline "Play Search is NBA-only" note above the Playing Time tab — optional, ask if you want it).
+- Header label "Advanced · NBA Insights" → use `competition.label` so EL shows "Advanced · EuroLeague Insights".
 
----
+The three remaining tabs (`PlayingTimeTrends`, `AdvancedStatsTab`, `TrendingTab`) already read via `useLeagueId()` / league-scoped queries, so they will populate from the EuroLeague rows you've already synced — no edge-function changes required.
 
-## Files
+## 3) YouTube recap pipeline — leverage the official page
 
-- `supabase/functions/youtube-recap-lookup/index.ts` — alias map + alias-aware EuroLeague scorer + minScore tweak + 2-query primary path.
-- `supabase/functions/euroleague-sheet-sync/index.ts` — generalize `normalizeWikiImageUrl`.
-- `src/components/commissioner/EuroleagueSheetSyncPanel.tsx` — render `warnings[]` under the Teams row.
+Today `youtube-recap-lookup` calls YouTube's Search API with alias scoring. Hit rate is poor (last run: 0/100). But every EuroLeague game already carries a deterministic recap URL on `euroleaguebasketball.net`, and that page embeds the exact YouTube video the user wants. So we can pivot to a **scrape-first, search-fallback** strategy.
 
-## Post-deploy
+**New edge function: `euroleague-recap-scrape`**
+- Accepts `?league=euroleague&limit=N` (admin-secret guarded, same shape as the existing recap lookup).
+- For each EL game missing `youtube_recap_id`:
+  1. Build the deterministic Euroleague videos URL pattern from `away_team`, `home_team`, `round`, season. Two strategies, tried in order:
+     - **Strategy A (preferred):** fetch the round index page `https://www.euroleaguebasketball.net/euroleague/game-center/round-{round}/2025-26/` and parse the game cell that matches `{away}-{home}` (uses the slugs we already store).
+     - **Strategy B (fallback):** construct the canonical highlights URL `https://www.euroleaguebasketball.net/euroleague/videos/{away-slug}-{home-slug}-round-{ROUND_CODE}-highlights-2025-26-euroleague/` and probe it (HEAD/GET).
+  2. Once the official page HTML is loaded, extract the YouTube ID by regex over the page source:
+     - `youtube\.com/(?:watch\?v=|embed/)([A-Za-z0-9_-]{11})`
+     - `youtu\.be/([A-Za-z0-9_-]{11})`
+     - JSON-LD `"embedUrl":"https://www.youtube.com/embed/<id>"`
+  3. On match, update `schedule_games.youtube_recap_id` and `recap_source = 'euroleague.net'`.
+- No YouTube Data API quota burn. Existing `youtube-recap-lookup` stays as a backup for misses.
 
-1. **Sync → Teams** (fixes EA7 venue image; surfaces the skipped-row reason).
-2. **Find YouTube Recaps** (EuroLeague) — expect a meaningful non-zero `found` count this time.
+**Commissioner UI**
+- `EuroleagueSheetSyncPanel.tsx`: add a new button **"Scrape Recaps from Euroleague.net"** alongside "Find YouTube Recaps", calling the new function and showing `processed / found / remaining` like today.
 
-No DB migrations.
+**Answer to your "which job do I run":** after we ship this, you run **Scrape Recaps from Euroleague.net** first (it should resolve nearly all 433 missing). Re-run **Find YouTube Recaps** only as the long-tail fallback. No DB migrations — `youtube_recap_id` already exists.
+
+## Files touched
+- `src/components/RosterListView.tsx` (conditional column)
+- `src/components/PlayerRow.tsx` (conditional cell)
+- `src/pages/RosterPage.tsx` (deadline branch)
+- `src/pages/AdvancedPage.tsx` (drop short-circuit, dynamic tabs)
+- `src/components/commissioner/EuroleagueSheetSyncPanel.tsx` (new button + result row)
+- `supabase/functions/euroleague-recap-scrape/index.ts` (new)
+
+No schema migrations.
