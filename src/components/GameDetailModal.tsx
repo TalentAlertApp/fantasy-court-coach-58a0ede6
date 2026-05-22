@@ -73,8 +73,14 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const homeLogo = logoFor(game.home_team);
   const played = isPlayed(game);
   const venue = getVenue(game.home_team);
-  const leagueName = league === "wnba" ? "WNBA" : "NBA";
-  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
+  const leagueName =
+    league === "wnba" ? "WNBA" : league === "euroleague" ? "EuroLeague" : "NBA";
+  const recapHost =
+    league === "wnba"
+      ? "WNBA.com"
+      : league === "euroleague"
+        ? "EuroLeagueBasketball.net"
+        : "NBA.com";
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
   const [recapOpen, setRecapOpen] = useState(false);
