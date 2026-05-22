@@ -223,7 +223,7 @@ interface Props {
   /** Per-page duration for paginated slides (e.g. Played Games Recap). */
   pageMs?: number;
   /** Active league for watermarks and branding. */
-  leagueCode?: "nba" | "wnba";
+  leagueCode?: CompetitionCode;
 }
 
 function fmtDeadline(iso: string | null): string {
@@ -262,7 +262,7 @@ function AICardView({
   card: AIBallersIQCard;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
-  leagueCode?: "nba" | "wnba";
+  leagueCode?: CompetitionCode;
 }) {
   const meta = AI_KIND_META[card.kind] ?? AI_KIND_META.form_index;
   const Icon = meta.icon;
