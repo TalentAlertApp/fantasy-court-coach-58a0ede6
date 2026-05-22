@@ -664,6 +664,10 @@ serve(async (req: Request) => {
     const sb = makeSb();
     const leagueId = await getEuroleagueLeagueId(sb);
 
+    if (mode === "teams") {
+      const r = await syncTeams(token, sb, leagueId);
+      return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
+    }
     if (mode === "players") {
       const r = await syncPlayers(token, sb, leagueId);
       return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
@@ -680,14 +684,20 @@ serve(async (req: Request) => {
       const r = await syncAdvancedStats(token, sb, leagueId);
       return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
     }
+    if (mode === "standings") {
+      const r = await syncStandings(token, sb, leagueId);
+      return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
+    }
     if (mode === "all") {
+      const teams = await syncTeams(token, sb, leagueId);
       const players = await syncPlayers(token, sb, leagueId);
       const schedule = await syncSchedule(token, sb, leagueId);
       const gameData = await syncGameData(token, sb, leagueId);
       const adv = await syncAdvancedStats(token, sb, leagueId);
+      const standings = await syncStandings(token, sb, leagueId);
       return ok({
         mode, elapsed_ms: Date.now() - t0,
-        results: { players, schedule, "game-data": gameData, "advanced-stats": adv },
+        results: { teams, players, schedule, "game-data": gameData, "advanced-stats": adv, standings },
       });
     }
 
