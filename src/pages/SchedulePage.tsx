@@ -21,6 +21,7 @@ import type { GameBadge } from "@/components/ballers-iq/GameCardBadges";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
+import { useLeague } from "@/contexts/LeagueContext";
 
 const MIN_WEEK = 1;
 
@@ -48,6 +49,7 @@ function makeGetDaysForWeek(deadlines: Deadline[], wdt: Record<string, string>) 
 }
 
 export default function SchedulePage() {
+  const { league } = useLeague();
   const { deadlines } = useLeagueDeadlines();
   const WEEK_DAY_TO_DATE = useMemo(() => buildWeekDayToDate(deadlines), [deadlines]);
   const getDaysForWeek = useMemo(() => makeGetDaysForWeek(deadlines, WEEK_DAY_TO_DATE), [deadlines, WEEK_DAY_TO_DATE]);
@@ -266,7 +268,15 @@ export default function SchedulePage() {
             <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
             <span className="text-xs font-body dark:text-[hsl(var(--nba-yellow))]">{dateRange}</span>
           </div>
-          <div ref={weekScrollRef} className="flex gap-0.5 overflow-x-auto scrollbar-hide py-1 pr-2">
+          <div
+            ref={weekScrollRef}
+            className={
+              league === "euroleague"
+                ? "grid gap-0.5 py-1 pr-2"
+                : "flex gap-0.5 overflow-x-auto scrollbar-hide py-1 pr-2"
+            }
+            style={league === "euroleague" ? { gridTemplateColumns: "repeat(19, minmax(0, 1fr))" } : undefined}
+          >
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
               const isCurrent = w === current.gw;
@@ -295,7 +305,7 @@ export default function SchedulePage() {
                 </button>
               );
             })}
-            <span className="shrink-0 w-1" aria-hidden />
+            {league !== "euroleague" && <span className="shrink-0 w-1" aria-hidden />}
           </div>
         </div>
 
