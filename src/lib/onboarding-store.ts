@@ -26,7 +26,7 @@ function draftKey(userId: string): string {
 
 export interface OnboardingDraft {
   name: string;
-  sport: "nba" | "wnba";
+  sport: "nba" | "wnba" | "euroleague";
   extraLeagueIds: string[];
 }
 
@@ -38,7 +38,7 @@ export function getOnboardingDraft(userId: string | null | undefined): Onboardin
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") return null;
     if (typeof parsed.name !== "string") return null;
-    if (parsed.sport !== "nba" && parsed.sport !== "wnba") return null;
+    if (parsed.sport !== "nba" && parsed.sport !== "wnba" && parsed.sport !== "euroleague") return null;
     if (!Array.isArray(parsed.extraLeagueIds)) return null;
     return parsed as OnboardingDraft;
   } catch {
