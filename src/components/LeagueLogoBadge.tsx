@@ -1,5 +1,4 @@
-import nbaLogo from "@/assets/nba-logo.svg";
-import wnbaLogo from "@/assets/wnba-logo.png";
+import { tryGetCompetition, COMPETITIONS } from "@/lib/competitions";
 
 type Size = "xs" | "sm" | "md";
 
@@ -19,14 +18,16 @@ export default function LeagueLogoBadge({
   withLabel = false,
   className = "",
 }: {
-  league?: "nba" | "wnba" | string | null;
+  league?: string | null;
   size?: Size;
   withLabel?: boolean;
   className?: string;
 }) {
-  const code = (league ?? "nba").toString().toLowerCase() === "wnba" ? "wnba" : "nba";
-  const src = code === "wnba" ? wnbaLogo : nbaLogo;
-  const label = code.toUpperCase();
+  // Unknown league codes render the NBA badge as a visual placeholder but never
+  // change any business logic — this is purely a display fallback.
+  const comp = tryGetCompetition(league?.toString().toLowerCase()) ?? COMPETITIONS.nba;
+  const src = comp.logo;
+  const label = comp.shortLabel;
   return (
     <span
       className={`inline-flex items-center gap-1 align-middle ${className}`}

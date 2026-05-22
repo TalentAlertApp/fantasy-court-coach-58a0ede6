@@ -1,6 +1,8 @@
 import { useLeague } from "@/contexts/LeagueContext";
 import { NBA_TEAMS } from "@/lib/nba-teams";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
+import { EUROLEAGUE_TEAMS } from "@/lib/euroleague-teams";
+import type { CompetitionCode } from "@/lib/competitions";
 
 export interface LeagueTeam {
   id: string;
@@ -21,8 +23,24 @@ import { NBA_VENUES } from "@/lib/nba-venues";
  * Returns the active league's team catalog as a uniform shape so pages
  * (Teams, Filters, Schedule grids, Advanced) don't import NBA_TEAMS directly.
  */
-export function useLeagueTeams(): { league: "nba" | "wnba"; teams: LeagueTeam[] } {
+export function useLeagueTeams(): { league: CompetitionCode; teams: LeagueTeam[] } {
   const { league } = useLeague();
+  if (league === "euroleague") {
+    return {
+      league,
+      teams: EUROLEAGUE_TEAMS.map((t) => ({
+        id: t.id,
+        name: t.name,
+        tricode: t.tricode,
+        logo: t.logo,
+        primaryColor: t.primaryColor,
+        conference: null,
+        division: null,
+        venueName: t.venueName ?? null,
+        venueImage: null,
+      })),
+    };
+  }
   if (league === "wnba") {
     return {
       league,
