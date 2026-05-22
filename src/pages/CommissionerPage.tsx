@@ -1441,6 +1441,7 @@ export default function CommissionerPage() {
       {leagueCode !== "euroleague" && <MissingRecapsPanel league={leagueCode} />}
 
       {leagueCode === "wnba" && <WnbaSheetSyncPanel />}
+      {leagueCode === "euroleague" && <EuroleagueSheetSyncPanel />}
         </TabsContent>
       </Tabs>
 
