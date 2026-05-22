@@ -257,13 +257,18 @@ serve(async (req: Request) => {
           : perLeague.nba;
         bucket.processed += 1;
         const fullMap = isEuro
-          ? EUROLEAGUE_TEAM_NICKNAMES
+          ? EUROLEAGUE_TEAM_FULL
           : isWnba ? WNBA_TEAM_FULL_NAME : TEAM_FULL_NAME;
-        const cityMap = isEuro
-          ? EUROLEAGUE_TEAM_NICKNAMES
-          : isWnba ? WNBA_TEAM_CITY : TEAM_CITY;
+        const cityMap = isWnba ? WNBA_TEAM_CITY : TEAM_CITY;
         const awayFull = fullMap[game.away_team] ?? game.away_team;
         const homeFull = fullMap[game.home_team] ?? game.home_team;
+        // EuroLeague: per-team alias arrays. NBA/WNBA: single city token.
+        const awayAliases = isEuro
+          ? (EUROLEAGUE_TEAM_ALIASES[game.away_team] ?? [awayFull.toLowerCase()])
+          : [cityMap[game.away_team] ?? game.away_team.toLowerCase()];
+        const homeAliases = isEuro
+          ? (EUROLEAGUE_TEAM_ALIASES[game.home_team] ?? [homeFull.toLowerCase()])
+          : [cityMap[game.home_team] ?? game.home_team.toLowerCase()];
         const tipoff = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
         const dateStr = tipoff ? tipoff.toISOString().slice(0, 10) : "";
         const longDate = tipoff
@@ -291,7 +296,7 @@ serve(async (req: Request) => {
           type: "video",
           videoEmbeddable: "true",
           order: "date",
-          maxResults: "10",
+          maxResults: isEuro ? "15" : "10",
           key: YOUTUBE_API_KEY,
         });
         // EuroLeague: open search (many publishers). NBA/WNBA: scope to channel.
@@ -314,18 +319,20 @@ serve(async (req: Request) => {
 
         let ytData = await ytRes.json();
         let items: any[] = ytData?.items ?? [];
-        const awayCity = cityMap[game.away_team] ?? game.away_team.toLowerCase();
-        const homeCity = cityMap[game.home_team] ?? game.home_team.toLowerCase();
         const tipoffDay = tipoff ? tipoff.toISOString().slice(0, 10) : "";
         const nightKey = `${(game as any).league_id}|${tipoffDay}`;
-        const otherCities = sameNightTeamCities.get(nightKey) ?? new Set<string>();
+        // Same-night cross-team rejection is NBA/WNBA-only (the city map for
+        // EuroLeague is not populated in sameNightTeamCities).
+        const otherCities = isEuro
+          ? new Set<string>()
+          : (sameNightTeamCities.get(nightKey) ?? new Set<string>());
         const scoreItems = (arr: any[], minScore: number): { id: string | null; score: number } => {
           let best: any = null;
           let bestScore = -1;
           for (const item of arr) {
             const title = (item?.snippet?.title ?? "").toLowerCase();
-            const hasAway = title.includes(awayCity);
-            const hasHome = title.includes(homeCity);
+            const hasAway = awayAliases.some((a) => title.includes(a));
+            const hasHome = homeAliases.some((a) => title.includes(a));
             // HARD REQUIREMENT: title must mention BOTH teams. Single-team
             // matches were the root cause of cross-game pollution (e.g.
             // "Lakers vs Pacers" leaking onto LAL@DEN).
@@ -334,7 +341,7 @@ serve(async (req: Request) => {
             // same night in the same league.
             let mentionsOther = false;
             for (const c of otherCities) {
-              if (c === awayCity || c === homeCity) continue;
+              if (awayAliases.includes(c) || homeAliases.includes(c)) continue;
               if (title.includes(c)) { mentionsOther = true; break; }
             }
             if (mentionsOther) continue;
@@ -343,6 +350,7 @@ serve(async (req: Request) => {
             if (title.includes("highlights")) score += 1;
             if (longDate && title.includes(longDate)) score += 3;
             else if (dateStr && title.includes(dateStr.slice(5))) score += 1;
+            if (isEuro && title.includes("round")) score += 1;
             if (score > bestScore) { bestScore = score; best = item; }
           }
           return { id: bestScore >= minScore ? (best?.id?.videoId ?? null) : null, score: bestScore };
@@ -351,7 +359,7 @@ serve(async (req: Request) => {
         // Primary: channel-scoped — both teams + highlights + date strongly preferred.
         // WNBA titles often omit "Full Game", so accept a slightly lower minScore.
         // Relaxed mode lowers thresholds further so manual refreshes catch late posts.
-        const primaryMin = isEuro ? 4 : (relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6));
+        const primaryMin = isEuro ? 5 : (relaxed ? (isWnba ? 5 : 6) : (isWnba ? 5 : 6));
         let { id: videoId } = scoreItems(items, primaryMin);
 
         // Fallback: open YouTube search if channel-scoped lookup found no confident match.
@@ -366,7 +374,7 @@ serve(async (req: Request) => {
           if (fbRes.ok) {
             const fbData = await fbRes.json();
             const fbItems: any[] = fbData?.items ?? [];
-            videoId = scoreItems(fbItems, isEuro ? 4 : (isWnba ? 5 : 6)).id;
+            videoId = scoreItems(fbItems, isEuro ? 5 : (isWnba ? 5 : 6)).id;
           } else if (fbRes.status === 403) {
             errors.push(`YouTube API quota exceeded after ${found} lookups`);
             quotaExhausted = true;
