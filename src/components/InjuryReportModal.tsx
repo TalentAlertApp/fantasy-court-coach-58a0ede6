@@ -265,6 +265,14 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
   const load = useCallback(async (force = false) => {
     setError(null);
 
+    // EuroLeague: no injury data source yet — render empty state and skip fetch.
+    if (league === "euroleague") {
+      setPayload({ teams: [], updated_at: null } as unknown as InjuryPayload);
+      setRosterMap(new Map());
+      setLoading(false);
+      return;
+    }
+
     if (!force) {
       const cached = readCache();
       if (cached) {
@@ -326,7 +334,7 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
     } finally {
       setLoading(false);
     }
-  }, [isWnba, queryClient]);
+  }, [isWnba, league, queryClient]);
 
   useEffect(() => {
     if (open && !payload && !loading) {
