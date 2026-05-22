@@ -1,26 +1,14 @@
-## Fix Play Search "By Game" URL dates
+## Add `/wnba/` prefix to Player Action search URLs
 
-Compute the game date from each game's `tipoff_utc` in `America/New_York` instead of using the gameday-level Lisbon `yyyymmdd`. Applies to both NBA and WNBA.
+The "By Game" buttons already include the WNBA prefix, but Player Action searches still hit `nbaplaydb.com/search?...` for both leagues. Mirror the same `isWnba ? "wnba/" : ""` prefix everywhere a search URL is built.
 
-### Change
+### Changes in `src/pages/AdvancedPage.tsx`
 
-In `src/pages/AdvancedPage.tsx`, replace the gameday-derived `yyyymmdd` used in the game URL with a per-game ET date:
+1. `handleActionOpen` (line 339): `https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}search?${params}`
+2. `buildNbaPlayDbUrl` (line 415, used in ShareSearchDialog preview): same prefix.
 
-```ts
-const gameDateET = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/New_York",
-  year: "numeric", month: "2-digit", day: "2-digit",
-}).format(new Date(selectedGame.tipoff_utc)).replace(/-/g, "");
-
-window.open(
-  `https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}games/${gameDateET}-${away}${home}`,
-  "_blank"
-);
-```
+`isWnba` is already in scope from `useLeague()`. No other behavioral changes.
 
 ### Result
-- WNBA CON@NYL (GW1.1, tipoff 2026-05-08 23:30 UTC → 19:30 ET May 8) → `/wnba/games/20260508-CONNYL` ✓
-- NBA HOU@OKC (GW1.1, tipoff Oct 22 00:30 UTC → 20:30 ET Oct 21) → `/games/20251021-HOUOKC` ✓
-
-### Out of scope
-Action/player search URLs and `ShareSearchDialog` remain unchanged.
+- WNBA: `https://www.nbaplaydb.com/wnba/search?actionplayer=Breanna%20Stewart`
+- NBA: unchanged
