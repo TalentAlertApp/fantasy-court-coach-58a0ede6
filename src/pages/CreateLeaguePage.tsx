@@ -42,7 +42,7 @@ export default function CreateLeaguePage() {
   const [visibility, setVisibility] = useState<"private" | "invite_only" | "public">("private");
 
   // Step 2
-  const [sport, setSport] = useState<"nba" | "wnba">("nba");
+  const [sport, setSport] = useState<CompetitionCode>("nba");
 
   // Step 3
   const [preset, setPreset] = useState<Preset>("classic");
