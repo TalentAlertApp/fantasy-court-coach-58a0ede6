@@ -228,10 +228,18 @@ function normalizeNationality(raw: string): string {
  *  when it is already a direct image link. */
 function normalizeWikiImageUrl(raw: string | null): string | null {
   if (!raw) return raw;
-  const m = raw.match(/wikipedia\.org\/wiki\/[^#?]+#\/media\/File:(.+)$/i);
-  if (m) {
-    const file = m[1].split("?")[0];
-    return `https://commons.wikimedia.org/wiki/Special:FilePath/${file}`;
+  // Any "...#/media/File:<filename>" viewer URL (wikipedia/wikidata/commons in
+  // any language) → direct Special:FilePath link an <img> tag can render.
+  const m1 = raw.match(/#\/media\/File:(.+)$/i);
+  if (m1) {
+    const file = decodeURIComponent(m1[1].split("?")[0]);
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}`;
+  }
+  // Bare Commons file page → Special:FilePath equivalent.
+  const m2 = raw.match(/commons\.wikimedia\.org\/wiki\/File:(.+)$/i);
+  if (m2) {
+    const file = decodeURIComponent(m2[1].split("?")[0]);
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}`;
   }
   return raw;
 }
