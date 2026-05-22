@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import type { CompetitionCode } from "@/lib/competitions";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Wand2, MousePointerClick, Sparkles, Bot, Loader2, Check, ChevronLeft, ListPlus } from "lucide-react";
