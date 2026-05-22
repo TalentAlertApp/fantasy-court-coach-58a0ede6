@@ -1,148 +1,78 @@
-# EuroLeague — Additive Third Competition
+# EuroLeague follow-up fixes (7 items)
 
-Adds EuroLeague (`euroleague`, 2025‑26) alongside NBA and WNBA. The hard rule is **no behavioral or data change** for NBA/WNBA. EuroLeague ships as an additive option, with a single‑table standings model and Advanced/PLAY SEARCH disabled.
+## 1) Commissioner league selector — wrong EuroLeague logo
+`src/pages/CommissionerPage.tsx` still imports `euroleague-logo.svg`. Swap to `@/assets/euroleague-logo.png` (the badge already copied earlier).
 
-The logo already supplied is saved to `public/leagues/euroleague.svg`.
+## 5) Replace remaining SVG references everywhere
+Same import swap in:
+- `src/lib/euroleague-teams.ts`
+- `src/components/welcome-back/WelcomeBackHero.tsx`
+- `src/components/FeedbackModal.tsx`
+- `src/pages/CreateLeaguePage.tsx`
+- `src/pages/AuthPage.tsx`
+- `src/components/layout/AppLayout.tsx`
+- `src/components/onboarding/OnboardingHero.tsx`
+- `src/lib/competitions.ts`: change `publicLogo: "/leagues/euroleague.svg"` to a PNG copy under `public/leagues/euroleague.png` (copy from `public/brand/...` or the uploaded badge). Delete the old `src/assets/euroleague-logo.svg` + `public/leagues/euroleague.svg`.
 
----
+## 2) Skipped game-data rows (Llull / Motiejunas / Heurtel etc.)
+Root cause: the **Game Data tab** uses different player IDs than **DB_Players** (e.g. 700966295 vs 700982991 for Llull). Currently we drop rows whose `player_id` is not in the `players` table.
 
-## 1. Competition registry (new single source of truth)
+Fix in `supabase/functions/euroleague-sheet-sync/index.ts` `syncGameData`:
+1. Build a secondary lookup keyed by **normalized name + team tricode** from the `players` table.
+2. When `teamById.get(playerId)` misses, try the name+team lookup; if it resolves, **rewrite `player_id` to the canonical DB player id** for the inserted log row.
+3. If still unresolved, **auto-insert a stub player** into `players` for that league (id, name, team, position=null, salary=0, salary_source="placeholder", `created_via='gamedata-fallback'` note in a comment column if available — else just leave defaults). This keeps logs landing and surfaces the player in pool.
+4. Return both `skipped_players` (truly unresolved) and a new `aliased_players` list (id→canonical) so commissioner can review.
 
-Create `src/lib/competitions.ts`:
+Surface `aliased_players` count + expandable list in `EuroleagueSheetSyncPanel.tsx` next to the existing skipped block.
 
-```ts
-export type CompetitionCode = "nba" | "wnba" | "euroleague";
+## 3) "Name Your Franchise" — EUROLEAGUE title still clipped, logo smaller
+In `src/components/LeaguePickerCards.tsx`:
+- Reduce big-size letter-spacing for the title so the longest word fits: `text-xl tracking-[0.18em]` (or `tracking-wide`) instead of `tracking-[0.3em]`. Add `text-center break-words leading-tight max-w-full px-1`.
+- The EuroLeague badge PNG has internal padding which makes it appear smaller than NBA/WNBA SVGs. Add a per-league logo size override in `FANTASY_COMPETITIONS` (`logoScale?: number`) and apply `style={{ transform: `scale(${logoScale ?? 1})` }}` on the visible logo `<img>` — set `1.25` for EuroLeague so it visually matches NBA/WNBA.
 
-export interface Competition {
-  code: CompetitionCode;
-  label: string;          // "EuroLeague"
-  shortLabel: string;     // "EL"
-  season: string;         // "2025-26"
-  logo: string;           // public path
-  standingsMode: "conference_division" | "conference_only" | "single_table";
-  hasAdvancedPlaySearch: boolean;
-  hasConferences: boolean;
-  hasDivisions: boolean;
-  fantasyEnabled: boolean;
-}
+## 4) EuroLeague salaries all $0 — add commissioner recalc job
+No `exp` field for EuroLeague. Build deterministic salary from **last-season fantasy production** with a fallback:
 
-export const COMPETITIONS: Record<CompetitionCode, Competition> = {
-  nba:        { code: "nba",        label: "NBA",        shortLabel: "NBA", season: "2025-26",
-                logo: "/leagues/nba.svg",        standingsMode: "conference_division",
-                hasAdvancedPlaySearch: true,  hasConferences: true,  hasDivisions: true,  fantasyEnabled: true },
-  wnba:       { code: "wnba",       label: "WNBA",       shortLabel: "WNBA", season: "2025-26",
-                logo: "/leagues/wnba.svg",       standingsMode: "conference_only",
-                hasAdvancedPlaySearch: true,  hasConferences: true,  hasDivisions: false, fantasyEnabled: true },
-  euroleague: { code: "euroleague", label: "EuroLeague", shortLabel: "EL",   season: "2025-26",
-                logo: "/leagues/euroleague.svg", standingsMode: "single_table",
-                hasAdvancedPlaySearch: false, hasConferences: false, hasDivisions: false, fantasyEnabled: true },
-};
+Formula (per player, league-scoped):
+- Inputs from `players_advanced_stats_season` (or whichever advanced-accum table holds totals) and `players.games_played`:
+  - `score = 0.6 * fp_per_game + 0.25 * min_per_game + 0.15 * fp_total_normalized`
+  - If no advanced row → fallback `score = age_curve(age)` where peak (24–29) = mid, rookies = SAL_MIN, vets >34 = mid–.
+- Linear-map league `score` range → `[SAL_MIN=4.5, SAL_MAX=25]`, round to 0.1.
+- Players with no signal at all → `SAL_MIN`, `salary_source='placeholder'`. Players with computed salary → `salary_source='computed'`.
 
-export function getCompetition(code: string): Competition {
-  const c = COMPETITIONS[code as CompetitionCode];
-  if (!c) throw new Error(`Unknown competition code: ${code}`);
-  return c;
-}
-export function isKnownCompetition(code: string): code is CompetitionCode {
-  return code === "nba" || code === "wnba" || code === "euroleague";
-}
-export const ALL_COMPETITIONS = Object.values(COMPETITIONS);
-```
+New edge function `supabase/functions/euroleague-salary-recalc/index.ts` (mirrors `wnba-salary-recalc`):
+- Scoped to EuroLeague league_id, never touches NBA/WNBA.
+- Returns `{ updated, failed, min, max, distribution, source_breakdown }`.
 
-A mirror `supabase/functions/_shared/competitions.ts` will hold the same registry for edge functions, so the server also rejects unknown codes (replacing the silent `"wnba" : "nba"` ternary in `_shared/league.ts`).
+Add a button row in `EuroleagueSheetSyncPanel.tsx` (or a sibling `EuroleagueSalaryPanel.tsx`) on `/commissioner` labeled **"Recalculate EuroLeague Salaries"**.
 
-## 2. Type widening — `CompetitionCode` everywhere a literal lives
+## 6) EuroLeague injury report — empty state
+In `src/components/InjuryReportModal.tsx` extend league branching: when `league === "euroleague"`, do **not** call any injury edge function. Render an empty/placeholder state ("Injury feed coming soon for EuroLeague") and skip the NBA fetch entirely. Also hide/disable the refresh button for EuroLeague.
 
-Replace `"nba" | "wnba"` with `CompetitionCode` in:
+## 7) /schedule game cards missing EuroLeague venue art + name
+`ScheduleList.tsx` (and `SchedulePreviewPanel.tsx`) call `getVenue(home_team)` from `@/lib/nba-venues`, which only knows NBA teams. EuroLeague venue data already lives in the `teams` table (`venue_name`, `venue_image_url`) and is exposed through `useLeagueTeams` (`venueName`, `venueImage`).
 
-- `src/contexts/LeagueContext.tsx` (`LeagueCode`, `getCurrentLeague`)
-- `src/contexts/FantasyLeagueContext.tsx` (`sportCode`, `getCurrentFantasySport`)
-- `src/hooks/useFantasyLeagues.ts` (`FantasyLeague.sport`)
-- `src/hooks/useLeagueTeams.ts` return tuple
-- `supabase/functions/_shared/league.ts`
+Plan:
+- Add a small league-aware helper `useVenueLookup()` that returns `(teamCode) => { name, image }`:
+  - NBA → existing `getVenue`.
+  - WNBA → existing WNBA path (if any) else teams-table.
+  - EuroLeague → map from `useLeagueTeams()` rows by `team_code` → `{ name: venueName, image: venueImage }`.
+- Replace the `getVenue(g.home_team)` call sites in `ScheduleList.tsx` (3 spots) and `SchedulePreviewPanel.tsx` with the hook output. No NBA logic changes.
+- For the missing teams data, import-game-data already maps tricodes — venue strings come straight from `teams` rows synced via DB_Teams. User confirmed the spreadsheet has the URLs; if any are still missing, the panel's "Sync Teams" already covers it (no schema changes needed since `venue_name` + `venue_image_url` columns exist).
 
-The header pill / team `league_code` field already exists; widen the comparison to use `isKnownCompetition` rather than NBA‑fallback.
+## Files touched
+- `src/lib/competitions.ts`
+- `src/components/LeaguePickerCards.tsx`
+- `src/components/InjuryReportModal.tsx`
+- `src/components/ScheduleList.tsx`, `src/components/SchedulePreviewPanel.tsx`
+- `src/components/commissioner/EuroleagueSheetSyncPanel.tsx` (+ maybe new `EuroleagueSalaryPanel.tsx`)
+- 7 logo-import swaps listed above; delete `src/assets/euroleague-logo.svg`, `public/leagues/euroleague.svg`; add `public/leagues/euroleague.png`
+- `supabase/functions/euroleague-sheet-sync/index.ts` (alias + stub insert)
+- `supabase/functions/euroleague-salary-recalc/index.ts` (new)
+- New `src/hooks/useVenueLookup.ts`
 
-## 3. Hard error on unknown league_code
+No DB migrations required.
 
-- `LeagueContext`: if `selectedTeam.league_code` is set but not recognized, **throw a typed error** caught by an `<LeagueErrorBoundary>` that renders "Unsupported league". No silent fallback to NBA.
-- `_shared/league.ts` `readLeagueCode*` functions return the raw string; `resolveLeagueId` already throws if the leagues row is missing. Add explicit `if (!isKnownCompetition(raw)) throw …` so unknown values fail fast at the function boundary.
-
-## 4. Teams catalog — add EuroLeague
-
-- New `src/lib/euroleague-teams.ts` exporting `EUROLEAGUE_TEAMS: LeagueTeam[]` (18 clubs of 2025‑26: RMB, FCB, OLY, PAN, EFS, FEN, MTA, ASM, ZAL, BAS, VIR, MIL, PAR, BAY, ASV, PRS, DUB, HAP). Conference/division `null`. Logos sourced from `https://media-cdn.incrowdsports.com/...` (EuroLeague CDN); placeholder asset paths for any missing.
-- `useLeagueTeams` adds a third branch:
-  ```ts
-  if (league === "euroleague") return { league, teams: EUROLEAGUE_TEAMS };
-  ```
-
-## 5. Standings — `single_table`
-
-`useNBAStandings`, `useLeagueStandings`, `StandingsPanel`, `StandingsFilters`:
-- Read `getCompetition(code).standingsMode` to decide whether to render the View toggle.
-- For `single_table`, force `view = "league"` and hide the toggle.
-- Edge function `league-standings` returns a flat table with no `conference`/`division` grouping when the registry says so.
-
-NBA/WNBA paths are unchanged because both still resolve to existing modes.
-
-## 6. Advanced / PLAY SEARCH gate
-
-`src/pages/AdvancedPage.tsx`:
-- At entry, `const comp = getCompetition(league);`
-- If `!comp.hasAdvancedPlaySearch`, render a small "Not available for {label} yet" empty state, no fetches.
-- Sidebar/nav link to `/advanced` hides for EuroLeague (`AppLayout` reads the same flag).
-
-NBA/WNBA URL building (already fixed earlier) is untouched.
-
-## 7. League selectors / pickers
-
-`LeaguePickerCards`, `ChooseLeagueStep`, `TeamSwitcher`, `HeaderTeamPill`, `TeamLeagueChips`, `LeagueLogoBadge`:
-- Iterate over `ALL_COMPETITIONS` (filtered by `fantasyEnabled`) instead of the two‑item hardcoded arrays.
-- Logos, labels, short labels all come from the registry.
-- EuroLeague appears as a selectable option, but does **not** become anyone's default — onboarding/`MAIN_LEAGUE_ID` constants are left alone.
-
-## 8. Database — add EuroLeague rows (additive)
-
-A single migration adds rows; no destructive changes:
-
-```sql
--- public.leagues: add EuroLeague competition row
-insert into public.leagues (id, code, name)
-values ('00000000-0000-0000-0000-000000000003', 'euroleague', 'EuroLeague')
-on conflict (code) do nothing;
-
--- Main fantasy league entry for EuroLeague (mirrors MAIN_LEAGUE_NBA_ID / WNBA_ID pattern)
-insert into public.fantasy_leagues (id, sport, name, kind, visibility, status)
-values ('00000000-0000-0000-0000-000000000030', 'euroleague', 'EuroLeague Main', 'main', 'public', 'active')
-on conflict (id) do nothing;
-```
-
-(Exact `fantasy_leagues` column list will be reconciled to the live schema before the migration is run. Any `sport CHECK (sport in ('nba','wnba'))` constraint is dropped and re‑added including `'euroleague'` — non‑destructive to existing rows.)
-
-`MAIN_LEAGUE_EUROLEAGUE_ID` constant added to `useFantasyLeagues.ts` alongside the existing two.
-
-## 9. Edge function audit (no functional changes, just allow the new code)
-
-For each function that reads `league_code`:
-- `_shared/league.ts` — registry import, hard error on unknown.
-- `teams`, `players-list`, `player-detail`, `roster-current`, `roster-save`, `roster-auto-pick`, `schedule`, `schedule-impact`, `league-standings`, `scoring-history`, `transactions-*`, `salary-*`, `import-*`, `leagues-*`, `last-game`, `game-boxscore`, `ai-coach`, `court-show-intelligence`, `youtube-recap-lookup`, `nba-injury-report`, `wnba-injury-report`, `deadline-status` — accept `"euroleague"`. None of these have NBA‑specific business logic that would break when no rows exist.
-
-NBA/WNBA‑specific functions (`wnba-sheet-sync`, `wnba-salary-recalc`, `wnba-salary-season-backfill`, `nba-injury-report`, `wnba-injury-report`) stay sport‑scoped and untouched.
-
-## 10. Test & verify
-
-- `src/test/example.test.ts` style: new `competitions.test.ts` asserting registry shape, `getCompetition` throws on unknown, `isKnownCompetition` matrix.
-- Manual smoke (post‑build):
-  - NBA route loads players / roster / schedule / standings exactly as today.
-  - WNBA route loads identically.
-  - EuroLeague appears in `LeaguePickerCards`, header pill, `TeamSwitcher`. Selecting it routes through the same pages; standings show a single table; Advanced shows the "not available" notice; no crash.
-  - Sending `league_code=foo` to any edge function returns a clear 400 instead of NBA data.
-
----
-
-## Technical notes
-
-- This is purely additive. No existing constants (`MAIN_LEAGUE_NBA_ID`, `MAIN_LEAGUE_WNBA_ID`), tables, RLS, or edge function names change.
-- `localStorage` key `fcc_fantasy_league_id` is preserved; a stored EuroLeague id is honoured but the fallback chain (`stored → MAIN_LEAGUE_ID → first accessible`) keeps NBA users on NBA.
-- Player data for EuroLeague is **not** populated by this change; the registry and UI plumbing land first so subsequent imports have somewhere to land.
-- Estimated touch: ~30 frontend files (mostly 1–3 line swaps from literal unions to `CompetitionCode` + registry lookups), 1 new SVG asset, 1 new teams file, 1 new competitions module, 1 mirrored edge‑function shared module, 1 migration.
+## Out of scope (deferred)
+- Manually curating an alias table for the long tail of EuroLeague player ID drift across seasons.
+- Real injury feed for EuroLeague.
