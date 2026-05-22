@@ -7,12 +7,18 @@ import { requireAdmin } from "../_shared/admin-guard.ts";
  *
  * Modes:
  *   - inspect         : returns headers + sample rows (diagnostic)
+ *   - teams           : DB_Teams (read-only diagnostic — EuroLeague clubs live in code)
  *   - players         : DB_Players → players (EuroLeague-scoped). Salary IGNORED.
  *   - schedule        : Schedule → schedule_games (EuroLeague-scoped)
  *   - game-data       : Player_Games_byGameday_data → player_game_logs +
  *                       player_last_game + season/last5 aggregates
  *   - advanced-stats  : Players_AdvStats_Season_Accum → players adv columns
- *   - all             : runs players → schedule → game-data → advanced-stats
+ *   - standings       : derives league standings from schedule_games (diagnostic)
+ *   - all             : runs teams → players → schedule → game-data →
+ *                       advanced-stats → standings
+ *
+ * All writes are filtered by the EuroLeague league_id — this function will
+ * never touch NBA or WNBA rows.
  *
  * Required env: GOOGLE_SERVICE_ACCOUNT_JSON, EUROLEAGUE_GSHEET_ID,
  *               SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_SECRET
