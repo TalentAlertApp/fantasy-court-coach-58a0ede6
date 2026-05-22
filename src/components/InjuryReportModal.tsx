@@ -265,19 +265,6 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
   const load = useCallback(async (force = false) => {
     setError(null);
 
-    // EuroLeague: no injury data source yet — render empty state and skip fetch.
-    if (league === "euroleague") {
-      setPayload({
-        generated_at: new Date().toISOString(),
-        total_players: 0,
-        by_team: {},
-        all: [],
-      });
-      setRosterMap(new Map());
-      setLoading(false);
-      return;
-    }
-
     if (!force) {
       const cached = readCache();
       if (cached) {
@@ -302,7 +289,10 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
 
     setLoading(true);
     try {
-      const fnName = isWnba ? "wnba-injury-report" : "nba-injury-report";
+      const fnName =
+        league === "euroleague" ? "euroleague-injury-report"
+        : isWnba ? "wnba-injury-report"
+        : "nba-injury-report";
       const [{ data: injuryData, error: fnErr }, { data: playersRows, error: pErr }] = await Promise.all([
         supabase.functions.invoke(fnName),
         supabase.from("players").select("id, name, team, pos, fc_bc, photo"),
@@ -520,17 +510,6 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
 
           {!loading && !error && payload && (
             <>
-              {league === "euroleague" && (
-                <div className="relative flex-1 flex flex-col items-center justify-center gap-3 p-8 text-center">
-                  <Shield className="h-10 w-10 text-muted-foreground/40" />
-                  <p className="text-sm font-semibold">EuroLeague injury feed coming soon</p>
-                  <p className="text-xs text-muted-foreground max-w-sm">
-                    We're not wiring the NBA injury source to EuroLeague. A dedicated
-                    EuroLeague feed will be added later.
-                  </p>
-                </div>
-              )}
-              {league !== "euroleague" && (
               <>
               {/* ALL | Team dropdown header bar (sticky-ish, equal widths) */}
               <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border/50 bg-background/95 backdrop-blur-sm relative z-20">
