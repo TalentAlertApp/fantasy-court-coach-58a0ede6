@@ -60,7 +60,7 @@ const JOB_LABELS: Record<ScheduleRow["job_key"], string> = {
   "salary-auto": "Salary Auto-Adjust (NBA + WNBA)",
 };
 
-export default function WnbaSheetSyncPanel() {
+export default function EuroleagueSheetSyncPanel() {
   const [busyMode, setBusyMode] = useState<string | null>(null);
   const [inspect, setInspect] = useState<InspectResult | null>(null);
   const [results, setResults] = useState<Record<string, SyncResult>>({});
@@ -149,7 +149,7 @@ export default function WnbaSheetSyncPanel() {
           { m: "advanced-stats", l: "Sync Advanced Stats" },
         ];
         for (const s of steps) {
-          const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
+          const { data, error } = await supabase.functions.invoke("euroleague-sheet-sync", {
             body: { mode: s.m },
             headers: { "x-admin-secret": adminSecret() },
           });
@@ -160,7 +160,7 @@ export default function WnbaSheetSyncPanel() {
         toast.success("Schedule + Game Data + Advanced Stats synced");
         return;
       }
-      const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
+      const { data, error } = await supabase.functions.invoke("euroleague-sheet-sync", {
         body: { mode },
         headers: { "x-admin-secret": adminSecret() },
       });
@@ -203,11 +203,11 @@ export default function WnbaSheetSyncPanel() {
     <div className="bg-card border rounded-lg p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Database className="h-5 w-5 text-primary" />
-        <h3 className="font-heading font-bold text-lg uppercase">WNBA Google Sheets Sync</h3>
+        <h3 className="font-heading font-bold text-lg uppercase">EuroLeague Google Sheets Sync</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Manual, on-demand pull from the WNBA spreadsheet (service-account auth). All writes are
-        scoped to the WNBA league. Player <strong>salary ($) is never overwritten</strong> by the
+        Manual, on-demand pull from the EuroLeague spreadsheet (service-account auth). All writes are
+        scoped to the EuroLeague league. Player <strong>salary ($) is never overwritten</strong> by the
         sheet — managed in-app on request.
       </p>
 
