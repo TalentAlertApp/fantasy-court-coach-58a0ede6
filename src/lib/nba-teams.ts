@@ -53,6 +53,7 @@ const NAME_TO_TRICODE: Record<string, string> = {
 };
 
 import { getWnbaTeamByTricode, getWnbaTeamLogo, WNBA_TEAMS } from "@/lib/wnba-teams";
+import { EUROLEAGUE_TEAMS, getEuroLeagueTeamByTricode } from "@/lib/euroleague-teams";
 import { getCurrentLeague, type LeagueCode } from "@/contexts/LeagueContext";
 
 /** Look up a team by tricode (e.g. "LAL") — case-insensitive. League-aware. */
@@ -61,6 +62,11 @@ export function getTeamByTricode(tricode: string, league?: LeagueCode): NbaTeam 
   if (lg === "wnba") {
     const w = getWnbaTeamByTricode(tricode);
     if (w) return { id: w.id, name: w.name, tricode: w.tricode, logo: w.logo, primaryColor: w.primaryColor };
+    return undefined;
+  }
+  if (lg === "euroleague") {
+    const e = getEuroLeagueTeamByTricode(tricode);
+    if (e) return { id: e.id, name: e.name, tricode: e.tricode, logo: e.logo, primaryColor: e.primaryColor };
     return undefined;
   }
   return NBA_TEAMS.find((t) => t.tricode.toUpperCase() === tricode.toUpperCase());
@@ -77,6 +83,15 @@ export function getTeamLogo(teamStr: string, league?: LeagueCode): string | unde
     const m = WNBA_TEAMS.find((t) => t.name.toLowerCase().includes(lower));
     if (m) return m.logo;
     // fall through to NBA in case data is mislabelled
+  }
+  if (lg === "euroleague") {
+    const upper = teamStr.toUpperCase();
+    const byTri = EUROLEAGUE_TEAMS.find((t) => t.tricode === upper);
+    if (byTri) return byTri.logo;
+    const lower = teamStr.toLowerCase();
+    const byName = EUROLEAGUE_TEAMS.find((t) => t.name.toLowerCase().includes(lower));
+    if (byName) return byName.logo;
+    return undefined;
   }
   const byTricode = NBA_TEAMS.find((t) => t.tricode.toUpperCase() === teamStr.toUpperCase());
   if (byTricode) return byTricode.logo;

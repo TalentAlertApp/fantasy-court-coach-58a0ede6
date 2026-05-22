@@ -37,14 +37,17 @@ import {
 import { HealthStatusIcon } from "@/components/health";
 
 /* ---------- League-aware team meta (conference) ---------- */
-type LeagueCode = "nba" | "wnba";
+// Conference grouping is only defined for NBA/WNBA. EuroLeague uses a single
+// league table, so we accept its code in the union but return an empty meta
+// map (callers branch on registry.standingsMode before grouping).
+type LeagueCode = "nba" | "wnba" | "euroleague";
 const WNBA_META: Record<string, { conference: "East" | "West" }> = Object.fromEntries(
   WNBA_TEAMS.map((t) => [t.tricode, { conference: t.conference === "Eastern" ? "East" : "West" }]),
 );
 function getLeagueMeta(league: LeagueCode): Record<string, { conference: "East" | "West" }> {
-  return league === "wnba"
-    ? WNBA_META
-    : (NBA_TEAM_META as unknown as Record<string, { conference: "East" | "West" }>);
+  if (league === "wnba") return WNBA_META;
+  if (league === "euroleague") return {};
+  return NBA_TEAM_META as unknown as Record<string, { conference: "East" | "West" }>;
 }
 
 /* ---------- Recap Card (inline YouTube / NBA.com fallback) ---------- */
