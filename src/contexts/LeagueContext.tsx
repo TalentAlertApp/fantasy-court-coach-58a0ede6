@@ -2,17 +2,20 @@ import { createContext, useContext, useEffect, useMemo, useRef, type ReactNode }
 import { useQueryClient } from "@tanstack/react-query";
 import { useTeam } from "@/contexts/TeamContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import { isKnownCompetition, type CompetitionCode } from "@/lib/competitions";
 
-export type LeagueCode = "nba" | "wnba";
+export type LeagueCode = CompetitionCode;
 
 interface LeagueContextValue {
   league: LeagueCode;
   isWnba: boolean;
+  isEuroLeague: boolean;
 }
 
 const LeagueContext = createContext<LeagueContextValue>({
   league: "nba",
   isWnba: false,
+  isEuroLeague: false,
 });
 
 /** Module-level mirror so non-React modules (apiFetch) can read the current league. */
@@ -27,7 +30,10 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
   const { selectedTeam } = useTeam();
   // The header team pill is the source of truth for the active sport. Fall back
   // to the selected fantasy league only before a team has resolved.
-  const league: LeagueCode = selectedTeam?.league_code === "wnba" ? "wnba" : selectedTeam?.league_code === "nba" ? "nba" : sportCode;
+  // Unknown league codes are NOT silently coerced to NBA — they fall through to
+  // the fantasy-league sport (which is itself a known competition).
+  const teamLeague = selectedTeam?.league_code;
+  const league: LeagueCode = isKnownCompetition(teamLeague) ? teamLeague : sportCode;
   const previousLeagueRef = useRef<LeagueCode>(league);
 
   // Keep the module-level mirror synchronous with render. Query functions can
@@ -45,7 +51,10 @@ export function LeagueProvider({ children }: { children: ReactNode }) {
     }
   }, [league, queryClient]);
 
-  const value = useMemo(() => ({ league, isWnba: league === "wnba" }), [league]);
+  const value = useMemo(
+    () => ({ league, isWnba: league === "wnba", isEuroLeague: league === "euroleague" }),
+    [league],
+  );
 
   return (
     <LeagueContext.Provider value={value}>

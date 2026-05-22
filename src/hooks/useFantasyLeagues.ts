@@ -5,7 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 export const MAIN_LEAGUE_ID = "00000000-0000-0000-0000-000000000010";
 export const MAIN_LEAGUE_NBA_ID = "00000000-0000-0000-0000-000000000010";
 export const MAIN_LEAGUE_WNBA_ID = "00000000-0000-0000-0000-000000000020";
-export const MAIN_LEAGUE_IDS = new Set<string>([MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID]);
+export const MAIN_LEAGUE_EUROLEAGUE_ID = "00000000-0000-0000-0000-000000000030";
+export const MAIN_LEAGUE_IDS = new Set<string>([
+  MAIN_LEAGUE_NBA_ID,
+  MAIN_LEAGUE_WNBA_ID,
+  MAIN_LEAGUE_EUROLEAGUE_ID,
+]);
 export function isMainLeague(id: string): boolean {
   return MAIN_LEAGUE_IDS.has(id);
 }
