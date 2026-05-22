@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NBA_TEAM_META } from "@/data/nbaTeamsFallback";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
+import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { WNBA_TEAMS } from "@/lib/wnba-teams";
 import { format } from "date-fns";
 import { getVenue } from "@/lib/nba-venues";
