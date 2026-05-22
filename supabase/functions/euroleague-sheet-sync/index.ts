@@ -3,18 +3,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.98.0";
 import { requireAdmin } from "../_shared/admin-guard.ts";
 
 /**
- * WNBA Google Sheets Sync — manual, on-demand.
+ * EuroLeague Google Sheets Sync — manual, on-demand.
  *
  * Modes:
  *   - inspect         : returns headers + sample rows (diagnostic)
- *   - players         : DB_Players → players (WNBA-scoped). Salary IGNORED.
- *   - schedule        : Schedule → schedule_games (WNBA-scoped)
+ *   - players         : DB_Players → players (EuroLeague-scoped). Salary IGNORED.
+ *   - schedule        : Schedule → schedule_games (EuroLeague-scoped)
  *   - game-data       : Player_Games_byGameday_data → player_game_logs +
  *                       player_last_game + season/last5 aggregates
  *   - advanced-stats  : Players_AdvStats_Season_Accum → players adv columns
  *   - all             : runs players → schedule → game-data → advanced-stats
  *
- * Required env: GOOGLE_SERVICE_ACCOUNT_JSON, WNBA_GSHEET_ID,
+ * Required env: GOOGLE_SERVICE_ACCOUNT_JSON, EUROLEAGUE_GSHEET_ID,
  *               SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ADMIN_API_SECRET
  */
 
@@ -86,8 +86,8 @@ async function getAccessToken(): Promise<string> {
 }
 
 async function fetchTab(tab: string, range: string, token: string): Promise<string[][]> {
-  const sheetId = Deno.env.get("WNBA_GSHEET_ID");
-  if (!sheetId) throw new Error("WNBA_GSHEET_ID not set");
+  const sheetId = Deno.env.get("EUROLEAGUE_GSHEET_ID");
+  if (!sheetId) throw new Error("EUROLEAGUE_GSHEET_ID not set");
   const fullRange = `'${tab}'!${range}`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${fullRange}?valueRenderOption=FORMATTED_VALUE`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -199,9 +199,9 @@ function makeSb() {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 }
-async function getWnbaLeagueId(sb: ReturnType<typeof makeSb>): Promise<string> {
-  const { data, error } = await sb.from("leagues").select("id").eq("code", "wnba").maybeSingle();
-  if (error || !data?.id) throw new Error(`WNBA league not found: ${error?.message ?? "missing row"}`);
+async function getEuroleagueLeagueId(sb: ReturnType<typeof makeSb>): Promise<string> {
+  const { data, error } = await sb.from("leagues").select("id").eq("code", "euroleague").maybeSingle();
+  if (error || !data?.id) throw new Error(`EuroLeague league not found: ${error?.message ?? "missing row"}`);
   return data.id as string;
 }
 
@@ -210,7 +210,7 @@ async function getWnbaLeagueId(sb: ReturnType<typeof makeSb>): Promise<string> {
 async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueId: string) {
   // DB_Players: A URL, B ID, C PHOTO, D NAME, E TEAM, F FC_BC,
   //             G $ (IGNORED), H # jersey, I COLLEGE, J WEIGHT, K HEIGHT,
-  //             L AGE, M DOB, N EXP, O POS, P NAT (nationality, WNBA only)
+  //             L AGE, M DOB, N EXP, O POS, P NAT (nationality, EuroLeague only)
   const rows = await fetchTab("DB_Players", "A1:P5000", token);
   const header = (rows[0] ?? []).map((s) => String(s).trim().toUpperCase());
   if (header[1] !== "ID" || header[3] !== "NAME") {
@@ -249,7 +249,7 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
       return {
         id,
         league_id: leagueId,
-        source_league: "wnba",
+        source_league: "euroleague",
         source_player_id: String(id),
         source_url: nullable(r[0]),
         nba_url: nullable(r[0]),
@@ -570,13 +570,13 @@ serve(async (req: Request) => {
           out[t.key] = { headers: [], samples: [], error: (e as Error).message };
         }
       }
-      return ok({ mode, sheet_id: Deno.env.get("WNBA_GSHEET_ID"), tabs: out });
+      return ok({ mode, sheet_id: Deno.env.get("EUROLEAGUE_GSHEET_ID"), tabs: out });
     }
 
     const t0 = Date.now();
     const token = await getAccessToken();
     const sb = makeSb();
-    const leagueId = await getWnbaLeagueId(sb);
+    const leagueId = await getEuroleagueLeagueId(sb);
 
     if (mode === "players") {
       const r = await syncPlayers(token, sb, leagueId);
@@ -607,7 +607,7 @@ serve(async (req: Request) => {
 
     return err("UNKNOWN_MODE", `mode='${mode}' is not supported`, 400);
   } catch (e) {
-    console.error("[wnba-sheet-sync]", e);
+    console.error("[euroleague-sheet-sync]", e);
     return err("INTERNAL", (e as Error).message, 500);
   }
 });
