@@ -52,14 +52,41 @@ const WNBA_CHANNEL_ID = "UCO9a_ryN_l7DIDS-VIt-zmw";
 // OPEN YouTube search (no channelId filter) because highlights are uploaded by
 // many partners (EuroLeague, clubs, broadcasters), so locking to one channel
 // would miss most games.
-const EUROLEAGUE_TEAM_NICKNAMES: Record<string, string> = {
-  EFS: "anadolu efes",       ASM: "monaco",            CZV: "crvena zvezda",
-  DUB: "dubai",              EA7: "olimpia milano",    BAR: "barcelona",
-  BAY: "bayern",             FBB: "fenerbahce",        HTA: "hapoel tel aviv",
-  BKN: "baskonia",           ASV: "asvel",             MTA: "maccabi",
-  OLY: "olympiacos",         PAO: "panathinaikos",     PAR: "paris basketball",
-  PBB: "partizan",           RMB: "real madrid",       VBC: "valencia",
-  VIR: "virtus bologna",     ZAL: "zalgiris",
+// EuroLeague titles vary wildly across uploaders (official channel, clubs,
+// Eurohoops, broadcasters). We accept ANY one of the aliases per team as
+// "team mentioned" so we don't false-negative because a title says "Efes" or
+// "Milano" instead of the full club name.
+const EUROLEAGUE_TEAM_ALIASES: Record<string, string[]> = {
+  EFS: ["anadolu efes", "efes"],
+  ASM: ["monaco"],
+  CZV: ["crvena zvezda", "zvezda", "red star"],
+  DUB: ["dubai"],
+  EA7: ["olimpia milano", "olimpia milan", "ea7", "milano", "milan"],
+  BAR: ["barcelona", "barça", "barca"],
+  BAY: ["bayern", "munich", "münchen"],
+  FBB: ["fenerbahce", "fenerbahçe"],
+  HTA: ["hapoel tel aviv", "hapoel"],
+  BKN: ["baskonia"],
+  ASV: ["asvel", "villeurbanne"],
+  MTA: ["maccabi tel aviv", "maccabi"],
+  OLY: ["olympiacos", "olympiakos"],
+  PAO: ["panathinaikos", "pana"],
+  PAR: ["paris basketball", "paris"],
+  PBB: ["partizan"],
+  RMB: ["real madrid", "madrid"],
+  VBC: ["valencia"],
+  VIR: ["virtus bologna", "virtus", "bologna"],
+  ZAL: ["zalgiris", "žalgiris", "kaunas"],
+};
+// Friendly long-name used in the YouTube query string only.
+const EUROLEAGUE_TEAM_FULL: Record<string, string> = {
+  EFS: "Anadolu Efes",         ASM: "Monaco",              CZV: "Crvena Zvezda",
+  DUB: "Dubai",                EA7: "Olimpia Milano",      BAR: "Barcelona",
+  BAY: "Bayern Munich",        FBB: "Fenerbahce",          HTA: "Hapoel Tel Aviv",
+  BKN: "Baskonia",             ASV: "ASVEL",               MTA: "Maccabi Tel Aviv",
+  OLY: "Olympiacos",           PAO: "Panathinaikos",       PAR: "Paris Basketball",
+  PBB: "Partizan",             RMB: "Real Madrid",         VBC: "Valencia",
+  VIR: "Virtus Bologna",       ZAL: "Zalgiris",
 };
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
