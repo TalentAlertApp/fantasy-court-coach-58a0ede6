@@ -222,6 +222,20 @@ function normalizeNationality(raw: string): string {
   return s;
 }
 
+/** Convert Wikipedia article URLs that point to a file viewer
+ *  (e.g. `https://en.wikipedia.org/wiki/Foo#/media/File:Bar.jpg`) into a
+ *  direct image URL that an <img> tag can render. Returns the input as-is
+ *  when it is already a direct image link. */
+function normalizeWikiImageUrl(raw: string | null): string | null {
+  if (!raw) return raw;
+  const m = raw.match(/wikipedia\.org\/wiki\/[^#?]+#\/media\/File:(.+)$/i);
+  if (m) {
+    const file = m[1].split("?")[0];
+    return `https://commons.wikimedia.org/wiki/Special:FilePath/${file}`;
+  }
+  return raw;
+}
+
 function makeSb() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
