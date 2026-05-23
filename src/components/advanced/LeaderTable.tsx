@@ -102,7 +102,7 @@ export default function LeaderTable({
                   <img
                     src={r.photo}
                     alt=""
-                    className="w-9 h-9 rounded-full object-cover bg-muted ring-1 ring-border"
+                    className="w-9 h-9 rounded-full object-cover object-top bg-muted ring-1 ring-border"
                   />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-muted ring-1 ring-border" />

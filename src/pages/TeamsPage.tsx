@@ -20,7 +20,7 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import PlayerModal from "@/components/PlayerModal";
-import { ArrowDownAZ, ArrowDownWideNarrow } from "lucide-react";
+import { ArrowDownAZ, Trophy } from "lucide-react";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -171,15 +171,36 @@ export default function TeamsPage() {
           </div>
         )}
         {tab === "teams" && (
-          <button
-            type="button"
-            onClick={() => setSortMode((m) => (m === "winpct" ? "alpha" : "winpct"))}
-            className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
-            title={sortMode === "winpct" ? "Sort A → Z" : "Sort by Win %"}
-            aria-label={sortMode === "winpct" ? "Sort A → Z" : "Sort by Win %"}
+          <div
+            role="group"
+            aria-label="Sort teams"
+            className="ml-auto inline-flex items-center rounded-full border border-border/70 bg-card/60 backdrop-blur-sm p-0.5 shadow-sm"
           >
-            {sortMode === "winpct" ? <ArrowDownAZ className="h-5 w-5" /> : <ArrowDownWideNarrow className="h-5 w-5" />}
-          </button>
+            {([
+              { key: "winpct", label: "Win %", Icon: Trophy },
+              { key: "alpha", label: "A–Z", Icon: ArrowDownAZ },
+            ] as const).map(({ key, label, Icon }) => {
+              const active = sortMode === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSortMode(key)}
+                  aria-pressed={active}
+                  title={`Sort by ${label}`}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-heading font-bold uppercase tracking-wider transition-all duration-200",
+                    active
+                      ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 ring-1 ring-primary/40"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", active && "drop-shadow")} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
