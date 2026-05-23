@@ -31,7 +31,7 @@ export default function LeaguePickerCards({
 }: Props) {
   const big = size === "lg";
   const cardCls = big ? "min-h-44 md:min-h-52 py-4" : "min-h-32 py-3";
-  const logoCls = big ? "h-24 w-24 md:h-28 md:w-28" : "h-16 w-16";
+  const logoBasePx = big ? 112 : 64; // matches old h-28 / h-16
   const nameCls = big ? "text-lg md:text-xl tracking-[0.15em]" : "text-sm tracking-[0.2em]";
 
   const gridCols = FANTASY_COMPETITIONS.length >= 3 ? "grid-cols-3" : "grid-cols-2";
@@ -89,8 +89,8 @@ export default function LeaguePickerCards({
                 src={m.logo}
                 alt={m.name}
                 style={{
-                  height: `calc(var(--logo-size) * ${m.boxScale})`,
-                  width: `calc(var(--logo-size) * ${m.boxScale})`,
+                  height: `${logoBasePx * m.boxScale}px`,
+                  width: `${logoBasePx * m.boxScale}px`,
                   transform: m.transformScale !== 1 ? `scale(${m.transformScale})` : undefined,
                 }}
                 className={cn(
