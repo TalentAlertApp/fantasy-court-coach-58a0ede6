@@ -15,7 +15,8 @@ const FULL_NAME: Record<League, string> = {
 // EuroLeague should look bigger too, but its name must stay put: scale only the
 // rendered <img> (transformScale) without changing the layout box.
 const BOX_SCALE: Record<League, number> = { nba: 1, wnba: 1.22, euroleague: 1 };
-const TRANSFORM_SCALE: Record<League, number> = { nba: 1, wnba: 1, euroleague: 1.45 };
+const TRANSFORM_SCALE: Record<League, number> = { nba: 1, wnba: 1, euroleague: 1.7 };
+const TRANSLATE_Y: Partial<Record<League, number>> = { euroleague: -8 };
 
 const STATUS_BADGE: Partial<Record<League, { label: string }>> = {
   wnba: { label: "Ongoing" },
@@ -51,6 +52,7 @@ export default function LeaguePickerCards({
           tint: comp.tint,
           boxScale: BOX_SCALE[c] ?? 1,
           transformScale: TRANSFORM_SCALE[c] ?? 1,
+          translateY: TRANSLATE_Y[c] ?? 0,
         };
         const active = value === c;
         const status = STATUS_BADGE[c];
@@ -88,13 +90,13 @@ export default function LeaguePickerCards({
             {status && (
               <div
                 role="status"
-                className="pointer-events-none absolute top-2 right-2 z-20 flex items-center gap-1.5 rounded-full border border-destructive/60 bg-background/70 px-2 py-0.5 backdrop-blur-sm shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
+                className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border border-red-500/70 dark:border-destructive/60 bg-white/85 dark:bg-background/70 px-2.5 py-1 backdrop-blur-md shadow-[0_4px_18px_-6px_rgba(220,38,38,0.55)] dark:shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
               >
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inset-0 rounded-full bg-destructive animate-ping opacity-75" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
+                  <span className="absolute inset-0 rounded-full bg-red-500 dark:bg-destructive animate-ping opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500 dark:bg-destructive" />
                 </span>
-                <span className="font-heading text-[9px] uppercase tracking-[0.25em] text-destructive-foreground/95">
+                <span className="font-heading font-bold text-[9px] uppercase tracking-[0.28em] text-red-600 dark:text-destructive-foreground/95">
                   {status.label}
                 </span>
               </div>
@@ -110,7 +112,10 @@ export default function LeaguePickerCards({
                 style={{
                   height: `${logoBasePx * m.boxScale}px`,
                   width: `${logoBasePx * m.boxScale}px`,
-                  transform: m.transformScale !== 1 ? `scale(${m.transformScale})` : undefined,
+                  transform:
+                    m.transformScale !== 1 || m.translateY !== 0
+                      ? `translateY(${m.translateY}px) scale(${m.transformScale})`
+                      : undefined,
                 }}
                 className={cn(
                   "object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-transform duration-300",

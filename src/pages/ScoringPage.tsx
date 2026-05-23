@@ -942,7 +942,7 @@ function YourTeamView({
               {selectedDay.players.filter((p: any) => p.is_starter).slice(0, 5).map((p: any) => (
                 <div key={p.player_id} className="flex flex-col items-center cursor-pointer hover:opacity-80" onClick={() => onPlayerModal(p.player_id)}>
                   {p.photo ? (
-                    <img src={p.photo} alt={p.name} className="w-10 h-10 rounded-full object-cover border border-border" />
+                    <img src={p.photo} alt={p.name} className="w-10 h-10 rounded-full object-cover object-top border border-border" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">{p.name.substring(0, 2)}</div>
                   )}
@@ -1003,7 +1003,7 @@ function YourTeamView({
                         <div className="flex items-center gap-2 relative">
                           <div className="cursor-pointer" onClick={() => onPlayerModal(p.player_id)}>
                             {p.photo ? (
-                              <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover border border-border transition-transform group-hover:scale-110" />
+                              <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover object-top border border-border transition-transform group-hover:scale-110" />
                             ) : (
                               <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-[8px] font-bold">{p.name.substring(0, 2)}</div>
                             )}
@@ -1232,7 +1232,7 @@ function PulseTable({
               <span className="relative z-10 text-[10px] font-mono font-bold text-muted-foreground w-5 shrink-0 tabular-nums text-right">{i + 1}</span>
               <div className="relative z-10 shrink-0">
                 {r.photo ? (
-                  <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover bg-muted ring-1 ring-border" />
+                  <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover object-top bg-muted ring-1 ring-border" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-muted ring-1 ring-border" />
                 )}
