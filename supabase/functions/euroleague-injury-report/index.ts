@@ -1,10 +1,10 @@
 // Aggregates EuroLeague injury data from public sources.
 // Public endpoint (no JWT). Cached for 30 minutes on the client.
 //
-// Primary source : Rotowire (https://www.rotowire.com/basketball/euroleague-injury-report.php)
-// Secondary     : Eurohoops injuries tag (https://www.eurohoops.net/en/tag/euroleague-injuries/)
-//                 — used only to surface team/player rows Rotowire missed; we do
-//                 not try to parse return dates from news headlines.
+// Primary  : Rotowire JSON table backing https://www.rotowire.com/euro/injury-report.php
+//            (the actual data URL the page hits: /euro/tables/injury-report.php)
+// Fallback : Rotowire injury news feed (/euro/news.php?view=injuries) — used to
+//            surface late-breaking players that haven't hit the table yet.
 //
 // Response shape mirrors wnba-injury-report so InjuryReportModal can reuse the
 // same rendering pipeline (status normalisation, bucketing, team filtering).
@@ -31,8 +31,10 @@ const corsHeaders = {
 };
 
 const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (compatible; EuroLeagueFantasyBot/1.0)",
-  "Accept": "text/html,application/xhtml+xml,*/*",
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json,text/html,application/xhtml+xml,*/*",
+  "Referer": "https://www.rotowire.com/euro/injury-report.php",
 };
 
 /** Map any team name / fragment Rotowire / Eurohoops use → DB tricode (matches
@@ -85,79 +87,101 @@ function normalizeStatus(raw: string): string {
 }
 
 async function fetchRotowire(): Promise<InjuryRecord[]> {
-  const url = "https://www.rotowire.com/basketball/euroleague-injury-report.php";
-  let html = "";
+  // Rotowire renders the EuroLeague injury report client-side via webix; the
+  // page calls /euro/tables/injury-report.php which returns clean JSON rows.
+  const url =
+    "https://www.rotowire.com/euro/tables/injury-report.php?team=ALL&pos=ALL";
+  let raw = "";
   try {
-    html = await fetch(url, { headers: HEADERS }).then((r) => r.text());
+    raw = await fetch(url, { headers: HEADERS }).then((r) => r.text());
   } catch (e) {
     console.error("rotowire fetch failed", e);
     return [];
   }
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  if (!doc) return [];
+  let rows: any[] = [];
+  try {
+    rows = JSON.parse(raw);
+  } catch (e) {
+    console.error("rotowire JSON parse failed", e, raw.slice(0, 200));
+    return [];
+  }
+  if (!Array.isArray(rows)) return [];
+  const stripHtml = (s: string) =>
+    (s ?? "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
   const out: InjuryRecord[] = [];
-  // Rotowire renders a single sortable table; rows are <tr> with <td> per col.
-  // Column order seen on the page: PLAYER, POS, TEAM, INJURY, STATUS, EST. RETURN, NOTES.
-  const rows = doc.querySelectorAll("table tr");
-  rows.forEach((tr) => {
-    const tds = (tr as any).querySelectorAll?.("td") ?? [];
-    if (!tds || tds.length < 5) return;
-    const get = (i: number) => (tds[i]?.textContent ?? "").trim();
-    const player = get(0);
-    if (!player) return;
-    const teamName = get(2);
-    const injury = get(3);
-    const status = get(4);
-    const est = get(5) || null;
-    const notes = get(6) || "";
-    const tricode = tricodeFromText(teamName);
+  for (const r of rows) {
+    const player =
+      r.player || `${r.firstname ?? ""} ${r.lastname ?? ""}`.trim();
+    if (!player) continue;
+    const teamCode = String(r.team ?? "").toUpperCase().trim();
+    const tricode = teamCode && teamCode.length <= 4
+      ? teamCode
+      : tricodeFromText(teamCode);
+    const est = stripHtml(String(r.rDate ?? ""));
+    const cleanEst =
+      est && !/subscribers only/i.test(est) && est.toUpperCase() !== "TBD"
+        ? est
+        : null;
     out.push({
       player_name: player,
-      team: teamName,
+      team: teamCode,
       team_abbr: tricode,
-      injury_type: injury || "—",
-      status: normalizeStatus(status),
-      estimated_return: est && est.toUpperCase() !== "TBD" ? est : null,
-      notes,
+      injury_type: String(r.injury ?? "—") || "—",
+      status: normalizeStatus(String(r.status ?? "")),
+      estimated_return: cleanEst,
+      notes: "",
       last_updated: new Date().toISOString(),
       source: "Rotowire",
     });
-  });
+  }
   return out;
 }
 
-async function fetchEurohoopsHeadlines(): Promise<InjuryRecord[]> {
-  // Lightweight secondary: scrape headlines and infer player + status keywords.
-  // We intentionally keep this conservative so we don't fabricate dates.
-  const url = "https://www.eurohoops.net/en/tag/euroleague-injuries/";
+async function fetchRotowireNewsInjuries(): Promise<InjuryRecord[]> {
+  // Secondary feed: Rotowire's EuroLeague injury news page. We only use it
+  // to surface players Rotowire's table missed — never to fabricate return
+  // dates. Items in the news feed render server-side, so we can parse HTML.
+  const url = "https://www.rotowire.com/euro/news.php?view=injuries";
   let html = "";
   try {
     html = await fetch(url, { headers: HEADERS }).then((r) => r.text());
   } catch (e) {
-    console.error("eurohoops fetch failed", e);
+    console.error("rotowire news fetch failed", e);
     return [];
   }
   const doc = new DOMParser().parseFromString(html, "text/html");
   if (!doc) return [];
   const out: InjuryRecord[] = [];
-  const headlines = doc.querySelectorAll("h2 a, h3 a");
-  headlines.forEach((a) => {
-    const title = (a as any).textContent?.trim?.() ?? "";
-    if (!title) return;
-    const lower = title.toLowerCase();
-    if (!/(injury|injured|out|sidelined|surgery|return)/.test(lower)) return;
-    const tricode = tricodeFromText(title);
-    if (!tricode || tricode.length !== 3) return;
+  // News cards: each entry has a player link inside a header element.
+  const links = doc.querySelectorAll('a[href^="/euro/player/"]');
+  const seen = new Set<string>();
+  links.forEach((a) => {
+    const name = ((a as any).textContent ?? "").trim();
+    if (!name || name.length < 3 || seen.has(name)) return;
+    seen.add(name);
+    // Walk up to the surrounding card to find team tricode + headline text.
+    let node: any = a;
+    for (let i = 0; i < 4 && node?.parentElement; i++) node = node.parentElement;
+    const block = ((node as any)?.textContent ?? "").toLowerCase();
+    if (!/(injur|sidelined|out|miss|sprain|strain|surgery|sore|illness|rest)/.test(block)) return;
+    const tricode = tricodeFromText(block) || tricodeFromText(name);
+    if (!tricode) return;
+    const status =
+      /out for season|season-ending/.test(block) ? "Out"
+      : /questionable|game-time/.test(block) ? "Questionable"
+      : /probable/.test(block) ? "Probable"
+      : /day-to-day|doubtful/.test(block) ? "Day-To-Day"
+      : "Day-To-Day";
     out.push({
-      player_name: title,
+      player_name: name,
       team: tricode,
       team_abbr: tricode,
-      injury_type: "See notes",
-      status: lower.includes("out") || lower.includes("surgery") ? "Out" : "Day-To-Day",
+      injury_type: "See news",
+      status,
       estimated_return: null,
-      notes: title,
+      notes: "",
       last_updated: new Date().toISOString(),
-      source: "Eurohoops",
+      source: "Rotowire News",
     });
   });
   return out;
@@ -167,9 +191,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const sources_failed: string[] = [];
-  const [rw, eh] = await Promise.all([
+  const [rw, news] = await Promise.all([
     fetchRotowire().catch((e) => { sources_failed.push(`Rotowire: ${e.message}`); return [] as InjuryRecord[]; }),
-    fetchEurohoopsHeadlines().catch((e) => { sources_failed.push(`Eurohoops: ${e.message}`); return [] as InjuryRecord[]; }),
+    fetchRotowireNewsInjuries().catch((e) => { sources_failed.push(`Rotowire News: ${e.message}`); return [] as InjuryRecord[]; }),
   ]);
 
   // Merge: Rotowire wins on player_name, Eurohoops only fills gaps.
@@ -181,7 +205,7 @@ Deno.serve(async (req) => {
     seen.add(key);
     all.push(r);
   }
-  for (const r of eh) {
+  for (const r of news) {
     const key = r.player_name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
