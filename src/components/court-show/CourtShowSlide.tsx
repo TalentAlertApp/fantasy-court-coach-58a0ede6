@@ -324,7 +324,7 @@ function AICardView({
             className="ml-auto inline-flex items-center gap-2 rounded-full bg-black/30 border border-white/10 pl-1 pr-3 py-1 hover:border-amber-400/40 transition-colors"
           >
             {card.player_photo ? (
-              <img src={card.player_photo} alt="" className="h-6 w-6 rounded-full object-cover" />
+              <img src={card.player_photo} alt="" className="h-6 w-6 rounded-full object-cover object-top" />
             ) : <span className="h-6 w-6 rounded-full bg-white/10" />}
             <span className="text-[11px] font-heading font-black text-white truncate max-w-[120px]">{card.player_name}</span>
           </button>
@@ -677,7 +677,7 @@ function PlayerHero({ p, onClick, accent = "amber" }: { p: { player_id: number; 
     <button onClick={onClick} className="group flex flex-col items-center gap-2">
       <div className={cn("relative h-24 w-24 rounded-full overflow-hidden ring-2 transition-transform group-hover:scale-105", ring)}>
         {p.photo ? (
-          <img src={p.photo} alt={p.name} className="h-full w-full object-cover" />
+          <img src={p.photo} alt={p.name} className="h-full w-full object-cover object-top" />
         ) : (
           <div className="h-full w-full bg-white/10" />
         )}

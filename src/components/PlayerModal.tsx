@@ -184,7 +184,13 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                 )}
                 <div className="relative z-10 flex items-center gap-3">
                   {data.player.core.photo ? (
-                    <img src={data.player.core.photo} alt="" className="w-16 h-16 rounded-lg object-cover object-[center_15%] bg-muted ring-2 ring-background" />
+                    <img
+                      src={data.player.core.photo}
+                      alt=""
+                      className={`w-16 h-16 rounded-lg object-cover bg-muted ring-2 ring-background ${
+                        league === "euroleague" ? "object-top" : "object-[center_15%]"
+                      }`}
+                    />
                   ) : (
                     <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center text-lg font-heading font-bold text-muted-foreground ring-2 ring-background">
                       {data.player.core.name.substring(0, 2).toUpperCase()}
