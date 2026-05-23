@@ -12,6 +12,7 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
+import { setCreatingNewTeam } from "@/lib/onboarding-store";
 
 export default function TeamSwitcher() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
@@ -37,6 +38,7 @@ export default function TeamSwitcher() {
       next.delete("league_id");
       setSearchParams(next, { replace: true });
       markTeamPickedThisSession();
+      setCreatingNewTeam();
       navigate("/welcome", { state: { forceNewTeam: true } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -121,6 +123,7 @@ export default function TeamSwitcher() {
         <Select value={selectedTeamId ?? ""} onValueChange={(v) => {
           if (v === "__new__") {
             markTeamPickedThisSession();
+            setCreatingNewTeam();
             navigate("/welcome", { state: { forceNewTeam: true } });
           } else setSelectedTeamId(v);
         }}>
