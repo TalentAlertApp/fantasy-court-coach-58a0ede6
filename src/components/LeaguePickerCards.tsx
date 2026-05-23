@@ -10,6 +10,15 @@ const FULL_NAME: Record<League, string> = {
   euroleague: "Turkish Airlines EuroLeague",
 };
 
+// Per-league logo scale inside the picker card. NBA is the visual baseline (1.0);
+// WNBA and EuroLeague glyphs have built-in transparent padding so they read smaller
+// than NBA at the same box — bump them so all three names sit on the same baseline.
+const PICKER_LOGO_SCALE: Record<League, number> = {
+  nba: 1,
+  wnba: 1.25,
+  euroleague: 1.55,
+};
+
 interface Props {
   value: League;
   onChange: (v: League) => void;
@@ -33,7 +42,7 @@ export default function LeaguePickerCards({
     <div className={cn("grid gap-4", gridCols, className)}>
       {FANTASY_COMPETITIONS.map((comp) => {
         const c = comp.code;
-        const m = { name: comp.label, full: FULL_NAME[c], logo: comp.logo, tint: comp.tint, scale: comp.logoScale ?? 1 };
+        const m = { name: comp.label, full: FULL_NAME[c], logo: comp.logo, tint: comp.tint, scale: PICKER_LOGO_SCALE[c] ?? 1 };
         const active = value === c;
         return (
           <button
