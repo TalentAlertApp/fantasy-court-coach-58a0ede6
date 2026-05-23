@@ -1,53 +1,40 @@
-## Plan
+# Plan
 
-### 1. EuroLeague player photo alignment (remaining surfaces)
+## 1. `LeaguePickerCards.tsx` — ONGOING badge position
+The pill currently sits at `top-3 left-1/2 -translate-x-1/2`, overlapping the WNBA logo crown. Float it above the logo by:
+- Move the badge to `-top-2.5` (or place it just above the title block) — overlapping the **top border** of the card, not the logo.
+- Add subtle drop shadow so it reads as a floating chip.
+- Reduce the logo wrapper's `pt` so logo & label stay vertically centered after the badge clears it.
 
-Add `object-top` to the photo `<img>` tags that were missed in the prior pass so EuroLeague full-body shots show the face:
+## 2. `GameDetailModal.tsx` — wire header actions (all leagues) + EuroLeague external link
 
-- `src/pages/ScoringPage.tsx`
-  - Line 945: STARTING 5 strip avatar (`w-10 h-10 rounded-full object-cover`)
-  - Line 1006: YOUR TEAM table row avatar (`w-9 h-9 rounded-full object-cover`)
-  - Line 1235: TX PULSE row avatar (`w-9 h-9 rounded-full object-cover`)
-- `src/components/court-show/CourtShowSlide.tsx`
-  - Line 109: Outstanding Performances / Best Value Plays podium photo (`isFirst ? h-32/h-40 : h-20/h-24`)
-  - Line 598: Played Games Recap small player row photo (`h-5 w-5`)
-  - Line 1079 + 1156: top/secondary performer avatars in recap-style blocks (`h-9 w-9`)
+### 2a. BoxScore / Charts / PbP — convert from external `<a>` links to in-app `<button>` that opens `NBAGameModal` (already exists) with the matching tab.
+- Add `const [embedTab, setEmbedTab] = useState<NBAGameTab|null>(null)`.
+- Replace the three `<a href=…>` with `<button onClick={() => setEmbedTab("boxscore"|"charts"|"playbyplay")}>`. Keep current styling, drop `<ExternalLink>`.
+- Render `<NBAGameModal open={embedTab !== null} defaultTab={embedTab ?? "boxscore"} urls={{game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url}} title={`${away_team} @ ${home_team}`} onOpenChange={(o)=>!o && setEmbedTab(null)} />`.
+- Keep the in-modal `GameBoxScoreTable` below — the buttons now provide the *external embedded view*, the inline table stays as the quick on-modal stat strip.
 
-Apply universally (not gated by league) — `object-top` is safe for NBA/WNBA head-shots too.
+### 2b. EuroLeague external link in header
+- The existing `nba_game_url` button already renders for any league and labels itself via `leagueName` (already supports `"EuroLeague"`). Investigation showed `schedule_games.nba_game_url` is populated for all 380/380 EuroLeague games, so the button will appear once the modal receives it.
+- Audit every call site that constructs `GameDetailGame` and pass `nba_game_url` through: `ScheduleList.tsx`, `SchedulePreviewPanel.tsx`, `TeamCompareModal.tsx`, `TeamModal.tsx` — confirmed they already do. The only callers still likely to drop it are anything in `RosterPage.tsx` / `ScoringPage.tsx` / `CourtShowModal.tsx`. Grep them and add `nba_game_url` to the passed shape where missing.
+- Swap the icon for EuroLeague rows from generic `ExternalLink` to the EuroLeague glyph (small 14px tinted league logo) so it matches the WNBA pattern shown in the screenshot. NBA/WNBA keep their current rendering.
 
-### 2. Remove duplicate Sergio Llull
+## 3. `TeamCompareModal.tsx` — EuroLeague fixes
 
-There are two rows in `players`:
-- `700966295` — keep (matches the sheet, has live stats)
-- `700982991` — delete (stale duplicate, same EuroLeague profile URL)
+### 3a. Watermark logo too thin
+- Replace `h-40 w-40 opacity-[0.05]` with `h-72 w-72 opacity-[0.08]` and add `object-contain`.
+- This matches the other watermarks (Box Score table watermark is already `h-48`).
 
-Migration steps:
-- Re-point any FK references from `700982991` → `700966295` in dependent tables (rosters, player_game_logs, transactions, wishlist, captains, etc. — discover via `information_schema` lookups before deleting).
-- `DELETE FROM players WHERE id = 700982991`.
+### 3b. EAST/WEST is wrong for EuroLeague
+EuroLeague has no conferences. Gate conference UI on league:
+- In `TeamHeader`, only render the `{conf}` span when `league !== "euroleague"`. Easiest: pass `league` as a prop and skip the chip for EuroLeague (rank `#N` still shows, just no East/West word).
+- In the Standings table, skip the `Conf Rank` `MetricRow` entirely when `league === "euroleague"` — only render `League Rank`.
+- `confRank` memo can stay (harmless) but is no longer referenced for EuroLeague.
 
-### 3. Daily Court Show — Ballers.IQ slide watermark
-
-`src/components/court-show/CourtShowSlide.tsx` line 1206: `biqWatermark` currently points to `/brand/ballers-iq-league-watermark.png` (NBA-flavoured asset). Replace the BIQ watermark image with the active league logo (`getLeagueLogo(leagueCode)`) keeping the existing position / opacity / blur classes so the visual treatment is identical to the recap/outstanding slide watermark.
-
-### 4. Name Your Franchise — "ONGOING" badge + EuroLeague logo polish
-
-In `src/components/LeaguePickerCards.tsx`:
-
-- **ONGOING badge** (the `STATUS_BADGE.wnba` block, currently `absolute top-2 right-2`):
-  - Reposition to `top-3 left-1/2 -translate-x-1/2` so it centers across the card width.
-  - Upgrade styling: thinner pill, subtle glass background, red dot + red text in light theme (use `text-red-600 dark:text-destructive-foreground`, `border-red-500/70`, `bg-white/85 dark:bg-background/70`), tighter tracking, drop shadow for premium feel. Keep ping animation.
-- **EuroLeague logo size / vertical centering**:
-  - The card uses `BOX_SCALE.euroleague = 1` and `TRANSFORM_SCALE.euroleague = 1.45`. Bump transform scale to ~`1.7` and add a small negative `translateY` (e.g. `translateY(-6px)`) so the rendered glyph grows and shifts up to sit visually centered above the "EUROLEAGUE" label without disturbing the layout box (name stays aligned with NBA/WNBA).
-
-### Technical notes
-
-- No edge function changes.
-- Single migration for step 2; needs FK discovery before delete.
-- All other edits are presentation-only TSX changes.
-
-### Files to touch
-
-- `src/pages/ScoringPage.tsx`
-- `src/components/court-show/CourtShowSlide.tsx`
+## Files touched
 - `src/components/LeaguePickerCards.tsx`
-- One new migration under `supabase/migrations/`
+- `src/components/GameDetailModal.tsx`
+- `src/components/TeamCompareModal.tsx`
+- Any call site passing `GameDetailGame` that drops `nba_game_url` (audit `RosterPage`, `ScoringPage`, `CourtShowModal`, `PlayerModal`)
+
+No DB migrations, no edge function changes.
