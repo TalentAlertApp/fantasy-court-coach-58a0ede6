@@ -35,7 +35,7 @@ export default function LeaguePickerCards({
   value, onChange, size = "md", disabled, showSubtitle, className,
 }: Props) {
   const big = size === "lg";
-  const cardCls = big ? "min-h-44 md:min-h-52 py-4" : "min-h-32 py-3";
+  const cardCls = big ? "min-h-44 md:min-h-52 pt-9 pb-4" : "min-h-32 pt-7 pb-3";
   const logoBasePx = big ? 112 : 64; // matches old h-28 / h-16
   const nameCls = big ? "text-lg md:text-xl tracking-[0.15em]" : "text-sm tracking-[0.2em]";
 
@@ -90,7 +90,7 @@ export default function LeaguePickerCards({
             {status && (
               <div
                 role="status"
-                className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border border-red-500/70 dark:border-destructive/60 bg-white/95 dark:bg-background/85 px-2.5 py-1 backdrop-blur-md shadow-[0_6px_22px_-6px_rgba(220,38,38,0.65)] dark:shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
+                className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 whitespace-nowrap rounded-full border border-red-500/70 dark:border-destructive/60 bg-white/95 dark:bg-background/85 px-2.5 py-1 backdrop-blur-md shadow-[0_6px_22px_-6px_rgba(220,38,38,0.65)] dark:shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
               >
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inset-0 rounded-full bg-red-500 dark:bg-destructive animate-ping opacity-75" />

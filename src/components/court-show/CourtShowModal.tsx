@@ -39,7 +39,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [hover, setHover] = useState(false);
-  const { isWnba } = useLeague();
+  const { isWnba, league } = useLeague();
   const audio = useCourtShowAudio(open, isWnba);
 
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
@@ -248,7 +248,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
                     onOutroAction={handleOutroAction}
                     onVideoPlayingChange={handleVideoPlayingChange}
                     pageMs={BASE_SLIDE_MS}
-                    leagueCode={isWnba ? "wnba" : "nba"}
+                    leagueCode={league}
                   />
                 </AnimatePresence>
               )}

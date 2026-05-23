@@ -12,7 +12,6 @@ import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
-import NBAGameModal, { type NBAGameTab } from "@/components/NBAGameModal";
 
 export interface GameDetailGame {
   game_id: string;
@@ -86,7 +85,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const hasGwDay = game.gw != null && game.day != null;
   const [recapOpen, setRecapOpen] = useState(false);
   const [panelsOpen, setPanelsOpen] = useState(false);
-  const [embedTab, setEmbedTab] = useState<NBAGameTab | null>(null);
   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const [embedHeight, setEmbedHeight] = useState<number>(420);
@@ -196,19 +194,19 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           </div>
           <div className="flex items-center justify-center gap-1.5 -mt-5 py-0 flex-wrap">
             {game.game_boxscore_url && (
-              <button type="button" onClick={() => setEmbedTab("boxscore")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
+              <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <Table2 className="h-3.5 w-3.5" /> BoxScore
-              </button>
+              </a>
             )}
             {game.game_charts_url && (
-              <button type="button" onClick={() => setEmbedTab("charts")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
+              <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <BarChart3 className="h-3.5 w-3.5" /> Charts
-              </button>
+              </a>
             )}
             {game.game_playbyplay_url && (
-              <button type="button" onClick={() => setEmbedTab("playbyplay")} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
+              <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
                 <Mic className="h-3.5 w-3.5" /> PbP
-              </button>
+              </a>
             )}
             {game.nba_game_url && (
               <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
@@ -299,18 +297,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
         {!played && <ScheduledInsights game={game} />}
       </DialogContent>
     </Dialog>
-    <NBAGameModal
-      open={embedTab !== null}
-      onOpenChange={(o) => !o && setEmbedTab(null)}
-      defaultTab={embedTab ?? "boxscore"}
-      urls={{
-        game_recap_url: game.game_recap_url,
-        game_boxscore_url: game.game_boxscore_url,
-        game_charts_url: game.game_charts_url,
-        game_playbyplay_url: game.game_playbyplay_url,
-      }}
-      title={`${game.away_team} @ ${game.home_team}`}
-    />
     </>
   );
 }
