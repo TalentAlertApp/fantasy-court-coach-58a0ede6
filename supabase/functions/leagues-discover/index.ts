@@ -7,6 +7,15 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const PAGE_SIZE = 20;
 
+// Main league UUIDs are seeded fixtures every team auto-joins.
+// They must never appear in the public Discover listing, even if a
+// future config flip accidentally marks one as public.
+const MAIN_LEAGUE_IDS = [
+  "00000000-0000-0000-0000-000000000010",
+  "00000000-0000-0000-0000-000000000020",
+  "00000000-0000-0000-0000-000000000030",
+];
+
 Deno.serve(async (req) => {
   const corsRes = handleCors(req);
   if (corsRes) return corsRes;
@@ -31,7 +40,8 @@ Deno.serve(async (req) => {
       )
       .eq("kind", "fantasy")
       .eq("visibility", "public")
-      .in("status", ["draft", "active"]);
+      .in("status", ["draft", "active"])
+      .not("id", "in", `(${MAIN_LEAGUE_IDS.join(",")})`);
 
     if (sport === "nba" || sport === "wnba" || sport === "euroleague") q = q.eq("sport", sport);
     if (search) q = q.ilike("name", `%${search}%`);
