@@ -8,9 +8,11 @@ export interface OnboardingState {
   step: OnboardingStep;
   teamId?: string;
   teamName?: string;
+  sport?: "nba" | "wnba" | "euroleague";
 }
 
 const SESSION_SKIP_KEY = "nba_onboarding_skipped";
+const SESSION_CREATING_NEW_TEAM_KEY = "nba_onboarding_creating_new_team";
 const STATE_KEY_PREFIX = "nba_onboarding_state:";
 const DRAFT_KEY_PREFIX = "nba_onboarding_draft:";
 
@@ -81,6 +83,32 @@ export function setOnboardingSkipped(): void {
 export function clearOnboardingSkipped(): void {
   try {
     sessionStorage.removeItem(SESSION_SKIP_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/* ---------------- Session "creating new team" flag ---------------- */
+
+export function isCreatingNewTeam(): boolean {
+  try {
+    return sessionStorage.getItem(SESSION_CREATING_NEW_TEAM_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function setCreatingNewTeam(): void {
+  try {
+    sessionStorage.setItem(SESSION_CREATING_NEW_TEAM_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearCreatingNewTeam(): void {
+  try {
+    sessionStorage.removeItem(SESSION_CREATING_NEW_TEAM_KEY);
   } catch {
     /* ignore */
   }
