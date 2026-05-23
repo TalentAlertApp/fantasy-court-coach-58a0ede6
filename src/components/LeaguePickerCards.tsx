@@ -90,7 +90,7 @@ export default function LeaguePickerCards({
             {status && (
               <div
                 role="status"
-                className="pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border border-red-500/70 dark:border-destructive/60 bg-white/85 dark:bg-background/70 px-2.5 py-1 backdrop-blur-md shadow-[0_4px_18px_-6px_rgba(220,38,38,0.55)] dark:shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
+                className="pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 rounded-full border border-red-500/70 dark:border-destructive/60 bg-white/95 dark:bg-background/85 px-2.5 py-1 backdrop-blur-md shadow-[0_6px_22px_-6px_rgba(220,38,38,0.65)] dark:shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
               >
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inset-0 rounded-full bg-red-500 dark:bg-destructive animate-ping opacity-75" />
