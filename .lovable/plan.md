@@ -1,35 +1,34 @@
 # Plan
 
-## 1) YouTube API key rotation (doubles daily quota)
+## 1) EuroLeague — bulk-import all YT recaps from `GameRecaps_YT.csv`
 
-**Secret**
-- Add `YOUTUBE_API_KEY_2` via the secrets tool (you provide the value in the secure form).
+CSV contains **380** `Game ID → YouTube URL` mappings. Game IDs (`E2025_…`) match `schedule_games.game_id` for `league_id = 00000000-0000-0000-0000-000000000003`.
 
-**`supabase/functions/youtube-recap-lookup/index.ts`**
-- Read both `YOUTUBE_API_KEY` and `YOUTUBE_API_KEY_2` at startup into a `keys: string[]` (filter out empty).
-- Track `keyIndex = 0`. Build each `search.list` URL with `keys[keyIndex]`.
-- On HTTP 403 with a quota-style reason (`quotaExceeded` / `dailyLimitExceeded`):
-  - If `keyIndex < keys.length - 1`: increment `keyIndex`, retry the SAME game once with the next key.
-  - If already on last key: set `quotaExhausted = true`, break the loop (current behavior).
-- Add `keys_used` (count) and `rotated` (boolean) to the response envelope so the panel can show "rotated to backup key".
-- No change to scoring / matching / DB writes.
+**One-shot SQL data update** (no edge function, no API quota, runs once):
+- Parse the CSV in `/tmp`, extract the 11-char video id from each URL (handles `watch?v=…`, `youtu.be/…`, `&t=…` suffixes).
+- Use the Supabase insert/update tool to run a single `UPDATE schedule_games SET youtube_recap_id = v.yt FROM (VALUES (...380 rows...)) AS v(gid, yt) WHERE schedule_games.game_id = v.gid AND schedule_games.league_id = '00000000-0000-0000-0000-000000000003'`.
+- After running, EuroLeague Missing Recaps drops to ~0.
 
-## 2) EuroLeague "Missing Recaps" counter at /commissioner
+What stays as-is:
+- `MissingRecapsPanel` at `/commissioner` keeps working for any future games (still calls `youtube-recap-lookup` with key rotation).
+- No edge-function or frontend changes for part 1.
 
-**`src/components/commissioner/MissingRecapsPanel.tsx`** — extend the existing panel to support EuroLeague:
-- Widen the `league` prop type to `"nba" | "wnba" | "euroleague"`.
-- Add EuroLeague league_id to `LEAGUE_ID` (`00000000-0000-0000-0000-000000000003`, matching `euroleague-recap-scrape`).
-- Replace the NBA/WNBA tricode→logo lookup with a league-aware resolver: import `EUROLEAGUE_TEAMS` from `src/lib/euroleague-teams.ts` for EL rows. Falls back to plain tricode text when no logo.
-- All other behavior (paged fetch, per-row refresh, batch re-scan, quota toast) already works — it calls `youtube-recap-lookup?league=euroleague` which is the same endpoint we just upgraded.
+## 2) `/teams` Teams tab — A→Z sort toggle
 
-**`src/pages/CommissionerPage.tsx`**
-- In the EuroLeague tab section (next to `EuroleagueSheetSyncPanel`), render `<MissingRecapsPanel league="euroleague" />`.
+In `src/pages/TeamsPage.tsx`:
+- Add `sortMode: "winpct" | "alpha"` state, default `"winpct"` (current behavior).
+- In the `teams` memo, sort by win% when `winpct`, else by `t.name.localeCompare(...)`.
+- Add an icon-only button on the right side of the Teams/Standings header row (shown only when `tab === "teams"`), no container/background, `text-muted-foreground hover:text-foreground` (no AI colors):
+  - `ArrowDownWideNarrow` (lucide) when in `winpct` mode — clicking switches to A→Z.
+  - `ArrowDownAZ` when in `alpha` mode — clicking switches back to Win%.
+  - `title`/`aria-label` reflects the next action.
 
-## Out of scope
-- No DB migrations.
-- No frontend logic changes outside the two files above + one panel mount.
-- No changes to NBA/WNBA recap flows beyond the shared key-rotation upgrade.
+No other UI/logic changes.
 
-## Verification
-- After deploy: open /commissioner → EuroLeague tab → "Missing Recaps" shows a count + games list.
-- Click "Re-scan missing only" → batches of 100 run; if the first key 403s, the response shows `rotated: true` and processing continues on the backup key.
+## 3) EuroLeague Injury Report — NOT in this plan
+
+The 11 RotoWire / Euroleague.net sources you listed (injury report, injury news, daily lineups, depth charts, minutes report, playing-time changes, official news/players/teams/game-center, fantasy challenge) are a separate, larger workstream — scraping strategy, schema, surfacing in the UI, and refresh cadence all need their own design pass. I'll tackle it in a dedicated follow-up plan after this one ships; please confirm which of those sources are highest priority (e.g. Injury Report + Daily Lineups first?) so I can scope it properly.
+
+## Out of scope (this plan)
+- No changes to `youtube-recap-lookup`, `euroleague-recap-scrape`, key rotation, NBA/WNBA flows.
+- No injury-report scraping work — see section 3.
