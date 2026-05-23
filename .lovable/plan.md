@@ -1,40 +1,31 @@
-# Plan
+Plan:
 
-## 1. `LeaguePickerCards.tsx` — ONGOING badge position
-The pill currently sits at `top-3 left-1/2 -translate-x-1/2`, overlapping the WNBA logo crown. Float it above the logo by:
-- Move the badge to `-top-2.5` (or place it just above the title block) — overlapping the **top border** of the card, not the logo.
-- Add subtle drop shadow so it reads as a floating chip.
-- Reduce the logo wrapper's `pt` so logo & label stay vertically centered after the badge clears it.
+1. Game Played modal URL buttons
+- Change the Game Played modal header actions (BoxScore, Charts, PbP) from opening the iframe-style `NBAGameModal` to opening the exact dataset URLs directly.
+- Each button will use its own field:
+  - `game_boxscore_url` -> BoxScore
+  - `game_charts_url` -> Charts
+  - `game_playbyplay_url` -> PbP
+- Preserve the current visual header layout, but make the behavior deterministic for NBA, WNBA, and EuroLeague. Example: FCB @ ZAL BoxScore opens `.../E2025/329/#box-score`.
+- Remove the now-misleading in-app modal behavior from this header path so clicks cannot appear “unwired” or blocked by iframe limitations.
 
-## 2. `GameDetailModal.tsx` — wire header actions (all leagues) + EuroLeague external link
+2. ONGOING badge in league picker
+- Fix the WNBA `ONGOING` badge clipping by keeping it inside the card bounds instead of floating outside the clipped/overflow-hidden card.
+- Reposition it with more safe spacing above/around the WNBA logo so it no longer collides with the logo.
+- Slightly tighten the badge typography/width handling so the full word always renders cleanly.
 
-### 2a. BoxScore / Charts / PbP — convert from external `<a>` links to in-app `<button>` that opens `NBAGameModal` (already exists) with the matching tab.
-- Add `const [embedTab, setEmbedTab] = useState<NBAGameTab|null>(null)`.
-- Replace the three `<a href=…>` with `<button onClick={() => setEmbedTab("boxscore"|"charts"|"playbyplay")}>`. Keep current styling, drop `<ExternalLink>`.
-- Render `<NBAGameModal open={embedTab !== null} defaultTab={embedTab ?? "boxscore"} urls={{game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url}} title={`${away_team} @ ${home_team}`} onOpenChange={(o)=>!o && setEmbedTab(null)} />`.
-- Keep the in-modal `GameBoxScoreTable` below — the buttons now provide the *external embedded view*, the inline table stays as the quick on-modal stat strip.
+3. EuroLeague Daily Court Show watermark
+- Pass the actual active `league` value from `CourtShowModal` into `CourtShowSlide`, instead of reducing it to only `wnba` vs `nba`.
+- Replace NBA team/logo fallbacks in Court Show slide helpers with league-aware logo lookup for EuroLeague where the slide is using a league watermark.
+- Keep the same large top-right watermark layout and opacity/blur treatment, but ensure EuroLeague slides (including Ballers.IQ, Played Games Recap, Outstanding Game/Performances, and Best Value Plays) use the EuroLeague logo, not NBA.
 
-### 2b. EuroLeague external link in header
-- The existing `nba_game_url` button already renders for any league and labels itself via `leagueName` (already supports `"EuroLeague"`). Investigation showed `schedule_games.nba_game_url` is populated for all 380/380 EuroLeague games, so the button will appear once the modal receives it.
-- Audit every call site that constructs `GameDetailGame` and pass `nba_game_url` through: `ScheduleList.tsx`, `SchedulePreviewPanel.tsx`, `TeamCompareModal.tsx`, `TeamModal.tsx` — confirmed they already do. The only callers still likely to drop it are anything in `RosterPage.tsx` / `ScoringPage.tsx` / `CourtShowModal.tsx`. Grep them and add `nba_game_url` to the passed shape where missing.
-- Swap the icon for EuroLeague rows from generic `ExternalLink` to the EuroLeague glyph (small 14px tinted league logo) so it matches the WNBA pattern shown in the screenshot. NBA/WNBA keep their current rendering.
-
-## 3. `TeamCompareModal.tsx` — EuroLeague fixes
-
-### 3a. Watermark logo too thin
-- Replace `h-40 w-40 opacity-[0.05]` with `h-72 w-72 opacity-[0.08]` and add `object-contain`.
-- This matches the other watermarks (Box Score table watermark is already `h-48`).
-
-### 3b. EAST/WEST is wrong for EuroLeague
-EuroLeague has no conferences. Gate conference UI on league:
-- In `TeamHeader`, only render the `{conf}` span when `league !== "euroleague"`. Easiest: pass `league` as a prop and skip the chip for EuroLeague (rank `#N` still shows, just no East/West word).
-- In the Standings table, skip the `Conf Rank` `MetricRow` entirely when `league === "euroleague"` — only render `League Rank`.
-- `confRank` memo can stay (harmless) but is no longer referenced for EuroLeague.
-
-## Files touched
-- `src/components/LeaguePickerCards.tsx`
+Files to update:
 - `src/components/GameDetailModal.tsx`
-- `src/components/TeamCompareModal.tsx`
-- Any call site passing `GameDetailGame` that drops `nba_game_url` (audit `RosterPage`, `ScoringPage`, `CourtShowModal`, `PlayerModal`)
+- `src/components/LeaguePickerCards.tsx`
+- `src/components/court-show/CourtShowModal.tsx`
+- `src/components/court-show/CourtShowSlide.tsx`
 
-No DB migrations, no edge function changes.
+Validation:
+- Check that the modal buttons are normal external links with the exact dataset URL fields.
+- Check that `leagueCode={league}` reaches Court Show slides.
+- Check that the WNBA badge classes no longer place the badge outside the clipped card.
