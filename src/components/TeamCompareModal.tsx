@@ -50,7 +50,7 @@ function MetricRow({
   );
 }
 
-function TeamHeader({ tricode, side, rank, conf, onOpen, teamLookup }: { tricode: string; side: "L" | "R"; rank?: number; conf?: string; onOpen?: (t: string) => void; teamLookup: (t: string) => { name: string; logo: string } | undefined }) {
+function TeamHeader({ tricode, side, rank, conf, showConf, onOpen, teamLookup }: { tricode: string; side: "L" | "R"; rank?: number; conf?: string; showConf?: boolean; onOpen?: (t: string) => void; teamLookup: (t: string) => { name: string; logo: string } | undefined }) {
   const team = teamLookup(tricode);
   return (
     <button
@@ -70,7 +70,7 @@ function TeamHeader({ tricode, side, rank, conf, onOpen, teamLookup }: { tricode
           {rank != null && (
             <span className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background/60 px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
               <span className="text-foreground font-bold">#{rank}</span>
-              {conf ? <span>{conf}</span> : null}
+              {showConf && conf ? <span>{conf}</span> : null}
             </span>
           )}
         </div>
@@ -86,6 +86,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const watermarkLogo = getLeagueLogo(league);
+  const hasConferences = league !== "euroleague";
   const teamLookup = (tri: string) => {
     const lt = leagueTeams.find((t) => t.tricode === tri);
     if (lt) return { name: lt.name, logo: lt.logo };
@@ -172,7 +173,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
               {teamAObj?.name ?? teamA} vs {teamBObj?.name ?? teamB}
             </DialogTitle>
             <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-              <TeamHeader tricode={teamA} side="L" rank={confRank[teamA]} conf={aRow?.conference} onOpen={setOpenTricode} teamLookup={teamLookup} />
+              <TeamHeader tricode={teamA} side="L" rank={hasConferences ? confRank[teamA] : leagueRank[teamA]} conf={aRow?.conference} showConf={hasConferences} onOpen={setOpenTricode} teamLookup={teamLookup} />
               <div className="flex flex-col items-center gap-1">
                 <Swords className="h-6 w-6 text-[hsl(var(--nba-yellow))]" />
                 <div className="text-[10px] font-heading uppercase tracking-[0.25em] text-muted-foreground">Compare</div>
@@ -184,7 +185,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                   </div>
                 )}
               </div>
-              <TeamHeader tricode={teamB} side="R" rank={confRank[teamB]} conf={bRow?.conference} onOpen={setOpenTricode} teamLookup={teamLookup} />
+              <TeamHeader tricode={teamB} side="R" rank={hasConferences ? confRank[teamB] : leagueRank[teamB]} conf={bRow?.conference} showConf={hasConferences} onOpen={setOpenTricode} teamLookup={teamLookup} />
             </div>
           </DialogHeader>
 
@@ -212,11 +213,13 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
                       src={watermarkLogo}
                       alt=""
                       aria-hidden
-                      className="pointer-events-none absolute inset-0 m-auto h-40 w-40 opacity-[0.05] select-none"
+                      className="pointer-events-none absolute inset-0 m-auto h-72 w-72 opacity-[0.10] select-none object-contain"
                     />
                     <div className="relative z-10">
                     <MetricRow label="League Rank" a={leagueRank[teamA] ?? null} b={leagueRank[teamB] ?? null} higherBetter={false} dec={0} />
-                    <MetricRow label={`${aRow.conference === bRow.conference ? aRow.conference : "Conf"} Rank`} a={confRank[teamA] ?? null} b={confRank[teamB] ?? null} higherBetter={false} dec={0} />
+                    {hasConferences && (
+                      <MetricRow label={`${aRow.conference === bRow.conference ? aRow.conference : "Conf"} Rank`} a={confRank[teamA] ?? null} b={confRank[teamB] ?? null} higherBetter={false} dec={0} />
+                    )}
                     <MetricRow label="Wins" a={aRow.w} b={bRow.w} dec={0} />
                     <MetricRow label="Losses" a={aRow.l} b={bRow.l} higherBetter={false} dec={0} />
                     <MetricRow label="Win %" a={aRow.pct * 100} b={bRow.pct * 100} dec={1} />
