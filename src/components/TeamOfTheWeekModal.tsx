@@ -156,7 +156,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
                 src={getLeagueLogo(league)}
                 alt=""
                 aria-hidden="true"
-                className="pointer-events-none absolute top-4 right-4 z-20 h-16 w-16 md:h-20 md:w-20 object-contain opacity-50 hover:opacity-100 hover:scale-125 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]"
+                className="absolute top-4 right-4 z-20 h-16 w-16 md:h-20 md:w-20 object-contain opacity-50 hover:opacity-100 hover:scale-125 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] select-none"
               />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                 <span className="text-white/10 text-xl font-heading font-bold uppercase tracking-[0.3em]">
