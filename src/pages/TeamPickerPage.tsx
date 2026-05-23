@@ -7,6 +7,7 @@ import { Plus, LogOut, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import euroleagueLogo from "@/assets/euroleague-logo.png";
 import TeamLeagueChips from "@/components/TeamLeagueChips";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 
@@ -77,6 +78,7 @@ export default function TeamPickerPage() {
       <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
         <img src={wnbaLogo} alt="WNBA" className="h-8 w-auto object-contain" />
         <img src={nbaLogo} alt="NBA" className="h-8 w-auto" />
+        <img src={euroleagueLogo} alt="EuroLeague" className="h-8 w-auto object-contain" />
         <span className="text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
           Fantasy
         </span>
