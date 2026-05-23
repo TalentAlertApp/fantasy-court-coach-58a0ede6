@@ -721,7 +721,7 @@ function YourTeamView({
     `px-4 py-2 cursor-pointer select-none hover:text-foreground transition-colors ${sortCol === col ? "font-extrabold text-foreground" : ""}`;
 
   const PlayerPhoto = ({ photo, name }: { photo: string | null; name: string }) =>
-    photo ? <img src={photo} alt={name} className={`w-5 h-5 rounded-full object-cover border border-border ${activeLeagueCode === "euroleague" ? "object-top" : ""}`} />
+    photo ? <img src={photo} alt={name} className="w-5 h-5 rounded-full object-cover object-top border border-border" />
           : <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[7px] font-bold">{name.substring(0, 2).toUpperCase()}</div>;
 
   return (
