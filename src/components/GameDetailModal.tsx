@@ -74,8 +74,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const homeLogo = logoFor(game.home_team);
   const played = isPlayed(game);
   const venue = getVenue(game.home_team);
-  const leagueName =
-    league === "wnba" ? "WNBA" : league === "euroleague" ? "EuroLeague" : "NBA";
   const recapHost =
     league === "wnba"
       ? "WNBA.com"
