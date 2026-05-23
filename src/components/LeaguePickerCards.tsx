@@ -17,6 +17,10 @@ const FULL_NAME: Record<League, string> = {
 const BOX_SCALE: Record<League, number> = { nba: 1, wnba: 1.22, euroleague: 1 };
 const TRANSFORM_SCALE: Record<League, number> = { nba: 1, wnba: 1, euroleague: 1.45 };
 
+const STATUS_BADGE: Partial<Record<League, { label: string }>> = {
+  wnba: { label: "Ongoing" },
+};
+
 interface Props {
   value: League;
   onChange: (v: League) => void;
@@ -49,6 +53,7 @@ export default function LeaguePickerCards({
           transformScale: TRANSFORM_SCALE[c] ?? 1,
         };
         const active = value === c;
+        const status = STATUS_BADGE[c];
         return (
           <button
             key={c}
@@ -56,7 +61,7 @@ export default function LeaguePickerCards({
             onClick={() => onChange(c)}
             disabled={disabled}
             aria-pressed={active}
-            aria-label={`Select ${m.name}`}
+            aria-label={status ? `Select ${m.name} (season ${status.label.toLowerCase()})` : `Select ${m.name}`}
             className={cn(
               "group relative overflow-hidden rounded-2xl border transition-all duration-300",
               "flex flex-col items-center justify-center gap-3 p-4",
@@ -80,6 +85,20 @@ export default function LeaguePickerCards({
                 active ? "opacity-[0.18]" : "opacity-[0.10]",
               )}
             />
+            {status && (
+              <div
+                role="status"
+                className="pointer-events-none absolute top-2 right-2 z-20 flex items-center gap-1.5 rounded-full border border-destructive/60 bg-background/70 px-2 py-0.5 backdrop-blur-sm shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inset-0 rounded-full bg-destructive animate-ping opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-destructive" />
+                </span>
+                <span className="font-heading text-[9px] uppercase tracking-[0.25em] text-destructive-foreground/95">
+                  {status.label}
+                </span>
+              </div>
+            )}
             {/* active halo */}
             {active && (
               <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-accent/40 animate-pulse" aria-hidden />
