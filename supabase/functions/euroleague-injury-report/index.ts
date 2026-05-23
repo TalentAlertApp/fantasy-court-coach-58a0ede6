@@ -122,11 +122,18 @@ async function fetchRotowire(): Promise<InjuryRecord[]> {
       est && !/subscribers only/i.test(est) && est.toUpperCase() !== "TBD"
         ? est
         : null;
+    const rawInjury = String(r.injury ?? "").trim();
+    // Rotowire fills "See News" / "See news" for players whose body part hasn't
+    // been disclosed yet. That label is meaningless in our UI (we don't link to
+    // the article), so collapse it back to a neutral em-dash.
+    const cleanInjury = !rawInjury || /^see\s*news$/i.test(rawInjury)
+      ? "—"
+      : rawInjury;
     out.push({
       player_name: player,
       team: teamCode,
       team_abbr: tricode,
-      injury_type: String(r.injury ?? "—") || "—",
+      injury_type: cleanInjury,
       status: normalizeStatus(String(r.status ?? "")),
       estimated_return: cleanEst,
       notes: stripHtml(String(r.comment ?? r.details ?? r.notes ?? "")),

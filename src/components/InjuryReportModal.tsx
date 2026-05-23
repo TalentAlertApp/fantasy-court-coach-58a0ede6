@@ -694,7 +694,11 @@ function InjuryList({
 function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: number) => void }) {
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
   const ret = formatReturn(rec.estimated_return);
-  const injury = truncate(rec.injury_type || "—", 40);
+  const rawInjury = (rec.injury_type ?? "").trim();
+  // Some upstream feeds return "See News" as a placeholder when no body part
+  // has been disclosed yet — render an em-dash instead to stay context-aware.
+  const safeInjury = !rawInjury || /^see\s*news$/i.test(rawInjury) ? "—" : rawInjury;
+  const injury = truncate(safeInjury, 40);
   const team = LEAGUE_TEAMS.find((t) => t.tricode === rec.team_tricode);
 
   const clickable = rec.on_roster && rec.player_id != null;
