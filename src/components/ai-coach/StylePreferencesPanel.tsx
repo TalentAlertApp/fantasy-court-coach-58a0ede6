@@ -225,7 +225,7 @@ function CaptainPreview({
         <img
           src={captain.core.photo}
           alt={captain.core.name}
-          className="h-12 w-12 rounded-full object-cover bg-background drop-shadow-[0_4px_12px_hsl(var(--accent)/0.4)] transition-transform hover:scale-110"
+          className="h-12 w-12 rounded-full object-cover object-top bg-background drop-shadow-[0_4px_12px_hsl(var(--accent)/0.4)] transition-transform hover:scale-110"
         />
       ) : (
         <div className="h-12 w-12 rounded-full bg-muted/50" />

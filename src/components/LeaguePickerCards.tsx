@@ -81,11 +81,11 @@ export default function LeaguePickerCards({
                   active ? "scale-105" : "group-hover:scale-105",
                 )}
               />
-              <span className={cn("font-heading font-black uppercase text-center break-words leading-tight max-w-full px-1", nameCls, active ? "text-foreground" : "text-foreground/80")}>
+              <span className={cn("font-heading font-black uppercase text-center leading-tight max-w-full px-1", nameCls, active ? "text-foreground" : "text-foreground/80")}>
                 {m.name}
               </span>
               {showSubtitle && (
-                <span className="text-[10px] uppercase tracking-[0.2em] leading-relaxed text-foreground/50 text-center break-words max-w-[14ch]">
+                <span className="text-[10px] uppercase tracking-[0.15em] leading-relaxed text-foreground/50 text-center max-w-[22ch] hyphens-none">
                   {m.full}
                 </span>
               )}
