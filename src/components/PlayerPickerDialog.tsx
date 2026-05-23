@@ -644,7 +644,7 @@ function CourtSlot({
               <img
                 src={player.core.photo}
                 alt={player.core.name}
-                className="absolute inset-0 aspect-square w-full rounded-full object-cover bg-black/30 shadow-md transition-opacity duration-200 group-hover:opacity-0"
+                className="absolute inset-0 aspect-square w-full rounded-full object-cover object-top bg-black/30 shadow-md transition-opacity duration-200 group-hover:opacity-0"
               />
             ) : (
               <div className="absolute inset-0 aspect-square w-full rounded-full bg-black/40 flex items-center justify-center text-[12px] font-heading font-bold text-white/80 transition-opacity duration-200 group-hover:opacity-0">

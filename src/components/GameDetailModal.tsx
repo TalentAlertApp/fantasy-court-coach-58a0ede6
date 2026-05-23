@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tv2, Table2, BarChart3, Mic, ExternalLink, X, MapPin, Columns2 } from "lucide-react";
+import { Tv2, ExternalLink, X, MapPin, Columns2 } from "lucide-react";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useStandingsContext } from "@/hooks/useStandingsContext";
@@ -12,6 +12,7 @@ import { formatTipoffLabel } from "@/hooks/useUpcomingByTeam";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
+import GameActionLinks from "@/components/game/GameActionLinks";
 
 export interface GameDetailGame {
   game_id: string;
@@ -73,8 +74,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const homeLogo = logoFor(game.home_team);
   const played = isPlayed(game);
   const venue = getVenue(game.home_team);
-  const leagueName =
-    league === "wnba" ? "WNBA" : league === "euroleague" ? "EuroLeague" : "NBA";
   const recapHost =
     league === "wnba"
       ? "WNBA.com"
@@ -192,33 +191,13 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
           </div>
-          <div className="flex items-center justify-center gap-1.5 -mt-5 py-0 flex-wrap">
-            {game.game_boxscore_url && (
-              <a href={game.game_boxscore_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
-                <Table2 className="h-3.5 w-3.5" /> BoxScore
-              </a>
-            )}
-            {game.game_charts_url && (
-              <a href={game.game_charts_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
-                <BarChart3 className="h-3.5 w-3.5" /> Charts
-              </a>
-            )}
-            {game.game_playbyplay_url && (
-              <a href={game.game_playbyplay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
-                <Mic className="h-3.5 w-3.5" /> PbP
-              </a>
-            )}
-            {game.nba_game_url && (
-              <a href={game.nba_game_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border">
-                {league === "wnba" || league === "euroleague" ? (
-                  <img src={getLeagueLogo(league)} alt="" aria-hidden className="h-3.5 w-3.5 object-contain" />
-                ) : (
-                  <ExternalLink className="h-3.5 w-3.5" />
-                )}
-                {leagueName}
-              </a>
-            )}
-          </div>
+          <GameActionLinks
+            league={league}
+            boxscoreUrl={game.game_boxscore_url}
+            chartsUrl={game.game_charts_url}
+            playByPlayUrl={game.game_playbyplay_url}
+            leagueGameUrl={game.nba_game_url}
+          />
           {game.game_recap_url && played && (
             <div className="flex justify-center pt-1.5">
               {embedSrc ? (
