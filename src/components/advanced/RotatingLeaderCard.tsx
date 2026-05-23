@@ -126,7 +126,7 @@ export default function RotatingLeaderCard({
               <span className="relative z-10 text-[10px] font-mono font-bold text-muted-foreground w-5 shrink-0 tabular-nums text-right">{i + 1}</span>
               <div className="relative z-10 shrink-0">
                 {r.photo ? (
-                  <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover bg-muted ring-1 ring-border" />
+                  <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover object-top bg-muted ring-1 ring-border" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-muted ring-1 ring-border" />
                 )}
