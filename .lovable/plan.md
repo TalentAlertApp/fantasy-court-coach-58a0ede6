@@ -1,21 +1,30 @@
 ## Plan
 
-### Issue 1 — MAIN EUROLEAGUE missing from My Leagues
-**Root cause:** `src/pages/LeaguesPage.tsx` builds `sortedLeagues` by explicitly picking the NBA and WNBA main leagues and then appending everything that is *not* a main league. The EuroLeague main league (`00000000-0000-0000-0000-000000000030`) is therefore filtered out — it’s a main league, but it isn’t pinned, so it disappears. The Discover panel uses a separate query (`leagues-discover`) that has no such filter, which is why it still shows there.
+### Issue 1 — MAIN EUROLEAGUE shouldn't appear in Discover
+**Root cause:** Main NBA and Main WNBA are stored with `visibility = 'private'`, but Main EuroLeague was seeded with `visibility = 'public'`. The `leagues-discover` edge function filters by `visibility = 'public'`, so only the EuroLeague main leaks into Discover.
 
-```text
-sortedLeagues = [nbaMain, wnbaMain, ...nonMain]   // euroleagueMain dropped here
-```
+Verified via DB:
+- `00000000-…010` (NBA Main) → private
+- `00000000-…020` (WNBA Main) → private
+- `00000000-…030` (EuroLeague Main) → **public** ← outlier
 
-**Fix:** also pick `euroleagueMain` (via `MAIN_LEAGUE_EUROLEAGUE_ID`, already exported from `useFantasyLeagues`) and prepend it alongside the other two pinned main leagues. The downstream `leaguesWithMineCount` already handles any sport via `isMainLeague(...)`, so no further changes needed.
+**Fix:** add a migration that flips Main EuroLeague to `visibility = 'private'` to match the other two mains. Belt-and-braces, also exclude any main-league id from the `leagues-discover` query so a future misconfiguration never re-leaks a main into Discover.
 
-### Issue 2 — EuroLeague logo too small in the sidebar team pill
-**Root cause:** `LeagueLogoBadge` renders every league at the same pixel box (`h-3.5/h-4/h-5`). The EuroLeague PNG has built-in transparent padding, so it visually reads smaller than the NBA/WNBA marks. `COMPETITIONS.euroleague` already declares `logoScale: 1.25` for exactly this case, but the badge ignores it.
+### Issue 2 — League names misaligned on "Name Your Franchise"
+**Root cause:** `LeaguePickerCards` renders the long subtitle (e.g. "National Basketball Association") inside `max-w-[14ch] break-words`. With uppercase + `tracking-[0.2em]`, every glyph eats ~1.2ch, so the third word breaks mid-letter ("ASSOCIATIO" / "N"). The three cards then visually disagree because each name wraps at a different column.
 
-**Fix:** in `src/components/LeagueLogoBadge.tsx`, read `comp.logoScale` and apply it via inline `transform: scale(...)` on the `<img>`. Keeps the layout box identical (so surrounding spacing doesn’t shift) while the glyph itself grows to match the NBA/WNBA visual weight in the header pill and the dropdown items.
+**Fix:** in `src/components/LeaguePickerCards.tsx`, drop `break-words` (allow only normal word breaks), widen the subtitle to `max-w-[22ch]`, and reduce the subtitle's letter-spacing slightly (`tracking-[0.15em]`) so all three full-name labels wrap onto the same number of lines and stay center-aligned.
+
+### Issue 3 — AI Coach Captain photo cuts off the forehead
+**Root cause:** `CaptainPreview` in `src/components/ai-coach/StylePreferencesPanel.tsx` renders the captain headshot with `object-cover` and no anchor, so the rounded crop sits in the geometric center — same forehead-cut problem we just fixed on the court and Team of the Week cards.
+
+**Fix:** add `object-top` so the face anchors to the top of the crop circle, matching the convention already used in `PlayerCard`, `LeaderTable`, `RotatingLeaderCard`.
 
 ### Files touched
-- `src/pages/LeaguesPage.tsx` — include EuroLeague main league in `sortedLeagues`.
-- `src/components/LeagueLogoBadge.tsx` — apply per-competition `logoScale`.
+- new migration: `supabase/migrations/<ts>_main_euroleague_private.sql` (UPDATE single row).
+- `supabase/functions/leagues-discover/index.ts` — `.not("id","in", "(...)")` over the three known main-league UUIDs.
+- `src/components/LeaguePickerCards.tsx` — subtitle alignment tweak.
+- `src/components/ai-coach/StylePreferencesPanel.tsx` — `object-top` on captain headshot.
+- Deploy `leagues-discover`.
 
-No backend, schema, or edge-function changes. No business logic changes — purely list assembly + presentation.
+No schema, RLS, or scoring changes. Purely a data correction + two presentation fixes.
