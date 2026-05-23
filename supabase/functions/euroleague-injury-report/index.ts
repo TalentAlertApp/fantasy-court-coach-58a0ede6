@@ -129,7 +129,7 @@ async function fetchRotowire(): Promise<InjuryRecord[]> {
       injury_type: String(r.injury ?? "—") || "—",
       status: normalizeStatus(String(r.status ?? "")),
       estimated_return: cleanEst,
-      notes: "",
+      notes: stripHtml(String(r.comment ?? r.details ?? r.notes ?? "")),
       last_updated: new Date().toISOString(),
       source: "Rotowire",
     });
