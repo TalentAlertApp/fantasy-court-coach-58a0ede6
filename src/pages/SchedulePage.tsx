@@ -22,6 +22,7 @@ import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { useLeague } from "@/contexts/LeagueContext";
+import { getLeagueLogo } from "@/lib/competitions";
 
 const MIN_WEEK = 1;
 
@@ -262,7 +263,15 @@ export default function SchedulePage() {
       {/* ── Sticky header area ── */}
       <div className="sticky top-0 z-20 bg-background pb-0 space-y-0">
         {/* Week strip with GW info */}
-        <div className="bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-2">
+        <div className="relative overflow-hidden bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-2 group">
+          {/* League logo watermark */}
+          <img
+            src={getLeagueLogo(league)}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute -top-6 -right-6 h-40 w-40 object-contain opacity-[0.08] rotate-6 transition-all duration-500 group-hover:opacity-[0.22] group-hover:scale-110 group-hover:rotate-0 z-0"
+          />
+          <div className="relative z-10">
           <div className="flex items-center justify-center gap-2 mb-1.5">
             <span className="font-heading font-bold text-base dark:text-[hsl(var(--nba-yellow))]">GW {gw}</span>
             <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
@@ -306,6 +315,7 @@ export default function SchedulePage() {
               );
             })}
             {league !== "euroleague" && <span className="shrink-0 w-1" aria-hidden />}
+          </div>
           </div>
         </div>
 
