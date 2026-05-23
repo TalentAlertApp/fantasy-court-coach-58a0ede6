@@ -157,6 +157,7 @@ export function clearOnboardingState(userId: string | null | undefined): void {
 export function clearAllOnboardingStorage(): void {
   try {
     clearOnboardingSkipped();
+    clearCreatingNewTeam();
     // Wipe every per-user state key
     const toRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
