@@ -178,6 +178,28 @@ interface ReturnInfo {
   daysAway: number | null;
 }
 
+/**
+ * Strip Rotowire News page chrome leaking into the scraped `notes` field —
+ * the news feed renders a "Display Mode: Compact / Expanded" widget and the
+ * player's name+status glue (e.g. "DiarraOut with oblique issue…").
+ */
+function cleanInjuryNotes(raw: string | null | undefined, playerName?: string): string {
+  if (!raw) return "";
+  let s = String(raw).replace(/\s+/g, " ").trim();
+  s = s.replace(/^\s*(?:news\s+)?display\s+mode(?:\s+(?:compact|expanded))+\s*/i, "");
+  s = s.replace(/^\s*news\s+/i, "");
+  if (playerName) {
+    const last = playerName.trim().split(/\s+/).pop() ?? "";
+    if (last) {
+      const re = new RegExp(`(${last.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})([A-Z])`, "g");
+      s = s.replace(re, "$1 $2");
+    }
+    const escaped = playerName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    s = s.replace(new RegExp(`^${escaped}\\s+`, "i"), "");
+  }
+  return s.trim();
+}
+
 function formatReturn(raw: string | null): ReturnInfo {
   if (!raw) return { label: "TBD", isSeasonEnd: false, isTbd: true, daysAway: null };
   const trimmed = raw.trim();
