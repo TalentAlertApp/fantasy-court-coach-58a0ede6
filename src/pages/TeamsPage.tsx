@@ -20,6 +20,7 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import PlayerModal from "@/components/PlayerModal";
+import { ArrowDownAZ, ArrowDownWideNarrow } from "lucide-react";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -33,10 +34,12 @@ interface NbaTeamSummary {
 }
 
 type Tab = "teams" | "standings";
+type SortMode = "winpct" | "alpha";
 
 export default function TeamsPage() {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("teams");
+  const [sortMode, setSortMode] = useState<SortMode>("winpct");
   const { league } = useLeague();
   const isEuroleague = league === "euroleague";
   const [standingsView, setStandingsView] = useState<StandingsView>(
@@ -128,11 +131,12 @@ export default function TeamsPage() {
       activePlayers: playerCounts?.[t.tricode] ?? 0,
       gamesRemaining: records[t.tricode]?.remaining ?? 0,
     })).sort((a, b) => {
+      if (sortMode === "alpha") return a.name.localeCompare(b.name);
       const wpA = a.wins + a.losses > 0 ? a.wins / (a.wins + a.losses) : 0;
       const wpB = b.wins + b.losses > 0 ? b.wins / (b.wins + b.losses) : 0;
       return wpB - wpA;
     });
-  }, [scheduleData, playerCounts, leagueTeams]);
+  }, [scheduleData, playerCounts, leagueTeams, sortMode]);
 
   const isLoading = schedLoading || playersLoading;
 
@@ -165,6 +169,17 @@ export default function TeamsPage() {
           <div className="ml-2">
             <StandingsFilters view={standingsView} onChange={setStandingsView} />
           </div>
+        )}
+        {tab === "teams" && (
+          <button
+            type="button"
+            onClick={() => setSortMode((m) => (m === "winpct" ? "alpha" : "winpct"))}
+            className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
+            title={sortMode === "winpct" ? "Sort A → Z" : "Sort by Win %"}
+            aria-label={sortMode === "winpct" ? "Sort A → Z" : "Sort by Win %"}
+          >
+            {sortMode === "winpct" ? <ArrowDownAZ className="h-5 w-5" /> : <ArrowDownWideNarrow className="h-5 w-5" />}
+          </button>
         )}
       </div>
 
