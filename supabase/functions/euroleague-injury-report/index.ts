@@ -87,7 +87,6 @@ function normalizeStatus(raw: string): string {
 }
 
 async function fetchRotowire(): Promise<InjuryRecord[]> {
-async function fetchRotowire(): Promise<InjuryRecord[]> {
   // Rotowire renders the EuroLeague injury report client-side via webix; the
   // page calls /euro/tables/injury-report.php which returns clean JSON rows.
   const url =
