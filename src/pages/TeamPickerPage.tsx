@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { Plus, LogOut, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
+import { setCreatingNewTeam } from "@/lib/onboarding-store";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.png";
@@ -50,6 +51,7 @@ export default function TeamPickerPage() {
     // Pre-mark this session so RequireAuth never bounces us back to the
     // picker mid-flow while the user is on the Name Your Franchise step.
     markTeamPickedThisSession();
+    setCreatingNewTeam();
     navigate("/welcome", { state: { forceNewTeam: true } });
   };
 
