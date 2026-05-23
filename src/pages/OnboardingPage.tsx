@@ -444,7 +444,10 @@ export default function OnboardingPage() {
       {step === "draft" && (
         <DraftStep
           teamName={createdTeamName}
-          leagueCode={pendingMainSport}
+          leagueCode={
+            (teams.find((t: any) => t.id === createdTeamId)?.league_code as CompetitionCode | undefined)
+              ?? pendingMainSport
+          }
           onFinish={handleFinish}
           onBack={handleDraftBack}
         />
