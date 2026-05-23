@@ -693,6 +693,7 @@ function InjuryList({
 
 function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: number) => void }) {
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
+  const { league } = useLeague();
   const ret = formatReturn(rec.estimated_return);
   const rawInjury = (rec.injury_type ?? "").trim();
   // Some upstream feeds return "See News" as a placeholder when no body part
@@ -729,7 +730,10 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
           src={rec.photo}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full opacity-[0.22] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.6] group-hover:scale-110 group-hover:saturate-200 group-hover:brightness-125 group-hover:ring-2 group-hover:ring-accent/40 transition-all duration-300"
+          className={cn(
+            "pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full opacity-[0.22] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.6] group-hover:scale-110 group-hover:saturate-200 group-hover:brightness-125 group-hover:ring-2 group-hover:ring-accent/40 transition-all duration-300",
+            league === "euroleague" && "object-top",
+          )}
         />
       )}
 
@@ -806,9 +810,12 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
           <div><span className="text-muted-foreground">Status:</span> {rec.status}</div>
           <div><span className="text-muted-foreground">Injury:</span> {rec.injury_type || "—"}</div>
           <div><span className="text-muted-foreground">ETR:</span> {ret.label}</div>
-          {rec.notes && rec.notes.trim().length > 0 && (
-            <div className="pt-1 border-t border-border/40">{rec.notes}</div>
-          )}
+          {(() => {
+            const cleaned = cleanInjuryNotes(rec.notes, rec.player_name);
+            return cleaned.length > 0 ? (
+              <div className="pt-1 border-t border-border/40">{cleaned}</div>
+            ) : null;
+          })()}
           {rec.source && (
             <div className="pt-1 text-[10px] text-muted-foreground/80">Source: {rec.source}</div>
           )}
