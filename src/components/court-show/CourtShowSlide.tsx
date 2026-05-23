@@ -106,7 +106,7 @@ function PodiumGrid({ items, onPlayerClick }: { items: PodiumItem[]; onPlayerCli
                   <img
                     src={p.photo}
                     alt={p.name}
-                    className={cn("rounded-full object-cover bg-black/40", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")}
+                     className={cn("rounded-full object-cover object-top bg-black/40", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")}
                   />
                 ) : (
                   <div className={cn("rounded-full bg-white/10", isFirst ? "h-32 w-32 md:h-40 md:w-40" : "h-20 w-20 md:h-24 md:w-24")} />
@@ -595,7 +595,7 @@ function OutstandingSlide({
                   <td className="py-1.5">
                     <div className="flex items-center gap-1">
                       {r.photo ? (
-                        <img src={r.photo} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
+                        <img src={r.photo} alt="" className="h-5 w-5 rounded-full object-cover object-top shrink-0" />
                       ) : <span className="h-5 w-5 rounded-full bg-white/10 shrink-0" />}
                       <span className="font-heading font-black text-white whitespace-nowrap">{r.name}</span>
                       <span className="text-white/40 text-[9px] ml-1 shrink-0">{r.team}</span>
@@ -1076,7 +1076,7 @@ function BiqPlayedCard({
           className="relative mt-3 flex items-center gap-3 w-full rounded-lg bg-black/30 border border-white/5 px-3 py-2 text-left hover:border-amber-400/40 hover:bg-black/40 transition-colors"
         >
           {tp.photo ? (
-            <img src={tp.photo} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-amber-400/40" />
+            <img src={tp.photo} alt="" className="h-9 w-9 rounded-full object-cover object-top ring-1 ring-amber-400/40" />
           ) : (
             <div className="h-9 w-9 rounded-full bg-white/10" />
           )}
@@ -1153,7 +1153,7 @@ function BiqScheduledCard({
           className="relative mt-3 flex items-center gap-3 w-full rounded-lg bg-black/30 border border-white/5 px-3 py-2 text-left hover:border-amber-400/40 hover:bg-black/40 transition-colors"
         >
           {sp.photo ? (
-            <img src={sp.photo} alt="" className="h-9 w-9 rounded-full object-cover ring-1 ring-sky-400/40" />
+            <img src={sp.photo} alt="" className="h-9 w-9 rounded-full object-cover object-top ring-1 ring-sky-400/40" />
           ) : (
             <div className="h-9 w-9 rounded-full bg-white/10" />
           )}
@@ -1203,7 +1203,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
     ? (leagueCode === "wnba" ? getWnbaTeamLogo(watermarkTri) : getTeamLogo(watermarkTri))
     : null;
   const isBiq = slide.payload.kind === "ballersiq";
-  const biqWatermark = isBiq ? "/brand/ballers-iq-league-watermark.png" : null;
+  const biqWatermark = isBiq ? getLeagueLogo(leagueCode) : null;
 
   return (
     <motion.div
