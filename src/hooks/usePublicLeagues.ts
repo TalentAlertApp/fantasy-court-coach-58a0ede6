@@ -24,7 +24,7 @@ export type PublicLeaguesResponse = {
 };
 
 export type PublicLeaguesParams = {
-  sport?: "nba" | "wnba" | null;
+  sport?: "nba" | "wnba" | "euroleague" | null;
   search?: string;
   page?: number;
   sort?: "newest" | "most_teams" | "active";

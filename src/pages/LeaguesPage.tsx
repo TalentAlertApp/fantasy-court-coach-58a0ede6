@@ -324,7 +324,7 @@ export default function LeaguesPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "cards">("list");
   // "Mine" tab filters — mirrors the Discover panel layout
-  const [mineSport, setMineSport] = useState<"all" | "nba" | "wnba">("all");
+  const [mineSport, setMineSport] = useState<"all" | "nba" | "wnba" | "euroleague">("all");
   const [mineSearchInput, setMineSearchInput] = useState("");
   const [mineSearch, setMineSearch] = useState("");
   const [mineSort, setMineSort] = useState<"active" | "name">("active");
@@ -525,7 +525,7 @@ export default function LeaguesPage() {
       {/* Filter bar — mirrors Discover */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3 mb-3">
         <div className="flex items-center gap-3 pl-1 pr-2">
-          {(["all", "nba", "wnba"] as const).map((s) => {
+          {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
             const active = mineSport === s;
             const baseCls = "shrink-0 cursor-pointer transition-all duration-200 select-none";
             const dimCls = active ? "opacity-100 scale-110" : "opacity-50 hover:opacity-90 scale-90";
@@ -553,13 +553,13 @@ export default function LeaguesPage() {
                 key={s}
                 type="button"
                 onClick={() => setMineSport(s)}
-                aria-label={s.toUpperCase()}
-                title={s.toUpperCase()}
+                aria-label={s === "euroleague" ? "EuroLeague" : s.toUpperCase()}
+                title={s === "euroleague" ? "EuroLeague" : s.toUpperCase()}
                 className={`${baseCls} ${dimCls}`}
               >
                 <img
                   src={src}
-                  alt={s.toUpperCase()}
+                  alt={s === "euroleague" ? "EuroLeague" : s.toUpperCase()}
                   className={`${active ? "h-9" : "h-6"} w-auto object-contain transition-all duration-200`}
                 />
               </button>
@@ -679,7 +679,7 @@ function DiscoverPanel({
   onJoined: (id: string) => void;
 }) {
   const qc = useQueryClient();
-  const [sport, setSport] = useState<"all" | "nba" | "wnba">("all");
+  const [sport, setSport] = useState<"all" | "nba" | "wnba" | "euroleague">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"active" | "newest" | "most_teams">("active");
@@ -753,7 +753,7 @@ function DiscoverPanel({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
         <div className="flex items-center gap-3 pl-1 pr-2">
-          {(["all", "nba", "wnba"] as const).map((s) => {
+          {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
             const active = sport === s;
             const baseCls = "shrink-0 cursor-pointer transition-all duration-200 select-none";
             const dimCls = active ? "opacity-100 scale-110" : "opacity-50 hover:opacity-90 scale-90";
@@ -781,13 +781,13 @@ function DiscoverPanel({
                 key={s}
                 type="button"
                 onClick={() => setSport(s)}
-                aria-label={s.toUpperCase()}
-                title={s.toUpperCase()}
+                aria-label={s === "euroleague" ? "EuroLeague" : s.toUpperCase()}
+                title={s === "euroleague" ? "EuroLeague" : s.toUpperCase()}
                 className={`${baseCls} ${dimCls}`}
               >
                 <img
                   src={src}
-                  alt={s.toUpperCase()}
+                  alt={s === "euroleague" ? "EuroLeague" : s.toUpperCase()}
                   className={`${active ? "h-9" : "h-6"} w-auto object-contain transition-all duration-200`}
                 />
               </button>
