@@ -761,9 +761,12 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
         )}
       </span>
 
-      {rec.on_roster && rec.pos && (
-        <Badge variant="outline" className="relative z-10 h-4 px-1 text-[9px] rounded-md shrink-0 bg-background/70">
-          {rec.pos}
+      {rec.on_roster && rec.fc_bc && (
+        <Badge
+          variant={rec.fc_bc === "FC" ? "destructive" : "default"}
+          className="relative z-10 h-4 px-1.5 text-[9px] rounded-md shrink-0"
+        >
+          {rec.fc_bc}
         </Badge>
       )}
 
@@ -781,23 +784,32 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
         {ret.label}
       </span>
 
-      {rec.notes && rec.notes.trim().length > 0 && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={(e) => e.stopPropagation()}
-              className="relative z-10 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Show notes"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="max-w-xs text-xs">
-            {rec.notes}
-          </TooltipContent>
-        </Tooltip>
-      )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={(e) => e.stopPropagation()}
+            className="relative z-10 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Show injury details"
+          >
+            <Info className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="max-w-xs text-xs space-y-1">
+          <div className="font-heading uppercase tracking-wider text-[10px] text-muted-foreground">
+            {rec.player_name} · {rec.team_tricode}
+          </div>
+          <div><span className="text-muted-foreground">Status:</span> {rec.status}</div>
+          <div><span className="text-muted-foreground">Injury:</span> {rec.injury_type || "—"}</div>
+          <div><span className="text-muted-foreground">ETR:</span> {ret.label}</div>
+          {rec.notes && rec.notes.trim().length > 0 && (
+            <div className="pt-1 border-t border-border/40">{rec.notes}</div>
+          )}
+          {rec.source && (
+            <div className="pt-1 text-[10px] text-muted-foreground/80">Source: {rec.source}</div>
+          )}
+        </TooltipContent>
+      </Tooltip>
     </li>
   );
 }

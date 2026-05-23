@@ -129,7 +129,7 @@ async function fetchRotowire(): Promise<InjuryRecord[]> {
       injury_type: String(r.injury ?? "—") || "—",
       status: normalizeStatus(String(r.status ?? "")),
       estimated_return: cleanEst,
-      notes: "",
+      notes: stripHtml(String(r.comment ?? r.details ?? r.notes ?? "")),
       last_updated: new Date().toISOString(),
       source: "Rotowire",
     });
@@ -162,7 +162,8 @@ async function fetchRotowireNewsInjuries(): Promise<InjuryRecord[]> {
     // Walk up to the surrounding card to find team tricode + headline text.
     let node: any = a;
     for (let i = 0; i < 4 && node?.parentElement; i++) node = node.parentElement;
-    const block = ((node as any)?.textContent ?? "").toLowerCase();
+    const blockRaw = ((node as any)?.textContent ?? "").replace(/\s+/g, " ").trim();
+    const block = blockRaw.toLowerCase();
     if (!/(injur|sidelined|out|miss|sprain|strain|surgery|sore|illness|rest)/.test(block)) return;
     const tricode = tricodeFromText(block) || tricodeFromText(name);
     if (!tricode) return;
@@ -172,14 +173,24 @@ async function fetchRotowireNewsInjuries(): Promise<InjuryRecord[]> {
       : /probable/.test(block) ? "Probable"
       : /day-to-day|doubtful/.test(block) ? "Day-To-Day"
       : "Day-To-Day";
+    // Try to detect injury body part from the headline.
+    const injuryKeywords = [
+      "knee","ankle","foot","hand","wrist","finger","thumb","shoulder","back",
+      "hip","calf","hamstring","groin","quad","thigh","achilles","elbow",
+      "concussion","illness","fever","flu","sprain","strain","fracture","surgery",
+    ];
+    const found = injuryKeywords.find((k) => block.includes(k));
+    const injuryType = found ? found.charAt(0).toUpperCase() + found.slice(1) : "Pending update";
+    // Trim notes to a single sentence around the player name for the tooltip.
+    const notes = blockRaw.length > 240 ? blockRaw.slice(0, 240).trimEnd() + "…" : blockRaw;
     out.push({
       player_name: name,
       team: tricode,
       team_abbr: tricode,
-      injury_type: "See news",
+      injury_type: injuryType,
       status,
       estimated_return: null,
-      notes: "",
+      notes,
       last_updated: new Date().toISOString(),
       source: "Rotowire News",
     });
