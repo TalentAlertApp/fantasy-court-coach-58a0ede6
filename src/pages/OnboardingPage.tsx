@@ -26,8 +26,16 @@ import {
   getOnboardingDraft,
   setOnboardingDraft,
   clearOnboardingDraft,
+  isCreatingNewTeam,
+  clearCreatingNewTeam,
   type OnboardingStep,
 } from "@/lib/onboarding-store";
+import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
+import {
+  MAIN_LEAGUE_NBA_ID,
+  MAIN_LEAGUE_WNBA_ID,
+  MAIN_LEAGUE_EUROLEAGUE_ID,
+} from "@/hooks/useFantasyLeagues";
 
 type Step = OnboardingStep;
 
@@ -45,11 +53,14 @@ export default function OnboardingPage() {
   const preselectedLeagueId = navState?.leagueId ?? null;
   const preselectedSport = navState?.sport ?? null;
   const returnTo = navState?.returnTo ?? "/";
-  const forceNewTeam = navState?.forceNewTeam === true;
+  // forceNewTeam survives router state resets via a session flag set by the
+  // "+ New Team" entry points (TeamPickerPage and TeamSwitcher).
+  const forceNewTeam = navState?.forceNewTeam === true || isCreatingNewTeam();
   const resumeChooseLeague = navState?.resumeChooseLeague === true;
   const resumedNewLeagueId = navState?.newLeagueId ?? null;
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId } = useTeam();
+  const { setSelectedLeagueId } = useFantasyLeague();
   const { shouldOnboard, ready } = useFirstRunGate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -85,7 +96,9 @@ export default function OnboardingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forceNewTeam, user?.id]);
   const [pendingName, setPendingName] = useState<string>(draft?.name ?? "");
-  const [pendingMainSport, setPendingMainSport] = useState<CompetitionCode>(draft?.sport ?? "nba");
+  const [pendingMainSport, setPendingMainSport] = useState<CompetitionCode>(
+    draft?.sport ?? (initial?.sport as CompetitionCode | undefined) ?? "nba",
+  );
   const [resumedExtraLeagueIds, setResumedExtraLeagueIds] = useState<string[]>(() => {
     if (!draft) return [];
     const ids = [...draft.extraLeagueIds];
@@ -107,6 +120,7 @@ export default function OnboardingPage() {
       step: next,
       teamId: extra?.teamId ?? createdTeamId ?? undefined,
       teamName: extra?.teamName ?? createdTeamName ?? undefined,
+      sport: pendingMainSport,
     });
   };
 
@@ -119,6 +133,11 @@ export default function OnboardingPage() {
     const stillOwns = createdTeamId && ownedNow.some((t: any) => t.id === createdTeamId);
     if (stillOwns) {
       setSelectedTeamId(createdTeamId!);
+      // Hydrate pendingMainSport from the actual team so the Step 3
+      // watermark always reflects the team's league after a refresh.
+      const t = ownedNow.find((x: any) => x.id === createdTeamId);
+      const lc = (t?.league_code ?? null) as CompetitionCode | null;
+      if (lc && lc !== pendingMainSport) setPendingMainSport(lc);
       return;
     }
     if (ownedNow.length > 0) {
@@ -218,8 +237,22 @@ export default function OnboardingPage() {
         });
       }
 
-      await queryClient.invalidateQueries({ queryKey: ["teams"] });
-      await queryClient.invalidateQueries({ queryKey: ["fantasy-leagues"] });
+      // Refetch (not just invalidate) so the new team and its sport are
+      // present in cache BEFORE DraftStep mounts. Otherwise the league
+      // context falls back to the previously-active league and
+      // usePlayersQuery returns the wrong league's players.
+      await queryClient.refetchQueries({ queryKey: ["teams"] });
+      await queryClient.refetchQueries({ queryKey: ["fantasy-leagues"] });
+      // Defensive: align the fantasy-league selector to the new sport's
+      // main league so league-derived queries don't briefly resolve to the
+      // wrong sport while selectedTeam hydrates.
+      const mainIdForSport =
+        args.leagueCode === "wnba"
+          ? MAIN_LEAGUE_WNBA_ID
+          : args.leagueCode === "euroleague"
+            ? MAIN_LEAGUE_EUROLEAGUE_ID
+            : MAIN_LEAGUE_NBA_ID;
+      try { setSelectedLeagueId(mainIdForSport); } catch { /* noop */ }
       setStep("draft", { teamId, teamName: res.team.name });
     } catch (e: any) {
       toast({
@@ -271,10 +304,12 @@ export default function OnboardingPage() {
 
   const handleSkip = () => {
     setOnboardingSkipped();
+    clearCreatingNewTeam();
     navigate("/", { replace: true });
   };
 
   const handleSignOut = async () => {
+    clearCreatingNewTeam();
     await signOut();
     navigate("/auth", { replace: true });
   };
@@ -293,6 +328,7 @@ export default function OnboardingPage() {
     markWelcomeBackSeenThisSession();
     try { sessionStorage.setItem("nba_show_entry_intro_once", "1"); } catch { /* noop */ }
     clearOnboardingState(user?.id);
+    clearCreatingNewTeam();
     // Refetch (not just invalidate) so TeamContext.teams contains the new
     // team by the time the destination page renders the pill.
     await queryClient.refetchQueries({ queryKey: ["teams"] });
@@ -319,6 +355,7 @@ export default function OnboardingPage() {
     }
     if (ownedCount >= 2) {
       clearOnboardingState(user?.id);
+      clearCreatingNewTeam();
       navigate("/welcome/pick-team", { replace: true });
       return;
     }
