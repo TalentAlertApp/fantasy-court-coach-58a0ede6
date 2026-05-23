@@ -107,11 +107,11 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="flex items-center gap-4">
-            <img src={nbaLogo} alt="NBA" className="h-12 w-auto" />
-            <span className="h-8 w-px bg-border/60" aria-hidden="true" />
+          <div className="flex items-center justify-center gap-2.5">
+            <img src={nbaLogo} alt="NBA" className="h-12 w-auto object-contain" />
+            <span className="h-7 w-px bg-border/60" aria-hidden="true" />
             <img src={wnbaLogo} alt="WNBA" className="h-12 w-auto object-contain" />
-            <span className="h-8 w-px bg-border/60" aria-hidden="true" />
+            <span className="h-7 w-px bg-border/60" aria-hidden="true" />
             <img src={euroleagueLogo} alt="EuroLeague" className="h-12 w-auto object-contain" />
           </div>
           <h1 className="text-2xl font-heading font-bold uppercase tracking-[0.2em] text-foreground">

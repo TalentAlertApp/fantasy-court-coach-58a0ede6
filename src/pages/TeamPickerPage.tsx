@@ -47,6 +47,9 @@ export default function TeamPickerPage() {
   };
 
   const handleCreateNew = () => {
+    // Pre-mark this session so RequireAuth never bounces us back to the
+    // picker mid-flow while the user is on the Name Your Franchise step.
+    markTeamPickedThisSession();
     navigate("/welcome", { state: { forceNewTeam: true } });
   };
 
