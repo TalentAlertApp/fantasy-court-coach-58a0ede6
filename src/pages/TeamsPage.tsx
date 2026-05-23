@@ -20,7 +20,7 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import PlayerModal from "@/components/PlayerModal";
-import { ArrowDownAZ, Trophy } from "lucide-react";
+import { ArrowUpDown } from "lucide-react";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -170,38 +170,30 @@ export default function TeamsPage() {
             <StandingsFilters view={standingsView} onChange={setStandingsView} />
           </div>
         )}
-        {tab === "teams" && (
-          <div
-            role="group"
-            aria-label="Sort teams"
-            className="ml-auto inline-flex items-center rounded-full border border-border/70 bg-card/60 backdrop-blur-sm p-0.5 shadow-sm"
-          >
-            {([
-              { key: "winpct", label: "Win %", Icon: Trophy },
-              { key: "alpha", label: "A–Z", Icon: ArrowDownAZ },
-            ] as const).map(({ key, label, Icon }) => {
-              const active = sortMode === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setSortMode(key)}
-                  aria-pressed={active}
-                  title={`Sort by ${label}`}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-heading font-bold uppercase tracking-wider transition-all duration-200",
-                    active
-                      ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 ring-1 ring-primary/40"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                  )}
-                >
-                  <Icon className={cn("h-3.5 w-3.5", active && "drop-shadow")} />
-                  <span>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {tab === "teams" && (() => {
+          const nextMode = sortMode === "winpct" ? "alpha" : "winpct";
+          const nextLabel = nextMode === "winpct" ? "Win %" : "A–Z";
+          const currentLabel = sortMode === "winpct" ? "Win %" : "A–Z";
+          return (
+            <button
+              type="button"
+              onClick={() => setSortMode(nextMode)}
+              aria-label={`Sort by ${nextLabel}`}
+              title={`Sorted by ${currentLabel} · click for ${nextLabel}`}
+              className="ml-auto group relative inline-flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110"
+            >
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300"
+              />
+              <span
+                aria-hidden
+                className="absolute inset-0 rounded-full ring-0 group-hover:ring-1 group-hover:ring-primary/30 transition-all duration-300"
+              />
+              <ArrowUpDown className="relative h-4 w-4 drop-shadow-[0_0_6px_hsl(var(--primary)/0.35)]" strokeWidth={2.25} />
+            </button>
+          );
+        })()}
       </div>
 
       {tab === "teams" && (
