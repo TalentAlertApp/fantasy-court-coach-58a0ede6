@@ -10,14 +10,12 @@ const FULL_NAME: Record<League, string> = {
   euroleague: "Turkish Airlines EuroLeague",
 };
 
-// Per-league logo scale inside the picker card. NBA is the visual baseline (1.0);
-// WNBA and EuroLeague glyphs have built-in transparent padding so they read smaller
-// than NBA at the same box — bump them so all three names sit on the same baseline.
-const PICKER_LOGO_SCALE: Record<League, number> = {
-  nba: 1,
-  wnba: 1.25,
-  euroleague: 1.55,
-};
+// NBA is the visual baseline. WNBA glyph has transparent padding so it reads smaller —
+// grow its layout box (boxScale) so the league name drops to align with "NBA".
+// EuroLeague should look bigger too, but its name must stay put: scale only the
+// rendered <img> (transformScale) without changing the layout box.
+const BOX_SCALE: Record<League, number> = { nba: 1, wnba: 1.22, euroleague: 1 };
+const TRANSFORM_SCALE: Record<League, number> = { nba: 1, wnba: 1, euroleague: 1.45 };
 
 interface Props {
   value: League;
@@ -42,7 +40,14 @@ export default function LeaguePickerCards({
     <div className={cn("grid gap-4", gridCols, className)}>
       {FANTASY_COMPETITIONS.map((comp) => {
         const c = comp.code;
-        const m = { name: comp.label, full: FULL_NAME[c], logo: comp.logo, tint: comp.tint, scale: PICKER_LOGO_SCALE[c] ?? 1 };
+        const m = {
+          name: comp.label,
+          full: FULL_NAME[c],
+          logo: comp.logo,
+          tint: comp.tint,
+          boxScale: BOX_SCALE[c] ?? 1,
+          transformScale: TRANSFORM_SCALE[c] ?? 1,
+        };
         const active = value === c;
         return (
           <button
@@ -83,9 +88,12 @@ export default function LeaguePickerCards({
               <img
                 src={m.logo}
                 alt={m.name}
-                style={m.scale !== 1 ? { transform: `scale(${m.scale})` } : undefined}
+                style={{
+                  height: `calc(var(--logo-size) * ${m.boxScale})`,
+                  width: `calc(var(--logo-size) * ${m.boxScale})`,
+                  transform: m.transformScale !== 1 ? `scale(${m.transformScale})` : undefined,
+                }}
                 className={cn(
-                  logoCls,
                   "object-contain drop-shadow-[0_4px_20px_rgba(0,0,0,0.35)] transition-transform duration-300",
                   active ? "scale-105" : "group-hover:scale-105",
                 )}
