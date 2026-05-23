@@ -158,8 +158,16 @@ Deno.serve(async (req) => {
       return out;
     };
 
-    const currentTable = leagueCode === "wnba" ? WNBA_TEAMS : NBA_TEAMS;
-    const foreignTable = leagueCode === "wnba" ? NBA_TEAMS : WNBA_TEAMS;
+    // EuroLeague has no static team table here; skip cross-league text guards
+    // so legitimate EL team names (Panathinaikos, Žalgiris, etc.) aren't flagged.
+    const currentTable =
+      leagueCode === "wnba" ? WNBA_TEAMS
+      : leagueCode === "euroleague" ? []
+      : NBA_TEAMS;
+    const foreignTable =
+      leagueCode === "wnba" ? NBA_TEAMS
+      : leagueCode === "euroleague" ? []
+      : WNBA_TEAMS;
     // The blocklist is computed AFTER we resolve tonight's slate tricodes
     // (see `buildForeignTermChecker` below) so we can also flag current-league
     // teams that aren't actually playing tonight (off-slate leaks).
