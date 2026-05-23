@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
-import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, isMainLeague } from "@/hooks/useFantasyLeagues";
+import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_EUROLEAGUE_ID, isMainLeague } from "@/hooks/useFantasyLeagues";
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -373,10 +373,11 @@ export default function LeaguesPage() {
   const sortedLeagues = useMemo(() => {
     const nbaMain = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_NBA_ID);
     const wnbaMain = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_WNBA_ID);
+    const euroleagueMain = fantasyLeagues.find((l) => l.id === MAIN_LEAGUE_EUROLEAGUE_ID);
     const rest = fantasyLeagues
       .filter((l) => !isMainLeague(l.id))
       .sort((a, b) => a.name.localeCompare(b.name));
-    return [nbaMain, wnbaMain, ...rest].filter(Boolean) as typeof fantasyLeagues;
+    return [nbaMain, wnbaMain, euroleagueMain, ...rest].filter(Boolean) as typeof fantasyLeagues;
   }, [fantasyLeagues]);
 
   // Sport-aware override: Main Leagues store teams against the SPORT league_id,

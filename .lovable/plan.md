@@ -1,34 +1,21 @@
-# Plan
+## Plan
 
-## 1) EuroLeague — bulk-import all YT recaps from `GameRecaps_YT.csv`
+### Issue 1 — MAIN EUROLEAGUE missing from My Leagues
+**Root cause:** `src/pages/LeaguesPage.tsx` builds `sortedLeagues` by explicitly picking the NBA and WNBA main leagues and then appending everything that is *not* a main league. The EuroLeague main league (`00000000-0000-0000-0000-000000000030`) is therefore filtered out — it’s a main league, but it isn’t pinned, so it disappears. The Discover panel uses a separate query (`leagues-discover`) that has no such filter, which is why it still shows there.
 
-CSV contains **380** `Game ID → YouTube URL` mappings. Game IDs (`E2025_…`) match `schedule_games.game_id` for `league_id = 00000000-0000-0000-0000-000000000003`.
+```text
+sortedLeagues = [nbaMain, wnbaMain, ...nonMain]   // euroleagueMain dropped here
+```
 
-**One-shot SQL data update** (no edge function, no API quota, runs once):
-- Parse the CSV in `/tmp`, extract the 11-char video id from each URL (handles `watch?v=…`, `youtu.be/…`, `&t=…` suffixes).
-- Use the Supabase insert/update tool to run a single `UPDATE schedule_games SET youtube_recap_id = v.yt FROM (VALUES (...380 rows...)) AS v(gid, yt) WHERE schedule_games.game_id = v.gid AND schedule_games.league_id = '00000000-0000-0000-0000-000000000003'`.
-- After running, EuroLeague Missing Recaps drops to ~0.
+**Fix:** also pick `euroleagueMain` (via `MAIN_LEAGUE_EUROLEAGUE_ID`, already exported from `useFantasyLeagues`) and prepend it alongside the other two pinned main leagues. The downstream `leaguesWithMineCount` already handles any sport via `isMainLeague(...)`, so no further changes needed.
 
-What stays as-is:
-- `MissingRecapsPanel` at `/commissioner` keeps working for any future games (still calls `youtube-recap-lookup` with key rotation).
-- No edge-function or frontend changes for part 1.
+### Issue 2 — EuroLeague logo too small in the sidebar team pill
+**Root cause:** `LeagueLogoBadge` renders every league at the same pixel box (`h-3.5/h-4/h-5`). The EuroLeague PNG has built-in transparent padding, so it visually reads smaller than the NBA/WNBA marks. `COMPETITIONS.euroleague` already declares `logoScale: 1.25` for exactly this case, but the badge ignores it.
 
-## 2) `/teams` Teams tab — A→Z sort toggle
+**Fix:** in `src/components/LeagueLogoBadge.tsx`, read `comp.logoScale` and apply it via inline `transform: scale(...)` on the `<img>`. Keeps the layout box identical (so surrounding spacing doesn’t shift) while the glyph itself grows to match the NBA/WNBA visual weight in the header pill and the dropdown items.
 
-In `src/pages/TeamsPage.tsx`:
-- Add `sortMode: "winpct" | "alpha"` state, default `"winpct"` (current behavior).
-- In the `teams` memo, sort by win% when `winpct`, else by `t.name.localeCompare(...)`.
-- Add an icon-only button on the right side of the Teams/Standings header row (shown only when `tab === "teams"`), no container/background, `text-muted-foreground hover:text-foreground` (no AI colors):
-  - `ArrowDownWideNarrow` (lucide) when in `winpct` mode — clicking switches to A→Z.
-  - `ArrowDownAZ` when in `alpha` mode — clicking switches back to Win%.
-  - `title`/`aria-label` reflects the next action.
+### Files touched
+- `src/pages/LeaguesPage.tsx` — include EuroLeague main league in `sortedLeagues`.
+- `src/components/LeagueLogoBadge.tsx` — apply per-competition `logoScale`.
 
-No other UI/logic changes.
-
-## 3) EuroLeague Injury Report — NOT in this plan
-
-The 11 RotoWire / Euroleague.net sources you listed (injury report, injury news, daily lineups, depth charts, minutes report, playing-time changes, official news/players/teams/game-center, fantasy challenge) are a separate, larger workstream — scraping strategy, schema, surfacing in the UI, and refresh cadence all need their own design pass. I'll tackle it in a dedicated follow-up plan after this one ships; please confirm which of those sources are highest priority (e.g. Injury Report + Daily Lineups first?) so I can scope it properly.
-
-## Out of scope (this plan)
-- No changes to `youtube-recap-lookup`, `euroleague-recap-scrape`, key rotation, NBA/WNBA flows.
-- No injury-report scraping work — see section 3.
+No backend, schema, or edge-function changes. No business logic changes — purely list assembly + presentation.

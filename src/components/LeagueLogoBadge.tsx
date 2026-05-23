@@ -28,6 +28,7 @@ export default function LeagueLogoBadge({
   const comp = tryGetCompetition(league?.toString().toLowerCase()) ?? COMPETITIONS.nba;
   const src = comp.logo;
   const label = comp.shortLabel;
+  const scale = comp.logoScale ?? 1;
   return (
     <span
       className={`inline-flex items-center gap-1 align-middle ${className}`}
@@ -41,6 +42,7 @@ export default function LeagueLogoBadge({
         width={20}
         height={20}
         className={`${SIZE_CLASS[size]} object-contain shrink-0`}
+        style={scale !== 1 ? { transform: `scale(${scale})`, transformOrigin: "center" } : undefined}
       />
       {withLabel && (
         <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">
