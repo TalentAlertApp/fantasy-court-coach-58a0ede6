@@ -122,7 +122,10 @@ Deno.serve(async (req) => {
       .eq("id", league_id)
       .maybeSingle();
     const leagueCode = (leagueRow?.code ?? "nba").toLowerCase();
-    const leagueLabel = leagueCode === "wnba" ? "WNBA" : "NBA";
+    const leagueLabel =
+      leagueCode === "wnba" ? "WNBA"
+      : leagueCode === "euroleague" ? "EuroLeague"
+      : "NBA";
 
     // ── helpers used by validators (defined early so cache check can use them) ──
     // Tokens that look like tricodes but aren't team tricodes. We must exclude
