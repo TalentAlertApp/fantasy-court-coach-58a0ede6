@@ -211,7 +211,7 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
                     <img
                       src={topScorer.core.photo}
                       alt={topScorer.core.name}
-                      className="h-14 w-14 rounded-full object-cover border border-border"
+                      className="h-14 w-14 rounded-full object-cover object-top border border-border"
                     />
                   )}
                   <div className="min-w-0">
