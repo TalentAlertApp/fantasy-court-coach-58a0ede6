@@ -117,7 +117,7 @@ export default function AuthPage() {
             </div>
             <span className="h-7 w-px bg-border/60" aria-hidden="true" />
             <div className="flex h-12 w-14 items-center justify-center">
-              <img src={euroleagueLogo} alt="EuroLeague" className="max-h-12 max-w-full object-contain" />
+              <img src={euroleagueLogo} alt="EuroLeague" className="max-h-12 max-w-full object-contain scale-150" />
             </div>
           </div>
           <h1 className="text-2xl font-heading font-bold uppercase tracking-[0.2em] text-foreground">
