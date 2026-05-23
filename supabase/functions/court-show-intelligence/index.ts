@@ -613,7 +613,7 @@ Rules:
                     away_team: { type: ["string","null"] },
                     home_team: { type: ["string","null"] },
                     game_id: { type: ["string","null"] },
-                    league: { type: "string", enum: ["NBA","WNBA"] },
+                    league: { type: "string", enum: ["NBA","WNBA","EuroLeague"] },
                   },
                   required: ["kind","headline","body"],
                   additionalProperties: false,
