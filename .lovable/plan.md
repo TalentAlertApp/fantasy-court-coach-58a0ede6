@@ -1,30 +1,24 @@
-## Plan
+## Add "Ongoing" status badge to WNBA card
 
-### Issue 1 — MAIN EUROLEAGUE shouldn't appear in Discover
-**Root cause:** Main NBA and Main WNBA are stored with `visibility = 'private'`, but Main EuroLeague was seeded with `visibility = 'public'`. The `leagues-discover` edge function filters by `visibility = 'public'`, so only the EuroLeague main leaks into Discover.
+Add a premium, game-style status indicator to the WNBA league card in the onboarding "Name Your Franchise" screen, signaling that WNBA is the only active season right now.
 
-Verified via DB:
-- `00000000-…010` (NBA Main) → private
-- `00000000-…020` (WNBA Main) → private
-- `00000000-…030` (EuroLeague Main) → **public** ← outlier
+### Where
+`src/components/LeaguePickerCards.tsx` — extend the per-league metadata so any card can opt-in to a status badge; only WNBA gets one for now.
 
-**Fix:** add a migration that flips Main EuroLeague to `visibility = 'private'` to match the other two mains. Belt-and-braces, also exclude any main-league id from the `leagues-discover` query so a future misconfiguration never re-leaks a main into Discover.
+### Visual design
+- Position: top-right corner of the card, absolutely positioned with a small inset (`top-2 right-2`).
+- Shape: small pill with a thin red ring + soft red glow (uses `hsl(var(--destructive))` so it stays on-theme rather than a hardcoded red).
+- Content: tiny pulsing red dot + uppercase label "ONGOING" in the heading font, `tracking-[0.25em]`, `text-[10px]`.
+- Background: semi-transparent dark (`bg-background/70 backdrop-blur-sm`) so it reads cleanly over the colored card tint.
+- Subtle glow via `shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]` + the dot uses `animate-pulse` for a live-game feel.
+- Z-index above the watermark logo but below the active halo ring.
 
-### Issue 2 — League names misaligned on "Name Your Franchise"
-**Root cause:** `LeaguePickerCards` renders the long subtitle (e.g. "National Basketball Association") inside `max-w-[14ch] break-words`. With uppercase + `tracking-[0.2em]`, every glyph eats ~1.2ch, so the third word breaks mid-letter ("ASSOCIATIO" / "N"). The three cards then visually disagree because each name wraps at a different column.
+### Implementation notes
+- Add an optional `statusBadge?: { label: string; tone: "live" }` config map keyed by competition code, with only `wnba` populated.
+- Render the badge inside the existing card `<button>` after the watermark `<img>` and before the active halo, so layering stays correct.
+- No changes to layout sizing of the card or logos — purely additive overlay.
+- Keep accessibility: include `aria-label` extension on the button (e.g. `Select WNBA (season ongoing)`) and mark the badge `role="status"`.
 
-**Fix:** in `src/components/LeaguePickerCards.tsx`, drop `break-words` (allow only normal word breaks), widen the subtitle to `max-w-[22ch]`, and reduce the subtitle's letter-spacing slightly (`tracking-[0.15em]`) so all three full-name labels wrap onto the same number of lines and stay center-aligned.
-
-### Issue 3 — AI Coach Captain photo cuts off the forehead
-**Root cause:** `CaptainPreview` in `src/components/ai-coach/StylePreferencesPanel.tsx` renders the captain headshot with `object-cover` and no anchor, so the rounded crop sits in the geometric center — same forehead-cut problem we just fixed on the court and Team of the Week cards.
-
-**Fix:** add `object-top` so the face anchors to the top of the crop circle, matching the convention already used in `PlayerCard`, `LeaderTable`, `RotatingLeaderCard`.
-
-### Files touched
-- new migration: `supabase/migrations/<ts>_main_euroleague_private.sql` (UPDATE single row).
-- `supabase/functions/leagues-discover/index.ts` — `.not("id","in", "(...)")` over the three known main-league UUIDs.
-- `src/components/LeaguePickerCards.tsx` — subtitle alignment tweak.
-- `src/components/ai-coach/StylePreferencesPanel.tsx` — `object-top` on captain headshot.
-- Deploy `leagues-discover`.
-
-No schema, RLS, or scoring changes. Purely a data correction + two presentation fixes.
+### Out of scope
+- Onboarding logic, league selection, ordering, or auto-selecting WNBA.
+- Any other surface that uses `LeaguePickerCards` (badge will appear wherever the picker renders, which is correct — WNBA is the only ongoing league globally).
