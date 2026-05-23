@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
+import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 
 export default function TeamSwitcher() {
   const { teams, selectedTeamId, setSelectedTeamId, isLoading } = useTeam();
@@ -35,6 +36,7 @@ export default function TeamSwitcher() {
       next.delete("sport");
       next.delete("league_id");
       setSearchParams(next, { replace: true });
+      markTeamPickedThisSession();
       navigate("/welcome", { state: { forceNewTeam: true } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,8 +119,10 @@ export default function TeamSwitcher() {
     <>
       <div className="flex items-center gap-1.5">
         <Select value={selectedTeamId ?? ""} onValueChange={(v) => {
-          if (v === "__new__") navigate("/welcome", { state: { forceNewTeam: true } });
-          else setSelectedTeamId(v);
+          if (v === "__new__") {
+            markTeamPickedThisSession();
+            navigate("/welcome", { state: { forceNewTeam: true } });
+          } else setSelectedTeamId(v);
         }}>
           <SelectTrigger className="w-[150px] h-7 bg-white/10 border-white/20 text-white text-xs font-heading uppercase rounded-lg">
             <SelectValue placeholder="Select team" />

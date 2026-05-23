@@ -1,24 +1,26 @@
-## Add "Ongoing" status badge to WNBA card
+## Plan
 
-Add a premium, game-style status indicator to the WNBA league card in the onboarding "Name Your Franchise" screen, signaling that WNBA is the only active season right now.
+1. **Stop the New Team flow from bouncing back to Pick Your Team**
+   - Update the app-level auth gate so `/welcome` with `forceNewTeam` is treated as an intentional onboarding flow, not as a returning-user session that needs the team picker.
+   - Keep the existing picker behavior for normal login: returning users still land on Pick Your Team until they choose a team.
+   - Ensure both entry points work:
+     - `+ New Team` from `/welcome/pick-team`
+     - `+ New Team` from the sidebar team pill
 
-### Where
-`src/components/LeaguePickerCards.tsx` — extend the per-league metadata so any card can opt-in to a status badge; only WNBA gets one for now.
+2. **Preserve the Name Your Franchise screen while creating a new team**
+   - Adjust the onboarding redirect/render guards so they do not show a loader or redirect when `forceNewTeam` is active.
+   - Avoid changing draft/team creation logic, league selection, or roster rules.
 
-### Visual design
-- Position: top-right corner of the card, absolutely positioned with a small inset (`top-2 right-2`).
-- Shape: small pill with a thin red ring + soft red glow (uses `hsl(var(--destructive))` so it stays on-theme rather than a hardcoded red).
-- Content: tiny pulsing red dot + uppercase label "ONGOING" in the heading font, `tracking-[0.25em]`, `text-[10px]`.
-- Background: semi-transparent dark (`bg-background/70 backdrop-blur-sm`) so it reads cleanly over the colored card tint.
-- Subtle glow via `shadow-[0_0_20px_-4px_hsl(var(--destructive)/0.6)]` + the dot uses `animate-pulse` for a live-game feel.
-- Z-index above the watermark logo but below the active halo ring.
+3. **Center and tighten the login league logo row**
+   - Update `AuthPage` only.
+   - Put the NBA, WNBA, and EuroLeague logos in a centered fixed-width logo strip so the group aligns visually with the `FANTASY` heading.
+   - Reduce horizontal spacing between the logos/separators while keeping the existing “no containers” visual style.
 
-### Implementation notes
-- Add an optional `statusBadge?: { label: string; tone: "live" }` config map keyed by competition code, with only `wnba` populated.
-- Render the badge inside the existing card `<button>` after the watermark `<img>` and before the active halo, so layering stays correct.
-- No changes to layout sizing of the card or logos — purely additive overlay.
-- Keep accessibility: include `aria-label` extension on the button (e.g. `Select WNBA (season ongoing)`) and mark the badge `role="status"`.
+## Technical notes
 
-### Out of scope
-- Onboarding logic, league selection, ordering, or auto-selecting WNBA.
-- Any other surface that uses `LeaguePickerCards` (badge will appear wherever the picker renders, which is correct — WNBA is the only ongoing league globally).
+- Files to change:
+  - `src/components/auth/RequireAuth.tsx`
+  - `src/pages/OnboardingPage.tsx` if needed for the final guard
+  - `src/pages/AuthPage.tsx`
+- No database or Supabase function changes.
+- No change to the earlier logo-container request for league picker cards.
