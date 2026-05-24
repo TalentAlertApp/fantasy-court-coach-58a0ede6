@@ -259,7 +259,7 @@ export default function CreateLeaguePage() {
               {([
                 { key: "nba" as const, name: "NBA", full: "National Basketball Association", count: "450+ players", logo: nbaLogo },
                 { key: "wnba" as const, name: "WNBA", full: "Women's National Basketball Association", count: "140+ players", logo: wnbaLogo },
-                { key: "euroleague" as const, name: "EuroLeague", full: "Turkish Airlines EuroLeague", count: "18 clubs", logo: euroleagueLogo },
+                { key: "euroleague" as const, name: "EuroLeague", full: "Turkish Airlines EuroLeague", count: "20 clubs", logo: euroleagueLogo },
               ]).map((opt) => (
                 <button
                   key={opt.key}
