@@ -256,6 +256,7 @@ export const GameBoxscorePlayerSchema = z.object({
   team: z.string(),
   fc_bc: FCBCSchema,
   photo: z.string().nullable(),
+  jersey: z.number().int().nullable().optional(),
   mp: IntSchema,
   ps: IntSchema,
   fp: NumSchema,
