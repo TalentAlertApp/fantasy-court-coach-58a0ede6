@@ -66,7 +66,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
     queryFn: async () => {
       let pq = supabase
         .from("players")
-        .select("id, name, photo, fc_bc, salary, nationality")
+        .select("id, name, photo, fc_bc, salary, nationality, jersey")
         .eq("team", tricode!);
       if (leagueId) pq = pq.eq("league_id", leagueId);
       const { data: teamPlayers, error: pErr } = await pq;
@@ -390,6 +390,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                 <ScrollArea className="h-[50vh]">
                   {/* Header */}
                   <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border sticky top-0 bg-card z-10">
+                    <span className="w-6 text-left text-[10px] uppercase tracking-wider text-muted-foreground">#</span>
                     <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground">Player</span>
                     <span className="w-12 text-right" title="Minutes Per Game">{sortHeader("MPG", "mpg")}</span>
                     <span className="w-12 text-right" title="Points Per Game">{sortHeader("PPG", "ppg")}</span>
@@ -403,6 +404,9 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm cursor-pointer hover:bg-accent/30 transition-colors"
                         onClick={() => setSelectedPlayerId(p.id)}
                       >
+                        <span className="w-6 text-left text-[10px] font-mono text-muted-foreground">
+                          {(p as any).jersey === null || (p as any).jersey === undefined ? "" : String((p as any).jersey)}
+                        </span>
                         <Avatar className="h-6 w-6 shrink-0">
                           {p.photo && <AvatarImage src={p.photo} />}
                           <AvatarFallback className="text-[8px]">{p.name.slice(0, 2)}</AvatarFallback>
