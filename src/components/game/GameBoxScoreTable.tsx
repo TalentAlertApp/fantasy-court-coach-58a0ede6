@@ -68,8 +68,8 @@ export default function GameBoxScoreTable({
     ? SORT_COLUMNS.filter((c) => c.key !== "salary" && c.key !== "value")
     : SORT_COLUMNS;
   const gridCols = compact
-    ? "grid-cols-[minmax(0,1fr)_repeat(7,24px)]"
-    : "grid-cols-[minmax(0,1fr)_repeat(9,36px)]";
+    ? "grid-cols-[22px_minmax(0,1fr)_repeat(7,24px)]"
+    : "grid-cols-[28px_minmax(0,1fr)_repeat(9,36px)]";
   const numCellCls = compact ? "text-[11px]" : "text-[13px]";
 
   const { teams: leagueTeams } = useLeagueTeams();
@@ -119,6 +119,7 @@ export default function GameBoxScoreTable({
         className={`pointer-events-none absolute inset-0 m-auto h-48 w-48 ${watermarkOpacity} select-none object-contain`}
       />
       <div className={`relative z-[1] grid ${gridCols} gap-0 ${compact ? "px-1.5 py-1 text-[10px]" : "px-2 py-1.5 text-xs"} font-heading uppercase text-muted-foreground border-b bg-muted/40`}>
+        <span className="text-left">#</span>
         <div className={`pr-2 flex items-center ${compact ? "gap-1.5" : "gap-2"} flex-wrap h-7`}>
           {visibleTriBadges.map((tri) => {
             const tlogo = logoFor(tri);
@@ -175,6 +176,9 @@ export default function GameBoxScoreTable({
               onClick={() => setOpenPlayerId(p.player_id)}
               className={`grid ${gridCols} gap-0 ${compact ? "px-1.5 py-1" : "px-2 py-1"} ${numCellCls} items-center border-b border-border/40 last:border-b-0 cursor-pointer hover:bg-accent/30 transition-colors even:bg-muted/10`}
             >
+              <span className={`font-mono text-muted-foreground ${compact ? "text-[10px]" : "text-[11px]"} text-left`}>
+                {(p as any).jersey === null || (p as any).jersey === undefined ? "" : String((p as any).jersey)}
+              </span>
               <div className="flex items-center gap-2 pr-2 min-w-0">
                 <Avatar className={`${compact ? "h-5 w-5" : "h-6 w-6"} shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
                   {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
