@@ -182,8 +182,11 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(LS_KEY, id);
     lastSetAtRef.current = Date.now();
     lastChangeOriginRef.current = "team";
-    // Invalidate all server-data caches because the active team controls the
-    // effective sport for Main League views and team-scoped API requests.
+    // Drop league-keyed caches outright so a stale NBA/WNBA/EuroLeague
+    // payload can't paint for one frame after picking a team in a
+    // different league. Then invalidate the rest.
+    queryClient.removeQueries({ queryKey: ["players"] });
+    queryClient.removeQueries({ queryKey: ["roster-current"] });
     queryClient.invalidateQueries();
   }, [queryClient]);
 

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { getLeagueLogo } from "@/lib/competitions";
 import { useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { Plus, LogOut, ChevronRight, Volume2, VolumeX } from "lucide-react";
@@ -17,6 +18,7 @@ export default function TeamPickerPage() {
   const { user, signOut } = useAuth();
   const { teams, setSelectedTeamId, isReady } = useTeam();
   const { enabled: audioEnabled, toggle: toggleAudio } = useOnboardingAudio(true);
+  const queryClient = useQueryClient();
 
   const ownedTeams = useMemo(
     () => teams.filter((t: any) => t.owner_id === user?.id || !t.owner_id),
@@ -42,6 +44,11 @@ export default function TeamPickerPage() {
   }, [isReady, ownedTeams, navigate, setSelectedTeamId]);
 
   const handlePick = (id: string) => {
+    // Drop any league-keyed caches from the previous team so the next
+    // render of WelcomeBackHero / RosterPage doesn't paint a frame with
+    // the old league's players/roster.
+    queryClient.removeQueries({ queryKey: ["players"] });
+    queryClient.removeQueries({ queryKey: ["roster-current"] });
     setSelectedTeamId(id);
     markTeamPickedThisSession();
     navigate("/", { replace: true });
@@ -61,7 +68,7 @@ export default function TeamPickerPage() {
 
   return (
     <div
-      className="relative min-h-screen w-full bg-background text-foreground flex flex-col"
+      className="relative min-h-screen w-full bg-background text-foreground flex flex-col overflow-y-auto"
       style={{
         backgroundImage: `
           radial-gradient(ellipse at 20% 10%, hsl(var(--primary) / 0.18), transparent 55%),
@@ -111,7 +118,7 @@ export default function TeamPickerPage() {
         </button>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center flex-1 px-6 py-24 max-w-6xl mx-auto w-full">
+      <div className="relative z-10 flex flex-col items-center flex-1 px-6 pt-24 pb-12 max-w-6xl mx-auto w-full">
         <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">
           Welcome back · <span className="text-foreground/80">{displayName}</span>
         </p>
