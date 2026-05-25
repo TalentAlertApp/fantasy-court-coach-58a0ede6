@@ -278,6 +278,44 @@ async function syncPlayers(token: string, sb: ReturnType<typeof makeSb>, leagueI
   return { tab: "DB_Players", rows_read: data.length, upserted, skipped, errors };
 }
 
+// WNBA salary formula (mirrors wnba-salary-recalc): rookie → $4.5M, max-exp → $25M,
+// linear interpolation in between. Applied here only to NEW players (salary=0/NULL)
+// so that freshly synced players land with a calculated $ instead of TBD.
+const WNBA_SAL_MIN = 4.5;
+const WNBA_SAL_MAX = 25;
+function parseExpForSalary(raw: unknown): number {
+  if (raw == null) return 0;
+  const s = String(raw).trim().toUpperCase();
+  if (s === "" || s === "R" || s === "ROOKIE") return 0;
+  const n = parseInt(s, 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+async function backfillNewWnbaSalaries(sb: ReturnType<typeof makeSb>, leagueId: string) {
+  // Compute league-wide max exp so the interpolation matches wnba-salary-recalc.
+  const { data: allRows, error: allErr } = await sb
+    .from("players").select("id, exp, salary").eq("league_id", leagueId);
+  if (allErr) return { backfilled: 0, errors: [allErr.message] };
+  let maxExp = 0;
+  for (const p of allRows ?? []) {
+    const e = parseExpForSalary((p as any).exp);
+    if (e > maxExp) maxExp = e;
+  }
+  const newOnes = (allRows ?? []).filter((p: any) => !Number(p.salary));
+  let backfilled = 0; const errors: string[] = [];
+  for (const p of newOnes) {
+    const e = parseExpForSalary((p as any).exp);
+    const salary = maxExp <= 0
+      ? WNBA_SAL_MIN
+      : Math.round((WNBA_SAL_MIN + (e / maxExp) * (WNBA_SAL_MAX - WNBA_SAL_MIN)) * 10) / 10;
+    const { error: upErr } = await sb.from("players")
+      .update({ salary, value_t: 0, value5: 0, updated_at: new Date().toISOString() })
+      .eq("id", (p as any).id).eq("league_id", leagueId);
+    if (upErr) errors.push(`#${(p as any).id}: ${upErr.message}`);
+    else backfilled++;
+  }
+  return { backfilled, max_exp: maxExp, errors };
+}
+
 async function syncSchedule(token: string, sb: ReturnType<typeof makeSb>, leagueId: string) {
   // Schedule: A Week B Day C Date D DayName E Time F Home G Away H Status
   //           I HomeScore J AwayScore K GameID L GameURL
@@ -580,7 +618,8 @@ serve(async (req: Request) => {
 
     if (mode === "players") {
       const r = await syncPlayers(token, sb, leagueId);
-      return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
+      const salary_backfill = await backfillNewWnbaSalaries(sb, leagueId);
+      return ok({ mode, elapsed_ms: Date.now() - t0, ...r, salary_backfill });
     }
     if (mode === "schedule") {
       const r = await syncSchedule(token, sb, leagueId);
@@ -596,12 +635,13 @@ serve(async (req: Request) => {
     }
     if (mode === "all") {
       const players = await syncPlayers(token, sb, leagueId);
+      const salary_backfill = await backfillNewWnbaSalaries(sb, leagueId);
       const schedule = await syncSchedule(token, sb, leagueId);
       const gameData = await syncGameData(token, sb, leagueId);
       const adv = await syncAdvancedStats(token, sb, leagueId);
       return ok({
         mode, elapsed_ms: Date.now() - t0,
-        results: { players, schedule, "game-data": gameData, "advanced-stats": adv },
+        results: { players, salary_backfill, schedule, "game-data": gameData, "advanced-stats": adv },
       });
     }
 

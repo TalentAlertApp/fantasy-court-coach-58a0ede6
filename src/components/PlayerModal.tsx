@@ -216,6 +216,20 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                       </p>
                     </div>
                     <p className="text-[10px] text-muted-foreground/80 truncate">
+                      {(() => {
+                        const dob = (data.player.core as any).dob as string | null | undefined;
+                        const age = (data.player.core as any).age as number | null | undefined;
+                        if (!dob && !age) return null;
+                        let dobLabel = "";
+                        if (dob) {
+                          const d = new Date(dob);
+                          if (!isNaN(d.getTime())) {
+                            dobLabel = d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+                          }
+                        }
+                        const label = dobLabel && age ? `${dobLabel} (${age})` : (dobLabel || (age ? `Age ${age}` : ""));
+                        return label ? <>{label} · </> : null;
+                      })()}
                       {data.player.core.height ?? "—"}
                       {data.player.core.college ? ` · ${data.player.core.college}` : ""}
                       {(data.player.core as any).nationality ? (
