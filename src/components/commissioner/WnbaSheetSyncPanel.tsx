@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Database, Loader2, CalendarDays, Trophy, Users, BarChart3, RefreshCw,
@@ -61,6 +62,7 @@ const JOB_LABELS: Record<ScheduleRow["job_key"], string> = {
 };
 
 export default function WnbaSheetSyncPanel() {
+  const queryClient = useQueryClient();
   const [busyMode, setBusyMode] = useState<string | null>(null);
   const [inspect, setInspect] = useState<InspectResult | null>(null);
   const [results, setResults] = useState<Record<string, SyncResult>>({});
@@ -138,6 +140,15 @@ export default function WnbaSheetSyncPanel() {
     }
   };
 
+  const invalidateScheduleCaches = () => {
+    queryClient.invalidateQueries({ queryKey: ["schedule"] });
+    queryClient.invalidateQueries({ queryKey: ["wnba-schedule"] });
+    queryClient.invalidateQueries({ queryKey: ["games"] });
+    queryClient.invalidateQueries({ queryKey: ["game-boxscore"] });
+    queryClient.invalidateQueries({ queryKey: ["gameday"] });
+    queryClient.invalidateQueries({ queryKey: ["scoring"] });
+  };
+
   const run = async (mode: string, label: string) => {
     setBusyMode(mode);
     try {
@@ -158,6 +169,7 @@ export default function WnbaSheetSyncPanel() {
           setResults((prev) => ({ ...prev, [s.m]: data.data as SyncResult }));
         }
         toast.success("Schedule + Game Data + Advanced Stats synced");
+        invalidateScheduleCaches();
         return;
       }
       const { data, error } = await supabase.functions.invoke("wnba-sheet-sync", {
@@ -176,6 +188,9 @@ export default function WnbaSheetSyncPanel() {
         setResults((prev) => ({ ...prev, [mode]: data.data as SyncResult }));
       }
       toast.success(`${label} done`);
+      if (mode === "schedule" || mode === "game-data" || mode === "all") {
+        invalidateScheduleCaches();
+      }
     } catch (e) {
       toast.error(`${label} failed: ${(e as Error).message}`);
     } finally {
