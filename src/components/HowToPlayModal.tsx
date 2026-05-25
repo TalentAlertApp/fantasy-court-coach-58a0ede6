@@ -15,8 +15,10 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
   const { data: scoringRules } = useScoringSystem();
   const formula = buildFormulaString(scoringRules);
   const captainMult = captainMultiplier(scoringRules);
-  const { isWnba } = useLeague();
-  const LEAGUE = isWnba ? "WNBA" : "NBA";
+  const { league } = useLeague();
+  const LEAGUE =
+    league === "wnba" ? "WNBA" : league === "euroleague" ? "EuroLeague" : "NBA";
+  const isEuroLeague = league === "euroleague";
 
   return (
     <>
@@ -71,6 +73,9 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                   <p><strong>Deadline: 30 minutes before the first tipoff</strong> of each gameday. After this, your lineup is locked for that day.</p>
                   <p>You can still make changes for future gamedays within the same gameweek.</p>
                   <p>All times shown are in <strong>Lisbon (WET/WEST)</strong> timezone.</p>
+                  {isEuroLeague && (
+                    <p>EuroLeague gamedays typically run <strong>Tuesday–Friday</strong>, so gameweeks are shorter and denser than NBA/WNBA weeks.</p>
+                  )}
                 </AccordionContent>
               </AccordionItem>
 
@@ -79,10 +84,10 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                   ⚔️ Leagues
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pt-2 text-sm space-y-2 font-body">
-                  <p>Leagues are how you compete. Each team belongs to <strong>one Main League</strong> (NBA or WNBA) where standings, prizes and bragging rights live.</p>
-                  <p><strong>Discover:</strong> browse public leagues you can join with one click. Filter by NBA / WNBA / All to find the right room.</p>
+                  <p>Leagues are how you compete. Each team belongs to <strong>one Main League</strong> (NBA, WNBA or EuroLeague) where standings, prizes and bragging rights live.</p>
+                  <p><strong>Discover:</strong> browse public leagues you can join with one click. Filter by NBA / WNBA / EuroLeague / All to find the right room.</p>
                   <p><strong>Join with Code:</strong> private leagues are invite-only — paste the share code your commissioner sent you to jump straight in.</p>
-                  <p><strong>Create a League:</strong> open your own room, set the sport (NBA or WNBA), and share the code with friends. As commissioner you control name, visibility and members.</p>
+                  <p><strong>Create a League:</strong> open your own room, set the sport (NBA, WNBA or EuroLeague), and share the code with friends. As commissioner you control name, visibility and members.</p>
                   <p><strong>Multi-team:</strong> you can manage multiple teams across different leagues — switch between them at any time from the team selector in the sidebar.</p>
                   <p><strong>Standings:</strong> updated after every gameday using your Fantasy Points (FP). The Main League view groups every team in your league for head-to-head context.</p>
                 </AccordionContent>
