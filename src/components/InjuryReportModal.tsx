@@ -188,6 +188,17 @@ function cleanInjuryNotes(raw: string | null | undefined, playerName?: string): 
   let s = String(raw).replace(/\s+/g, " ").trim();
   s = s.replace(/^\s*(?:news\s+)?display\s+mode(?:\s+(?:compact|expanded))+\s*/i, "");
   s = s.replace(/^\s*news\s+/i, "");
+  // Drop Rotowire upsell tail that gets appended to the scraped blurb.
+  s = s.replace(/\s*\bANALYSIS\b.*$/i, "");
+  s = s.replace(/\s*Subscribe\s+now\s+to\b.*$/i, "");
+  // Break up CamelCase/CONCATWord runs from scraped HTML
+  // ("GarubaRuled" → "Garuba Ruled", "MadridLeg" → "Madrid Leg",
+  //  "CReal" → "C Real").
+  s = s.replace(/([a-z])([A-Z])/g, "$1 $2");
+  s = s.replace(/([A-Z])([A-Z][a-z])/g, "$1 $2");
+  s = s.replace(/\s+/g, " ").trim();
+  // Trim trailing ellipsis fragments left after stripping suffix.
+  s = s.replace(/[\s,;:.\-]*…?\s*$/u, (m) => (m.includes("…") ? "…" : ""));
   if (playerName) {
     const last = playerName.trim().split(/\s+/).pop() ?? "";
     if (last) {
