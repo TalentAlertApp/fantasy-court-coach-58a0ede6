@@ -851,6 +851,7 @@ export default function RosterPage() {
           </div>
         </div>
       </div>
+      </div>
 
       {isBootstrapping ? (
         <div className="space-y-4">
