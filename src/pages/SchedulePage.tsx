@@ -281,8 +281,8 @@ export default function SchedulePage() {
             ref={weekScrollRef}
             className={
               league === "euroleague"
-                ? "grid gap-0.5 py-1 pr-2"
-                : "flex gap-0.5 overflow-x-auto scrollbar-hide py-1 pr-2"
+                ? "grid gap-0.5 py-1 px-2"
+                : "flex gap-0.5 overflow-x-auto scrollbar-hide py-1 px-2 justify-center"
             }
             style={league === "euroleague" ? { gridTemplateColumns: "repeat(19, minmax(0, 1fr))" } : undefined}
           >
@@ -314,7 +314,6 @@ export default function SchedulePage() {
                 </button>
               );
             })}
-            {league !== "euroleague" && <span className="shrink-0 w-1" aria-hidden />}
           </div>
           </div>
         </div>
