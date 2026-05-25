@@ -622,8 +622,9 @@ export default function RosterPage() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* ── Full-width Header Banner ── */}
-      <div className="bg-primary mb-3 px-5 py-3 rounded-xl shrink-0">
+      {/* ── Sticky header (banner + toolbar) ── */}
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-1 pb-2 bg-background/95 backdrop-blur-sm shrink-0">
+      <div className="bg-primary mb-3 px-5 py-3 rounded-xl">
         <p className="text-destructive font-heading text-[11px] font-bold uppercase tracking-widest mb-0.5">
           {teamName}
         </p>

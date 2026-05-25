@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords, Bandage } from "lucide-react";
+import { ChevronDown, ExternalLink, Tv2, Table2, BarChart3, Mic, Star, Eye, Swords, Bandage, Maximize2 } from "lucide-react";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
 import InjuryReportModal from "@/components/InjuryReportModal";
@@ -217,16 +217,28 @@ function getLiveStatusLabel(status: string): string | null {
   return u;
 }
 
-function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId }: {
+function GameBoxScore({ gameId, awayTeam, homeTeam, recapUrl, youtubeRecapId, onOpenModal }: {
   gameId: string;
   awayTeam: string;
   homeTeam: string;
   recapUrl?: string | null;
   youtubeRecapId?: string | null;
   onPlayerClick?: (playerId: number) => void;
+  onOpenModal?: () => void;
 }) {
   return (
-    <div className="border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
+    <div className="relative border-t bg-muted/20 grid grid-cols-[1fr_auto] items-stretch">
+      {onOpenModal && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onOpenModal(); }}
+          aria-label="Open full game modal"
+          title="Open full game view"
+          className="absolute top-1.5 right-1.5 z-20 inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-primary hover:bg-background/70 backdrop-blur-sm border border-border/40 transition-colors"
+        >
+          <Maximize2 className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="min-w-0">
         <GameBoxScoreTable
           game={{ game_id: gameId, away_team: awayTeam, home_team: homeTeam }}
@@ -764,6 +776,28 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
   const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
   const [injuryPair, setInjuryPair] = useState<{ a: string; b: string } | null>(null);
+  const [modalGame, setModalGame] = useState<GameDetailGame | null>(null);
+  const openGameModal = (g: ScheduleGame) => {
+    setExpandedId(null);
+    setModalGame({
+      game_id: g.game_id,
+      home_team: g.home_team,
+      away_team: g.away_team,
+      home_pts: g.home_pts ?? 0,
+      away_pts: g.away_pts ?? 0,
+      status: g.status,
+      played: isGameFinal(g.status),
+      game_boxscore_url: g.game_boxscore_url ?? null,
+      game_charts_url: g.game_charts_url ?? null,
+      game_playbyplay_url: g.game_playbyplay_url ?? null,
+      game_recap_url: g.game_recap_url ?? null,
+      nba_game_url: g.nba_game_url ?? null,
+      youtube_recap_id: (g as any).youtube_recap_id ?? null,
+      gw: g.gw ?? null,
+      day: g.day ?? null,
+      tipoff_utc: g.tipoff_utc ?? null,
+    });
+  };
   const colsPerRow = useColsPerRow();
   // Hydrate the EuroLeague team registry so getVenue() can resolve venue
   // backdrops on /schedule cards (NBA/WNBA already use static catalogs).
@@ -886,6 +920,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             recapUrl={g.game_recap_url}
             youtubeRecapId={g.youtube_recap_id}
             onPlayerClick={setSelectedPlayerId}
+            onOpenModal={() => openGameModal(g)}
           />
         )}
         {isScheduled && (
@@ -1208,6 +1243,11 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           onOpenChange={(open) => !open && setInjuryPair(null)}
           initialTeams={injuryPair ? [injuryPair.a, injuryPair.b] : undefined}
         />
+        <GameDetailModal
+          game={modalGame}
+          open={modalGame !== null}
+          onOpenChange={(o) => !o && setModalGame(null)}
+        />
       </div>
     );
   }
@@ -1418,6 +1458,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                     recapUrl={g.game_recap_url}
                     youtubeRecapId={g.youtube_recap_id}
                     onPlayerClick={setSelectedPlayerId}
+                    onOpenModal={() => openGameModal(g)}
                   />
                 )}
                 {isExpanded && isScheduled && (
@@ -1456,6 +1497,11 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         open={injuryPair !== null}
         onOpenChange={(open) => !open && setInjuryPair(null)}
         initialTeams={injuryPair ? [injuryPair.a, injuryPair.b] : undefined}
+      />
+      <GameDetailModal
+        game={modalGame}
+        open={modalGame !== null}
+        onOpenChange={(o) => !o && setModalGame(null)}
       />
     </div>
   );
