@@ -279,12 +279,7 @@ export default function SchedulePage() {
           </div>
           <div
             ref={weekScrollRef}
-            className={
-              league === "euroleague"
-                ? "grid gap-0.5 py-1 px-2"
-                : "flex gap-0.5 overflow-x-auto scrollbar-hide py-1 px-2 justify-center"
-            }
-            style={league === "euroleague" ? { gridTemplateColumns: "repeat(19, minmax(0, 1fr))" } : undefined}
+            className="flex flex-wrap justify-center gap-1 py-1 px-2"
           >
             {Array.from({ length: MAX_WEEK }, (_, i) => i + 1).map((w) => {
               const isPast = w < current.gw;
@@ -298,7 +293,7 @@ export default function SchedulePage() {
                   key={w}
                   data-gw={w}
                   onClick={() => { setGw(w); setDay(getDaysForWeek(w)[0]?.day ?? 1); }}
-                  className={`flex-1 min-w-[36px] py-1.5 text-[11px] font-heading font-bold rounded-xl transition-all ${
+                  className={`w-12 py-1.5 text-[11px] font-heading font-bold rounded-xl transition-all ${
                     isSelected
                       ? "bg-[hsl(var(--nba-yellow))] text-[hsl(var(--nba-navy))] shadow-md"
                       : isPlayed
