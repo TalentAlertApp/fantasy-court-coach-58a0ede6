@@ -1243,6 +1243,11 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           onOpenChange={(open) => !open && setInjuryPair(null)}
           initialTeams={injuryPair ? [injuryPair.a, injuryPair.b] : undefined}
         />
+        <GameDetailModal
+          game={modalGame}
+          open={modalGame !== null}
+          onOpenChange={(o) => !o && setModalGame(null)}
+        />
       </div>
     );
   }
@@ -1492,6 +1497,11 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
         open={injuryPair !== null}
         onOpenChange={(open) => !open && setInjuryPair(null)}
         initialTeams={injuryPair ? [injuryPair.a, injuryPair.b] : undefined}
+      />
+      <GameDetailModal
+        game={modalGame}
+        open={modalGame !== null}
+        onOpenChange={(o) => !o && setModalGame(null)}
       />
     </div>
   );
