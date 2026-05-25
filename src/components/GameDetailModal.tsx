@@ -247,7 +247,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             style={{
               minHeight: embedHeight,
               gridTemplateColumns: panelsOpen
-                ? "minmax(260px,1fr) 640px minmax(260px,1fr)"
+                ? "minmax(160px,1fr) 768px minmax(160px,1fr)"
                 : "0fr minmax(0,1fr) 0fr",
             }}
           >
