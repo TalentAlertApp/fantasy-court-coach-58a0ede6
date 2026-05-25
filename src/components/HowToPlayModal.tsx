@@ -93,6 +93,44 @@ export default function HowToPlayModal({ iconClassName }: HowToPlayModalProps) {
                 </AccordionContent>
               </AccordionItem>
 
+              <AccordionItem value="create-league">
+                <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
+                  🛠️ Create Your Own League
+                </AccordionTrigger>
+                <AccordionContent className="px-3 pt-2 text-sm space-y-3 font-body">
+                  <p>From <strong>Leagues → Create a League</strong> you become commissioner of a fully customizable room. The builder walks you through <strong>7 steps</strong>:</p>
+                  <div>
+                    <p className="font-semibold text-foreground">1. Basics</p>
+                    <p>Name (3–40 chars), optional description, and visibility — <strong>Private</strong> (invite-only), <strong>Invite Only</strong> (visible, needs code) or <strong>Public</strong> (anyone can join).</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">2. Player Pool</p>
+                    <p>Pick the sport: <strong>NBA</strong>, <strong>WNBA</strong> or <strong>EuroLeague</strong>. This locks the eligible player pool and cannot be changed after launch.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">3. Scoring Formula</p>
+                    <p>Start from a preset — <em>Classic</em>, <em>Guards Boost</em>, <em>Bigs Boost</em> — or go <em>Custom</em>. Tune weights for PTS, REB, AST, STL, BLK, optionally penalize TO, and set the Captain multiplier (1×–3×).</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">4. Roster Rules</p>
+                    <p>Set the salary cap (default $100M, toggleable), bench size (3–8), max players from the same real team (default 2), and whether <strong>dynamic salaries</strong> update through the season.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">5. Deadlines</p>
+                    <p>Choose <strong>First Game of the Day</strong> (one lock per gameday) or <strong>Per-Player Game Lock</strong> (each player locks at their own tipoff). All times in Europe/Lisbon.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">6. Chips & Transfers</p>
+                    <p>Enable/disable <strong>Captain</strong>, <strong>Wildcard</strong> and <strong>All-Star</strong> chips, choose how many of each per season, and set the gameweek <strong>transfer cap</strong> (1–5).</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">7. Review & Launch</p>
+                    <p>Confirm everything, then the league spins up with a unique <strong>join code</strong> you can share with friends.</p>
+                  </div>
+                  <p className="text-muted-foreground text-xs">As commissioner you can manage members and settings later from the League page. All custom leagues sit alongside your Main League — switch teams anytime from the sidebar.</p>
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="chips">
                 <AccordionTrigger className="font-heading text-sm uppercase font-bold bg-accent/20 px-3 rounded-lg hover:no-underline">
                   🃏 Chips
