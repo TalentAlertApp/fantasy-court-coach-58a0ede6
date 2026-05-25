@@ -920,6 +920,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             recapUrl={g.game_recap_url}
             youtubeRecapId={g.youtube_recap_id}
             onPlayerClick={setSelectedPlayerId}
+            onOpenModal={() => openGameModal(g)}
           />
         )}
         {isScheduled && (
@@ -1452,6 +1453,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                     recapUrl={g.game_recap_url}
                     youtubeRecapId={g.youtube_recap_id}
                     onPlayerClick={setSelectedPlayerId}
+                    onOpenModal={() => openGameModal(g)}
                   />
                 )}
                 {isExpanded && isScheduled && (
