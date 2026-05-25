@@ -671,6 +671,7 @@ export function useCourtShowData(gw: number, day: number) {
               name: p?.core?.name ?? `#${l.player_id}`,
               team: p?.core?.team ?? "",
               photo: p?.core?.photo ?? null,
+              jersey: p?.core?.jersey ?? null,
               fp: fpFromLog(l),
               mp: l.mp, pts: l.pts, reb: l.reb, ast: l.ast, stl: l.stl, blk: l.blk,
             } as OutstandingGameRow;

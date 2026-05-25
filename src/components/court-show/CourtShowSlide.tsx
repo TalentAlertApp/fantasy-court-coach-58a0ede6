@@ -556,6 +556,7 @@ function OutstandingSlide({
         <div className="mt-3 border-b border-white/10">
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
+              <col className="w-[22px]" />
               <col />
               <col className="w-[38px]" />
               <col className="w-[34px]" />
@@ -565,6 +566,7 @@ function OutstandingSlide({
             </colgroup>
             <thead className="text-white/60 uppercase tracking-wider text-[9px]">
               <tr>
+                <th className="text-left font-mono py-1.5">#</th>
                 <th className="text-left font-heading font-black py-1.5">Player</th>
                 <th className="text-right font-mono py-1.5">MIN</th>
                 <th className="text-right font-mono py-1.5">PTS</th>
@@ -578,6 +580,7 @@ function OutstandingSlide({
         <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           <table className="w-full text-[11px] table-fixed">
             <colgroup>
+              <col className="w-[22px]" />
               <col />
               <col className="w-[38px]" />
               <col className="w-[34px]" />
@@ -592,6 +595,9 @@ function OutstandingSlide({
                   onClick={() => onPlayerClick(r.player_id)}
                   className="border-t border-white/5 hover:bg-white/5 cursor-pointer"
                 >
+                  <td className="py-1.5 text-left font-mono text-white/50 text-[10px]">
+                    {r.jersey === null || r.jersey === undefined ? "" : String(r.jersey)}
+                  </td>
                   <td className="py-1.5">
                     <div className="flex items-center gap-1">
                       {r.photo ? (

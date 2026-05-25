@@ -168,6 +168,7 @@ export interface OutstandingGameRow {
   name: string;
   team: string;
   photo: string | null;
+  jersey?: number | null;
   fp: number;
   mp?: number;
   pts?: number;
