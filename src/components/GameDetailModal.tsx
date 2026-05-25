@@ -476,6 +476,11 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
           <RankRow label="Diff" metricKey="diff" />
           <RankRow label="L10 W" metricKey="l10W" />
         </div>
+        <H2HSection
+          teamA={game.away_team}
+          teamB={game.home_team}
+          onOpenGame={(g) => setHistoryGame(g)}
+        />
       </div>
 
       <GameDetailModal
@@ -483,6 +488,118 @@ function ScheduledInsights({ game }: { game: GameDetailGame }) {
         open={historyGame !== null}
         onOpenChange={(o) => !o && setHistoryGame(null)}
       />
+    </div>
+  );
+}
+
+function H2HSection({
+  teamA,
+  teamB,
+  onOpenGame,
+}: {
+  teamA: string;
+  teamB: string;
+  onOpenGame: (g: GameDetailGame) => void;
+}) {
+  const { data: leagueId } = useLeagueId();
+  const { teams: leagueTeams } = useLeagueTeams();
+  const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+
+  const { data: h2h, isLoading } = useQuery({
+    queryKey: ["game-modal-h2h", teamA, teamB, leagueId],
+    enabled: !!teamA && !!teamB && !!leagueId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("schedule_games")
+        .select("*")
+        .eq("league_id", leagueId!)
+        .or(
+          `and(home_team.eq.${teamA},away_team.eq.${teamB}),and(home_team.eq.${teamB},away_team.eq.${teamA})`,
+        )
+        .order("tipoff_utc", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  return (
+    <div className="px-4 py-3 border-t border-border/40">
+      <h3 className="text-[10px] font-heading uppercase tracking-[0.25em] text-muted-foreground mb-2">
+        Head-to-Head — This Season
+      </h3>
+      {isLoading ? (
+        <Skeleton className="h-24" />
+      ) : !h2h || h2h.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/60 bg-card/40 px-4 py-6 text-center text-xs text-muted-foreground font-heading uppercase tracking-wider">
+          No matchups recorded
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {h2h.map((g: any) => {
+            const isFinal = g.status?.toUpperCase().includes("FINAL");
+            const aIsHome = g.home_team === teamA;
+            const opp = aIsHome ? g.away_team : g.home_team;
+            const oppLogo = logoFor(opp);
+            const date = g.tipoff_utc
+              ? new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Lisbon", day: "numeric", month: "short", year: "numeric" }).format(new Date(g.tipoff_utc))
+              : "—";
+            return (
+              <button
+                type="button"
+                key={g.game_id}
+                onClick={() =>
+                  onOpenGame({
+                    game_id: g.game_id,
+                    home_team: g.home_team,
+                    away_team: g.away_team,
+                    home_pts: g.home_pts,
+                    away_pts: g.away_pts,
+                    status: g.status,
+                    game_boxscore_url: g.game_boxscore_url,
+                    game_charts_url: g.game_charts_url,
+                    game_playbyplay_url: g.game_playbyplay_url,
+                    game_recap_url: g.game_recap_url,
+                    nba_game_url: g.nba_game_url,
+                    youtube_recap_id: g.youtube_recap_id,
+                    tipoff_utc: g.tipoff_utc,
+                    gw: g.gw ?? null,
+                    day: g.day ?? null,
+                    played: !!isFinal,
+                  })
+                }
+                className="w-full grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-lg border border-border/50 bg-card/60 hover:bg-accent/30 hover:border-primary/40 transition-all px-3 py-2 text-left group"
+              >
+                <div className="flex items-center justify-end gap-2">
+                  <span className="text-xs font-heading font-bold uppercase">{aIsHome ? "vs" : "@"} {opp}</span>
+                  {oppLogo && <img src={oppLogo} alt="" className="w-5 h-5 object-contain" />}
+                </div>
+                <div className="flex items-center gap-2 min-w-[120px] justify-center">
+                  {isFinal ? (
+                    <>
+                      <span className={`font-mono text-base ${(aIsHome ? g.home_pts : g.away_pts) > (aIsHome ? g.away_pts : g.home_pts) ? "font-black text-foreground" : "text-muted-foreground"}`}>
+                        {aIsHome ? g.home_pts : g.away_pts}
+                      </span>
+                      <span className="text-muted-foreground text-xs">—</span>
+                      <span className={`font-mono text-base ${(aIsHome ? g.away_pts : g.home_pts) > (aIsHome ? g.home_pts : g.away_pts) ? "font-black text-foreground" : "text-muted-foreground"}`}>
+                        {aIsHome ? g.away_pts : g.home_pts}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">
+                      {g.status ?? "Scheduled"}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-muted-foreground font-mono inline-flex items-center gap-1">
+                  {date}
+                  <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
