@@ -1,54 +1,43 @@
+## Goal
 
-## 1. EuroLeague watermark on Step 3 (DraftPicker)
+Gate the entire `/commissioner` page behind a password prompt. The password is stored as a Supabase secret (`COMMISSIONER_ACCESS_PASSWORD`) and validated server-side via a new edge function. Once a user enters it correctly, unlock is remembered per-user across logouts. The gated screen shows only the password input plus a watermark of the active team's league logo (NBA/WNBA/EuroLeague) in the top-right with a hover surge.
 
-`DraftPicker` already renders a top-right watermark from `getLeagueLogo(leagueCode)`. The bug is that `pendingMainSport` (passed as `leagueCode`) defaults to `"nba"` whenever the draft step is reached without going through `handleNameSubmit` in this render — namely when the user resumes a persisted `step: "draft"`, or in the brief window before `pendingMainSport` is set.
+This is independent from and additive to the existing `x-admin-secret` (which still controls the destructive tools inside the page).
 
-Fix in `src/pages/OnboardingPage.tsx`:
-- Persist the chosen sport alongside the step in `setOnboardingState` (extend `OnboardingState` in `onboarding-store.ts` with optional `sport`).
-- On hydrate, seed `pendingMainSport` from the persisted state, or from `teams.find(t => t.id === createdTeamId)?.league_code` when resuming `step === "draft"`.
-- Pass `leagueCode={selectedTeam?.league_code ?? pendingMainSport}` to `<DraftStep>` so the watermark always reflects the actual team's league.
+## What to build
 
-## 2. EuroLeague manual-pick shows NBA players
+### 1. New secret
+- `COMMISSIONER_ACCESS_PASSWORD` — requested via `add_secret` (user sets the value). No default.
 
-`usePlayersQuery` keys on `useLeague().league`, which resolves from `selectedTeam?.league_code`. Right after `createTeam` the team is not yet in the `["teams"]` cache, so `selectedTeam` is null and the hook falls back to the previously active league (NBA).
+### 2. New edge function: `commissioner-access-verify`
+- POST `{ password: string }`.
+- Validates the caller's JWT via `getClaims()` (must be signed in).
+- Constant-time compares `password` with `Deno.env.get('COMMISSIONER_ACCESS_PASSWORD')`.
+- Returns `{ ok: true }` on success, 401 on mismatch, 500 if secret not configured.
+- CORS headers on all responses. No DB writes.
 
-Fix in `src/pages/OnboardingPage.tsx` `submitTeam`:
-- Replace `invalidateQueries({queryKey:["teams"]})` with `await queryClient.refetchQueries({ queryKey: ["teams"] })` BEFORE calling `setStep("draft")`. Same for `fantasy-leagues`.
-- Defensive: also call `setSelectedLeagueId(mainLeagueIdForSport(args.leagueCode))` via `useFantasyLeague` so the fantasy-league context (and any league-derived queries that resolve before `selectedTeam` populates) immediately match the new sport.
+### 3. New gate component: `src/components/commissioner/CommissionerAccessGate.tsx`
+- Props: `{ children }`.
+- Reads unlock flag from `localStorage` key `commissioner_unlocked:<userId>` (per-user). If present → renders `children` directly.
+- Otherwise renders a centered minimal screen:
+  - Password `<Input type="password">` + Unlock button + error message slot.
+  - On submit → `supabase.functions.invoke('commissioner-access-verify', { body: { password } })`. On `ok:true`, set the localStorage flag and re-render to show the page; on error, show "Incorrect password".
+  - Top-right league logo watermark (size ~140px, opacity ~25%, `pointer-events-auto` so hover works). Hover surge: scale 1.08 + opacity 0.55 with `transition-transform duration-300` — mirrors the existing NBA team hover surge pattern from `mem://features/nba-team-integration`.
+- League logo source = current team's league: pick from `nbaLogoSrc | wnbaLogoSrc | euroleagueLogoSrc` based on `useTeam().currentTeam` sport (fallback NBA).
 
-## 3 & 4. Bounce from Name Franchise back to Pick Your Team
+### 4. Wire into `CommissionerPage`
+- Wrap the page's existing top-level return in `<CommissionerAccessGate>…</CommissionerAccessGate>`. No other behavior changes; the existing Admin Secret input continues to work as today.
 
-Root cause: `forceNewTeam` lives only in `location.state`. Any re-navigation inside the onboarding flow (or a router state reset) drops it; once dropped, the `useEffect` at `OnboardingPage.tsx:143-150` sees `!forceNewTeam` + `!shouldOnboard` + ≥1 owned team and redirects to `/welcome/pick-team`.
+## Persistence behavior
+- Key is namespaced by `auth.user.id`, so logout/login as the same user keeps the unlock; a different user on the same browser gets their own gate. Clearing browser storage resets it (as expected for a localStorage gate).
 
-Fix:
-- Add a session-scoped `creatingNewTeam` flag in `src/lib/onboarding-store.ts` (sessionStorage helpers: `setCreatingNewTeam`, `isCreatingNewTeam`, `clearCreatingNewTeam`).
-- `TeamPickerPage.handleCreateNew` and `TeamSwitcher` "New Team" buttons set the flag before navigating to `/welcome`.
-- `OnboardingPage` treats `forceNewTeam = navState?.forceNewTeam === true || isCreatingNewTeam()` so the flag survives re-renders / state resets.
-- Clear the flag in `handleFinish`, `handleSignOut`, `handleSkip`, and on successful `handleDraftBack` to picker.
-- Also gate the two `pick-team` redirect `useEffect`s on the flag, not just `forceNewTeam`.
+## Security notes
+- Password never ships in the bundle — only the edge function reads the secret.
+- Gate is UX, not a hard authz boundary: the destructive endpoints are still protected by their existing `x-admin-secret` header. Anyone who already knows the admin secret could still call those functions directly with curl — that's unchanged.
 
-This is the same pattern already used for `markTeamPickedThisSession` and removes the fragile dependency on `location.state`.
+## Files
 
-## 5. Auth-screen league logos not centered
-
-In `src/pages/AuthPage.tsx`, the three logos use `w-auto` with very different intrinsic widths (NBA is narrow vertical, WNBA medium, EuroLeague square basketball), so the separators sit at non-symmetric positions relative to the "FANTASY" title below.
-
-Fix: wrap each `<img>` in a fixed-width centering box so each logo cell is identical:
-
-```tsx
-<div className="flex h-12 w-14 items-center justify-center">
-  <img src={…} className="max-h-12 max-w-full object-contain" />
-</div>
-```
-
-Use the same cell width for all three logos and keep the `h-7 w-px` dividers between them. The whole row remains `flex justify-center gap-2.5`, but now each slot occupies the same horizontal space → separators land at perfectly symmetric positions under the "FANTASY" heading.
-
-## Files touched
-
-- `src/pages/OnboardingPage.tsx` (issues 1, 2, 3, 4)
-- `src/lib/onboarding-store.ts` (extend state, add `creatingNewTeam` session helpers)
-- `src/pages/TeamPickerPage.tsx` (set `creatingNewTeam` flag)
-- `src/components/TeamSwitcher.tsx` (set `creatingNewTeam` flag on both "New Team" entry points)
-- `src/pages/AuthPage.tsx` (logo row alignment)
-
-No DB migrations, no edge-function changes.
+- Add: `supabase/functions/commissioner-access-verify/index.ts`
+- Add: `src/components/commissioner/CommissionerAccessGate.tsx`
+- Edit: `src/pages/CommissionerPage.tsx` (wrap render with the gate)
+- Secret: `COMMISSIONER_ACCESS_PASSWORD` (added via add_secret on build)
