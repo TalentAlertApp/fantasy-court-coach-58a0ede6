@@ -4,7 +4,7 @@ import { fetchTeams } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { isMainLeague, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID } from "@/hooks/useFantasyLeagues";
+import { isMainLeague, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_EUROLEAGUE_ID } from "@/hooks/useFantasyLeagues";
 
 export type TeamRecord = {
   id: string;
@@ -202,8 +202,8 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedLeagueId]);
   // Custom fantasy leagues: teams.league_id directly references the fantasy league row.
-  // Main system leagues (NBA / WNBA): teams have league_id pointing at the SPORT league
-  // row, not the fantasy main-league pseudo id — so fall back to matching by sport.
+  // Main system leagues (NBA / WNBA / EuroLeague): teams have league_id pointing at the
+  // SPORT league row, not the fantasy main-league pseudo id — so fall back to matching by sport.
   const sport = selectedLeague?.sport ?? null;
   const teamsInSelectedLeague: TeamRecord[] = selectedLeagueId
     ? teams.filter((t: any) => {
@@ -222,10 +222,14 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isReady || !selectedTeam || !selectedLeague) return;
     if (lastChangeOriginRef.current !== "team") return;
-    const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba";
+    const teamSport = (selectedTeam.league_code ?? "nba") as "nba" | "wnba" | "euroleague";
     const leagueSport = selectedLeague.sport ?? null;
+    const mainIdForSport = (s: typeof teamSport) =>
+      s === "wnba" ? MAIN_LEAGUE_WNBA_ID
+      : s === "euroleague" ? MAIN_LEAGUE_EUROLEAGUE_ID
+      : MAIN_LEAGUE_NBA_ID;
     if (isMainLeague(selectedLeague.id)) {
-      const mainId = teamSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+      const mainId = mainIdForSport(teamSport);
       if (selectedLeague.id !== mainId && fantasyLeagues.some((l) => l.id === mainId)) {
         setSelectedLeagueId(mainId);
       }
@@ -241,7 +245,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     if (!target) target = fantasyLeagues.find((l) => !isMainLeague(l.id) && l.sport === teamSport);
     // 3. Else the system Main League for that sport.
     if (!target) {
-      const mainId = teamSport === "wnba" ? MAIN_LEAGUE_WNBA_ID : MAIN_LEAGUE_NBA_ID;
+      const mainId = mainIdForSport(teamSport);
       target = fantasyLeagues.find((l) => l.id === mainId);
     }
     if (target && target.id !== selectedLeague.id) {
@@ -255,9 +259,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isReady) return;
     if (!selectedLeagueId || !selectedLeague) return;
-    const targetSport = (selectedLeague.sport ?? "nba") as "nba" | "wnba";
+    const targetSport = (selectedLeague.sport ?? "nba") as "nba" | "wnba" | "euroleague";
     const inLeague = teamsInSelectedLeague.some((t) => t.id === selectedTeamId);
-    const currentSport = (selectedTeam?.league_code ?? "nba") as "nba" | "wnba";
+    const currentSport = (selectedTeam?.league_code ?? "nba") as "nba" | "wnba" | "euroleague";
     if (inLeague && currentSport === targetSport) return;
     // Candidate ordering: teams attached to this league > teams matching sport > any team.
     const candidates = [
