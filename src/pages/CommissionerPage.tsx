@@ -1457,5 +1457,6 @@ export default function CommissionerPage() {
         </div>
       </div>
     </div>
+    </CommissionerAccessGate>
   );
 }
