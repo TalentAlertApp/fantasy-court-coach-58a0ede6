@@ -4,6 +4,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useUpcomingByTeam, getTeamGameweekSlots, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getCurrentGameday } from "@/lib/deadlines";
@@ -99,13 +100,16 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
 
   return (
     <div className="relative space-y-4">
-      {/* Fixed centered NBA watermark — stays put while inner content scrolls */}
-      <img
-        src={leagueLogo}
-        alt=""
-        aria-hidden
-        className="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[14vw] max-w-[220px] opacity-[0.05] z-0 select-none"
-      />
+      {/* Fixed centered league watermark — portalled to <body> so no transformed ancestor can constrain it */}
+      {typeof document !== "undefined" && createPortal(
+        <img
+          src={leagueLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[14vw] max-w-[220px] opacity-[0.05] z-0 select-none"
+        />,
+        document.body,
+      )}
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">STARTING 5</div>
         <div className="overflow-x-auto premium-scroll">
