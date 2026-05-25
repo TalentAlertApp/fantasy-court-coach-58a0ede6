@@ -776,6 +776,28 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   const [selectedLast5Game, setSelectedLast5Game] = useState<Last5Game | null>(null);
   const [comparePair, setComparePair] = useState<{ a: string; b: string } | null>(null);
   const [injuryPair, setInjuryPair] = useState<{ a: string; b: string } | null>(null);
+  const [modalGame, setModalGame] = useState<GameDetailGame | null>(null);
+  const openGameModal = (g: ScheduleGame) => {
+    setExpandedId(null);
+    setModalGame({
+      game_id: g.game_id,
+      home_team: g.home_team,
+      away_team: g.away_team,
+      home_pts: g.home_pts ?? 0,
+      away_pts: g.away_pts ?? 0,
+      status: g.status,
+      played: isGameFinal(g.status),
+      game_boxscore_url: g.game_boxscore_url ?? null,
+      game_charts_url: g.game_charts_url ?? null,
+      game_playbyplay_url: g.game_playbyplay_url ?? null,
+      game_recap_url: g.game_recap_url ?? null,
+      nba_game_url: g.nba_game_url ?? null,
+      youtube_recap_id: (g as any).youtube_recap_id ?? null,
+      gw: g.gw ?? null,
+      day: g.day ?? null,
+      tipoff_utc: g.tipoff_utc ?? null,
+    });
+  };
   const colsPerRow = useColsPerRow();
   // Hydrate the EuroLeague team registry so getVenue() can resolve venue
   // backdrops on /schedule cards (NBA/WNBA already use static catalogs).
