@@ -34,6 +34,7 @@ import SalaryAutoSchedulePanel from "@/components/commissioner/SalaryAutoSchedul
 import nbaLogoSrc from "@/assets/nba-logo.svg";
 import wnbaLogoSrc from "@/assets/wnba-logo.png";
 import euroleagueLogoSrc from "@/assets/euroleague-logo.png";
+import CommissionerAccessGate from "@/components/commissioner/CommissionerAccessGate";
 
 const ImportResponseSchema = z.object({
   ok: z.literal(true),
