@@ -618,7 +618,8 @@ serve(async (req: Request) => {
 
     if (mode === "players") {
       const r = await syncPlayers(token, sb, leagueId);
-      return ok({ mode, elapsed_ms: Date.now() - t0, ...r });
+      const salary_backfill = await backfillNewWnbaSalaries(sb, leagueId);
+      return ok({ mode, elapsed_ms: Date.now() - t0, ...r, salary_backfill });
     }
     if (mode === "schedule") {
       const r = await syncSchedule(token, sb, leagueId);
@@ -634,12 +635,13 @@ serve(async (req: Request) => {
     }
     if (mode === "all") {
       const players = await syncPlayers(token, sb, leagueId);
+      const salary_backfill = await backfillNewWnbaSalaries(sb, leagueId);
       const schedule = await syncSchedule(token, sb, leagueId);
       const gameData = await syncGameData(token, sb, leagueId);
       const adv = await syncAdvancedStats(token, sb, leagueId);
       return ok({
         mode, elapsed_ms: Date.now() - t0,
-        results: { players, schedule, "game-data": gameData, "advanced-stats": adv },
+        results: { players, salary_backfill, schedule, "game-data": gameData, "advanced-stats": adv },
       });
     }
 
