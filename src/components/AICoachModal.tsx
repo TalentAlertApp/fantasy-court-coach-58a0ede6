@@ -406,12 +406,9 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 key={v}
                 value={v}
                 className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5
-                           bg-amber-400/15 !text-blue-900/70 hover:bg-amber-400/30 hover:!text-blue-900
-                           dark:bg-transparent dark:!text-white/75 dark:hover:!text-white dark:hover:bg-white/[0.04]
+                           bg-amber-400/10 !text-amber-300 hover:bg-amber-400/20 hover:!text-amber-200
                            transition-all
                            data-[state=active]:!bg-amber-400 data-[state=active]:!text-blue-900 data-[state=active]:scale-[1.02] data-[state=active]:font-extrabold
-                           dark:data-[state=active]:!bg-gradient-to-b dark:data-[state=active]:from-amber-300/30 dark:data-[state=active]:to-amber-500/15
-                           dark:data-[state=active]:!text-amber-50
                            data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_0_0_2px_hsl(45_95%_55%),0_0_28px_-4px_hsl(45_95%_60%/0.9)]"
               >
                 <Icon className="h-3.5 w-3.5 mr-1.5" />{label}
