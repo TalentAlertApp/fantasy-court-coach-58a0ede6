@@ -16,6 +16,7 @@ type Props = {
    analyzeResult: any;
    onAnalyze: () => void;
    onGoToTab: (tab: string) => void;
+   onOpenPlayer?: (player: any) => void;
  };
 
 function GlassPanel({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -75,7 +76,7 @@ function deriveVerdict(result: any, snapshot: any): { label: string; tone: "good
  }
 
 export default function RosterReadPanel({
-   rosterData, allPlayers, upcomingByTeam, analyzeLoading, analyzeResult, onAnalyze, onGoToTab,
+   rosterData, allPlayers, upcomingByTeam, analyzeLoading, analyzeResult, onAnalyze, onGoToTab, onOpenPlayer,
  }: Props) {
    /* -------- snapshot -------- */
    const snapshot = useMemo(() => {
@@ -120,13 +121,20 @@ export default function RosterReadPanel({
    const quickReads = useMemo(() => {
      const byFp5 = [...snapshot.starterPlayers].sort((a, b) => (b.last5?.fp5 ?? 0) - (a.last5?.fp5 ?? 0));
      const byValue = [...snapshot.players].sort((a, b) => (b.last5?.value5 ?? 0) - (a.last5?.value5 ?? 0));
+      const riskPlayer = snapshot.starterPlayers.find((p: any) => {
+        const inj = (p.core.injury ?? "").toString().toUpperCase();
+        return inj && inj !== "—" && inj !== "PROBABLE";
+      });
+      const noGamePlayer = snapshot.starterPlayers.find((p: any) => !(upcomingByTeam?.[p.core.team]?.length));
      return {
        captainWatch: byFp5[0],
        valuePick: byValue[0],
        riskCount: snapshot.riskStarters,
        scheduleBoost: byFp5[1],
+        riskPlayer,
+        noGamePlayer,
      };
-   }, [snapshot]);
+    }, [snapshot, upcomingByTeam]);
 
    /* ============ STATE: LOADING ============ */
    if (analyzeLoading) {
@@ -262,16 +270,6 @@ export default function RosterReadPanel({
                )}
              </div>
 
-             {/* Lineup strip */}
-             {(snapshot.starterPlayers.length > 0 || snapshot.benchPlayers.length > 0) && (
-               <GlassPanel className="p-4">
-                 <SectionLabel icon={Users}>Lineup Snapshot</SectionLabel>
-                 <div className="mt-3 space-y-2">
-                   <LineupRow label="Starters" players={snapshot.starterPlayers} captainId={snapshot.captainId} upcomingByTeam={upcomingByTeam} />
-                   <LineupRow label="Bench" players={snapshot.benchPlayers} captainId={snapshot.captainId} upcomingByTeam={upcomingByTeam} dim />
-                 </div>
-               </GlassPanel>
-             )}
            </div>
 
            {/* RIGHT — Signal Rail */}
@@ -291,17 +289,6 @@ export default function RosterReadPanel({
                    <Signal icon={TrendingUp} title="Upgrade Opportunity" chip="Look at" tone="good"
                      note={`${quickReads.valuePick.core.name} · best value index.`} />
                  )}
-               </div>
-             </GlassPanel>
-
-             {/* ACTION BOARD */}
-             <GlassPanel className="p-4">
-               <SectionLabel icon={Target}>Action Board</SectionLabel>
-               <div className="mt-3 grid grid-cols-2 gap-2">
-                 <ActionBtn icon={Crown}        label="Pick Captain"    onClick={() => onGoToTab("captain")} />
-                 <ActionBtn icon={ArrowLeftRight} label="Market Watch"  onClick={() => onGoToTab("transfers")} />
-                 <ActionBtn icon={Heart}        label="Health Desk"     onClick={() => onGoToTab("injuries")} />
-                 <ActionBtn icon={BarChart3}    label="Player Explain"  onClick={() => onGoToTab("explain")} />
                </div>
              </GlassPanel>
            </div>
@@ -367,11 +354,11 @@ export default function RosterReadPanel({
        <GlassPanel className="p-4">
          <SectionLabel icon={Trophy}>Quick Reads</SectionLabel>
          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2">
-           <QuickRead icon={Crown}       label="Captain Watch"      value={quickReads.captainWatch?.core?.name ?? "—"} tint="from-amber-400/15 to-amber-500/5 border-amber-400/30 text-amber-100" />
-           <QuickRead icon={TrendingUp}  label="Market Opportunity" value={quickReads.valuePick?.core?.name ?? "—"}    tint="from-violet-400/15 to-violet-500/5 border-violet-400/30 text-violet-100" />
-           <QuickRead icon={Heart}       label="Health Exposure"    value={snapshot.riskStarters > 0 ? `${snapshot.riskStarters} starter${snapshot.riskStarters > 1 ? "s" : ""}` : "Clear"} tint="from-rose-400/15 to-rose-500/5 border-rose-400/30 text-rose-100" />
-           <QuickRead icon={CalendarDays} label="Schedule Boost"    value={`${snapshot.activeToday} active today`} tint="from-sky-400/15 to-sky-500/5 border-sky-400/30 text-sky-100" />
-           <QuickRead icon={ShieldAlert}  label="Risk Flags"        value={snapshot.noGameThisWeek > 0 ? `${snapshot.noGameThisWeek} no-game` : "Clean"} tint="from-emerald-400/15 to-emerald-500/5 border-emerald-400/30 text-emerald-100" />
+            <QuickRead icon={Crown}        label="Captain Watch"      value={quickReads.captainWatch?.core?.name ?? "—"} tint="from-amber-400/15 to-amber-500/5 border-amber-400/30 text-amber-100"  onClick={quickReads.captainWatch && onOpenPlayer ? () => onOpenPlayer(quickReads.captainWatch) : undefined} />
+            <QuickRead icon={TrendingUp}   label="Market Opportunity" value={quickReads.valuePick?.core?.name ?? "—"}    tint="from-violet-400/15 to-violet-500/5 border-violet-400/30 text-violet-100" onClick={quickReads.valuePick && onOpenPlayer ? () => onOpenPlayer(quickReads.valuePick) : undefined} />
+            <QuickRead icon={Heart}        label="Health Exposure"    value={quickReads.riskPlayer?.core?.name ?? (snapshot.riskStarters > 0 ? `${snapshot.riskStarters} starter${snapshot.riskStarters > 1 ? "s" : ""}` : "Clear")} tint="from-rose-400/15 to-rose-500/5 border-rose-400/30 text-rose-100" onClick={quickReads.riskPlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.riskPlayer) : undefined} />
+            <QuickRead icon={CalendarDays} label="Schedule Boost"     value={quickReads.scheduleBoost?.core?.name ?? `${snapshot.activeToday} active today`} tint="from-sky-400/15 to-sky-500/5 border-sky-400/30 text-sky-100" onClick={quickReads.scheduleBoost && onOpenPlayer ? () => onOpenPlayer(quickReads.scheduleBoost) : undefined} />
+            <QuickRead icon={ShieldAlert}  label="Risk Flags"         value={quickReads.noGamePlayer?.core?.name ?? (snapshot.noGameThisWeek > 0 ? `${snapshot.noGameThisWeek} no-game` : "Clean")} tint="from-emerald-400/15 to-emerald-500/5 border-emerald-400/30 text-emerald-100" onClick={quickReads.noGamePlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.noGamePlayer) : undefined} />
          </div>
        </GlassPanel>
      </div>
@@ -403,15 +390,23 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "def
    );
  }
 
-function QuickRead({ icon: Icon, label, value, tint }: { icon: any; label: string; value: string; tint: string }) {
-   return (
-     <div className={cn("relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3", tint)}>
+function QuickRead({ icon: Icon, label, value, tint, onClick }: { icon: any; label: string; value: string; tint: string; onClick?: () => void }) {
+   const inner = (
+     <>
        <div className="flex items-center gap-1.5 text-[9px] font-heading uppercase tracking-[0.18em] opacity-90">
          <Icon className="h-3 w-3" /> {label}
        </div>
        <div className="mt-1.5 font-heading font-bold text-sm truncate">{value}</div>
-     </div>
+     </>
    );
+   const cls = cn(
+     "relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3 text-left w-full transition-all",
+     onClick && "hover:brightness-125 hover:-translate-y-0.5 hover:shadow-[0_0_24px_-6px_rgba(252,211,77,0.4)] cursor-pointer",
+     tint,
+   );
+   return onClick
+     ? <button type="button" onClick={onClick} className={cls}>{inner}</button>
+     : <div className={cls}>{inner}</div>;
  }
 
 function Signal({ icon: Icon, title, chip, tone, note }: { icon: any; title: string; chip: string; tone: "good" | "warn" | "bad" | "default"; note: string }) {

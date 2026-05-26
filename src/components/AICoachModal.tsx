@@ -15,6 +15,7 @@ import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
 import HealthDeskPanel from "@/components/ballers-iq/HealthDeskPanel";
 import PlayerExplainStudio from "@/components/ballers-iq/PlayerExplainStudio";
 import RosterReadPanel from "@/components/ballers-iq/RosterReadPanel";
+import CaptainCallStudio from "@/components/ballers-iq/CaptainCallStudio";
 import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
 import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -436,28 +437,36 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 analyzeResult={analyzeResult}
                 onAnalyze={handleAnalyze}
                 onGoToTab={setActiveTab}
+                onOpenPlayer={(p) => {
+                  if (!p) return;
+                  setSelectedExplainPlayer(p);
+                  setExplainSearch(p.core.name);
+                  setActiveTab("explain");
+                  void runExplain(p);
+                }}
               />
             </TabsContent>
 
             {/* Captain */}
-            <TabsContent value="captain" className="mt-0 space-y-3">
-              <Button size="sm" onClick={handleCaptain} disabled={captainLoading} className="w-full">
-                {captainLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Star className="h-4 w-4 mr-2" />}
-                Best Captain Today
-              </Button>
-              {captainLoading && <Skeleton className="h-20 w-full" />}
-              {captainResult && (
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-3">
-                    <p className="font-heading font-bold uppercase">Captain: {getPlayerName(captainResult.captain_id)}</p>
-                    <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(captainResult.confidence * 100)}%</Badge>
-                    <Button size="sm" className="ml-auto" onClick={handleApplyCaptain} disabled={applyingCaptain}>
-                      {applyingCaptain ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
-                    </Button>
-                  </div>
-                  <ul className="list-disc pl-4 text-xs space-y-0.5">{captainResult.reason_bullets?.map((b: string, i: number) => <li key={i}>{b}</li>)}</ul>
-                </div>
-              )}
+            <TabsContent value="captain" className="mt-0">
+              <CaptainCallStudio
+                rosterData={rosterData}
+                allPlayers={allPlayers}
+                upcomingByTeam={upcomingByTeam}
+                captainLoading={captainLoading}
+                captainResult={captainResult}
+                applyingCaptain={applyingCaptain}
+                onPickCaptain={handleCaptain}
+                onApplyCaptain={handleApplyCaptain}
+                onGoToTab={setActiveTab}
+                onOpenPlayer={(p) => {
+                  if (!p) return;
+                  setSelectedExplainPlayer(p);
+                  setExplainSearch(p.core.name);
+                  setActiveTab("explain");
+                  void runExplain(p);
+                }}
+              />
             </TabsContent>
 
             {/* Transfers */}
