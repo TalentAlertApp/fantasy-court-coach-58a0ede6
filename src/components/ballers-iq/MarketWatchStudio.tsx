@@ -451,9 +451,9 @@ export default function MarketWatchStudio({
   const bs = pulse.bestSwap;
   return (
     <div className="space-y-3">
-      {/* HERO */}
-      <div className="grid gap-3 md:grid-cols-12">
-        <GlassPanel className="md:col-span-5 p-5 md:p-6">
+      {/* HERO — Transfer Intelligence (L) | Market Pulse + Best Swap stacked (R) */}
+      <div className="grid gap-3 md:grid-cols-12 items-stretch">
+        <GlassPanel className="md:col-span-5 p-5 md:p-6 h-full flex flex-col">
           <SectionLabel icon={ArrowLeftRight}>Market Watch</SectionLabel>
           <h3 className="mt-3 font-heading text-2xl md:text-3xl uppercase tracking-[0.14em] text-white leading-tight">
             Transfer <span className="text-amber-300">Intelligence</span>
@@ -464,7 +464,7 @@ export default function MarketWatchStudio({
           <Button
             size="lg"
             onClick={onSuggest}
-            className="mt-5 w-full font-heading uppercase tracking-[0.18em] bg-gradient-to-b from-amber-300 to-amber-500 text-black hover:from-amber-200 hover:to-amber-400 shadow-[0_0_28px_-6px_rgba(252,211,77,0.7)]"
+            className="mt-auto w-full font-heading uppercase tracking-[0.18em] bg-gradient-to-b from-amber-300 to-amber-500 text-black hover:from-amber-200 hover:to-amber-400 shadow-[0_0_28px_-6px_rgba(252,211,77,0.7)]"
           >
             <ArrowLeftRight className="h-4 w-4 mr-2" /> Suggest Transfers
           </Button>
@@ -473,65 +473,68 @@ export default function MarketWatchStudio({
           </p>
         </GlassPanel>
 
-        {/* MARKET PULSE */}
-        <GlassPanel className="md:col-span-7 p-5">
-          <SectionLabel icon={Activity}>Market Pulse</SectionLabel>
-          <div className="mt-3 grid grid-cols-3 md:grid-cols-6 gap-2">
-            <Stat label="Bank" value={`$${pools.bank.toFixed(1)}M`} tone={pools.bank > 0 ? "amber" : "default"} />
-            <Stat label="Affordable" value={String(pulse.affordable)} />
-            <Stat label="Value Adds" value={String(pulse.valueAdds)} tone={pulse.valueAdds > 0 ? "good" : "default"} />
-            <Stat label="Streams" value={String(pulse.streams)} tone={pulse.streams > 0 ? "good" : "default"} />
-            <Stat label="Drop Risks" value={String(pulse.dropRisks)} tone={pulse.dropRisks > 0 ? "bad" : "default"} />
-            <Stat label="Traps" value={String(pulse.traps)} tone={pulse.traps > 0 ? "bad" : "default"} />
-          </div>
-        </GlassPanel>
-      </div>
+        {/* RIGHT COLUMN — Market Pulse (top) + Best Swap (bottom) */}
+        <div className="md:col-span-7 flex flex-col gap-3 h-full">
+          {/* MARKET PULSE */}
+          <GlassPanel className="p-4">
+            <SectionLabel icon={Activity}>Market Pulse</SectionLabel>
+            <div className="mt-2 grid grid-cols-3 md:grid-cols-6 gap-1.5">
+              <Stat label="Bank" value={`$${pools.bank.toFixed(1)}M`} tone={pools.bank > 0 ? "amber" : "default"} />
+              <Stat label="Affordable" value={String(pulse.affordable)} />
+              <Stat label="Value Adds" value={String(pulse.valueAdds)} tone={pulse.valueAdds > 0 ? "good" : "default"} />
+              <Stat label="Streams" value={String(pulse.streams)} tone={pulse.streams > 0 ? "good" : "default"} />
+              <Stat label="Drop Risks" value={String(pulse.dropRisks)} tone={pulse.dropRisks > 0 ? "bad" : "default"} />
+              <Stat label="Traps" value={String(pulse.traps)} tone={pulse.traps > 0 ? "bad" : "default"} />
+            </div>
+          </GlassPanel>
 
-      {/* BEST SWAP HERO */}
-      {bs ? (
-        <div className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.06] via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(167,243,208,0.15),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/60 to-transparent" />
-          <div className="relative grid md:grid-cols-12 gap-3 px-4 py-3 items-center">
-            <div className="md:col-span-3">
-              <div className="text-[10px] font-heading uppercase tracking-[0.22em] text-emerald-200/85 inline-flex items-center gap-1.5">
-                <Repeat className="h-3 w-3" /> Best Swap Available
+          {/* BEST SWAP */}
+          {bs ? (
+            <div className="relative overflow-hidden rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-500/[0.06] via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(167,243,208,0.15),0_30px_80px_-30px_rgba(0,0,0,0.9)] flex-1 flex flex-col">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-300/60 to-transparent" />
+              <div className="relative flex flex-col gap-2 px-4 py-3 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="text-[10px] font-heading uppercase tracking-[0.22em] text-emerald-200/85 inline-flex items-center gap-1.5">
+                    <Repeat className="h-3 w-3" /> Best Swap Available
+                  </div>
+                  <div className="text-[10.5px] text-white/55 ml-auto">Highest FP5 upgrade fitting cap & FC/BC balance.</div>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 flex-1">
+                  <button onClick={() => { const p = getPlayer(bs.out.id); if (p) onOpenPlayer?.(p); }}
+                    className="rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-2 text-left hover:bg-rose-500/[0.10] transition-colors h-full">
+                    <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-rose-200/85">Sell / Drop</div>
+                    <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.out.name}</div>
+                    <div className="text-[9.5px] text-white/55 truncate">{bs.out.team} · ${num(bs.out.salary).toFixed(1)}M · {num(bs.out.fp_pg5).toFixed(1)} FP5</div>
+                  </button>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full border border-emerald-400/50 bg-emerald-500/10 text-emerald-300">
+                    <ArrowLeftRight className="h-4 w-4" />
+                  </div>
+                  <button onClick={() => { const p = getPlayer(bs.in.id); if (p) onOpenPlayer?.(p); }}
+                    className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full">
+                    <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-emerald-200/85">Buy / Add</div>
+                    <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.in.name}</div>
+                    <div className="text-[9.5px] text-white/55 truncate">{bs.in.team} · ${num(bs.in.salary).toFixed(1)}M · {num(bs.in.fp_pg5).toFixed(1)} FP5</div>
+                  </button>
+                  <div className="grid grid-rows-2 gap-1.5 h-full">
+                    <Stat label="FP5 Δ" value={`+${bs.fpDelta.toFixed(1)}`} tone="good" />
+                    <Stat label="Salary Δ" value={`${bs.salaryDelta >= 0 ? "+" : ""}$${bs.salaryDelta.toFixed(1)}M`} tone={bs.salaryDelta <= 0 ? "good" : "default"} />
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 text-[11px] text-white/60">Highest FP5 upgrade fitting cap & FC/BC balance.</div>
             </div>
-            <div className="md:col-span-7 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-              <button onClick={() => { const p = getPlayer(bs.out.id); if (p) onOpenPlayer?.(p); }}
-                className="rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-2 text-left hover:bg-rose-500/[0.10] transition-colors">
-                <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-rose-200/85">Sell / Drop</div>
-                <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.out.name}</div>
-                <div className="text-[9.5px] text-white/55">{bs.out.team} · ${num(bs.out.salary).toFixed(1)}M · {num(bs.out.fp_pg5).toFixed(1)} FP5</div>
-              </button>
-              <div className="flex items-center justify-center w-8 h-8 rounded-full border border-emerald-400/50 bg-emerald-500/10 text-emerald-300">
-                <ArrowLeftRight className="h-4 w-4" />
+          ) : (
+            <GlassPanel className="p-4 flex-1 flex items-center">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-300/80" />
+                <div>
+                  <div className="font-heading uppercase tracking-[0.18em] text-[12px] text-white">No Clear Swap Edge Found</div>
+                  <p className="text-[11px] text-white/60 mt-0.5">Your current roster does not show a high-confidence upgrade using the current bank.</p>
+                </div>
               </div>
-              <button onClick={() => { const p = getPlayer(bs.in.id); if (p) onOpenPlayer?.(p); }}
-                className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors">
-                <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-emerald-200/85">Buy / Add</div>
-                <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.in.name}</div>
-                <div className="text-[9.5px] text-white/55">{bs.in.team} · ${num(bs.in.salary).toFixed(1)}M · {num(bs.in.fp_pg5).toFixed(1)} FP5</div>
-              </button>
-            </div>
-            <div className="md:col-span-2 grid grid-cols-2 gap-2">
-              <Stat label="FP5 Δ" value={`+${bs.fpDelta.toFixed(1)}`} tone="good" />
-              <Stat label="Salary Δ" value={`${bs.salaryDelta >= 0 ? "+" : ""}$${bs.salaryDelta.toFixed(1)}M`} tone={bs.salaryDelta <= 0 ? "good" : "default"} />
-            </div>
-          </div>
+            </GlassPanel>
+          )}
         </div>
-      ) : (
-        <GlassPanel className="p-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="h-5 w-5 text-amber-300/80" />
-            <div>
-              <div className="font-heading uppercase tracking-[0.18em] text-[12px] text-white">No Clear Swap Edge Found</div>
-              <p className="text-[11px] text-white/60 mt-0.5">Your current roster does not show a high-confidence upgrade using the current bank.</p>
-            </div>
-          </div>
-        </GlassPanel>
-      )}
+      </div>
 
       {/* MARKET LANES — deterministic */}
       <BallersIQMarketWatch

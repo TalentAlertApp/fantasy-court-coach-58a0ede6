@@ -1,36 +1,68 @@
-## 1) Game Played modal — consistent vertical height
+## 1. Ballers.IQ → Market Watch tab layout rebalance
 
-**File:** `src/components/GameDetailModal.tsx`
+File: `src/components/ballers-iq/MarketWatchStudio.tsx` (PRE-SUGGESTION state, lines ~452–534).
 
-The box-score-only state (`played && !recapOpen && !biqStandalone`) renders the table at its natural height, while the recap and BIQ states lock to `embedHeight` (≥420px). When the table is shorter, the modal "shrinks" between states.
+Today the hero is a 5/7 grid (Transfer Intelligence | Market Pulse), and Best Swap Available sits as a full-width strip below.
 
-**Fix:** apply `style={{ minHeight: embedHeight }}` to the box-score-only container (the grid wrapper around `tableWrapRef`) so all three states share the same minimum height. The internal `tableWrapRef` keeps measuring natural height for the recap calculation, but the surrounding container is pinned.
+Change to a two-column hero that keeps all three cards aligned to the same vertical height:
 
-## 2) BallersIQ button — light-theme readability
+```text
+┌──────────────────────────┬──────────────────────────┐
+│  TRANSFER INTELLIGENCE   │  MARKET PULSE (compact)  │
+│  (Market Watch hero)     ├──────────────────────────┤
+│  full height of column   │  BEST SWAP AVAILABLE     │
+└──────────────────────────┴──────────────────────────┘
+```
 
-**File:** `src/components/GameDetailModal.tsx` (`BallersIQButton`)
+Implementation:
+- Wrap the hero block in `grid md:grid-cols-12 gap-3 items-stretch`.
+- Left column: existing Transfer Intelligence `GlassPanel` → `md:col-span-5`, add `h-full flex flex-col` so it stretches.
+- Right column: new `md:col-span-7 flex flex-col gap-3`:
+  - Top: existing Market Pulse panel, shrunk. Reduce padding to `p-4`, tighten the 6-stat grid to a single `grid-cols-6 gap-1.5` row with smaller `Stat` tone (no `md:` rewrap) so it occupies roughly 40% of the column height.
+  - Bottom: move the entire Best Swap Available block (or the "No Clear Swap Edge Found" fallback) inside this column with `flex-1`. Internally rework its `md:grid-cols-12` into a denser layout that fits the narrower 7-col width: stack the header label on top and keep `Sell / Drop ↔ Buy / Add` row + FP5Δ / SalaryΔ chips at right, all inside one rounded card.
+- Remove the standalone full-width Best Swap block that previously rendered below.
+- Result: Transfer Intelligence (left) and the stacked Market Pulse + Best Swap (right) share the same outer height; the deterministic `BallersIQMarketWatch` card now moves up directly below, recovering the empty space.
 
-Current classes use `bg-black/40` + amber tones that vanish on light backgrounds; the wordmark is also force-themed `dark`.
+No logic, scoring, or data changes — purely layout/markup/Tailwind.
 
-**Fix:** rebuild both states using semantic-friendly contrast that works in both themes:
-- OFF: solid amber tint background (`bg-amber-500/15 dark:bg-black/40`), darker amber text in light (`text-amber-700 dark:text-amber-200/85`), stronger border (`border-amber-500/60`).
-- ON (Live): filled amber chip (`bg-amber-500 text-black dark:bg-amber-400/20 dark:text-amber-100`) with subtle glow preserved in dark only.
-- Drop `forceTheme="dark"` on the wordmark when in light mode so the logo recolors properly (use `forceTheme={undefined}` or rely on default).
+## 2. Sidebar — add Next Lock + UX polish
 
-## 3) Ballers.IQ Market Watch — remove Quick Actions card
+File: `src/components/layout/AppLayout.tsx` (with small CSS tweaks in `src/index.css` if needed for the new card).
 
-**File:** `src/components/ballers-iq/MarketWatchStudio.tsx` (lines 548–568)
+### 2a. New `SidebarNextLock` component
+- Create `src/components/layout/SidebarNextLock.tsx`.
+- Source data: reuse the same gameday deadline already used by `RosterPage` (`useCurrentGameday` + `useCountdown` against `currentGameday.deadline_utc`) so it always matches the header countdown. Pull `selectedTeamId` from `TeamContext` (same as RosterPage).
+- Expanded state: a compact card with:
+  - Tiny uppercase label `NEXT LOCK` (text-[10px] tracking-[0.22em] muted).
+  - Mono countdown `HH:MM:SS` in amber, large (`text-xl font-mono`), turns red when `LOCKED`.
+  - Sub-line `Gameweek {gw}.{day}`.
+  - Lock icon on the right in an amber ring (matches uploaded reference).
+  - Background: `bg-white/[0.03]` with inset border, rounded-lg, subtle amber border tint when <30 min.
+- Collapsed state: only the lock icon, with the countdown shown in a tooltip on hover (reusing `NavTooltip`).
+- Gracefully renders nothing if there's no upcoming deadline.
 
-Delete the entire bottom `GlassPanel` "Quick Actions" block. Drop unused imports (`Target`, `ArrowLeftRight`, `BarChart3`, `Crown`, `Heart`) if no longer referenced after removal.
+### 2b. Sidebar restructure
+Goal: clear hierarchy, less wasted vertical space, premium feel; works in both expanded and collapsed modes.
 
-## 4) EuroLeague Game modal — player photo face crop
+New stacking order (top → bottom), each separated by a divider:
+1. Brand row (Fantasy / Manager + How-to-Play + Feedback) — unchanged, but reduce `py-5` → `py-4`.
+2. Primary nav (My Roster … Commissioner) — `flex-1` keeps it taking available space; reduce gap between items from `gap-1` to `gap-0.5` and shrink `nav-item` vertical padding by 1px to give the new card room without scroll.
+3. Player Search section — unchanged structure, reduced top/bottom padding (`pt-1.5 pb-1.5`).
+4. Your Team (TeamSwitcher) — unchanged structure, same tightened padding.
+5. **NEW: Next Lock card** — `SidebarNextLock` rendered in its own padded section, directly above Account; in collapsed mode shows just the lock icon centered.
+6. Account section — keep email + sign out; combine the Light/Dark + Hide buttons into a single tighter row.
 
-**File:** `src/components/game/GameBoxScoreTable.tsx` (line 184)
+### 2c. Spacing / polish details
+- Reduce `sidebar-divider` margin so dividers don't dominate (`my-1.5` → e.g. `my-1`).
+- Section labels (`sidebar-section-label`): keep style, but reduce `pt-2 pb-1` wrappers to `pt-1.5 pb-0.5`.
+- Theme/Hide buttons: ensure both expanded and collapsed versions share identical icon size and hover treatment.
+- Collapsed-mode order mirrors expanded: brand logo → nav icons → search icon → feedback icon → next-lock icon → sign-out → dark-toggle → expand chevron, all vertically centered with consistent 8px gaps.
+- Verify no overflow at standard heights; the nav section already scrolls via `overflow-y-auto`, so the bottom block (search → team → next lock → account) stays pinned.
 
-`AvatarImage` defaults to `object-cover object-center`, so faces sit too high (same issue fixed elsewhere). Add `className="object-cover object-[center_15%]"` to `<AvatarImage>` to match the crop used in `PlayerRow` / My Roster.
+No changes to navigation routes, data hooks beyond importing the existing deadline hook, or business logic.
 
-## Notes
-
-- Only frontend/presentation edits.
-- No business-logic or data changes.
-- No new files.
+## Files touched
+- `src/components/ballers-iq/MarketWatchStudio.tsx` (layout only)
+- `src/components/layout/SidebarNextLock.tsx` (new)
+- `src/components/layout/AppLayout.tsx` (insert card, tighten spacing)
+- Possibly `src/index.css` for minor `.sidebar-divider` / `.sidebar-section-label` spacing tweaks

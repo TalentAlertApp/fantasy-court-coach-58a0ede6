@@ -6,6 +6,7 @@ import HowToPlayModal from "@/components/HowToPlayModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import SidebarPlayerSearch from "@/components/SidebarPlayerSearch";
 import PlayerModal from "@/components/PlayerModal";
+import SidebarNextLock from "@/components/layout/SidebarNextLock";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -229,6 +230,11 @@ export default function AppLayout() {
         )}
 
         {/* Bottom controls */}
+        <div className="sidebar-divider" />
+        {/* Next Lock — countdown to next gameweek deadline */}
+        <div className={collapsed ? "py-2 flex justify-center" : "px-3 pt-2 pb-1"}>
+          <SidebarNextLock collapsed={collapsed} />
+        </div>
         <div className="sidebar-divider" />
         {!collapsed && (
           <div className="px-3 pt-2 pb-1">
