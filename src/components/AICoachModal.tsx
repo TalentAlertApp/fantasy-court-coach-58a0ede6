@@ -698,6 +698,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 <ExplainReport result={explainResult} player={selectedExplainPlayer} />
               )}
             </TabsContent>
+            </div>
           </div>
           )}
         </Tabs>
