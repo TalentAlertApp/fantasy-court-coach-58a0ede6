@@ -238,7 +238,9 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                     {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
                     {recapOpen ? "Close Recap" : "Watch Recap"}
                   </button>
-                  <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
+                  {recapOpen && (
+                    <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
+                  )}
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2">
@@ -250,14 +252,8 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   >
                     <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
                   </a>
-                  <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
                 </div>
               )}
-            </div>
-          )}
-          {played && !game.game_recap_url && (
-            <div className="flex justify-center pt-1.5">
-              <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
             </div>
           )}
           {game.game_recap_url && !played && (
