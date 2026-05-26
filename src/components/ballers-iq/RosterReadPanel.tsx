@@ -354,11 +354,11 @@ export default function RosterReadPanel({
        <GlassPanel className="p-4">
          <SectionLabel icon={Trophy}>Quick Reads</SectionLabel>
          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2">
-           <QuickRead icon={Crown}       label="Captain Watch"      value={quickReads.captainWatch?.core?.name ?? "—"} tint="from-amber-400/15 to-amber-500/5 border-amber-400/30 text-amber-100" />
-           <QuickRead icon={TrendingUp}  label="Market Opportunity" value={quickReads.valuePick?.core?.name ?? "—"}    tint="from-violet-400/15 to-violet-500/5 border-violet-400/30 text-violet-100" />
-           <QuickRead icon={Heart}       label="Health Exposure"    value={snapshot.riskStarters > 0 ? `${snapshot.riskStarters} starter${snapshot.riskStarters > 1 ? "s" : ""}` : "Clear"} tint="from-rose-400/15 to-rose-500/5 border-rose-400/30 text-rose-100" />
-           <QuickRead icon={CalendarDays} label="Schedule Boost"    value={`${snapshot.activeToday} active today`} tint="from-sky-400/15 to-sky-500/5 border-sky-400/30 text-sky-100" />
-           <QuickRead icon={ShieldAlert}  label="Risk Flags"        value={snapshot.noGameThisWeek > 0 ? `${snapshot.noGameThisWeek} no-game` : "Clean"} tint="from-emerald-400/15 to-emerald-500/5 border-emerald-400/30 text-emerald-100" />
+            <QuickRead icon={Crown}        label="Captain Watch"      value={quickReads.captainWatch?.core?.name ?? "—"} tint="from-amber-400/15 to-amber-500/5 border-amber-400/30 text-amber-100"  onClick={quickReads.captainWatch && onOpenPlayer ? () => onOpenPlayer(quickReads.captainWatch) : undefined} />
+            <QuickRead icon={TrendingUp}   label="Market Opportunity" value={quickReads.valuePick?.core?.name ?? "—"}    tint="from-violet-400/15 to-violet-500/5 border-violet-400/30 text-violet-100" onClick={quickReads.valuePick && onOpenPlayer ? () => onOpenPlayer(quickReads.valuePick) : undefined} />
+            <QuickRead icon={Heart}        label="Health Exposure"    value={quickReads.riskPlayer?.core?.name ?? (snapshot.riskStarters > 0 ? `${snapshot.riskStarters} starter${snapshot.riskStarters > 1 ? "s" : ""}` : "Clear")} tint="from-rose-400/15 to-rose-500/5 border-rose-400/30 text-rose-100" onClick={quickReads.riskPlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.riskPlayer) : undefined} />
+            <QuickRead icon={CalendarDays} label="Schedule Boost"     value={quickReads.scheduleBoost?.core?.name ?? `${snapshot.activeToday} active today`} tint="from-sky-400/15 to-sky-500/5 border-sky-400/30 text-sky-100" onClick={quickReads.scheduleBoost && onOpenPlayer ? () => onOpenPlayer(quickReads.scheduleBoost) : undefined} />
+            <QuickRead icon={ShieldAlert}  label="Risk Flags"         value={quickReads.noGamePlayer?.core?.name ?? (snapshot.noGameThisWeek > 0 ? `${snapshot.noGameThisWeek} no-game` : "Clean")} tint="from-emerald-400/15 to-emerald-500/5 border-emerald-400/30 text-emerald-100" onClick={quickReads.noGamePlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.noGamePlayer) : undefined} />
          </div>
        </GlassPanel>
      </div>
