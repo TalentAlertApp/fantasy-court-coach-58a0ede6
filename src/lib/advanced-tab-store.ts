@@ -6,7 +6,7 @@ const VALID: AdvancedTab[] = ["play-search", "playing-time", "advanced-stats", "
 
 export const ADVANCED_TAB_LABEL: Record<AdvancedTab, string> = {
   "play-search": "Play Search",
-  "playing-time": "Playing Time",
+  "playing-time": "Fantasy Points",
   "advanced-stats": "Advanced Stats",
   "trending": "Trending",
 };
