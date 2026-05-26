@@ -231,7 +231,8 @@ export default function HealthDeskPanel() {
   /* -------------------- 1) PRE-SCAN STATE -------------------- */
   if (!payload && !loading && !error) {
     return (
-      <div className="grid gap-3 md:grid-cols-12">
+      <div className="flex flex-col h-full gap-3">
+        <div className="grid gap-3 md:grid-cols-12 flex-1 min-h-0 overflow-y-auto pr-1">
         {/* LEFT — Hero scanner */}
         <GlassPanel className="md:col-span-5 p-5 md:p-6">
           <div className="flex flex-col items-center text-center gap-4">
@@ -332,9 +333,10 @@ export default function HealthDeskPanel() {
             <p className="text-[10px] text-white/45">Auto-refresh disabled — manual scan only.</p>
           </div>
         </GlassPanel>
+        </div>
 
         {/* BOTTOM — After the scan */}
-        <GlassPanel className="md:col-span-12 p-5">
+        <GlassPanel className="shrink-0 p-5">
           <SectionLabel icon={Newspaper}>After the scan, you will see</SectionLabel>
           <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
             {[
