@@ -103,84 +103,81 @@ export default function ExplainReport({ result, player }: { result: any; player:
         <div className="relative overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
           {teamLogo && (
-            <img src={teamLogo} alt="" aria-hidden className="absolute -right-8 -top-6 w-48 h-48 opacity-[0.10] pointer-events-none select-none" />
+            <img src={teamLogo} alt="" aria-hidden className="absolute -right-6 -top-4 w-32 h-32 opacity-[0.10] pointer-events-none select-none" />
           )}
-          <div className="relative grid md:grid-cols-12 gap-4 p-4 md:p-5">
+          <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5">
             {/* LEFT — player */}
-            <div className="md:col-span-5 flex items-center gap-4">
+            <div className="md:col-span-5 flex items-center gap-3">
               {player.core?.photo ? (
-                <img src={player.core.photo} alt="" className="w-20 h-20 rounded-2xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_24px_-4px_rgba(252,211,77,0.5)]" />
+                <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
               ) : (
-                <div className="w-20 h-20 rounded-2xl bg-white/[0.08] inline-flex items-center justify-center text-xl font-bold text-white/85">
+                <div className="w-14 h-14 rounded-xl bg-white/[0.08] inline-flex items-center justify-center text-base font-bold text-white/85">
                   {player.core?.name?.slice(0, 2)?.toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-heading font-black uppercase truncate text-xl md:text-2xl text-white tracking-[0.06em] drop-shadow-[0_0_18px_rgba(252,211,77,0.25)]">{player.core?.name}</p>
-                <div className="flex items-center gap-1.5 mt-1">
+                <p className="font-heading font-black uppercase truncate text-base md:text-lg text-white tracking-[0.06em] drop-shadow-[0_0_18px_rgba(252,211,77,0.25)] leading-tight">{player.core?.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
                   {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
-                  <span className="text-[11px] text-white/65 truncate">{teamFullName} · {teamTricode}</span>
+                  <span className="text-[10.5px] text-white/65 truncate">{teamFullName} · {teamTricode}</span>
                   <Badge variant={player.core?.fc_bc === "FC" ? "destructive" : "default"} className="rounded-md text-[8px] px-1 py-0 h-4">
                     {player.core?.fc_bc}
                   </Badge>
                 </div>
+                {(archetype || (formSignal && formSignal !== "Stable")) && (
+                  <div className="mt-1 flex items-center gap-1 flex-wrap">
+                    {archetype && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-heading font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/40">
+                        <Tag className="h-2.5 w-2.5" /> {archetype}
+                      </span>
+                    )}
+                    {formSignal && formSignal !== "Stable" && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-heading font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-500 border border-orange-500/40">
+                        <Flame className="h-2.5 w-2.5" /> {formSignal}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* CENTER — FP metrics */}
-            <div className="md:col-span-4 grid grid-cols-2 gap-2">
-              <div className="rounded-xl border border-white/10 bg-black/45 px-3 py-2">
+            <div className="md:col-span-4 grid grid-cols-2 gap-2 self-center">
+              <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-1.5">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-200/70">FP5</div>
-                <div className="font-mono font-black text-2xl text-amber-200 tabular-nums">{fp5.toFixed(1)}</div>
+                <div className="font-mono font-black text-lg text-amber-200 tabular-nums leading-tight">{fp5.toFixed(1)}</div>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/45 px-3 py-2">
+              <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-1.5">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/60">FP Season</div>
-                <div className="font-mono font-black text-2xl text-white/95 tabular-nums">{seasonFp.toFixed(1)}</div>
+                <div className="font-mono font-black text-lg text-white/95 tabular-nums leading-tight">{seasonFp.toFixed(1)}</div>
               </div>
             </div>
 
             {/* RIGHT — verdict */}
-            <div className="md:col-span-3 flex flex-col items-stretch gap-2">
+            <div className="md:col-span-3 flex flex-row md:flex-col items-stretch gap-1.5 self-center">
               {vPalette ? (
-                <span className={`inline-flex items-center justify-center font-heading font-black text-sm px-3 py-2 rounded-xl ${vPalette.chip}`}>
+                <span className={`inline-flex items-center justify-center font-heading font-black text-[11px] px-2.5 py-1 rounded-lg ${vPalette.chip}`}>
                   {vPalette.label}
                 </span>
               ) : (
-                <span className="inline-flex items-center justify-center font-heading text-[10px] uppercase tracking-[0.22em] px-3 py-2 rounded-xl bg-white/[0.05] text-white/55 border border-white/10">
+                <span className="inline-flex items-center justify-center font-heading text-[10px] uppercase tracking-[0.22em] px-2.5 py-1 rounded-lg bg-white/[0.05] text-white/55 border border-white/10">
                   Verdict pending
                 </span>
               )}
               {biqRating !== null && (
-                <div className="rounded-xl border border-amber-300/30 bg-amber-400/[0.06] px-3 py-2 text-center">
-                  <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-100/70">BIQ Rating</div>
-                  <div className={`font-mono font-black text-2xl tabular-nums ${biqRatingClasses(biqRating)}`}>{biqRating}<span className="text-[10px] text-white/45 font-heading ml-0.5">/100</span></div>
-                  {biqLabel && <div className="text-[9px] font-heading uppercase tracking-[0.16em] text-white/65">{biqLabel}</div>}
+                <div className="flex-1 rounded-lg border border-amber-300/30 bg-amber-400/[0.06] px-2.5 py-1 text-center">
+                  <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-amber-100/70 leading-tight">BIQ</div>
+                  <div className={`font-mono font-black text-base tabular-nums leading-tight ${biqRatingClasses(biqRating)}`}>{biqRating}<span className="text-[9px] text-white/45 font-heading ml-0.5">/100</span></div>
                 </div>
               )}
             </div>
           </div>
-
-          {/* tags row */}
-          {(archetype || (formSignal && formSignal !== "Stable")) && (
-            <div className="relative px-4 md:px-5 pb-3 flex items-center gap-1.5 flex-wrap">
-              {archetype && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent/15 text-accent border border-accent/40">
-                  <Tag className="h-3 w-3" /> {archetype}
-                </span>
-              )}
-              {formSignal && formSignal !== "Stable" && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-500 border border-orange-500/40">
-                  <Flame className="h-3 w-3" /> {formSignal}
-                </span>
-              )}
-            </div>
-          )}
         </div>
       )}
 
-      {/* Salary + Risk + Schedule grid */}
-      {(salaryEff || riskLevel || sched) && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      {/* Salary + Risk + Schedule + Recommendation grid */}
+      {(salaryEff || riskLevel || sched || result.recommendation) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           {salaryEff && (
             <div className={`rounded-xl px-3 py-2 ${salaryClasses(salaryEff)}`}>
               <div className="flex items-center gap-1.5">
@@ -224,6 +221,17 @@ export default function ExplainReport({ result, player }: { result: any; player:
               {sched.warning && <p className="text-[10px] mt-0.5 opacity-90">{sched.warning}</p>}
             </div>
           )}
+          {result.recommendation && (
+            <div className={`rounded-xl px-3 py-2 border ${palette.band}`}>
+              <div className="flex items-center gap-1.5">
+                <span className={`inline-flex items-center justify-center font-heading font-black text-[10px] px-2 py-0.5 rounded-md ${palette.chip}`}>
+                  {palette.label}
+                </span>
+                <span className="text-[9px] font-heading font-bold uppercase tracking-wider opacity-80">Verdict</span>
+              </div>
+              <p className="text-[11px] leading-snug text-white/90 mt-1 line-clamp-3">{result.recommendation.rationale}</p>
+            </div>
+          )}
         </div>
       )}
 
@@ -263,16 +271,6 @@ export default function ExplainReport({ result, player }: { result: any; player:
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Recommendation banner */}
-      {result.recommendation && (
-        <div className={`rounded-xl border ${palette.band} px-3 py-2.5 flex items-center gap-3`}>
-          <span className={`shrink-0 inline-flex items-center justify-center font-heading font-black text-sm px-3 py-1 rounded-lg ${palette.chip}`}>
-            {palette.label}
-          </span>
-          <span className="text-xs leading-snug text-white/90">{result.recommendation.rationale}</span>
         </div>
       )}
     </div>
