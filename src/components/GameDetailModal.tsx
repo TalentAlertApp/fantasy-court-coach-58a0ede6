@@ -163,9 +163,11 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   className="pointer-events-none absolute -left-4 top-1/2 -translate-y-1/2 h-32 w-32 object-contain opacity-30 -rotate-12 select-none"
                 />
               )}
-              {!played && (
+              {!played ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
-              )}
+              ) : (panelsOpen && recapOpen) ? (
+                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base text-foreground/90 truncate max-w-full">{nameFor(game.away_team)}</span>
+              ) : null}
             </div>
             <div className="relative text-center">
               {played ? (
