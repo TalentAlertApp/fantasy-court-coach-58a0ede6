@@ -295,7 +295,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
       <DialogContent
         className="p-0 gap-0 border-amber-400/20 bg-[#05070d] rounded-2xl overflow-hidden flex flex-col
                    w-[92vw] max-w-[1500px] h-[92vh] max-h-[96vh]
-                   shadow-[0_30px_120px_-20px_rgba(0,0,0,0.9),0_0_0_1px_hsl(45_90%_55%/0.15)]"
+                   shadow-[0_40px_140px_-30px_rgba(0,0,0,0.95),0_0_0_1px_hsl(45_90%_55%/0.18),inset_0_1px_0_rgba(255,255,255,0.06)]"
       >
         {/* Cinematic background layer */}
         <div className="absolute inset-0 -z-0 pointer-events-none">
@@ -303,15 +303,26 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             src={ballersIqArena}
             alt=""
             aria-hidden
-            className="absolute inset-0 w-full h-full object-cover opacity-70 select-none"
+            className="absolute inset-0 w-full h-full object-cover opacity-85 select-none"
             draggable={false}
           />
-          {/* Dark gradient for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/85 via-[#05070d]/70 to-[#05070d]/95" />
-          {/* Vignette */}
-          <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.65)_100%)]" />
-          {/* Soft light sweep */}
-          <div className="absolute -inset-x-1/2 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+          {/* Top/bottom readability gradient — lighter through the middle */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/85 via-[#05070d]/35 to-[#05070d]/95" />
+          {/* Side glows (red / blue arena lighting) */}
+          <div className="biq-shell-glow-blue" />
+          <div className="biq-shell-glow-red" />
+          {/* Ambient haze */}
+          <div className="biq-shell-haze" />
+          {/* Ambient light sweep */}
+          <div className="biq-shell-sweep" />
+          {/* Soft vignette */}
+          <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.55)_100%)]" />
+          {/* Corner bloom */}
+          <div className="biq-corner-bloom" />
+          {/* Top hairline glow */}
+          <div className="absolute -inset-x-1/2 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
+          {/* Bottom hairline reflection */}
+          <div className="absolute -inset-x-1/2 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300/25 to-transparent" />
         </div>
 
         {/* Broadcast header */}
@@ -324,20 +335,20 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 variant="wordmark"
                 forceTheme="dark"
                 transparent
-                className="!h-8 md:!h-10 w-auto select-none drop-shadow-[0_0_18px_rgba(252,211,77,0.35)]"
+                className="!h-9 md:!h-11 w-auto select-none drop-shadow-[0_0_22px_rgba(252,211,77,0.5)]"
               />
               <div className="hidden md:block h-8 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
-              <span className="hidden md:block text-[10px] font-heading font-bold uppercase tracking-[0.28em] text-amber-200/70 whitespace-nowrap">
+              <span className="hidden md:block text-[10.5px] font-heading font-bold uppercase tracking-[0.32em] text-amber-100/85 whitespace-nowrap drop-shadow-[0_0_8px_rgba(252,211,77,0.25)]">
                 Fantasy Broadcast Intelligence
               </span>
             </div>
 
             {/* CENTER — context chips */}
             <div className="hidden lg:flex items-center gap-2 ml-auto">
-              <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-white/85">
+              <span className="px-3.5 py-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md text-[10.5px] font-heading font-bold uppercase tracking-[0.22em] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_18px_-8px_rgba(0,0,0,0.6)]">
                 My Roster
               </span>
-              <span className="px-3 py-1 rounded-full border border-amber-300/30 bg-amber-400/10 backdrop-blur-sm text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-amber-200">
+              <span className="px-3.5 py-1.5 rounded-full border border-amber-300/40 bg-amber-400/[0.12] backdrop-blur-md text-[10.5px] font-heading font-bold uppercase tracking-[0.22em] text-amber-100 shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_0_18px_-6px_rgba(252,211,77,0.5)]">
                 Gameweek {gw}.{day}
               </span>
             </div>
@@ -346,7 +357,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <div className="lg:hidden ml-auto" />
           </div>
           {/* Divider glow */}
-          <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
+          <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent shadow-[0_0_8px_rgba(252,211,77,0.35)]" />
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-5">
