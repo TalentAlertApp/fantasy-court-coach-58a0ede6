@@ -192,6 +192,10 @@ export default function HealthDeskPanel() {
       .map(([tricode, items]) => ({ tricode, fullName: fullNameFromTricode(tricode, LEAGUE_TEAMS), items }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }, [filteredAll, LEAGUE_TEAMS]);
+  const selectedTeamGroup = useMemo(
+    () => teamGroups.find((g) => g.tricode === teamFilter) ?? null,
+    [teamGroups, teamFilter],
+  );
 
   const teamFiltered = useMemo(
     () => teamFilter === "all" ? filteredAll : filteredAll.filter((r) => r.team_tricode === teamFilter),
@@ -475,8 +479,12 @@ export default function HealthDeskPanel() {
                 </TooltipProvider>
 
                 <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v as any)}>
-                  <SelectTrigger className="h-7 w-[188px] bg-black/40 border-white/15 text-white/85 [&>span]:font-heading [&>span]:text-[10px] [&>span]:uppercase [&>span]:tracking-[0.16em] [&>span]:text-white/85">
-                    <SelectValue placeholder="All Teams" />
+                  <SelectTrigger className="h-7 w-[188px] bg-black/40 border-white/15 text-white/85">
+                    {teamFilter === "all" ? (
+                      <span className="font-heading text-[10px] uppercase tracking-[0.16em] text-white/85">All Teams</span>
+                    ) : (
+                      <span className="truncate text-xs text-white/85">{selectedTeamGroup?.fullName ?? teamFilter}</span>
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">
