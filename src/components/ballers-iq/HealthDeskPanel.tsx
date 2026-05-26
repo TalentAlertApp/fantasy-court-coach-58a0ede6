@@ -409,12 +409,6 @@ export default function HealthDeskPanel() {
   }
 
   /* -------------------- 3) REPORT GENERATED STATE -------------------- */
-  const riskTone =
-    rosterRiskLevel === "high" ? "from-red-500/30 to-red-500/5 border-red-500/40 text-red-100"
-    : rosterRiskLevel === "moderate" ? "from-yellow-400/30 to-yellow-400/5 border-yellow-400/40 text-yellow-100"
-    : "from-emerald-500/25 to-emerald-500/5 border-emerald-500/40 text-emerald-100";
-  const riskLabel = rosterRiskLevel === "high" ? "High Risk" : rosterRiskLevel === "moderate" ? "Moderate Risk" : "Low Risk";
-
   const teamsOnRoster = new Set(rosterAffected.map((r) => r.team_tricode));
 
   return (
