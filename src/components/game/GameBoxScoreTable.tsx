@@ -181,7 +181,7 @@ export default function GameBoxScoreTable({
               </span>
               <div className="flex items-center gap-2 pr-2 min-w-0">
                 <Avatar className={`${compact ? "h-5 w-5" : "h-6 w-6"} shrink-0 ring-2 ${isFc ? "ring-destructive" : "ring-primary"}`}>
-                  {p.photo && <AvatarImage src={p.photo} alt={p.name} />}
+                  {p.photo && <AvatarImage src={p.photo} alt={p.name} className="object-cover object-[center_15%]" />}
                   <AvatarFallback className="text-[9px]">{p.name.slice(0, 2)}</AvatarFallback>
                 </Avatar>
                 <span className={`${numCellCls} font-semibold truncate`}>{p.name}</span>
