@@ -3,8 +3,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeftRight, Loader2, Sparkles, TrendingUp, TrendingDown, AlertTriangle,
-  DollarSign, CalendarDays, Repeat, Activity, Radar, Mic, Crown, Flame, Heart,
-  CheckCircle2, BarChart3, Target, ShieldAlert, Zap,
+  DollarSign, CalendarDays, Repeat, Activity, Radar, Mic, Flame,
+  CheckCircle2, ShieldAlert, Zap,
 } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import BallersIQMarketWatch from "./BallersIQMarketWatch";
@@ -545,27 +545,6 @@ export default function MarketWatchStudio({
         }}
       />
 
-      {/* BOTTOM — quick actions / insight bar */}
-      <GlassPanel className="p-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-[10px] font-heading uppercase tracking-[0.22em] text-amber-100/80 inline-flex items-center gap-1.5">
-            <Target className="h-3 w-3" /> Quick Actions
-          </span>
-          <button onClick={onSuggest} className="rounded-md border border-amber-300/40 bg-amber-400/[0.08] hover:bg-amber-400/[0.14] px-2.5 py-1 text-[10.5px] font-heading uppercase tracking-[0.16em] text-amber-100">
-            <ArrowLeftRight className="h-3 w-3 inline mr-1" /> Suggest Transfers
-          </button>
-          <button onClick={() => onGoToTab("explain")} className="rounded-md border border-white/12 bg-black/40 hover:bg-white/[0.06] px-2.5 py-1 text-[10.5px] font-heading uppercase tracking-[0.16em] text-white/80">
-            <BarChart3 className="h-3 w-3 inline mr-1" /> Player Explain
-          </button>
-          <button onClick={() => onGoToTab("captain")} className="rounded-md border border-white/12 bg-black/40 hover:bg-white/[0.06] px-2.5 py-1 text-[10.5px] font-heading uppercase tracking-[0.16em] text-white/80">
-            <Crown className="h-3 w-3 inline mr-1" /> Captain Call
-          </button>
-          <button onClick={() => onGoToTab("injuries")} className="rounded-md border border-white/12 bg-black/40 hover:bg-white/[0.06] px-2.5 py-1 text-[10.5px] font-heading uppercase tracking-[0.16em] text-white/80">
-            <Heart className="h-3 w-3 inline mr-1" /> Health Desk
-          </button>
-          <span className="ml-auto text-[10px] font-mono text-white/55">Bank ${pools.bank.toFixed(1)}M · {pulse.affordable} affordable</span>
-        </div>
-      </GlassPanel>
     </div>
   );
 }
