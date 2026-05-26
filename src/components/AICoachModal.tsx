@@ -14,6 +14,7 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
 import HealthDeskPanel from "@/components/ballers-iq/HealthDeskPanel";
 import PlayerExplainStudio from "@/components/ballers-iq/PlayerExplainStudio";
+import RosterReadPanel from "@/components/ballers-iq/RosterReadPanel";
 import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
 import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -426,27 +427,16 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent pointer-events-none" />
             <div className="relative h-full overflow-y-auto space-y-3 p-4 md:p-5">
             {/* Analyze */}
-            <TabsContent value="analyze" className="mt-0 space-y-3">
-              <Button size="sm" onClick={handleAnalyze} disabled={analyzeLoading} className="w-full">
-                {analyzeLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Activity className="h-4 w-4 mr-2" />}
-                Analyze My Roster
-              </Button>
-              {analyzeLoading && <Skeleton className="h-20 w-full" />}
-              {analyzeResult && (
-                <div className="space-y-3 text-sm">
-                  <ul className="list-disc pl-4 space-y-0.5 text-xs">{analyzeResult.summary_bullets?.map((b: string, i: number) => <li key={i}>{b}</li>)}</ul>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-[10px] font-heading font-bold uppercase text-green-600 mb-1">Strengths</p>
-                      <ul className="list-disc pl-4 space-y-0.5 text-xs">{analyzeResult.strengths?.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-heading font-bold uppercase text-destructive mb-1">Weaknesses</p>
-                      <ul className="list-disc pl-4 space-y-0.5 text-xs">{analyzeResult.weaknesses?.map((w: string, i: number) => <li key={i}>{w}</li>)}</ul>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <TabsContent value="analyze" className="mt-0">
+              <RosterReadPanel
+                rosterData={rosterData}
+                allPlayers={allPlayers}
+                upcomingByTeam={upcomingByTeam}
+                analyzeLoading={analyzeLoading}
+                analyzeResult={analyzeResult}
+                onAnalyze={handleAnalyze}
+                onGoToTab={setActiveTab}
+              />
             </TabsContent>
 
             {/* Captain */}
