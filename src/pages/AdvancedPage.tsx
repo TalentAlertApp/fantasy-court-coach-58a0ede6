@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw, Link2, Lightbulb } from "lucide-react";
-import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
+import { Flame, Snowflake, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw, Link2, Lightbulb } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
 import PlayerModal from "@/components/PlayerModal";
@@ -26,6 +25,7 @@ import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
 import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
 import TrendingTab from "@/components/advanced/TrendingTab";
 import PlaySubFilters from "@/components/advanced/PlaySubFilters";
+import LeaderTable, { LeaderRow, LeaderColumn } from "@/components/advanced/LeaderTable";
 import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@/lib/play-filter-config";
 import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
