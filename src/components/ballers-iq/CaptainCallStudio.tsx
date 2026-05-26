@@ -311,25 +311,15 @@ export default function CaptainCallStudio({
           </div>
 
           {/* RIGHT — Captain Radar */}
-          <div className="lg:col-span-4 space-y-3">
-            <GlassPanel className="p-4">
+          <div className="lg:col-span-4 flex flex-col">
+            <GlassPanel className="p-4 flex-1 flex flex-col">
               <SectionLabel icon={Radar}>Captain Radar</SectionLabel>
-              <div className="mt-3 space-y-2">
+              <div className="mt-3 space-y-2 flex-1">
                 <Signal icon={Crown} title="Captain Edge" chip={`${confidencePct}%`} tone={confidencePct >= 70 ? "good" : confidencePct >= 50 ? "warn" : "bad"} note={reasons[0] ?? "AI captain pick"} />
                 <Signal icon={Flame} title="High Ceiling" chip={fp5 >= 35 ? "Elite" : fp5 >= 25 ? "Solid" : "Modest"} tone={fp5 >= 30 ? "good" : "warn"} note={`FP5 ${fp5.toFixed(1)}`} />
                 <Signal icon={Users} title="Minutes" chip={Number(recommended.last5?.mpg5 ?? 0) >= 30 ? "Heavy" : "Watch"} tone={Number(recommended.last5?.mpg5 ?? 0) >= 30 ? "good" : "warn"} note={`${Number(recommended.last5?.mpg5 ?? 0).toFixed(1)} MPG5`} />
                 <Signal icon={Heart} title="Health" chip={healthRisky ? injury : "Clear"} tone={healthRisky ? "bad" : "good"} note={healthRisky ? "Open Health Desk for status." : "No injury flags."} />
                 <Signal icon={CalendarDays} title="Next Game" chip={nextOpp ? "Has game" : "No game"} tone={nextOpp ? "good" : "bad"} note={nextOpp ? `vs ${nextOpp.opponent ?? "—"}` : "No scheduled games."} />
-              </div>
-            </GlassPanel>
-
-            <GlassPanel className="p-4">
-              <SectionLabel icon={Target}>Quick Actions</SectionLabel>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <ActionBtn icon={BarChart3}      label="Player Explain" onClick={() => onOpenPlayer?.(recommended)} />
-                <ActionBtn icon={ArrowLeftRight} label="Market Watch"   onClick={() => onGoToTab("transfers")} />
-                <ActionBtn icon={Activity}       label="Roster Read"    onClick={() => onGoToTab("analyze")} />
-                <ActionBtn icon={Heart}          label="Health Desk"    onClick={() => onGoToTab("injuries")} />
               </div>
             </GlassPanel>
           </div>
