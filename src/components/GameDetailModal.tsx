@@ -77,6 +77,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const nameFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.name ?? tri;
   const awayLogo = logoFor(game.away_team);
   const homeLogo = logoFor(game.home_team);
   const played = isPlayed(game);
