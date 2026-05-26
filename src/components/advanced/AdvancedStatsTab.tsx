@@ -186,7 +186,13 @@ export default function AdvancedStatsTab({ onPlayerClick, onTeamClick }: Props) 
               key={f}
               onClick={() => setFcBc(f)}
               className={`px-2.5 py-1 text-[11px] font-heading font-bold transition-colors ${
-                fcBc === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                fcBc === f
+                  ? f === "FC"
+                    ? "bg-destructive text-destructive-foreground"
+                    : f === "BC"
+                      ? "bg-[hsl(var(--nba-yellow))] text-black"
+                      : "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               {f}

@@ -486,7 +486,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             {/* Explain */}
             <TabsContent value="explain" className="mt-0 space-y-3">
               <Popover open={showDropdown && explainMatches.length > 0} onOpenChange={setShowDropdown}>
-                <div className="flex gap-2">
+                <div className="flex gap-2 p-px">
                   <PopoverAnchor asChild>
                     <Input
                       placeholder="Search player name or team..."
@@ -503,14 +503,14 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                           }
                         }
                       }}
-                      className="rounded-lg flex-1"
+                      className="rounded-lg flex-1 focus-visible:ring-offset-0"
                     />
                   </PopoverAnchor>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         title="Recently explained"
                         aria-label="Recently explained"
                         disabled={recentExplained.length === 0}
