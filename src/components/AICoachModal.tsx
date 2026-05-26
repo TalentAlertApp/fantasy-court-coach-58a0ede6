@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag, History, X as XIcon } from "lucide-react";
+import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag, History, X as XIcon, Search, Radar, Crown, TrendingUp, Heart, GitCompare, ArrowLeft, Mic, BarChart3, Trophy } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
