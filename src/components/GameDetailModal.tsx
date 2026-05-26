@@ -204,11 +204,19 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 h-32 w-32 object-contain opacity-30 rotate-12 select-none"
                 />
               )}
-              {!played && (
+              {!played ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.home_team}</span>
-              )}
+              ) : (panelsOpen && recapOpen) ? (
+                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base text-foreground/90 truncate max-w-full">{nameFor(game.home_team)}</span>
+              ) : null}
             </div>
           </div>
+          {/* BIQ button — directly below the game score when recap is NOT active */}
+          {played && !recapOpen && (
+            <div className="relative flex justify-center -mt-1">
+              <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
+            </div>
+          )}
           <GameActionLinks
             league={league}
             boxscoreUrl={game.game_boxscore_url}
