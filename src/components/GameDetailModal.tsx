@@ -177,7 +177,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                 />
               )}
               {!played ? (
-                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
+                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base truncate max-w-full">{biqScheduled ? nameFor(game.away_team) : game.away_team}</span>
               ) : ((sidePanelsExpanded && recapOpen) || biqStandalone) ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base text-foreground/90 truncate max-w-full">{nameFor(game.away_team)}</span>
               ) : null}
@@ -218,7 +218,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                 />
               )}
               {!played ? (
-                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.home_team}</span>
+                <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base truncate max-w-full">{biqScheduled ? nameFor(game.home_team) : game.home_team}</span>
               ) : ((sidePanelsExpanded && recapOpen) || biqStandalone) ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base text-foreground/90 truncate max-w-full">{nameFor(game.home_team)}</span>
               ) : null}
