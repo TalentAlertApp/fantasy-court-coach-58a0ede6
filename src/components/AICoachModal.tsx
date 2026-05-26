@@ -305,11 +305,11 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             src={ballersIqArena}
             alt=""
             aria-hidden
-            className="absolute inset-0 w-full h-full object-cover opacity-60 select-none"
+            className="absolute inset-0 w-full h-full object-cover opacity-70 select-none"
             draggable={false}
           />
           {/* Top/bottom readability gradient — lighter through the middle */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/80 via-[#05070d]/55 to-[#05070d]/95" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/72 via-[#05070d]/48 to-[#05070d]/88" />
           {/* Side glows (red / blue arena lighting) */}
           <div className="biq-shell-glow-blue" />
           <div className="biq-shell-glow-red" />
@@ -328,7 +328,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </div>
 
         {/* Broadcast header */}
-        <DialogHeader className="shrink-0 relative z-[1] px-5 md:px-8 pt-5 pb-4 pr-32">
+        <DialogHeader className="shrink-0 relative z-[1] px-5 md:pl-8 md:pr-48 pt-5 pb-4">
           <DialogTitle className="sr-only">Ballers.IQ — Fantasy Broadcast Intelligence</DialogTitle>
           <div className="flex items-center gap-4 md:gap-6">
             {/* LEFT — brand */}
@@ -346,7 +346,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             </div>
 
             {/* CENTER — context chips */}
-            <div className="hidden lg:flex items-center gap-2 ml-auto">
+            <div className="hidden lg:flex items-center gap-2 ml-auto mr-16">
               <span className="px-3.5 py-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md text-[10.5px] font-heading font-bold uppercase tracking-[0.22em] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_18px_-8px_rgba(0,0,0,0.6)]">
                 My Roster
               </span>

@@ -192,6 +192,10 @@ export default function HealthDeskPanel() {
       .map(([tricode, items]) => ({ tricode, fullName: fullNameFromTricode(tricode, LEAGUE_TEAMS), items }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }, [filteredAll, LEAGUE_TEAMS]);
+  const selectedTeamGroup = useMemo(
+    () => teamGroups.find((g) => g.tricode === teamFilter) ?? null,
+    [teamGroups, teamFilter],
+  );
 
   const teamFiltered = useMemo(
     () => teamFilter === "all" ? filteredAll : filteredAll.filter((r) => r.team_tricode === teamFilter),
@@ -417,7 +421,7 @@ export default function HealthDeskPanel() {
         {/* LEFT — Main Injury Board */}
         <GlassPanel className="md:col-span-8 p-0 flex flex-col min-h-0 overflow-hidden">
           {/* Sticky header inside the panel */}
-          <div className="shrink-0 p-4 pb-3 border-b border-white/8 bg-black/30">
+          <div className="shrink-0 p-4 pb-3 border-b border-white/8 bg-gradient-to-b from-black/45 to-black/20 shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)]">
             <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
               <div className="flex items-center gap-3">
                 <SectionLabel icon={Shield}>Main Injury Board</SectionLabel>
@@ -425,32 +429,9 @@ export default function HealthDeskPanel() {
                   · {items.length} {items.length === 1 ? "entry" : "entries"} · {updatedLabel}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <label className="hidden sm:flex items-center gap-2 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1 cursor-pointer">
-                  <Switch checked={myRosterOnly} onCheckedChange={setMyRosterOnly} />
-                  <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-white/85">My Roster only</span>
-                </label>
-                <TooltipProvider delayDuration={150}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => load(true)}
-                        disabled={loading}
-                        aria-label="Refresh injury report"
-                        className="h-7 w-7 bg-black/30 border-white/15 text-white/85 hover:bg-white/[0.06]"
-                      >
-                        <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-[11px]">Refresh injury report</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
             </div>
 
-            {/* Row: status chips (left) + team dropdown (right) */}
+            {/* Row: status chips (left) + controls/dropdown (right) */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex flex-wrap gap-1.5">
                 {STATUS_CHIPS.map((chip) => {
@@ -474,28 +455,56 @@ export default function HealthDeskPanel() {
                 })}
               </div>
 
-              <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v as any)}>
-                <SelectTrigger className="h-7 w-[180px] text-[11px] bg-black/40 border-white/15 text-white/85">
-                  <SelectValue placeholder="All Teams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <span className="text-xs">All Teams</span>
-                  </SelectItem>
-                  {teamGroups.map((g) => {
-                    const team = LEAGUE_TEAMS.find((t) => t.tricode === g.tricode);
-                    return (
-                      <SelectItem key={g.tricode} value={g.tricode}>
-                        <div className="flex items-center gap-2">
-                          {team?.logo && <img src={team.logo} alt="" className="h-4 w-4 object-contain" />}
-                          <span className="text-xs">{g.fullName}</span>
-                          <span className="ml-2 text-[10px] text-muted-foreground">({g.items.length})</span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2 ml-auto">
+                <label className="hidden sm:flex items-center gap-2 cursor-pointer">
+                  <Switch checked={myRosterOnly} onCheckedChange={setMyRosterOnly} />
+                  <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-white/85">My Roster only</span>
+                </label>
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => load(true)}
+                        disabled={loading}
+                        aria-label="Refresh injury report"
+                        className="h-7 w-7 text-white/85 hover:text-amber-100 hover:bg-white/[0.06]"
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[11px]">Refresh injury report</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <Select value={teamFilter} onValueChange={setTeamFilter}>
+                  <SelectTrigger className="h-7 w-[188px] bg-black/40 border-white/15 text-white/85">
+                    {teamFilter === "all" ? (
+                      <span className="font-heading text-[10px] uppercase tracking-[0.16em] text-white/85">All Teams</span>
+                    ) : (
+                      <span className="truncate text-xs text-white/85">{selectedTeamGroup?.fullName ?? teamFilter}</span>
+                    )}
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">
+                      <span className="font-heading text-[10px] uppercase tracking-[0.16em]">All Teams</span>
+                    </SelectItem>
+                    {teamGroups.map((g) => {
+                      const team = LEAGUE_TEAMS.find((t) => t.tricode === g.tricode);
+                      return (
+                        <SelectItem key={g.tricode} value={g.tricode}>
+                          <div className="flex items-center gap-2">
+                            {team?.logo && <img src={team.logo} alt="" className="h-4 w-4 object-contain" />}
+                            <span className="text-xs">{g.fullName}</span>
+                            <span className="ml-2 text-[10px] text-muted-foreground">({g.items.length})</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
