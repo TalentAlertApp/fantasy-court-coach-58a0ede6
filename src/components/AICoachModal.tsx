@@ -405,10 +405,10 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               <TabsTrigger
                 key={v}
                 value={v}
-                className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5 text-white/75
-                           hover:text-white hover:bg-white/[0.04] transition-all
+                className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5 !text-white/75
+                           hover:!text-white hover:bg-white/[0.04] transition-all
                            data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/25 data-[state=active]:to-amber-500/[0.08]
-                           data-[state=active]:text-amber-50
+                           data-[state=active]:!text-amber-50
                            data-[state=active]:shadow-[inset_0_1px_0_rgba(255,232,170,0.25),0_0_0_1px_hsl(45_90%_55%/0.55),0_0_24px_-6px_hsl(45_90%_55%/0.75)]"
               >
                 <Icon className="h-3.5 w-3.5 mr-1.5" />{label}
