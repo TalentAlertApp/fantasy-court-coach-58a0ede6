@@ -390,15 +390,23 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "def
    );
  }
 
-function QuickRead({ icon: Icon, label, value, tint }: { icon: any; label: string; value: string; tint: string }) {
-   return (
-     <div className={cn("relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3", tint)}>
+function QuickRead({ icon: Icon, label, value, tint, onClick }: { icon: any; label: string; value: string; tint: string; onClick?: () => void }) {
+   const inner = (
+     <>
        <div className="flex items-center gap-1.5 text-[9px] font-heading uppercase tracking-[0.18em] opacity-90">
          <Icon className="h-3 w-3" /> {label}
        </div>
        <div className="mt-1.5 font-heading font-bold text-sm truncate">{value}</div>
-     </div>
+     </>
    );
+   const cls = cn(
+     "relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3 text-left w-full transition-all",
+     onClick && "hover:brightness-125 hover:-translate-y-0.5 hover:shadow-[0_0_24px_-6px_rgba(252,211,77,0.4)] cursor-pointer",
+     tint,
+   );
+   return onClick
+     ? <button type="button" onClick={onClick} className={cls}>{inner}</button>
+     : <div className={cls}>{inner}</div>;
  }
 
 function Signal({ icon: Icon, title, chip, tone, note }: { icon: any; title: string; chip: string; tone: "good" | "warn" | "bad" | "default"; note: string }) {
