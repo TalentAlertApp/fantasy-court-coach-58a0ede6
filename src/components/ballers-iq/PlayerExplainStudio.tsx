@@ -479,9 +479,7 @@ export default function PlayerExplainStudio(props: Props) {
   );
 }
 
-/** Bridge that imports the existing ExplainReport renderer from AICoachModal.
- *  We re-implement a thin wrapper by lazily importing to avoid a circular dep. */
-import ExplainReportInner from "@/components/ballers-iq/_ExplainReportProxy";
+import ExplainReport from "@/components/ballers-iq/ExplainReport";
 function ExplainReportSlot(p: { result: any; player: any }) {
-  return <ExplainReportInner result={p.result} player={p.player} />;
+  return <ExplainReport result={p.result} player={p.player} />;
 }
