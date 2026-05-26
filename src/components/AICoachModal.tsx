@@ -560,18 +560,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             </TabsContent>
 
             {/* Injuries */}
-            <TabsContent value="injuries" className="mt-0 space-y-3">
-              <Button
-                size="sm"
-                onClick={() => setInjuryModalOpen(true)}
-                className="w-full bg-yellow-500 hover:bg-yellow-500/90 text-black"
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                Scan Injuries
-              </Button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Opens the league-wide injury report aggregated from ESPN, CBS Sports and RotoWire.
-              </p>
+            <TabsContent value="injuries" className="mt-0">
+              <HealthDeskPanel />
             </TabsContent>
 
             {/* Explain */}
