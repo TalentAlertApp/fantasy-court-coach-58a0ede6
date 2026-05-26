@@ -227,56 +227,49 @@ export default function RosterReadPanel({
            </div>
          </div>
 
-         {/* MAIN GRID */}
-         <div className="grid gap-3 lg:grid-cols-12">
-           {/* LEFT — Summary + Strengths/Weaknesses */}
-           <div className="lg:col-span-8 space-y-3">
-             {analyzeResult.summary_bullets?.length > 0 && (
-               <GlassPanel className="p-4">
-                 <SectionLabel icon={Sparkles}>Roster Summary</SectionLabel>
-                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                   {analyzeResult.summary_bullets.map((b: string, i: number) => (
-                     <div key={i} className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[12px] text-white/85 leading-snug flex gap-2">
-                       <Sparkles className="h-3 w-3 text-amber-300/80 shrink-0 mt-0.5" /> {b}
-                     </div>
-                   ))}
-                 </div>
-               </GlassPanel>
-             )}
-             <div className="grid gap-3 md:grid-cols-2">
-               {analyzeResult.strengths?.length > 0 && (
-                 <GlassPanel className="p-4">
-                   <SectionLabel icon={CheckCircle2} accent="emerald">Strengths</SectionLabel>
-                   <ul className="mt-3 space-y-1.5">
-                     {analyzeResult.strengths.map((s: string, i: number) => (
-                       <li key={i} className="flex items-start gap-2 text-[12px] text-white/85 leading-snug">
-                         <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" /> {s}
-                       </li>
-                     ))}
-                   </ul>
-                 </GlassPanel>
-               )}
-               {analyzeResult.weaknesses?.length > 0 && (
-                 <GlassPanel className="p-4">
-                   <SectionLabel icon={AlertTriangle} accent="rose">Risk Flags</SectionLabel>
-                   <ul className="mt-3 space-y-1.5">
-                     {analyzeResult.weaknesses.map((w: string, i: number) => (
-                       <li key={i} className="flex items-start gap-2 text-[12px] text-white/85 leading-snug">
-                         <span className="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400 shrink-0" /> {w}
-                       </li>
-                     ))}
-                   </ul>
-                 </GlassPanel>
-               )}
-             </div>
+          {/* MAIN — Summary full width */}
+          {analyzeResult.summary_bullets?.length > 0 && (
+            <GlassPanel className="p-4">
+              <SectionLabel icon={Sparkles}>Roster Summary</SectionLabel>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {analyzeResult.summary_bullets.map((b: string, i: number) => (
+                  <div key={i} className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-[12px] text-white/85 leading-snug flex gap-2">
+                    <Sparkles className="h-3 w-3 text-amber-300/80 shrink-0 mt-0.5" /> {b}
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+          )}
 
-           </div>
-
-           {/* RIGHT — Signal Rail */}
-           <div className="lg:col-span-4 space-y-3">
-             <GlassPanel className="p-4">
-               <SectionLabel icon={Radar}>Intelligence Signals</SectionLabel>
-               <div className="mt-3 space-y-2">
+          {/* TRIPLE — Strengths / Risk Flags / Intelligence Signals aligned */}
+          <div className="grid gap-3 lg:grid-cols-3 items-stretch">
+            {analyzeResult.strengths?.length > 0 && (
+              <GlassPanel className="p-4 h-full">
+                <SectionLabel icon={CheckCircle2} accent="emerald">Strengths</SectionLabel>
+                <ul className="mt-3 space-y-1.5">
+                  {analyzeResult.strengths.map((s: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-[12px] text-white/85 leading-snug">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" /> {s}
+                    </li>
+                  ))}
+                </ul>
+              </GlassPanel>
+            )}
+            {analyzeResult.weaknesses?.length > 0 && (
+              <GlassPanel className="p-4 h-full">
+                <SectionLabel icon={AlertTriangle} accent="rose">Risk Flags</SectionLabel>
+                <ul className="mt-3 space-y-1.5">
+                  {analyzeResult.weaknesses.map((w: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-[12px] text-white/85 leading-snug">
+                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-rose-400 shrink-0" /> {w}
+                    </li>
+                  ))}
+                </ul>
+              </GlassPanel>
+            )}
+            <GlassPanel className="p-4 h-full">
+              <SectionLabel icon={Radar}>Intelligence Signals</SectionLabel>
+              <div className="mt-3 space-y-2">
                  <Signal icon={Crown} title="Captain Watch" chip={snapshot.captainSet ? "Locked" : "Open"} tone={snapshot.captainSet ? "good" : "warn"}
                    note={snapshot.captainPlayer ? snapshot.captainPlayer.core.name : "Pick a captain before the deadline."} />
                  <Signal icon={Heart} title="Health Watch" chip={`${snapshot.riskStarters} risk`} tone={snapshot.riskStarters >= 2 ? "bad" : snapshot.riskStarters === 1 ? "warn" : "good"}
@@ -289,10 +282,9 @@ export default function RosterReadPanel({
                    <Signal icon={TrendingUp} title="Upgrade Opportunity" chip="Look at" tone="good"
                      note={`${quickReads.valuePick.core.name} · best value index.`} />
                  )}
-               </div>
-             </GlassPanel>
-           </div>
-         </div>
+              </div>
+            </GlassPanel>
+          </div>
        </div>
      );
    }
