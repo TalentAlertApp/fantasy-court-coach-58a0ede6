@@ -379,7 +379,44 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           </div>
         )}
-        {!played && <ScheduledInsights game={game} />}
+        {!played && (
+          <div
+            className="relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{
+              gridTemplateColumns: biqScheduled
+                ? "minmax(240px,1fr) minmax(0,2.4fr) minmax(240px,1fr)"
+                : "0fr minmax(0,1fr) 0fr",
+            }}
+          >
+            <div
+              className={`relative bg-background overflow-hidden border-r border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${biqScheduled ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
+              style={{ height: scheduledHeight }}
+            >
+              {biqScheduled && (
+                <GameBallersIQScheduledPanel
+                  side="left"
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                />
+              )}
+            </div>
+            <div ref={scheduledRef}>
+              <ScheduledInsights game={game} />
+            </div>
+            <div
+              className={`relative bg-background overflow-hidden border-l border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${biqScheduled ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
+              style={{ height: scheduledHeight }}
+            >
+              {biqScheduled && (
+                <GameBallersIQScheduledPanel
+                  side="right"
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
     </>
