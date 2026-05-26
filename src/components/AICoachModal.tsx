@@ -332,7 +332,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </div>
 
         {/* Broadcast header */}
-        <DialogHeader className="shrink-0 relative z-[1] px-5 md:pl-8 md:pr-48 pt-5 pb-4">
+        <DialogHeader className="shrink-0 relative z-[1] px-5 md:pl-8 md:pr-48 pt-2 pb-2">
           <DialogTitle className="sr-only">Ballers.IQ — Fantasy Broadcast Intelligence</DialogTitle>
           <div className="flex items-center gap-4 md:gap-6">
             {/* LEFT — brand */}
@@ -363,7 +363,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <div className="lg:hidden ml-auto" />
           </div>
           {/* Divider glow */}
-          <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent shadow-[0_0_8px_rgba(252,211,77,0.35)]" />
+          <div className="mt-2 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent shadow-[0_0_8px_rgba(252,211,77,0.35)]" />
         </DialogHeader>
 
         {/* Explicit broadcast-grade close button. Sits above all background layers
@@ -405,10 +405,13 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               <TabsTrigger
                 key={v}
                 value={v}
-                className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5 !text-white/75
-                           hover:!text-white hover:bg-white/[0.04] transition-all
-                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/25 data-[state=active]:to-amber-500/[0.08]
-                           data-[state=active]:!text-amber-50
+                className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5
+                           bg-amber-400/90 !text-blue-800 hover:bg-amber-400 hover:!text-blue-900
+                           dark:bg-transparent dark:!text-white/75 dark:hover:!text-white dark:hover:bg-white/[0.04]
+                           transition-all
+                           data-[state=active]:bg-amber-400 data-[state=active]:!text-blue-900
+                           dark:data-[state=active]:bg-gradient-to-b dark:data-[state=active]:from-amber-300/25 dark:data-[state=active]:to-amber-500/[0.08]
+                           dark:data-[state=active]:!text-amber-50
                            data-[state=active]:shadow-[inset_0_1px_0_rgba(255,232,170,0.25),0_0_0_1px_hsl(45_90%_55%/0.55),0_0_24px_-6px_hsl(45_90%_55%/0.75)]"
               >
                 <Icon className="h-3.5 w-3.5 mr-1.5" />{label}

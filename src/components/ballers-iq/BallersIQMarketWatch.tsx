@@ -98,7 +98,8 @@ export default function BallersIQMarketWatch({
 
   return (
     <section className={cn(
-      "relative rounded-xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.05] via-card to-card p-3 overflow-hidden",
+      "relative rounded-xl border border-amber-400/40 p-3 overflow-hidden",
+      "bg-amber-400/15 dark:bg-gradient-to-br dark:from-amber-400/[0.05] dark:via-card dark:to-card",
       className,
     )}>
       <BallersIQBrand
@@ -178,7 +179,7 @@ function Lane({
   rows: { id: number; name: string; meta: string }[]; onPick?: (id: number) => void;
 }) {
   return (
-    <div className={cn("rounded-lg border bg-card/50 p-2", TONE[tone])}>
+    <div className={cn("rounded-lg border bg-amber-400/10 dark:bg-card/50 p-2", TONE[tone])}>
       <div className="flex items-center gap-1.5 mb-1">
         {icon}
         <span className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground">{label}</span>
