@@ -1,71 +1,36 @@
-## 1) MARKET WATCH — `MarketWatchStudio.tsx`
+## 1) Game Played modal — consistent vertical height
 
-**a) CoachCast — Best Transfer Move (right cluster cleanup)**
-The 4 elements (`Confidence`, `FP5 Gain`, `Simulate`, `Re-scan`) currently use a `col-span-2` 2x2 grid where the Simulate/Re-scan buttons stretch full-width below two stat tiles, looking unbalanced and messy.
+**File:** `src/components/GameDetailModal.tsx`
 
-Rework the `md:col-span-4` block to a tight vertical broadcast meter:
-- Top row: a single inline "Confidence + FP5 Gain" stat bar — two compact pill-stats separated by a divider, both same height, mono-tabular numerals, color-coded (amber / emerald|rose).
-- Bottom row: a single primary action (Simulate → swaps to Commit / Invalid once `simResults[0]` exists) followed by a small ghost "Re-scan" icon button anchored to the right. Both share one row height so the right column reads as 2 clean horizontal bands (Stats / Actions), aligned vertically with the left swap card.
+The box-score-only state (`played && !recapOpen && !biqStandalone`) renders the table at its natural height, while the recap and BIQ states lock to `embedHeight` (≥420px). When the table is shorter, the modal "shrinks" between states.
 
-**b) All Recommendations — `no_game` chip**
-Currently any item in `m.risk_flags` is rendered raw as a destructive chip, so `no_game` shows up literally. Add a friendly label + tooltip map:
-- `no_game` → "No game this week"
-- `bench_only` → "Bench only"
-- `injury` → "Injury risk"
-- `salary_drop` → "Salary drop risk"
-- fallback: Title-case the key with underscores → spaces.
+**Fix:** apply `style={{ minHeight: embedHeight }}` to the box-score-only container (the grid wrapper around `tableWrapRef`) so all three states share the same minimum height. The internal `tableWrapRef` keeps measuring natural height for the recap calculation, but the surrounding container is pinned.
 
-Also de-duplicate when both DROP and ADD produce the same flag (currently shown once per move, but ensure each unique flag is rendered once).
+## 2) BallersIQ button — light-theme readability
 
-## 2) /advanced — Playing Time → Fantasy Points
+**File:** `src/components/GameDetailModal.tsx` (`BallersIQButton`)
 
-**a) Move tables**
-- Remove the `Increased Playing Time` / `Decreased Playing Time` `TrendTable` pair from the `playing-time` `TabsContent` in `AdvancedPage.tsx`.
-- Add them to `TrendingTab.tsx` as two extra `LeaderSubject`s ("Minutes Risers" / "Minutes Fallers") using the existing `RotatingLeaderCard` mechanism (or render them as a dedicated row below the rotating cards to keep table fidelity). Preferred: dedicated `<TrendTable>` row beneath the rotating cards so the existing visual is preserved.
+Current classes use `bg-black/40` + amber tones that vanish on light backgrounds; the wordmark is also force-themed `dark`.
 
-**b) New Fantasy Points tables on the (renamed) tab**
-Rename the tab from "Playing Time" to **"Fantasy Points"** in:
-- `src/lib/advanced-tab-store.ts` (`AdvancedTab` union stays `playing-time` to avoid storage migration; only the `ADVANCED_TAB_LABEL` value changes).
-- `AdvancedPage.tsx` `tabsDef` label.
-- Section H1 "Playing Time Trends" → "Fantasy Points Leaders".
+**Fix:** rebuild both states using semantic-friendly contrast that works in both themes:
+- OFF: solid amber tint background (`bg-amber-500/15 dark:bg-black/40`), darker amber text in light (`text-amber-700 dark:text-amber-200/85`), stronger border (`border-amber-500/60`).
+- ON (Live): filled amber chip (`bg-amber-500 text-black dark:bg-amber-400/20 dark:text-amber-100`) with subtle glow preserved in dark only.
+- Drop `forceTheme="dark"` on the wordmark when in light mode so the logo recolors properly (use `forceTheme={undefined}` or rely on default).
 
-Render two side-by-side tables in the renamed tab:
-- **Top FP** — sorted desc by `season.fp`
-- **Less FP** — sorted asc by `season.fp` (with a minimum GP guard)
+## 3) Ballers.IQ Market Watch — remove Quick Actions card
 
-Columns for both: `Player | FP | FP5 | MPG | V | Δ` where:
-- `FP` = `p.season.fp`
-- `FP5` = `p.last5.fp5`
-- `MPG` = `p.last5.mpg5`
-- `V` = `p.computed.value` (season value)
-- `Δ` = `p.computed.delta_fp` (FP5 vs season; green if up, red if down)
+**File:** `src/components/ballers-iq/MarketWatchStudio.tsx` (lines 548–568)
 
-Source data from `usePlayersQuery({ limit: 1000 })` (already used by Trending) — no new edge function. Build a small `FPLeaderTable` component or reuse `LeaderTable`.
+Delete the entire bottom `GlassPanel` "Quick Actions" block. Drop unused imports (`Target`, `ArrowLeftRight`, `BarChart3`, `Crown`, `Heart`) if no longer referenced after removal.
 
-## 3) Fantasy Broadcast Intelligence — light theme tab labels
+## 4) EuroLeague Game modal — player photo face crop
 
-In `AICoachModal.tsx`, the `TabsList` is on a dark `bg-black/60` strip, but the shadcn `TabsTrigger` base class injects `text-muted-foreground` / `data-[state=active]:text-foreground` which in light theme resolve to near-white text on the dark strip's white-ish overlay = unreadable.
+**File:** `src/components/game/GameBoxScoreTable.tsx` (line 184)
 
-Force theme-independent colors with `!` Tailwind specificity:
-- Inactive: `!text-white/75 hover:!text-white`
-- Active: `data-[state=active]:!text-amber-50`
+`AvatarImage` defaults to `object-cover object-center`, so faces sit too high (same issue fixed elsewhere). Add `className="object-cover object-[center_15%]"` to `<AvatarImage>` to match the crop used in `PlayerRow` / My Roster.
 
-Also add `!text-white/75` to the icon's parent so the `lucide` icon inherits the forced color. This keeps the dark broadcast aesthetic intact in both themes.
+## Notes
 
----
-
-### Technical Notes
-- No backend / edge function changes.
-- No new dependencies.
-- `AdvancedTab` enum keeps `playing-time` key to preserve `localStorage` continuity; only the visible label changes.
-- Risk-flag friendly map lives inline in `MarketWatchStudio.tsx` (small, local concern).
-- `TrendTable` in `AdvancedPage.tsx` will be extracted/exported (or duplicated minimally) so `TrendingTab.tsx` can render it without circular deps — preferred path is exporting it from a new `src/components/advanced/TrendTable.tsx` and importing in both places.
-
-### Files Touched
-- `src/components/ballers-iq/MarketWatchStudio.tsx`
-- `src/components/AICoachModal.tsx`
-- `src/pages/AdvancedPage.tsx`
-- `src/components/advanced/TrendingTab.tsx`
-- `src/lib/advanced-tab-store.ts`
-- `src/components/advanced/TrendTable.tsx` (new, extracted)
-- `src/components/advanced/FPLeaderTable.tsx` (new)
+- Only frontend/presentation edits.
+- No business-logic or data changes.
+- No new files.
