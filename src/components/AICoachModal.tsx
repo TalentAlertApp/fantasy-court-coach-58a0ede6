@@ -436,6 +436,13 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 analyzeResult={analyzeResult}
                 onAnalyze={handleAnalyze}
                 onGoToTab={setActiveTab}
+                onOpenPlayer={(p) => {
+                  if (!p) return;
+                  setSelectedExplainPlayer(p);
+                  setExplainSearch(p.core.name);
+                  setActiveTab("explain");
+                  void runExplain(p);
+                }}
               />
             </TabsContent>
 
