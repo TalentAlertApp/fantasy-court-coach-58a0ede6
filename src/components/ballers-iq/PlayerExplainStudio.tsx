@@ -115,13 +115,13 @@ export default function PlayerExplainStudio(props: Props) {
   /* ============ STATE: REPORT ============ */
   if (explainResult && !explainLoading) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between -mt-1">
           <Button
             size="sm"
             variant="ghost"
             onClick={onClearResult}
-            className="text-white/75 hover:text-white hover:bg-white/[0.05]"
+            className="h-7 px-2 text-white/75 hover:text-white hover:bg-white/[0.05]"
           >
             <ArrowLeft className="h-4 w-4 mr-1.5" /> New search
           </Button>
