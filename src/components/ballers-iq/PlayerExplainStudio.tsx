@@ -115,13 +115,13 @@ export default function PlayerExplainStudio(props: Props) {
   /* ============ STATE: REPORT ============ */
   if (explainResult && !explainLoading) {
     return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between -mt-1">
           <Button
             size="sm"
             variant="ghost"
             onClick={onClearResult}
-            className="text-white/75 hover:text-white hover:bg-white/[0.05]"
+            className="h-7 px-2 text-white/75 hover:text-white hover:bg-white/[0.05]"
           >
             <ArrowLeft className="h-4 w-4 mr-1.5" /> New search
           </Button>
@@ -442,39 +442,6 @@ export default function PlayerExplainStudio(props: Props) {
           </GlassPanel>
         )}
       </div>
-
-      {/* QUICK ACTIONS (pinned) */}
-      <GlassPanel className="shrink-0 p-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-heading uppercase tracking-[0.22em] text-white/55 px-1">Quick actions</span>
-          <div className="ml-auto flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onGoToTab("transfers")}
-              className="bg-transparent border-white/15 text-white/85 hover:text-white hover:bg-white/[0.05] rounded-lg font-heading uppercase tracking-[0.16em] text-[10.5px]"
-            >
-              <ArrowLeftRight className="h-3.5 w-3.5 mr-1.5" /> Market Watch
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onGoToTab("analyze")}
-              className="bg-transparent border-white/15 text-white/85 hover:text-white hover:bg-white/[0.05] rounded-lg font-heading uppercase tracking-[0.16em] text-[10.5px]"
-            >
-              <Users className="h-3.5 w-3.5 mr-1.5" /> My Roster
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onGoToTab("captain")}
-              className="bg-transparent border-white/15 text-white/85 hover:text-white hover:bg-white/[0.05] rounded-lg font-heading uppercase tracking-[0.16em] text-[10.5px]"
-            >
-              <Crown className="h-3.5 w-3.5 mr-1.5" /> Captain Call
-            </Button>
-          </div>
-        </div>
-      </GlassPanel>
     </div>
   );
 }
