@@ -177,7 +177,7 @@ export default function CaptainCallStudio({
             {/* LEFT — recommendation */}
             <div className="md:col-span-8 min-w-0 flex items-center gap-3">
               {recommended.core?.photo ? (
-                <img src={recommended.core.photo} alt="" className="w-16 h-16 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.6)]" />
+                <img src={recommended.core.photo} alt="" className="w-16 h-16 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.6)]" />
               ) : (
                 <div className="w-16 h-16 rounded-xl bg-white/[0.08] inline-flex items-center justify-center font-bold text-white/85">
                   {recommended.core?.name?.slice(0, 2)?.toUpperCase()}
