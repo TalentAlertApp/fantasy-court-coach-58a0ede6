@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
@@ -408,145 +409,100 @@ export default function HealthDeskPanel() {
   }
 
   /* -------------------- 3) REPORT GENERATED STATE -------------------- */
-  const riskTone =
-    rosterRiskLevel === "high" ? "from-red-500/30 to-red-500/5 border-red-500/40 text-red-100"
-    : rosterRiskLevel === "moderate" ? "from-yellow-400/30 to-yellow-400/5 border-yellow-400/40 text-yellow-100"
-    : "from-emerald-500/25 to-emerald-500/5 border-emerald-500/40 text-emerald-100";
-  const riskLabel = rosterRiskLevel === "high" ? "High Risk" : rosterRiskLevel === "moderate" ? "Moderate Risk" : "Low Risk";
-
   const teamsOnRoster = new Set(rosterAffected.map((r) => r.team_tricode));
 
   return (
-    <div className="space-y-3">
-      {/* TOP — Health Score Bar */}
-      <GlassPanel className={cn("p-4 bg-gradient-to-r border", riskTone)}>
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg border border-current/40 flex items-center justify-center">
-              <Heart className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.22em] font-heading opacity-80">Roster Health</div>
-              <div className="text-base font-heading font-bold uppercase tracking-[0.18em]">{riskLabel}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-[9px] uppercase tracking-[0.2em] opacity-70">Affected</div>
-              <div className="text-lg font-heading font-bold">{rosterAffected.length}</div>
-            </div>
-            <div>
-              <div className="text-[9px] uppercase tracking-[0.2em] opacity-70">Out</div>
-              <div className="text-lg font-heading font-bold">{rosterOuts}</div>
-            </div>
-            <div>
-              <div className="text-[9px] uppercase tracking-[0.2em] opacity-70">DTD</div>
-              <div className="text-lg font-heading font-bold">{rosterDTD}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/30 px-3 py-1.5 cursor-pointer">
-              <Switch checked={myRosterOnly} onCheckedChange={setMyRosterOnly} />
-              <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-white/85">My Roster only</span>
-            </label>
-            <Button size="sm" variant="outline" onClick={() => load(true)} disabled={loading} className="bg-black/30 border-white/15 text-white/85 hover:bg-white/[0.06]">
-              <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loading && "animate-spin")} /> Refresh
-            </Button>
-          </div>
-        </div>
-      </GlassPanel>
-
-      <div className="grid gap-3 md:grid-cols-12">
+    <div className="flex flex-col gap-3 h-full min-h-0">
+      <div className="grid gap-3 md:grid-cols-12 flex-1 min-h-0">
         {/* LEFT — Main Injury Board */}
-        <GlassPanel className="md:col-span-8 p-4">
-          <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-            <SectionLabel icon={Shield}>Main Injury Board</SectionLabel>
-            <div className="text-[10px] font-heading uppercase tracking-[0.18em] text-white/55">
-              {items.length} {items.length === 1 ? "entry" : "entries"} · {updatedLabel}
+        <GlassPanel className="md:col-span-8 p-0 flex flex-col min-h-0 overflow-hidden">
+          {/* Sticky header inside the panel */}
+          <div className="shrink-0 p-4 pb-3 border-b border-white/8 bg-black/30">
+            <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+              <SectionLabel icon={Shield}>Main Injury Board</SectionLabel>
+              <div className="flex items-center gap-2">
+                <label className="hidden sm:flex items-center gap-2 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1 cursor-pointer">
+                  <Switch checked={myRosterOnly} onCheckedChange={setMyRosterOnly} />
+                  <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-white/85">My Roster only</span>
+                </label>
+                <Button size="sm" variant="outline" onClick={() => load(true)} disabled={loading} className="h-7 bg-black/30 border-white/15 text-white/85 hover:bg-white/[0.06]">
+                  <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loading && "animate-spin")} /> Refresh
+                </Button>
+                <span className="hidden md:inline text-[10px] font-heading uppercase tracking-[0.18em] text-white/55">
+                  {items.length} {items.length === 1 ? "entry" : "entries"} · {updatedLabel}
+                </span>
+              </div>
+            </div>
+
+            {/* Row: status chips (left) + team dropdown (right) */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex flex-wrap gap-1.5">
+                {STATUS_CHIPS.map((chip) => {
+                  const count = chip.key === "all" ? teamFiltered.length : statusCounts[chip.key] ?? 0;
+                  const isActive = statusFilter === chip.key;
+                  return (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      onClick={() => setStatusFilter(chip.key)}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border font-heading uppercase tracking-[0.16em] text-[10px] transition-all",
+                        chip.tone,
+                        isActive ? "ring-1 ring-amber-300/60 shadow-[0_0_14px_-4px_rgba(252,211,77,0.6)]" : "opacity-70 hover:opacity-100",
+                      )}
+                    >
+                      {chip.label}
+                      <span className="text-[9px] font-mono opacity-80">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v as any)}>
+                <SelectTrigger className="h-7 w-[180px] text-[11px] bg-black/40 border-white/15 text-white/85">
+                  <SelectValue placeholder="All Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    <span className="text-xs">All Teams</span>
+                  </SelectItem>
+                  {teamGroups.map((g) => {
+                    const team = LEAGUE_TEAMS.find((t) => t.tricode === g.tricode);
+                    return (
+                      <SelectItem key={g.tricode} value={g.tricode}>
+                        <div className="flex items-center gap-2">
+                          {team?.logo && <img src={team.logo} alt="" className="h-4 w-4 object-contain" />}
+                          <span className="text-xs">{g.fullName}</span>
+                          <span className="ml-2 text-[10px] text-muted-foreground">({g.items.length})</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {/* Status chips */}
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {STATUS_CHIPS.map((chip) => {
-              const count = chip.key === "all" ? teamFiltered.length : statusCounts[chip.key] ?? 0;
-              const isActive = statusFilter === chip.key;
-              return (
-                <button
-                  key={chip.key}
-                  type="button"
-                  onClick={() => setStatusFilter(chip.key)}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border font-heading uppercase tracking-[0.16em] text-[10px] transition-all",
-                    chip.tone,
-                    isActive ? "ring-1 ring-amber-300/60 shadow-[0_0_14px_-4px_rgba(252,211,77,0.6)]" : "opacity-70 hover:opacity-100",
-                  )}
-                >
-                  {chip.label}
-                  <span className="text-[9px] font-mono opacity-80">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Team chip selector (logos) */}
-          {teamGroups.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5 mb-3">
-              <button
-                onClick={() => setTeamFilter("all")}
-                className={cn(
-                  "h-6 px-2 rounded-md border text-[10px] font-heading uppercase tracking-[0.16em] transition-all",
-                  teamFilter === "all"
-                    ? "border-amber-300/60 bg-amber-400/15 text-amber-100"
-                    : "border-white/10 bg-white/[0.03] text-white/55 hover:text-white",
+          {/* Scrollable list */}
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-2">
+            <TooltipProvider delayDuration={150}>
+              <ul className="divide-y divide-white/5">
+                {items.length === 0 && (
+                  <li className="py-10 flex flex-col items-center justify-center gap-2 text-white/55">
+                    <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                    <p className="text-sm">{myRosterOnly ? "No injuries on your roster" : "No reported injuries"}</p>
+                  </li>
                 )}
-              >
-                All Teams
-              </button>
-              {teamGroups.map((g) => {
-                const team = LEAGUE_TEAMS.find((t) => t.tricode === g.tricode);
-                const active = teamFilter === g.tricode;
-                return (
-                  <button
-                    key={g.tricode}
-                    type="button"
-                    onClick={() => setTeamFilter(active ? "all" : g.tricode)}
-                    title={`${g.fullName} · ${g.items.length}`}
-                    className={cn(
-                      "relative h-7 w-7 rounded-md border flex items-center justify-center transition-all",
-                      active ? "border-amber-300/70 bg-amber-400/15 scale-110" : "border-white/10 bg-white/[0.03] hover:scale-105",
-                    )}
-                  >
-                    {team?.logo
-                      ? <img src={team.logo} alt={g.tricode} className="h-5 w-5 object-contain" />
-                      : <span className="text-[9px] font-heading">{g.tricode}</span>}
-                    <span className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 rounded-full bg-destructive text-[8px] leading-none font-bold text-destructive-foreground flex items-center justify-center">
-                      {g.items.length}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* List */}
-          <TooltipProvider delayDuration={150}>
-            <ul className="divide-y divide-white/5">
-              {items.length === 0 && (
-                <li className="py-10 flex flex-col items-center justify-center gap-2 text-white/55">
-                  <CheckCircle2 className="h-6 w-6 text-emerald-400" />
-                  <p className="text-sm">{myRosterOnly ? "No injuries on your roster" : "No reported injuries"}</p>
-                </li>
-              )}
-              {items.map((rec, idx) => (
-                <InjuryRow key={`${rec.player_name}-${idx}`} rec={rec} onSelect={(id) => setOpenPlayerId(id)} />
-              ))}
-            </ul>
-          </TooltipProvider>
+                {items.map((rec, idx) => (
+                  <InjuryRow key={`${rec.player_name}-${idx}`} rec={rec} onSelect={(id) => setOpenPlayerId(id)} />
+                ))}
+              </ul>
+            </TooltipProvider>
+          </div>
         </GlassPanel>
 
         {/* RIGHT — Roster Exposure */}
-        <GlassPanel className="md:col-span-4 p-4">
+        <GlassPanel className="md:col-span-4 p-4 overflow-y-auto min-h-0">
           <SectionLabel icon={Users}>Roster Exposure</SectionLabel>
           {rosterAffected.length === 0 ? (
             <div className="mt-4 flex flex-col items-center text-center gap-2 py-6">
@@ -599,8 +555,10 @@ export default function HealthDeskPanel() {
           )}
         </GlassPanel>
 
-        {/* BOTTOM — Notes / Sources */}
-        <GlassPanel className="md:col-span-12 p-4">
+      </div>
+
+      {/* BOTTOM — Notes / Sources (sticky pinned) */}
+      <GlassPanel className="shrink-0 p-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <SectionLabel icon={Newspaper}>News · Notes · Impact</SectionLabel>
             <div className="text-[10px] font-heading uppercase tracking-[0.18em] text-white/55">
@@ -633,7 +591,6 @@ export default function HealthDeskPanel() {
             )}
           </div>
         </GlassPanel>
-      </div>
 
       <PlayerModal
         playerId={openPlayerId}
@@ -675,7 +632,7 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
           alt=""
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full opacity-[0.18] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.5] group-hover:scale-110 transition-all duration-300",
+            "pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full ring-0 opacity-[0.18] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.7] group-hover:scale-110 group-hover:ring-2 group-hover:ring-amber-300/80 group-hover:shadow-[0_0_18px_-2px_rgba(252,211,77,0.65)] transition-all duration-300",
             league === "euroleague" && "object-top",
           )}
         />
