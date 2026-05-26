@@ -93,9 +93,11 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const [recapOpen, setRecapOpen] = useState(false);
   const [panelsOpen, setPanelsOpen] = useState(false);
   const [biqOn, setBiqOn] = useState(false);
-  // When recap is open, BIQ acts as side-panel expansion (mutually exclusive with team-scoring).
+  // BIQ acts as side-panel expansion in both recap-open and recap-closed modes.
   const biqExpanded = recapOpen && biqOn;
+  const biqStandalone = played && biqOn && !recapOpen;
   const sidePanelsExpanded = panelsOpen || biqExpanded;
+  const modalExpanded = (recapOpen && sidePanelsExpanded) || biqStandalone;
   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
   // Mutually exclusive expansion modes
   useEffect(() => { if (panelsOpen && biqOn && recapOpen) setBiqOn(false); /* eslint-disable-next-line */ }, [panelsOpen]);
