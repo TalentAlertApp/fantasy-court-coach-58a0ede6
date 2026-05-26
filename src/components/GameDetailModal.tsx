@@ -269,20 +269,46 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
-        {/* Standalone BIQ layer (only when recap is not open) */}
-        {played && biqOn && !recapOpen && (
-          <GameBallersIQLayer
-            gameId={game.game_id}
-            homeTeam={game.home_team}
-            awayTeam={game.away_team}
-            homePts={game.home_pts}
-            awayPts={game.away_pts}
-            compact={false}
-          />
-        )}
         {played && !recapOpen && (
-          <div ref={tableWrapRef} className="border-t">
-            <GameBoxScoreTable game={game} />
+          <div
+            className="border-t bg-background relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{
+              gridTemplateColumns: biqStandalone
+                ? "minmax(240px,1fr) minmax(0,2.4fr) minmax(240px,1fr)"
+                : "0fr minmax(0,1fr) 0fr",
+            }}
+          >
+            <div
+              className={`relative bg-background overflow-hidden border-r border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${biqStandalone ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
+            >
+              {biqStandalone && (
+                <GameBallersIQSidePanel
+                  side="left"
+                  gameId={game.game_id}
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                  homePts={game.home_pts}
+                  awayPts={game.away_pts}
+                />
+              )}
+            </div>
+            <div ref={tableWrapRef}>
+              <GameBoxScoreTable game={game} />
+            </div>
+            <div
+              className={`relative bg-background overflow-hidden border-l border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${biqStandalone ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
+            >
+              {biqStandalone && (
+                <GameBallersIQSidePanel
+                  side="right"
+                  gameId={game.game_id}
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                  homePts={game.home_pts}
+                  awayPts={game.away_pts}
+                />
+              )}
+          </div>
           </div>
         )}
         {played && recapOpen && embedSrc && (
