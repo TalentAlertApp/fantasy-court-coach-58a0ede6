@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import {
   ArrowLeftRight, Loader2, Sparkles, TrendingUp, TrendingDown, AlertTriangle,
   DollarSign, CalendarDays, Repeat, Activity, Radar, Mic, Flame,
-  CheckCircle2, ShieldAlert, Zap,
+  CheckCircle2, ShieldAlert, Zap, BarChart3,
 } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import BallersIQMarketWatch from "./BallersIQMarketWatch";
