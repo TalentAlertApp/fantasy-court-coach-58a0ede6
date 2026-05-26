@@ -295,7 +295,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
       <DialogContent
         className="p-0 gap-0 border-amber-400/20 bg-[#05070d] rounded-2xl overflow-hidden flex flex-col
                    w-[92vw] max-w-[1500px] h-[92vh] max-h-[96vh]
-                   shadow-[0_30px_120px_-20px_rgba(0,0,0,0.9),0_0_0_1px_hsl(45_90%_55%/0.15)]"
+                   shadow-[0_40px_140px_-30px_rgba(0,0,0,0.95),0_0_0_1px_hsl(45_90%_55%/0.18),inset_0_1px_0_rgba(255,255,255,0.06)]"
       >
         {/* Cinematic background layer */}
         <div className="absolute inset-0 -z-0 pointer-events-none">
@@ -303,15 +303,26 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             src={ballersIqArena}
             alt=""
             aria-hidden
-            className="absolute inset-0 w-full h-full object-cover opacity-70 select-none"
+            className="absolute inset-0 w-full h-full object-cover opacity-85 select-none"
             draggable={false}
           />
-          {/* Dark gradient for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/85 via-[#05070d]/70 to-[#05070d]/95" />
-          {/* Vignette */}
-          <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.65)_100%)]" />
-          {/* Soft light sweep */}
-          <div className="absolute -inset-x-1/2 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent" />
+          {/* Top/bottom readability gradient — lighter through the middle */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/85 via-[#05070d]/35 to-[#05070d]/95" />
+          {/* Side glows (red / blue arena lighting) */}
+          <div className="biq-shell-glow-blue" />
+          <div className="biq-shell-glow-red" />
+          {/* Ambient haze */}
+          <div className="biq-shell-haze" />
+          {/* Ambient light sweep */}
+          <div className="biq-shell-sweep" />
+          {/* Soft vignette */}
+          <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_40%,rgba(0,0,0,0.55)_100%)]" />
+          {/* Corner bloom */}
+          <div className="biq-corner-bloom" />
+          {/* Top hairline glow */}
+          <div className="absolute -inset-x-1/2 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/50 to-transparent" />
+          {/* Bottom hairline reflection */}
+          <div className="absolute -inset-x-1/2 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300/25 to-transparent" />
         </div>
 
         {/* Broadcast header */}
@@ -324,20 +335,20 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 variant="wordmark"
                 forceTheme="dark"
                 transparent
-                className="!h-8 md:!h-10 w-auto select-none drop-shadow-[0_0_18px_rgba(252,211,77,0.35)]"
+                className="!h-9 md:!h-11 w-auto select-none drop-shadow-[0_0_22px_rgba(252,211,77,0.5)]"
               />
               <div className="hidden md:block h-8 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
-              <span className="hidden md:block text-[10px] font-heading font-bold uppercase tracking-[0.28em] text-amber-200/70 whitespace-nowrap">
+              <span className="hidden md:block text-[10.5px] font-heading font-bold uppercase tracking-[0.32em] text-amber-100/85 whitespace-nowrap drop-shadow-[0_0_8px_rgba(252,211,77,0.25)]">
                 Fantasy Broadcast Intelligence
               </span>
             </div>
 
             {/* CENTER — context chips */}
             <div className="hidden lg:flex items-center gap-2 ml-auto">
-              <span className="px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-white/85">
+              <span className="px-3.5 py-1.5 rounded-full border border-white/15 bg-white/[0.06] backdrop-blur-md text-[10.5px] font-heading font-bold uppercase tracking-[0.22em] text-white/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_4px_18px_-8px_rgba(0,0,0,0.6)]">
                 My Roster
               </span>
-              <span className="px-3 py-1 rounded-full border border-amber-300/30 bg-amber-400/10 backdrop-blur-sm text-[10px] font-heading font-bold uppercase tracking-[0.2em] text-amber-200">
+              <span className="px-3.5 py-1.5 rounded-full border border-amber-300/40 bg-amber-400/[0.12] backdrop-blur-md text-[10.5px] font-heading font-bold uppercase tracking-[0.22em] text-amber-100 shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_0_18px_-6px_rgba(252,211,77,0.5)]">
                 Gameweek {gw}.{day}
               </span>
             </div>
@@ -346,7 +357,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             <div className="lg:hidden ml-auto" />
           </div>
           {/* Divider glow */}
-          <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/30 to-transparent" />
+          <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent shadow-[0_0_8px_rgba(252,211,77,0.35)]" />
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-5">
@@ -361,52 +372,45 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           )}
           {!isRosterEmpty && (
           <TabsList
-            className="shrink-0 grid grid-cols-5 h-auto p-1 gap-1 rounded-xl
-                       bg-black/55 backdrop-blur-md border border-white/10
-                       shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_30px_-12px_rgba(0,0,0,0.8)]"
+            className="shrink-0 grid grid-cols-5 h-auto p-1.5 gap-1.5 rounded-xl
+                       bg-black/60 backdrop-blur-xl border border-white/12
+                       shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.4),0_10px_36px_-12px_rgba(0,0,0,0.85)]"
           >
-            <TabsTrigger
-              value="analyze"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><Activity className="h-3 w-3 mr-1.5" />Roster Read</TabsTrigger>
-            <TabsTrigger
-              value="captain"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><Star className="h-3 w-3 mr-1.5" />Captain Call</TabsTrigger>
-            <TabsTrigger
-              value="transfers"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><ArrowLeftRight className="h-3 w-3 mr-1.5" />Market Watch</TabsTrigger>
-            <TabsTrigger
-              value="injuries"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><Shield className="h-3 w-3 mr-1.5" />Health Desk</TabsTrigger>
-            <TabsTrigger
-              value="explain"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><HelpCircle className="h-3 w-3 mr-1.5" />Player Explain</TabsTrigger>
+            {([
+              { v: "analyze",   icon: Activity,      label: "Roster Read" },
+              { v: "captain",   icon: Star,          label: "Captain Call" },
+              { v: "transfers", icon: ArrowLeftRight,label: "Market Watch" },
+              { v: "injuries",  icon: Shield,        label: "Health Desk" },
+              { v: "explain",   icon: HelpCircle,    label: "Player Explain" },
+            ] as const).map(({ v, icon: Icon, label }) => (
+              <TabsTrigger
+                key={v}
+                value={v}
+                className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5 text-white/75
+                           hover:text-white hover:bg-white/[0.04] transition-all
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/25 data-[state=active]:to-amber-500/[0.08]
+                           data-[state=active]:text-amber-50
+                           data-[state=active]:shadow-[inset_0_1px_0_rgba(255,232,170,0.25),0_0_0_1px_hsl(45_90%_55%/0.55),0_0_24px_-6px_hsl(45_90%_55%/0.75)]"
+              >
+                <Icon className="h-3.5 w-3.5 mr-1.5" />{label}
+                <span className="pointer-events-none absolute left-3 right-3 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-amber-300/80 to-transparent opacity-0 group-data-[state=active]:opacity-100 transition-opacity" />
+              </TabsTrigger>
+            ))}
           </TabsList>
           )}
           {!isRosterEmpty && (
 
-          <div className="flex-1 min-h-0 overflow-y-auto mt-4 space-y-3 rounded-xl
-                          bg-black/40 backdrop-blur-md border border-white/10
-                          shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-4 md:p-5">
+          <div className="relative flex-1 min-h-0 mt-4 rounded-xl
+                          bg-black/45 backdrop-blur-xl border border-white/12
+                          shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.5),0_20px_60px_-30px_rgba(0,0,0,0.9)]
+                          overflow-hidden">
+            {/* HUD grid + scanlines + soft center glow */}
+            <div className="absolute inset-0 biq-hud-lines opacity-60" />
+            <div className="absolute inset-0 biq-scanlines opacity-40" />
+            <div className="absolute inset-0 [background:radial-gradient(ellipse_at_top,rgba(252,211,77,0.06),transparent_55%)] pointer-events-none" />
+            <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.45)_100%)] pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent pointer-events-none" />
+            <div className="relative h-full overflow-y-auto space-y-3 p-4 md:p-5">
             {/* Analyze */}
             <TabsContent value="analyze" className="mt-0 space-y-3">
               <Button size="sm" onClick={handleAnalyze} disabled={analyzeLoading} className="w-full">
@@ -694,6 +698,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 <ExplainReport result={explainResult} player={selectedExplainPlayer} />
               )}
             </TabsContent>
+            </div>
           </div>
           )}
         </Tabs>
