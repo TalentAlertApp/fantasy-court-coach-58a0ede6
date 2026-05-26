@@ -152,17 +152,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
           )}
-          {/* Premium BALLERS.IQ label — sits right above the game result */}
-          {played && biqOn && (
-            <div className="relative flex justify-center pt-1.5 pb-0.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-400/70 bg-gradient-to-r from-amber-300/30 via-amber-400/25 to-amber-300/30 dark:from-amber-400/15 dark:via-amber-400/10 dark:to-amber-400/15 shadow-[0_0_16px_-4px_rgba(252,211,77,0.7)] backdrop-blur-sm">
-                <Sparkles className="h-3 w-3 text-amber-600 dark:text-amber-300" />
-                <BallersIQBrand variant="wordmark" size="sm" forceTheme="light" transparent className="!h-3 w-auto dark:hidden" />
-                <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" transparent className="!h-3 w-auto hidden dark:block" />
-                <span className="text-[8.5px] font-heading font-bold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-200">Live</span>
-              </span>
-            </div>
-          )}
           <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-2">
             {/* Away — name on right of watermark */}
             <div className="relative h-28 flex items-center justify-end pr-2 overflow-hidden">
