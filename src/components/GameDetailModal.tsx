@@ -115,7 +115,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? (recapOpen && sidePanelsExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
+      <DialogContent className={`${played ? (modalExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
