@@ -16,6 +16,7 @@ type Props = {
    analyzeResult: any;
    onAnalyze: () => void;
    onGoToTab: (tab: string) => void;
+   onOpenPlayer?: (player: any) => void;
  };
 
 function GlassPanel({ className, children }: { className?: string; children: React.ReactNode }) {
@@ -75,7 +76,7 @@ function deriveVerdict(result: any, snapshot: any): { label: string; tone: "good
  }
 
 export default function RosterReadPanel({
-   rosterData, allPlayers, upcomingByTeam, analyzeLoading, analyzeResult, onAnalyze, onGoToTab,
+   rosterData, allPlayers, upcomingByTeam, analyzeLoading, analyzeResult, onAnalyze, onGoToTab, onOpenPlayer,
  }: Props) {
    /* -------- snapshot -------- */
    const snapshot = useMemo(() => {
