@@ -563,143 +563,29 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             </TabsContent>
 
             {/* Explain */}
-            <TabsContent value="explain" className="mt-0 space-y-3">
-              <Popover open={showDropdown && explainMatches.length > 0} onOpenChange={setShowDropdown}>
-                <div className="flex gap-2 p-px">
-                  <PopoverAnchor asChild>
-                    <Input
-                      placeholder="Search player name or team..."
-                      value={explainSearch}
-                      onChange={(e) => handleExplainSearchChange(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const target = selectedExplainPlayer ?? explainMatches[0];
-                          if (target) {
-                            setSelectedExplainPlayer(target);
-                            setExplainSearch(target.core.name);
-                            setShowDropdown(false);
-                            void runExplain(target);
-                          }
-                        }
-                      }}
-                      className="rounded-lg flex-1 focus-visible:ring-offset-0"
-                    />
-                  </PopoverAnchor>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        title="Recently explained"
-                        aria-label="Recently explained"
-                        disabled={recentExplained.length === 0}
-                      >
-                        <History className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 rounded-xl">
-                      <DropdownMenuLabel className="font-heading uppercase text-[10px] tracking-wider">
-                        Recent · last 5
-                      </DropdownMenuLabel>
-                      {recentExplained.length === 0 ? (
-                        <DropdownMenuItem disabled className="text-xs italic">
-                          No history yet
-                        </DropdownMenuItem>
-                      ) : recentExplained.map((r) => {
-                        const logo = getTeamLogo(r.team);
-                        return (
-                          <DropdownMenuItem
-                            key={r.id}
-                            onSelect={() => handleRecentClick(r)}
-                            className="text-xs gap-2 relative overflow-hidden"
-                          >
-                            {logo && (
-                              <img
-                                src={logo}
-                                alt=""
-                                className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-[0.18] rotate-12 select-none"
-                              />
-                            )}
-                            {r.photo ? (
-                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card relative z-10" />
-                            ) : logo ? (
-                              <img src={logo} alt="" className="w-5 h-5 rounded-full object-contain bg-card relative z-10" />
-                            ) : (
-                              <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center relative z-10">
-                                {r.name.slice(0, 1)}
-                              </span>
-                            )}
-                            <span className="truncate relative z-10">{r.name}</span>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                <PopoverContent
-                  align="start"
-                  side="bottom"
-                  sideOffset={4}
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                  className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)] max-h-[260px] overflow-y-auto z-[100]"
-                >
-                  {explainMatches.map((p) => {
-                      const logo = getTeamLogo(p.core.team);
-                      const teamFullName = getTeamFullName(p.core.team);
-                      return (
-                        <button
-                          key={p.core.id}
-                          onClick={() => handleSelectExplainPlayer(p)}
-                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors text-left group relative overflow-hidden"
-                        >
-                          {/* Team watermark */}
-                          {logo && (
-                            <img
-                              src={logo}
-                              alt=""
-                              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 opacity-[0.08] pointer-events-none group-hover:opacity-[0.2] group-hover:scale-125 transition-all"
-                            />
-                          )}
-                          {p.core.photo ? (
-                            <img src={p.core.photo} alt="" className="w-8 h-8 rounded-full object-cover bg-muted shrink-0 transition-transform group-hover:scale-110 relative z-10" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-[9px] font-bold shrink-0 relative z-10">
-                              {p.core.name.slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0 relative z-10">
-                            <p className="text-sm font-heading font-semibold truncate">{p.core.name}</p>
-                            <div className="flex items-center gap-1.5">
-                              {logo && (
-                                <img src={logo} alt="" className="w-4 h-4 object-contain shrink-0" />
-                              )}
-                              <span className="text-[10px] text-muted-foreground">{teamFullName}</span>
-                              <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-lg h-3.5">
-                                {p.core.fc_bc}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="relative z-10 shrink-0 ml-2 text-right">
-                            <span className="font-mono text-[11px] font-bold text-foreground">{Number((p as any).last5?.fp5 ?? 0).toFixed(1)}</span>
-                            <span className="text-[8px] text-muted-foreground ml-0.5">FP5</span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                </PopoverContent>
-              </Popover>
-
-              {explainLoading && (
-                <div className="space-y-2">
-                  <Skeleton className="h-16 w-full rounded-xl" />
-                  <Skeleton className="h-10 w-full rounded-xl" />
-                  <Skeleton className="h-24 w-full rounded-xl" />
-                </div>
-              )}
-              {!explainLoading && explainResult && (
-                <ExplainReport result={explainResult} player={selectedExplainPlayer} />
-              )}
+            <TabsContent value="explain" className="mt-0">
+              <PlayerExplainStudio
+                allPlayers={allPlayers}
+                rosterData={rosterData}
+                upcomingByTeam={upcomingByTeam}
+                explainSearch={explainSearch}
+                onSearchChange={handleExplainSearchChange}
+                explainMatches={explainMatches}
+                showDropdown={showDropdown}
+                setShowDropdown={setShowDropdown}
+                selectedExplainPlayer={selectedExplainPlayer}
+                setSelectedExplainPlayer={setSelectedExplainPlayer}
+                setExplainSearch={setExplainSearch}
+                recentExplained={recentExplained}
+                onSelectPlayer={handleSelectExplainPlayer}
+                onRecentClick={handleRecentClick}
+                runExplain={runExplain}
+                explainLoading={explainLoading}
+                explainResult={explainResult}
+                onClearResult={() => { setExplainResult(null); setSelectedExplainPlayer(null); setExplainSearch(""); }}
+                onGoToTab={setActiveTab}
+                onClose={() => onOpenChange(false)}
+              />
             </TabsContent>
             </div>
           </div>
