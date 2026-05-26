@@ -249,7 +249,7 @@ export default function MarketWatchStudio({
                 <div className="rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-2 flex items-center gap-2 min-w-0 relative overflow-hidden">
                   {dropLogo && <img src={dropLogo} alt="" className="absolute -right-3 -bottom-3 w-14 h-14 opacity-[0.12] pointer-events-none" />}
                   {dropP?.core?.photo ? (
-                    <img src={dropP.core.photo} alt="" className="w-10 h-10 rounded-lg object-cover ring-1 ring-rose-300/50" />
+                    <img src={dropP.core.photo} alt="" className="w-10 h-10 rounded-lg object-cover object-[center_15%] ring-1 ring-rose-300/50" />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80">{(dropP?.core?.name ?? "?").slice(0, 1)}</div>
                   )}
@@ -270,7 +270,7 @@ export default function MarketWatchStudio({
                 <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 flex items-center gap-2 min-w-0 relative overflow-hidden">
                   {addLogo && <img src={addLogo} alt="" className="absolute -right-3 -bottom-3 w-14 h-14 opacity-[0.12] pointer-events-none" />}
                   {addP?.core?.photo ? (
-                    <img src={addP.core.photo} alt="" className="w-10 h-10 rounded-lg object-cover ring-1 ring-emerald-300/50" />
+                    <img src={addP.core.photo} alt="" className="w-10 h-10 rounded-lg object-cover object-[center_15%] ring-1 ring-emerald-300/50" />
                   ) : (
                     <div className="w-10 h-10 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80">{(addP?.core?.name ?? "?").slice(0, 1)}</div>
                   )}

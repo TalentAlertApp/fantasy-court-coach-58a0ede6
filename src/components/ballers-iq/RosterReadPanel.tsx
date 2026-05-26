@@ -454,7 +454,7 @@ function LineupRow({ label, players, captainId, upcomingByTeam, dim }: { label: 
                {logo && <img src={logo} alt="" className="absolute -right-2 -bottom-2 w-12 h-12 object-contain opacity-[0.12] pointer-events-none" />}
                <div className="relative flex items-center gap-1.5">
                  {p.core.photo ? (
-                   <img src={p.core.photo} alt="" className="w-7 h-7 rounded-full object-cover ring-1 ring-white/15" />
+                   <img src={p.core.photo} alt="" className="w-7 h-7 rounded-full object-cover object-[center_15%] ring-1 ring-white/15" />
                  ) : (
                    <div className="w-7 h-7 rounded-full bg-white/[0.06] inline-flex items-center justify-center text-[9px] font-bold text-white/80">
                      {p.core.name.slice(0, 1)}
