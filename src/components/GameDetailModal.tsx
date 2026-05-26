@@ -285,6 +285,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           <div
             className="border-t bg-background relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{
+              minHeight: embedHeight,
               gridTemplateColumns: biqStandalone
                 ? "minmax(240px,1fr) minmax(0,2.4fr) minmax(240px,1fr)"
                 : "0fr minmax(0,1fr) 0fr",
@@ -432,12 +433,12 @@ function BallersIQButton({ on, onClick }: { on: boolean; onClick: () => void }) 
       title={on ? "Disable Ballers.IQ Live" : "Activate Ballers.IQ Live"}
       className={`inline-flex items-center gap-1.5 text-xs px-3 py-0.5 rounded-xl border transition-all hover:scale-[1.04] ${
         on
-          ? "border-amber-300/70 bg-amber-400/15 text-amber-100 shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
-          : "border-amber-400/40 bg-black/40 text-amber-200/85 hover:border-amber-300/70 hover:bg-amber-400/10"
+          ? "border-amber-600 bg-amber-500 text-black dark:border-amber-300/70 dark:bg-amber-400/15 dark:text-amber-100 dark:shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
+          : "border-amber-600/70 bg-amber-500/15 text-amber-800 hover:bg-amber-500/25 dark:border-amber-400/40 dark:bg-black/40 dark:text-amber-200/85 dark:hover:border-amber-300/70 dark:hover:bg-amber-400/10"
       }`}
     >
       <Sparkles className="h-3.5 w-3.5" />
-      <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" transparent className="!h-3.5 w-auto" />
+      <BallersIQBrand variant="wordmark" size="sm" transparent className="!h-3.5 w-auto" />
       {on && <span className="text-[9.5px] font-heading uppercase tracking-[0.2em]">Live</span>}
     </button>
   );
