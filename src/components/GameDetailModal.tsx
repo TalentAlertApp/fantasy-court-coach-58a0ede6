@@ -17,6 +17,7 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameActionLinks from "@/components/game/GameActionLinks";
 import GameBallersIQLayer from "@/components/game/GameBallersIQLayer";
+import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { Sparkles } from "lucide-react";
 
@@ -91,7 +92,12 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const [recapOpen, setRecapOpen] = useState(false);
   const [panelsOpen, setPanelsOpen] = useState(false);
   const [biqOn, setBiqOn] = useState(false);
+  // When recap is open, BIQ acts as side-panel expansion (mutually exclusive with team-scoring).
+  const biqExpanded = recapOpen && biqOn;
+  const sidePanelsExpanded = panelsOpen || biqExpanded;
   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
+  // Mutually exclusive expansion modes
+  useEffect(() => { if (panelsOpen && biqOn && recapOpen) setBiqOn(false); /* eslint-disable-next-line */ }, [panelsOpen]);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const [embedHeight, setEmbedHeight] = useState<number>(420);
   useEffect(() => {
@@ -106,7 +112,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? (recapOpen && panelsOpen ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
+      <DialogContent className={`${played ? (recapOpen && sidePanelsExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
@@ -143,6 +149,17 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
           )}
+          {/* Premium BALLERS.IQ label — sits right above the game result */}
+          {played && biqOn && (
+            <div className="relative flex justify-center pt-1.5 pb-0.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-400/70 bg-gradient-to-r from-amber-300/30 via-amber-400/25 to-amber-300/30 dark:from-amber-400/15 dark:via-amber-400/10 dark:to-amber-400/15 shadow-[0_0_16px_-4px_rgba(252,211,77,0.7)] backdrop-blur-sm">
+                <Sparkles className="h-3 w-3 text-amber-600 dark:text-amber-300" />
+                <BallersIQBrand variant="wordmark" size="sm" forceTheme="light" transparent className="!h-3 w-auto dark:hidden" />
+                <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" transparent className="!h-3 w-auto hidden dark:block" />
+                <span className="text-[8.5px] font-heading font-bold uppercase tracking-[0.24em] text-amber-700 dark:text-amber-200">Live</span>
+              </span>
+            </div>
+          )}
           <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-2">
             {/* Away — name on right of watermark */}
             <div className="relative h-28 flex items-center justify-end pr-2 overflow-hidden">
@@ -173,7 +190,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               {recapOpen && embedSrc && (
                 <button
                   type="button"
-                  onClick={() => setPanelsOpen((v) => !v)}
+                  onClick={() => { if (biqOn) setBiqOn(false); setPanelsOpen((v) => !v); }}
                   aria-pressed={panelsOpen}
                   aria-label={panelsOpen ? "Hide team scoring panels" : "Show team scoring panels"}
                   title={panelsOpen ? "Hide team scoring" : "Show team scoring"}
@@ -219,7 +236,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                     {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
                     {recapOpen ? "Close Recap" : "Watch Recap"}
                   </button>
-                  <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
+                  <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2">
@@ -254,14 +271,15 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
-        {played && biqOn && (
+        {/* Standalone BIQ layer (only when recap is not open) */}
+        {played && biqOn && !recapOpen && (
           <GameBallersIQLayer
             gameId={game.game_id}
             homeTeam={game.home_team}
             awayTeam={game.away_team}
             homePts={game.home_pts}
             awayPts={game.away_pts}
-            compact={recapOpen}
+            compact={false}
           />
         )}
         {played && !recapOpen && (
@@ -274,16 +292,27 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             className="border-t bg-black relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{
               minHeight: embedHeight,
-              gridTemplateColumns: panelsOpen
+              gridTemplateColumns: sidePanelsExpanded
                 ? "minmax(160px,1fr) 768px minmax(160px,1fr)"
                 : "0fr minmax(0,1fr) 0fr",
             }}
           >
             <div
-              className={`relative bg-background overflow-hidden border-r border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${panelsOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
+              className={`relative bg-background overflow-hidden border-r border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${sidePanelsExpanded ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
               style={{ height: embedHeight }}
             >
-              <GameBoxScoreTable game={game} filterTeam={game.away_team} setFilterTeam={() => {}} density="compact" fillHeight />
+              {biqExpanded ? (
+                <GameBallersIQSidePanel
+                  side="left"
+                  gameId={game.game_id}
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                  homePts={game.home_pts}
+                  awayPts={game.away_pts}
+                />
+              ) : (
+                <GameBoxScoreTable game={game} filterTeam={game.away_team} setFilterTeam={() => {}} density="compact" fillHeight />
+              )}
             </div>
             <div className="relative z-10 transform-gpu" style={{ height: embedHeight }}>
               <iframe
@@ -296,10 +325,21 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               />
             </div>
             <div
-              className={`relative bg-background overflow-hidden border-l border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${panelsOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
+              className={`relative bg-background overflow-hidden border-l border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${sidePanelsExpanded ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
               style={{ height: embedHeight }}
             >
-              <GameBoxScoreTable game={game} filterTeam={game.home_team} setFilterTeam={() => {}} density="compact" fillHeight />
+              {biqExpanded ? (
+                <GameBallersIQSidePanel
+                  side="right"
+                  gameId={game.game_id}
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                  homePts={game.home_pts}
+                  awayPts={game.away_pts}
+                />
+              ) : (
+                <GameBoxScoreTable game={game} filterTeam={game.home_team} setFilterTeam={() => {}} density="compact" fillHeight />
+              )}
             </div>
           </div>
         )}
