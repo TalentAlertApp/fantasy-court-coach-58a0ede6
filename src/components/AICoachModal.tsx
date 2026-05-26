@@ -16,6 +16,7 @@ import HealthDeskPanel from "@/components/ballers-iq/HealthDeskPanel";
 import PlayerExplainStudio from "@/components/ballers-iq/PlayerExplainStudio";
 import RosterReadPanel from "@/components/ballers-iq/RosterReadPanel";
 import CaptainCallStudio from "@/components/ballers-iq/CaptainCallStudio";
+import MarketWatchStudio from "@/components/ballers-iq/MarketWatchStudio";
 import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
 import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -471,90 +472,27 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
             {/* Transfers */}
             <TabsContent value="transfers" className="mt-0 space-y-3">
-              {(() => {
-                const all = playersData?.items ?? [];
-                const rosterIds = new Set<number>([
-                  ...(rosterData?.roster?.starters ?? []),
-                  ...(rosterData?.roster?.bench ?? []),
-                ].filter(Boolean));
-                const toMP = (p: any) => ({
-                  id: p.core.id,
-                  name: p.core.name,
-                  team: p.core.team,
-                  fc_bc: p.core.fc_bc,
-                  salary: p.core.salary,
-                  fp_pg5: p.last5?.fp5,
-                  fp_pg_t: p.season?.fp,
-                  value5: p.last5?.value5,
-                  delta_fp: p.last5?.delta_fp,
-                  delta_mpg: p.last5?.delta_mpg,
-                  injury: p.core?.injury,
-                });
-                const market = all.filter((p: any) => !rosterIds.has(p.core.id)).map(toMP);
-                const rosterPlayers = all.filter((p: any) => rosterIds.has(p.core.id)).map(toMP);
-                // Today (Europe/Lisbon) — match the rest of the app's TZ contract.
-                const todayLisbon = new Intl.DateTimeFormat("en-CA", {
-                  timeZone: "Europe/Lisbon", year: "numeric", month: "2-digit", day: "2-digit",
-                }).format(new Date());
-                const todayTeams = upcomingByTeam
-                  ? Object.entries(upcomingByTeam)
-                      .filter(([, games]) => games.some((g) => g.date === todayLisbon))
-                      .map(([tri]) => tri)
-                  : [];
-                return (
-                  <BallersIQMarketWatch
-                    market={market}
-                    rosterPlayers={rosterPlayers}
-                    bankRemaining={Number(rosterData?.roster?.bank_remaining ?? 0)}
-                    todayTeams={todayTeams}
-                    onPickPlayer={(id) => {
-                      const p = all.find((x: any) => x.core.id === id);
-                      if (p) {
-                        setSelectedExplainPlayer(p);
-                        setExplainSearch(p.core.name);
-                        setActiveTab("explain");
-                        void runExplain(p);
-                      }
-                    }}
-                  />
-                );
-              })()}
-              <Button size="sm" onClick={handleTransfers} disabled={transfersLoading} className="w-full">
-                {transfersLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ArrowLeftRight className="h-4 w-4 mr-2" />}
-                Suggest Transfers
-              </Button>
-              {transfersLoading && <Skeleton className="h-20 w-full" />}
-              {transfersResult?.moves?.map((move: any, idx: number) => (
-                <div key={idx} className="bg-muted rounded-lg p-3 space-y-2 border">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className="bg-green-600 text-white rounded-lg text-[9px]">ADD {getPlayerName(move.add)}</Badge>
-                    <Badge variant="destructive" className="rounded-lg text-[9px]">DROP {getPlayerName(move.drop)}</Badge>
-                    <Badge variant="outline" className="text-[9px] rounded-lg">{Math.round(move.confidence * 100)}%</Badge>
-                  </div>
-                  <ul className="list-disc pl-4 text-[10px] space-y-0.5">{move.reason_bullets?.map((b: string, i: number) => <li key={i}>{b}</li>)}</ul>
-                  {move.risk_flags?.length > 0 && (
-                    <div className="flex gap-1 flex-wrap">{move.risk_flags.map((f: string, i: number) => <Badge key={i} variant="destructive" className="text-[9px] rounded-lg"><AlertTriangle className="h-3 w-3 mr-0.5" />{f}</Badge>)}</div>
-                  )}
-                  <div className="flex gap-2">
-                    {!simResults[idx] ? (
-                      <Button size="sm" variant="outline" onClick={() => handleSimulate(idx, move)} disabled={simulatingIdx === idx}>
-                        {simulatingIdx === idx ? <Loader2 className="h-4 w-4 animate-spin" /> : "Simulate"}
-                      </Button>
-                    ) : (
-                      <>
-                        <span className={`text-xs ${simResults[idx].is_valid ? "text-green-600" : "text-destructive"}`}>
-                          {simResults[idx].is_valid ? "Valid" : simResults[idx].errors?.join(", ")}
-                        </span>
-                        {simResults[idx].is_valid && (
-                          <Button size="sm" onClick={() => handleCommit(idx, move)} disabled={committingIdx === idx}>
-                            {committingIdx === idx ? <Loader2 className="h-4 w-4 animate-spin" /> : "Commit"}
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+              <MarketWatchStudio
+                rosterData={rosterData}
+                allPlayers={allPlayers}
+                upcomingByTeam={upcomingByTeam}
+                transfersLoading={transfersLoading}
+                transfersResult={transfersResult}
+                simResults={simResults}
+                simulatingIdx={simulatingIdx}
+                committingIdx={committingIdx}
+                onSuggest={handleTransfers}
+                onSimulate={handleSimulate}
+                onCommit={handleCommit}
+                onGoToTab={setActiveTab}
+                onOpenPlayer={(p) => {
+                  if (!p) return;
+                  setSelectedExplainPlayer(p);
+                  setExplainSearch(p.core.name);
+                  setActiveTab("explain");
+                  void runExplain(p);
+                }}
+              />
             </TabsContent>
 
             {/* Injuries */}
