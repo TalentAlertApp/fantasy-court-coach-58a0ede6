@@ -105,9 +105,9 @@ export default function ExplainReport({ result, player }: { result: any; player:
           {teamLogo && (
             <img src={teamLogo} alt="" aria-hidden className="absolute -right-6 -top-4 w-32 h-32 opacity-[0.10] pointer-events-none select-none" />
           )}
-          <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5">
+          <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5 items-center">
             {/* LEFT — player */}
-            <div className="md:col-span-5 flex items-center gap-3">
+            <div className="md:col-span-4 flex items-center gap-3">
               {player.core?.photo ? (
                 <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
               ) : (
@@ -141,35 +141,37 @@ export default function ExplainReport({ result, player }: { result: any; player:
               </div>
             </div>
 
-            {/* CENTER — FP metrics */}
-            <div className="md:col-span-4 grid grid-cols-2 gap-2 self-center">
-              <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-1.5">
+            {/* RIGHT — 4 uniform stat cards: FP5 · FP Season · BIQ · Verdict */}
+            <div className="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-200/70">FP5</div>
-                <div className="font-mono font-black text-lg text-amber-200 tabular-nums leading-tight">{fp5.toFixed(1)}</div>
+                <div className="font-mono font-black text-lg text-amber-200 tabular-nums leading-tight mt-0.5">{fp5.toFixed(1)}</div>
               </div>
-              <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-1.5">
+              <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/60">FP Season</div>
-                <div className="font-mono font-black text-lg text-white/95 tabular-nums leading-tight">{seasonFp.toFixed(1)}</div>
+                <div className="font-mono font-black text-lg text-white/95 tabular-nums leading-tight mt-0.5">{seasonFp.toFixed(1)}</div>
               </div>
-            </div>
-
-            {/* RIGHT — verdict */}
-            <div className="md:col-span-3 flex flex-row md:flex-col items-stretch gap-1.5 self-center">
-              {vPalette ? (
-                <span className={`inline-flex items-center justify-center font-heading font-black text-[11px] px-2.5 py-1 rounded-lg ${vPalette.chip}`}>
-                  {vPalette.label}
-                </span>
-              ) : (
-                <span className="inline-flex items-center justify-center font-heading text-[10px] uppercase tracking-[0.22em] px-2.5 py-1 rounded-lg bg-white/[0.05] text-white/55 border border-white/10">
-                  Verdict pending
-                </span>
-              )}
-              {biqRating !== null && (
-                <div className="flex-1 rounded-lg border border-amber-300/30 bg-amber-400/[0.06] px-2.5 py-1 text-center">
-                  <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-amber-100/70 leading-tight">BIQ</div>
-                  <div className={`font-mono font-black text-base tabular-nums leading-tight ${biqRatingClasses(biqRating)}`}>{biqRating}<span className="text-[9px] text-white/45 font-heading ml-0.5">/100</span></div>
-                </div>
-              )}
+              <div className="rounded-lg border border-amber-300/30 bg-amber-400/[0.06] px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
+                <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-100/70 leading-tight">BIQ</div>
+                {biqRating !== null ? (
+                  <div className={`font-mono font-black text-lg tabular-nums leading-tight mt-0.5 ${biqRatingClasses(biqRating)}`}>{biqRating}<span className="text-[9px] text-white/45 font-heading ml-0.5">/100</span></div>
+                ) : (
+                  <div className="font-mono font-black text-lg text-white/40 tabular-nums leading-tight mt-0.5">—</div>
+                )}
+              </div>
+              <div className={cn(
+                "rounded-lg px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px] border",
+                vPalette ? "border-white/10 bg-black/45" : "border-white/10 bg-black/45",
+              )}>
+                <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/60">Verdict</div>
+                {vPalette ? (
+                  <span className={`mt-1 inline-flex items-center justify-center font-heading font-black text-[11px] px-2.5 py-0.5 rounded-md ${vPalette.chip}`}>
+                    {vPalette.label}
+                  </span>
+                ) : (
+                  <span className="mt-1 font-heading text-[10px] uppercase tracking-[0.18em] text-white/55">Pending</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
