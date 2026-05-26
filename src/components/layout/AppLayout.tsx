@@ -175,10 +175,7 @@ export default function AppLayout() {
         {!collapsed ? (
           <>
             <div className="sidebar-divider" />
-            <div className="px-3 pt-2 pb-1">
-              <span className="sidebar-section-label">Player Search</span>
-            </div>
-            <div className="px-3 pb-2 pt-1">
+            <div className="px-3 py-2">
               <SidebarPlayerSearch onSelect={(id) => setQuickPlayerId(id)} />
             </div>
           </>
@@ -220,10 +217,7 @@ export default function AppLayout() {
         {!collapsed && (
           <>
             <div className="sidebar-divider" />
-            <div className="px-3 pt-2 pb-1">
-              <span className="sidebar-section-label">Your Team</span>
-            </div>
-            <div className="px-3 pb-2 pt-1">
+            <div className="px-3 py-2">
               <TeamSwitcher />
             </div>
           </>
@@ -236,12 +230,7 @@ export default function AppLayout() {
           <SidebarNextLock collapsed={collapsed} />
         </div>
         <div className="sidebar-divider" />
-        {!collapsed && (
-          <div className="px-3 pt-2 pb-1">
-            <span className="sidebar-section-label">Account</span>
-          </div>
-        )}
-        <div className={`flex flex-col ${collapsed ? "gap-2 px-0 py-2 items-center" : "gap-1.5 px-3 pt-1 pb-2"}`}>
+        <div className={`flex flex-col ${collapsed ? "gap-2 px-0 py-2 items-center" : "gap-1.5 px-3 py-2"}`}>
           {user && !collapsed && (
             <div className="flex items-center gap-2 rounded-lg px-2 py-1.5"
                  style={{ background: "hsl(0 0% 100% / 0.03)", boxShadow: "inset 0 0 0 1px hsl(var(--sidebar-border) / 0.5)" }}>
