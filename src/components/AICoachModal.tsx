@@ -328,7 +328,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </div>
 
         {/* Broadcast header */}
-        <DialogHeader className="shrink-0 relative z-[1] px-5 md:px-8 pt-5 pb-4 pr-24">
+        <DialogHeader className="shrink-0 relative z-[1] px-5 md:px-8 pt-5 pb-4 pr-32">
           <DialogTitle className="sr-only">Ballers.IQ — Fantasy Broadcast Intelligence</DialogTitle>
           <div className="flex items-center gap-4 md:gap-6">
             {/* LEFT — brand */}

@@ -419,18 +419,34 @@ export default function HealthDeskPanel() {
           {/* Sticky header inside the panel */}
           <div className="shrink-0 p-4 pb-3 border-b border-white/8 bg-black/30">
             <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-              <SectionLabel icon={Shield}>Main Injury Board</SectionLabel>
+              <div className="flex items-center gap-3">
+                <SectionLabel icon={Shield}>Main Injury Board</SectionLabel>
+                <span className="hidden md:inline text-[10px] font-heading uppercase tracking-[0.18em] text-white/45">
+                  · {items.length} {items.length === 1 ? "entry" : "entries"} · {updatedLabel}
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <label className="hidden sm:flex items-center gap-2 rounded-lg border border-white/15 bg-black/30 px-2.5 py-1 cursor-pointer">
                   <Switch checked={myRosterOnly} onCheckedChange={setMyRosterOnly} />
                   <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-white/85">My Roster only</span>
                 </label>
-                <Button size="sm" variant="outline" onClick={() => load(true)} disabled={loading} className="h-7 bg-black/30 border-white/15 text-white/85 hover:bg-white/[0.06]">
-                  <RefreshCw className={cn("h-3.5 w-3.5 mr-1.5", loading && "animate-spin")} /> Refresh
-                </Button>
-                <span className="hidden md:inline text-[10px] font-heading uppercase tracking-[0.18em] text-white/55">
-                  {items.length} {items.length === 1 ? "entry" : "entries"} · {updatedLabel}
-                </span>
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => load(true)}
+                        disabled={loading}
+                        aria-label="Refresh injury report"
+                        className="h-7 w-7 bg-black/30 border-white/15 text-white/85 hover:bg-white/[0.06]"
+                      >
+                        <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[11px]">Refresh injury report</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
 
