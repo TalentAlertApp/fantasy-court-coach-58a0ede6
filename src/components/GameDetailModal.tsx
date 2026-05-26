@@ -16,7 +16,6 @@ import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameActionLinks from "@/components/game/GameActionLinks";
-import GameBallersIQLayer from "@/components/game/GameBallersIQLayer";
 import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { Sparkles } from "lucide-react";
