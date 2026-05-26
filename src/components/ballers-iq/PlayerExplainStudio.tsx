@@ -266,7 +266,7 @@ export default function PlayerExplainStudio(props: Props) {
                           <DropdownMenuItem key={r.id} onSelect={() => onRecentClick(r)} className="text-xs gap-2 relative overflow-hidden">
                             {logo && <img src={logo} alt="" className="pointer-events-none absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-[0.18] rotate-12 select-none" />}
                             {r.photo ? (
-                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover bg-card relative z-10" />
+                              <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover object-[center_15%] bg-card relative z-10" />
                             ) : (
                               <span className="w-5 h-5 rounded-full bg-card text-[8px] font-bold inline-flex items-center justify-center relative z-10">{r.name.slice(0, 1)}</span>
                             )}
@@ -299,7 +299,7 @@ export default function PlayerExplainStudio(props: Props) {
                           <img src={logo} alt="" className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 opacity-[0.08] pointer-events-none group-hover:opacity-[0.22] group-hover:scale-125 transition-all" />
                         )}
                         {p.core.photo ? (
-                          <img src={p.core.photo} alt="" className="w-9 h-9 rounded-full object-cover bg-muted shrink-0 ring-1 ring-white/10 group-hover:ring-amber-300/60 transition-all relative z-10" />
+                          <img src={p.core.photo} alt="" className="w-9 h-9 rounded-full object-cover object-[center_15%] bg-muted shrink-0 ring-1 ring-white/10 group-hover:ring-amber-300/60 transition-all relative z-10" />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center text-[10px] font-bold shrink-0 relative z-10 text-white/80">
                             {p.core.name.slice(0, 2).toUpperCase()}
@@ -351,7 +351,7 @@ export default function PlayerExplainStudio(props: Props) {
                   >
                     {logo && <img src={logo} alt="" className="absolute -right-2 -bottom-2 w-14 h-14 object-contain opacity-[0.08] group-hover:opacity-[0.18] transition-all rotate-6" />}
                     {r.photo ? (
-                      <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-white/15 group-hover:ring-amber-300/60 transition-all relative z-10" />
+                      <img src={r.photo} alt="" className="w-9 h-9 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 group-hover:ring-amber-300/60 transition-all relative z-10" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 relative z-10">
                         {r.name.slice(0, 1)}
@@ -424,7 +424,7 @@ export default function PlayerExplainStudio(props: Props) {
                     </div>
                     <div className="mt-2 flex items-center gap-2 relative z-10">
                       {player.core.photo ? (
-                        <img src={player.core.photo} alt="" className="w-9 h-9 rounded-full object-cover ring-1 ring-white/15" />
+                        <img src={player.core.photo} alt="" className="w-9 h-9 rounded-full object-cover object-[center_15%] ring-1 ring-white/15" />
                       ) : (
                         <div className="w-9 h-9 rounded-full bg-white/[0.08] inline-flex items-center justify-center text-[10px] font-bold">
                           {player.core.name.slice(0, 1)}

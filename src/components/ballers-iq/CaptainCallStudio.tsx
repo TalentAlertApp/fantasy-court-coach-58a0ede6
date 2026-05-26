@@ -177,7 +177,7 @@ export default function CaptainCallStudio({
             {/* LEFT — recommendation */}
             <div className="md:col-span-8 min-w-0 flex items-center gap-3">
               {recommended.core?.photo ? (
-                <img src={recommended.core.photo} alt="" className="w-16 h-16 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.6)]" />
+                <img src={recommended.core.photo} alt="" className="w-16 h-16 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.6)]" />
               ) : (
                 <div className="w-16 h-16 rounded-xl bg-white/[0.08] inline-flex items-center justify-center font-bold text-white/85">
                   {recommended.core?.name?.slice(0, 2)?.toUpperCase()}
@@ -289,7 +289,7 @@ export default function CaptainCallStudio({
                         {logo && <img src={logo} alt="" className="absolute -right-2 -bottom-2 w-12 h-12 object-contain opacity-[0.12] pointer-events-none" />}
                         <div className="relative flex items-center gap-1.5">
                           {p.core.photo ? (
-                            <img src={p.core.photo} alt="" className={cn("w-8 h-8 rounded-full object-cover ring-1", isReco ? "ring-amber-300/70" : "ring-white/15")} />
+                            <img src={p.core.photo} alt="" className={cn("w-8 h-8 rounded-full object-cover object-[center_15%] ring-1", isReco ? "ring-amber-300/70" : "ring-white/15")} />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80">{p.core.name.slice(0, 1)}</div>
                           )}
@@ -373,7 +373,7 @@ export default function CaptainCallStudio({
             <div className="mt-3">
               <div className="flex items-center gap-2">
                 {snapshot.captainPlayer.core?.photo ? (
-                  <img src={snapshot.captainPlayer.core.photo} alt="" className="w-10 h-10 rounded-lg object-cover ring-1 ring-amber-300/60" />
+                  <img src={snapshot.captainPlayer.core.photo} alt="" className="w-10 h-10 rounded-lg object-cover object-[center_15%] ring-1 ring-amber-300/60" />
                 ) : (
                   <div className="w-10 h-10 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[11px] font-bold text-white/80">
                     {snapshot.captainPlayer.core.name.slice(0, 2)}
@@ -431,7 +431,7 @@ export default function CaptainCallStudio({
                   {logo && <img src={logo} alt="" className="absolute -right-2 -bottom-2 w-12 h-12 object-contain opacity-[0.12] pointer-events-none" />}
                   <div className="relative flex items-center gap-1.5">
                     {p.core.photo ? (
-                      <img src={p.core.photo} alt="" className="w-8 h-8 rounded-full object-cover ring-1 ring-white/15" />
+                      <img src={p.core.photo} alt="" className="w-8 h-8 rounded-full object-cover object-[center_15%] ring-1 ring-white/15" />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80">{p.core.name.slice(0, 1)}</div>
                     )}

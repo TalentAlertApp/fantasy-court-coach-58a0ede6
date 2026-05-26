@@ -110,7 +110,7 @@ export default function ExplainReport({ result, player }: { result: any; player:
             {/* LEFT — player */}
             <div className="md:col-span-4 flex items-center gap-3">
               {player.core?.photo ? (
-                <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
+                <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
               ) : (
                 <div className="w-14 h-14 rounded-xl bg-white/[0.08] inline-flex items-center justify-center text-base font-bold text-white/85">
                   {player.core?.name?.slice(0, 2)?.toUpperCase()}
