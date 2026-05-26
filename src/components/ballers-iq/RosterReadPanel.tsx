@@ -121,13 +121,20 @@ export default function RosterReadPanel({
    const quickReads = useMemo(() => {
      const byFp5 = [...snapshot.starterPlayers].sort((a, b) => (b.last5?.fp5 ?? 0) - (a.last5?.fp5 ?? 0));
      const byValue = [...snapshot.players].sort((a, b) => (b.last5?.value5 ?? 0) - (a.last5?.value5 ?? 0));
+      const riskPlayer = snapshot.starterPlayers.find((p: any) => {
+        const inj = (p.core.injury ?? "").toString().toUpperCase();
+        return inj && inj !== "—" && inj !== "PROBABLE";
+      });
+      const noGamePlayer = snapshot.starterPlayers.find((p: any) => !(upcomingByTeam?.[p.core.team]?.length));
      return {
        captainWatch: byFp5[0],
        valuePick: byValue[0],
        riskCount: snapshot.riskStarters,
        scheduleBoost: byFp5[1],
+        riskPlayer,
+        noGamePlayer,
      };
-   }, [snapshot]);
+    }, [snapshot, upcomingByTeam]);
 
    /* ============ STATE: LOADING ============ */
    if (analyzeLoading) {
