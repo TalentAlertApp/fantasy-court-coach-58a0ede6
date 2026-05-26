@@ -372,52 +372,45 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           )}
           {!isRosterEmpty && (
           <TabsList
-            className="shrink-0 grid grid-cols-5 h-auto p-1 gap-1 rounded-xl
-                       bg-black/55 backdrop-blur-md border border-white/10
-                       shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_30px_-12px_rgba(0,0,0,0.8)]"
+            className="shrink-0 grid grid-cols-5 h-auto p-1.5 gap-1.5 rounded-xl
+                       bg-black/60 backdrop-blur-xl border border-white/12
+                       shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.4),0_10px_36px_-12px_rgba(0,0,0,0.85)]"
           >
-            <TabsTrigger
-              value="analyze"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><Activity className="h-3 w-3 mr-1.5" />Roster Read</TabsTrigger>
-            <TabsTrigger
-              value="captain"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><Star className="h-3 w-3 mr-1.5" />Captain Call</TabsTrigger>
-            <TabsTrigger
-              value="transfers"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><ArrowLeftRight className="h-3 w-3 mr-1.5" />Market Watch</TabsTrigger>
-            <TabsTrigger
-              value="injuries"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><Shield className="h-3 w-3 mr-1.5" />Health Desk</TabsTrigger>
-            <TabsTrigger
-              value="explain"
-              className="font-heading text-[10.5px] uppercase tracking-[0.18em] rounded-lg py-2 text-white/65
-                         data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/20 data-[state=active]:to-amber-500/10
-                         data-[state=active]:text-amber-100 data-[state=active]:shadow-[0_0_0_1px_hsl(45_90%_55%/0.45),0_0_18px_-4px_hsl(45_90%_55%/0.6)]
-                         hover:text-white transition-all"
-            ><HelpCircle className="h-3 w-3 mr-1.5" />Player Explain</TabsTrigger>
+            {([
+              { v: "analyze",   icon: Activity,      label: "Roster Read" },
+              { v: "captain",   icon: Star,          label: "Captain Call" },
+              { v: "transfers", icon: ArrowLeftRight,label: "Market Watch" },
+              { v: "injuries",  icon: Shield,        label: "Health Desk" },
+              { v: "explain",   icon: HelpCircle,    label: "Player Explain" },
+            ] as const).map(({ v, icon: Icon, label }) => (
+              <TabsTrigger
+                key={v}
+                value={v}
+                className="group relative font-heading text-[11.5px] uppercase tracking-[0.2em] rounded-lg py-2.5 text-white/75
+                           hover:text-white hover:bg-white/[0.04] transition-all
+                           data-[state=active]:bg-gradient-to-b data-[state=active]:from-amber-300/25 data-[state=active]:to-amber-500/[0.08]
+                           data-[state=active]:text-amber-50
+                           data-[state=active]:shadow-[inset_0_1px_0_rgba(255,232,170,0.25),0_0_0_1px_hsl(45_90%_55%/0.55),0_0_24px_-6px_hsl(45_90%_55%/0.75)]"
+              >
+                <Icon className="h-3.5 w-3.5 mr-1.5" />{label}
+                <span className="pointer-events-none absolute left-3 right-3 bottom-0.5 h-px rounded-full bg-gradient-to-r from-transparent via-amber-300/80 to-transparent opacity-0 group-data-[state=active]:opacity-100 transition-opacity" />
+              </TabsTrigger>
+            ))}
           </TabsList>
           )}
           {!isRosterEmpty && (
 
-          <div className="flex-1 min-h-0 overflow-y-auto mt-4 space-y-3 rounded-xl
-                          bg-black/40 backdrop-blur-md border border-white/10
-                          shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] p-4 md:p-5">
+          <div className="relative flex-1 min-h-0 mt-4 rounded-xl
+                          bg-black/45 backdrop-blur-xl border border-white/12
+                          shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.5),0_20px_60px_-30px_rgba(0,0,0,0.9)]
+                          overflow-hidden">
+            {/* HUD grid + scanlines + soft center glow */}
+            <div className="absolute inset-0 biq-hud-lines opacity-60" />
+            <div className="absolute inset-0 biq-scanlines opacity-40" />
+            <div className="absolute inset-0 [background:radial-gradient(ellipse_at_top,rgba(252,211,77,0.06),transparent_55%)] pointer-events-none" />
+            <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.45)_100%)] pointer-events-none" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent pointer-events-none" />
+            <div className="relative h-full overflow-y-auto space-y-3 p-4 md:p-5">
             {/* Analyze */}
             <TabsContent value="analyze" className="mt-0 space-y-3">
               <Button size="sm" onClick={handleAnalyze} disabled={analyzeLoading} className="w-full">
