@@ -85,7 +85,7 @@ const BallersIQShareCard = forwardRef<HTMLDivElement, Props>(({ ctx, format = "s
               crossOrigin="anonymous"
               onLoad={() => setPhotoLoaded(true)}
               onError={() => setPhotoFailed(true)}
-              className={cn("rounded-2xl object-cover ring-2 ring-amber-300/40 shadow-2xl bg-white/5",
+              className={cn("rounded-2xl object-cover object-[center_15%] ring-2 ring-amber-300/40 shadow-2xl bg-white/5",
                 format === "wide" ? "h-32 w-32" : "h-44 w-44")}
             />
           ) : (
