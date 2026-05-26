@@ -564,7 +564,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             </TabsContent>
 
             {/* Explain */}
-            <TabsContent value="explain" className="mt-0">
+            <TabsContent value="explain" className="mt-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
               <PlayerExplainStudio
                 allPlayers={allPlayers}
                 rosterData={rosterData}
