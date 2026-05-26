@@ -1,16 +1,18 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogClose } from "@radix-ui/react-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag, History } from "lucide-react";
+import { Bot, Activity, Star, ArrowLeftRight, Shield, HelpCircle, Loader2, AlertTriangle, Disc, Users, Clock, Sparkles, Quote, Gauge, Flame, DollarSign, ShieldAlert, CalendarDays, Tag, History, X as XIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
+import HealthDeskPanel from "@/components/ballers-iq/HealthDeskPanel";
 import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
 import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -360,6 +362,19 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent shadow-[0_0_8px_rgba(252,211,77,0.35)]" />
         </DialogHeader>
 
+        {/* Explicit broadcast-grade close button. Sits above all background layers
+            so the click always reaches Radix's DialogClose. */}
+        <DialogClose
+          aria-label="Close Ballers.IQ"
+          className="absolute top-3.5 right-3.5 z-[60] inline-flex h-9 w-9 items-center justify-center rounded-xl
+                     border border-white/15 bg-black/55 backdrop-blur-md text-white/85
+                     transition-all hover:text-white hover:bg-white/10 hover:border-amber-300/40
+                     hover:shadow-[0_0_18px_-4px_rgba(252,211,77,0.55)]
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60"
+        >
+          <XIcon className="h-4 w-4" />
+        </DialogClose>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-5">
           {isRosterEmpty && (
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -545,18 +560,8 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             </TabsContent>
 
             {/* Injuries */}
-            <TabsContent value="injuries" className="mt-0 space-y-3">
-              <Button
-                size="sm"
-                onClick={() => setInjuryModalOpen(true)}
-                className="w-full bg-yellow-500 hover:bg-yellow-500/90 text-black"
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                Scan Injuries
-              </Button>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Opens the league-wide injury report aggregated from ESPN, CBS Sports and RotoWire.
-              </p>
+            <TabsContent value="injuries" className="mt-0">
+              <HealthDeskPanel />
             </TabsContent>
 
             {/* Explain */}
