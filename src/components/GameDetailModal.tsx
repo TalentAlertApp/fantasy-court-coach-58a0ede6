@@ -17,6 +17,7 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameActionLinks from "@/components/game/GameActionLinks";
 import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
+import GameBallersIQScheduledPanel from "@/components/game/GameBallersIQScheduledPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { Sparkles } from "lucide-react";
 
@@ -95,8 +96,9 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   // BIQ acts as side-panel expansion in both recap-open and recap-closed modes.
   const biqExpanded = recapOpen && biqOn;
   const biqStandalone = played && biqOn && !recapOpen;
+  const biqScheduled = !played && biqOn;
   const sidePanelsExpanded = panelsOpen || biqExpanded;
-  const modalExpanded = (recapOpen && sidePanelsExpanded) || biqStandalone;
+  const modalExpanded = (recapOpen && sidePanelsExpanded) || biqStandalone || biqScheduled;
   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
   // Mutually exclusive expansion modes
   useEffect(() => { if (panelsOpen && biqOn && recapOpen) setBiqOn(false); /* eslint-disable-next-line */ }, [panelsOpen]);
@@ -107,6 +109,18 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
     const h = tableWrapRef.current?.offsetHeight;
     if (h && h > 200) setEmbedHeight(h);
   }, [recapOpen]);
+  const scheduledRef = useRef<HTMLDivElement | null>(null);
+  const [scheduledHeight, setScheduledHeight] = useState<number>(520);
+  useEffect(() => {
+    if (played) return;
+    const measure = () => {
+      const h = scheduledRef.current?.offsetHeight;
+      if (h && h > 200) setScheduledHeight(h);
+    };
+    measure();
+    const t = window.setTimeout(measure, 300);
+    return () => window.clearTimeout(t);
+  }, [played, biqScheduled, open]);
   const embedSrc = useMemo(
     () => toYouTubeEmbed(game.game_recap_url ?? null, game.youtube_recap_id ?? null),
     [game.game_recap_url, game.youtube_recap_id],
@@ -114,7 +128,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? (modalExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
+      <DialogContent className={`${played ? (modalExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : (biqScheduled ? "!max-w-[94vw] w-[94vw]" : "max-w-xl")} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
@@ -248,14 +262,22 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           )}
           {game.game_recap_url && !played && (
             <div className="flex justify-center pt-1.5">
-              <a
-                href={game.game_recap_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
-              >
-                <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
-              </a>
+              <div className="inline-flex items-center gap-2">
+                <a
+                  href={game.game_recap_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
+                >
+                  <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
+                </a>
+                <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
+              </div>
+            </div>
+          )}
+          {!game.game_recap_url && !played && (
+            <div className="flex justify-center pt-1.5">
+              <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
             </div>
           )}
         </div>
@@ -357,7 +379,44 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           </div>
         )}
-        {!played && <ScheduledInsights game={game} />}
+        {!played && (
+          <div
+            className="relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{
+              gridTemplateColumns: biqScheduled
+                ? "minmax(240px,1fr) minmax(0,2.4fr) minmax(240px,1fr)"
+                : "0fr minmax(0,1fr) 0fr",
+            }}
+          >
+            <div
+              className={`relative bg-background overflow-hidden border-r border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${biqScheduled ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"}`}
+              style={{ height: scheduledHeight }}
+            >
+              {biqScheduled && (
+                <GameBallersIQScheduledPanel
+                  side="left"
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                />
+              )}
+            </div>
+            <div ref={scheduledRef}>
+              <ScheduledInsights game={game} />
+            </div>
+            <div
+              className={`relative bg-background overflow-hidden border-l border-border/40 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${biqScheduled ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"}`}
+              style={{ height: scheduledHeight }}
+            >
+              {biqScheduled && (
+                <GameBallersIQScheduledPanel
+                  side="right"
+                  homeTeam={game.home_team}
+                  awayTeam={game.away_team}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
     </>
