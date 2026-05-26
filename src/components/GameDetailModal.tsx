@@ -151,9 +151,9 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
           )}
-          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-2">
+          <div className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-4 py-1">
             {/* Away — name on right of watermark */}
-            <div className="relative h-28 flex items-center justify-end pr-2 overflow-hidden">
+            <div className="relative h-24 flex items-center justify-end pr-2 overflow-hidden">
               {awayLogo && (
                 <img
                   src={awayLogo}
@@ -164,7 +164,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
               {!played ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.away_team}</span>
-              ) : (panelsOpen && recapOpen) ? (
+              ) : ((sidePanelsExpanded && recapOpen) || biqStandalone) ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base text-foreground/90 truncate max-w-full">{nameFor(game.away_team)}</span>
               ) : null}
             </div>
@@ -194,7 +194,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
             </div>
             {/* Home — name on left of watermark */}
-            <div className="relative h-28 flex items-center justify-start pl-2 overflow-hidden">
+            <div className="relative h-24 flex items-center justify-start pl-2 overflow-hidden">
               {homeLogo && (
                 <img
                   src={homeLogo}
@@ -205,17 +205,11 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
               )}
               {!played ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-base">{game.home_team}</span>
-              ) : (panelsOpen && recapOpen) ? (
+              ) : ((sidePanelsExpanded && recapOpen) || biqStandalone) ? (
                 <span className="relative z-[1] font-heading font-black uppercase tracking-wider text-sm md:text-base text-foreground/90 truncate max-w-full">{nameFor(game.home_team)}</span>
               ) : null}
             </div>
           </div>
-          {/* BIQ button — directly below the game score when recap is NOT active */}
-          {played && !recapOpen && (
-            <div className="relative flex justify-center -mt-1">
-              <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
-            </div>
-          )}
           <GameActionLinks
             league={league}
             boxscoreUrl={game.game_boxscore_url}
@@ -223,10 +217,10 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             playByPlayUrl={game.game_playbyplay_url}
             leagueGameUrl={game.nba_game_url}
           />
-          {game.game_recap_url && played && (
+          {played && (
             <div className="flex justify-center pt-1.5">
-              {embedSrc ? (
-                <div className="inline-flex items-center gap-2">
+              <div className="inline-flex items-center gap-2">
+                {game.game_recap_url && embedSrc && (
                   <button
                     type="button"
                     onClick={() => setRecapOpen((v) => !v)}
@@ -237,12 +231,8 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                     {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
                     {recapOpen ? "Close Recap" : "Watch Recap"}
                   </button>
-                  {recapOpen && (
-                    <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
-                  )}
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2">
+                )}
+                {game.game_recap_url && !embedSrc && (
                   <a
                     href={game.game_recap_url}
                     target="_blank"
@@ -251,8 +241,9 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   >
                     <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
                   </a>
-                </div>
-              )}
+                )}
+                <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
+              </div>
             </div>
           )}
           {game.game_recap_url && !played && (
