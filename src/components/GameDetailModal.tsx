@@ -217,10 +217,10 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             playByPlayUrl={game.game_playbyplay_url}
             leagueGameUrl={game.nba_game_url}
           />
-          {game.game_recap_url && played && (
+          {played && (
             <div className="flex justify-center pt-1.5">
-              {embedSrc ? (
-                <div className="inline-flex items-center gap-2">
+              <div className="inline-flex items-center gap-2">
+                {game.game_recap_url && embedSrc && (
                   <button
                     type="button"
                     onClick={() => setRecapOpen((v) => !v)}
@@ -231,10 +231,8 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                     {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
                     {recapOpen ? "Close Recap" : "Watch Recap"}
                   </button>
-                  <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2">
+                )}
+                {game.game_recap_url && !embedSrc && (
                   <a
                     href={game.game_recap_url}
                     target="_blank"
@@ -243,8 +241,9 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   >
                     <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
                   </a>
-                </div>
-              )}
+                )}
+                <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
+              </div>
             </div>
           )}
           {game.game_recap_url && !played && (
