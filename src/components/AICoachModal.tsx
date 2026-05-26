@@ -558,7 +558,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             </TabsContent>
 
             {/* Injuries */}
-            <TabsContent value="injuries" className="mt-0">
+            <TabsContent value="injuries" className="mt-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
               <HealthDeskPanel />
             </TabsContent>
 
