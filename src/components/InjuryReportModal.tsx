@@ -473,7 +473,7 @@ export default function InjuryReportModal({ open, onOpenChange, initialTeams }: 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-screen h-screen max-w-none sm:w-full sm:max-w-3xl sm:h-[80vh] sm:max-h-[80vh] flex flex-col p-0 overflow-hidden rounded-none sm:rounded-lg">
         <DialogHeader className="px-5 py-4 border-b shrink-0">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center justify-between gap-3 flex-wrap pr-8 sm:pr-10">
             <DialogTitle className="flex items-center gap-2 font-heading">
               <Shield className="h-5 w-5 text-accent" />
               INJURY REPORT

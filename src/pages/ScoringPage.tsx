@@ -158,30 +158,25 @@ export default function ScoringPage() {
         </div>
       </div>
 
-      {/* League selector */}
-      <FantasyLeagueSelector
-        leagues={fantasyLeagues}
-        selectedLeague={selectedLeague}
-        onSelect={setSelectedLeagueId}
-        teamCounts={Object.fromEntries(
-          (fantasyLeagues ?? []).map((l) => [
-            l.id,
-            // Sport-aware count to match the sidebar team switcher and the
-            // server-side standings filter. Custom leagues match by league_id;
-            // system Main Leagues match by sport (since teams attached to a
-            // single sport may carry the sport's league_id rather than the
-            // fantasy main-league pseudo id).
-            isMainLeague(l.id)
-              ? userTeams.filter((t: any) => (t.league_code ?? "nba") === l.sport).length
-              : userTeams.filter((t: any) => t.league_id === l.id).length,
-          ]),
-        )}
-      />
-
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex-1 min-h-0 flex flex-col">
         {/* Tab bar + (when on Your Team) inline team selector at far right */}
         <div className="flex items-center gap-3 flex-wrap">
-          <TabsList className="grid grid-cols-3 w-full max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
+          <div className="shrink-0">
+            <FantasyLeagueSelector
+              leagues={fantasyLeagues}
+              selectedLeague={selectedLeague}
+              onSelect={setSelectedLeagueId}
+              teamCounts={Object.fromEntries(
+                (fantasyLeagues ?? []).map((l) => [
+                  l.id,
+                  isMainLeague(l.id)
+                    ? userTeams.filter((t: any) => (t.league_code ?? "nba") === l.sport).length
+                    : userTeams.filter((t: any) => t.league_id === l.id).length,
+                ]),
+              )}
+            />
+          </div>
+          <TabsList className="grid grid-cols-3 max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
             <TabsTrigger
               value="league"
               className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--nba-yellow))]/15 data-[state=active]:text-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none"
