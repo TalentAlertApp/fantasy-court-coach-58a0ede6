@@ -231,9 +231,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                     {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
                     {recapOpen ? "Close Recap" : "Watch Recap"}
                   </button>
-                  {recapOpen && (
-                    <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
-                  )}
+                  <BallersIQButton on={biqOn} onClick={() => { if (panelsOpen) setPanelsOpen(false); setBiqOn((v) => !v); }} />
                 </div>
               ) : (
                 <div className="inline-flex items-center gap-2">
