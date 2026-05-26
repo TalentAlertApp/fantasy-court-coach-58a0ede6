@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import BallersIQMarketWatch from "@/components/ballers-iq/BallersIQMarketWatch";
 import HealthDeskPanel from "@/components/ballers-iq/HealthDeskPanel";
+import PlayerExplainStudio from "@/components/ballers-iq/PlayerExplainStudio";
 import StylePreferencesPanel from "@/components/ai-coach/StylePreferencesPanel";
 import { buildPersonalisedRoster, type DraftPreferences } from "@/lib/personalised-draft";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
