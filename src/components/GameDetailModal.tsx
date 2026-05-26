@@ -262,14 +262,22 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           )}
           {game.game_recap_url && !played && (
             <div className="flex justify-center pt-1.5">
-              <a
-                href={game.game_recap_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
-              >
-                <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
-              </a>
+              <div className="inline-flex items-center gap-2">
+                <a
+                  href={game.game_recap_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
+                >
+                  <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
+                </a>
+                <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
+              </div>
+            </div>
+          )}
+          {!game.game_recap_url && !played && (
+            <div className="flex justify-center pt-1.5">
+              <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
             </div>
           )}
         </div>
