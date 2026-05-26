@@ -305,11 +305,11 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
             src={ballersIqArena}
             alt=""
             aria-hidden
-            className="absolute inset-0 w-full h-full object-cover opacity-85 select-none"
+            className="absolute inset-0 w-full h-full object-cover opacity-60 select-none"
             draggable={false}
           />
           {/* Top/bottom readability gradient — lighter through the middle */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/85 via-[#05070d]/35 to-[#05070d]/95" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/80 via-[#05070d]/55 to-[#05070d]/95" />
           {/* Side glows (red / blue arena lighting) */}
           <div className="biq-shell-glow-blue" />
           <div className="biq-shell-glow-red" />
@@ -328,7 +328,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
         </div>
 
         {/* Broadcast header */}
-        <DialogHeader className="shrink-0 relative z-[1] px-5 md:px-8 pt-5 pb-4 pr-12">
+        <DialogHeader className="shrink-0 relative z-[1] px-5 md:px-8 pt-5 pb-4 pr-24">
           <DialogTitle className="sr-only">Ballers.IQ — Fantasy Broadcast Intelligence</DialogTitle>
           <div className="flex items-center gap-4 md:gap-6">
             {/* LEFT — brand */}
@@ -419,9 +419,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                           bg-black/45 backdrop-blur-xl border border-white/12
                           shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.5),0_20px_60px_-30px_rgba(0,0,0,0.9)]
                           overflow-hidden">
-            {/* HUD grid + scanlines + soft center glow */}
-            <div className="absolute inset-0 biq-hud-lines opacity-60" />
-            <div className="absolute inset-0 biq-scanlines opacity-40" />
+            {/* Soft top glow only — grid/scanlines removed for cleaner background */}
             <div className="absolute inset-0 [background:radial-gradient(ellipse_at_top,rgba(252,211,77,0.06),transparent_55%)] pointer-events-none" />
             <div className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_55%,rgba(0,0,0,0.45)_100%)] pointer-events-none" />
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/40 to-transparent pointer-events-none" />
