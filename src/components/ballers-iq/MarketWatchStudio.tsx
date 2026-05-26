@@ -99,6 +99,25 @@ const num = (v: unknown, d = 0) => {
   return Number.isFinite(n) ? n : d;
 };
 
+const RISK_FLAG_LABEL: Record<string, string> = {
+  no_game: "No game this week",
+  bench_only: "Bench only",
+  injury: "Injury risk",
+  injured: "Injury risk",
+  salary_drop: "Salary drop risk",
+  low_minutes: "Low minutes",
+  same_team_cap: "Team cap reached",
+  limited_sample: "Limited sample",
+};
+function prettyFlag(key: string): string {
+  if (RISK_FLAG_LABEL[key]) return RISK_FLAG_LABEL[key];
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+function uniqFlags(arr: string[] | undefined): string[] {
+  if (!Array.isArray(arr)) return [];
+  return Array.from(new Set(arr.filter(Boolean)));
+}
+
 export default function MarketWatchStudio({
   rosterData, allPlayers, upcomingByTeam,
   transfersLoading, transfersResult, simResults, simulatingIdx, committingIdx,
@@ -266,27 +285,47 @@ export default function MarketWatchStudio({
             </div>
 
             {/* RIGHT — metrics + actions */}
-            <div className="md:col-span-4 grid grid-cols-2 gap-2 self-center">
-              <Stat label="Confidence" value={`${conf}%`} tone="amber" />
-              <Stat label="FP5 Gain" value={`${fpDelta >= 0 ? "+" : ""}${fpDelta.toFixed(1)}`} tone={fpDelta >= 0 ? "good" : "bad"} />
-              <div className="col-span-2 flex flex-col gap-1.5">
+            <div className="md:col-span-4 flex flex-col gap-2 self-center">
+              {/* Stats bar: Confidence | FP5 Gain */}
+              <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-black/45 overflow-hidden divide-x divide-white/10">
+                <div className="flex flex-col items-center justify-center py-2">
+                  <div className="text-[9px] font-heading uppercase tracking-[0.2em] text-white/55">Confidence</div>
+                  <div className="font-mono font-black text-lg tabular-nums leading-tight mt-0.5 text-amber-200">{conf}%</div>
+                </div>
+                <div className="flex flex-col items-center justify-center py-2">
+                  <div className="text-[9px] font-heading uppercase tracking-[0.2em] text-white/55">FP5 Gain</div>
+                  <div className={cn(
+                    "font-mono font-black text-lg tabular-nums leading-tight mt-0.5",
+                    fpDelta >= 0 ? "text-emerald-300" : "text-rose-300",
+                  )}>
+                    {fpDelta >= 0 ? "+" : ""}{fpDelta.toFixed(1)}
+                  </div>
+                </div>
+              </div>
+              {/* Actions bar: primary + small re-scan */}
+              <div className="flex items-stretch gap-2">
                 {!simResults[0] ? (
                   <Button size="sm" variant="outline" onClick={() => onSimulate(0, top)} disabled={simulatingIdx === 0}
-                    className="font-heading uppercase tracking-[0.16em] text-[11px]">
+                    className="flex-1 font-heading uppercase tracking-[0.16em] text-[11px] h-9">
                     {simulatingIdx === 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Activity className="h-3.5 w-3.5 mr-1" />} Simulate
                   </Button>
                 ) : simResults[0].is_valid ? (
                   <Button size="sm" onClick={() => onCommit(0, top)} disabled={committingIdx === 0}
-                    className="font-heading uppercase tracking-[0.16em] text-[11px] bg-gradient-to-b from-emerald-400 to-emerald-600 text-white hover:from-emerald-300 hover:to-emerald-500">
+                    className="flex-1 font-heading uppercase tracking-[0.16em] text-[11px] h-9 bg-gradient-to-b from-emerald-400 to-emerald-600 text-white hover:from-emerald-300 hover:to-emerald-500">
                     {committingIdx === 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <CheckCircle2 className="h-3.5 w-3.5 mr-1" />} Commit Transfer
                   </Button>
                 ) : (
-                  <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-2 py-1.5 text-[10px] text-rose-200 text-center">
+                  <div className="flex-1 inline-flex items-center justify-center rounded-md border border-rose-500/40 bg-rose-500/10 px-2 text-[10px] text-rose-200 text-center h-9">
                     {simResults[0].errors?.join(", ") || "Invalid"}
                   </div>
                 )}
-                <button onClick={onSuggest} className="text-[10px] font-heading uppercase tracking-[0.18em] text-white/55 hover:text-white border border-white/10 rounded-md py-1">
-                  <Activity className="h-3 w-3 inline mr-1" /> Re-scan
+                <button
+                  onClick={onSuggest}
+                  title="Re-scan market"
+                  aria-label="Re-scan market"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-white/12 bg-black/40 text-white/70 hover:text-white hover:bg-white/[0.06] transition-colors"
+                >
+                  <Activity className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -322,11 +361,15 @@ export default function MarketWatchStudio({
                           ))}
                         </ul>
                       )}
-                      {m.risk_flags?.length > 0 && (
+                      {uniqFlags(m.risk_flags).length > 0 && (
                         <div className="mt-1.5 flex gap-1 flex-wrap">
-                          {m.risk_flags.map((f: string, i: number) => (
-                            <span key={i} className="text-[9.5px] px-1.5 py-0.5 rounded-md border border-rose-500/40 bg-rose-500/10 text-rose-200 inline-flex items-center gap-1">
-                              <AlertTriangle className="h-2.5 w-2.5" /> {f}
+                          {uniqFlags(m.risk_flags).map((f) => (
+                            <span
+                              key={f}
+                              title={f}
+                              className="text-[9.5px] px-1.5 py-0.5 rounded-md border border-rose-500/40 bg-rose-500/10 text-rose-200 inline-flex items-center gap-1"
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5" /> {prettyFlag(f)}
                             </span>
                           ))}
                         </div>
