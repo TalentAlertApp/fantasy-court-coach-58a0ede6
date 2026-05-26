@@ -16,6 +16,9 @@ import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameActionLinks from "@/components/game/GameActionLinks";
+import GameBallersIQLayer from "@/components/game/GameBallersIQLayer";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import { Sparkles } from "lucide-react";
 
 export interface GameDetailGame {
   game_id: string;
@@ -87,6 +90,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   const hasGwDay = game.gw != null && game.day != null;
   const [recapOpen, setRecapOpen] = useState(false);
   const [panelsOpen, setPanelsOpen] = useState(false);
+  const [biqOn, setBiqOn] = useState(false);
   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
   const tableWrapRef = useRef<HTMLDivElement | null>(null);
   const [embedHeight, setEmbedHeight] = useState<number>(420);
@@ -204,26 +208,37 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           {game.game_recap_url && played && (
             <div className="flex justify-center pt-1.5">
               {embedSrc ? (
-                <button
-                  type="button"
-                  onClick={() => setRecapOpen((v) => !v)}
-                  aria-label={recapOpen ? "Close recap video" : "Watch recap video"}
-                  title={recapOpen ? "Close recap" : "Watch Recap"}
-                  className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-all px-3 py-0.5 rounded-xl border border-green-500/40 hover:border-green-400 hover:bg-green-500/10 hover:scale-[1.04]"
-                >
-                  {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
-                  {recapOpen ? "Close Recap" : "Watch Recap"}
-                </button>
+                <div className="inline-flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRecapOpen((v) => !v)}
+                    aria-label={recapOpen ? "Close recap video" : "Watch recap video"}
+                    title={recapOpen ? "Close recap" : "Watch Recap"}
+                    className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-all px-3 py-0.5 rounded-xl border border-green-500/40 hover:border-green-400 hover:bg-green-500/10 hover:scale-[1.04]"
+                  >
+                    {recapOpen ? <X className="h-3.5 w-3.5" /> : <Tv2 className="h-3.5 w-3.5" />}
+                    {recapOpen ? "Close Recap" : "Watch Recap"}
+                  </button>
+                  <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
+                </div>
               ) : (
-                <a
-                  href={game.game_recap_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
-                >
-                  <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
-                </a>
+                <div className="inline-flex items-center gap-2">
+                  <a
+                    href={game.game_recap_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs text-green-500 hover:text-green-400 transition-colors px-3 py-0.5 rounded-xl border border-green-500/40"
+                  >
+                    <Tv2 className="h-3.5 w-3.5" /> Watch Recap on {recapHost} <ExternalLink className="h-3 w-3" />
+                  </a>
+                  <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
+                </div>
               )}
+            </div>
+          )}
+          {played && !game.game_recap_url && (
+            <div className="flex justify-center pt-1.5">
+              <BallersIQButton on={biqOn} onClick={() => setBiqOn((v) => !v)} />
             </div>
           )}
           {game.game_recap_url && !played && (
@@ -239,6 +254,16 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
           )}
         </div>
+        {played && biqOn && (
+          <GameBallersIQLayer
+            gameId={game.game_id}
+            homeTeam={game.home_team}
+            awayTeam={game.away_team}
+            homePts={game.home_pts}
+            awayPts={game.away_pts}
+            compact={recapOpen}
+          />
+        )}
         {played && !recapOpen && (
           <div ref={tableWrapRef} className="border-t">
             <GameBoxScoreTable game={game} />
@@ -282,6 +307,26 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
       </DialogContent>
     </Dialog>
     </>
+  );
+}
+
+function BallersIQButton({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      title={on ? "Disable Ballers.IQ Live" : "Activate Ballers.IQ Live"}
+      className={`inline-flex items-center gap-1.5 text-xs px-3 py-0.5 rounded-xl border transition-all hover:scale-[1.04] ${
+        on
+          ? "border-amber-300/70 bg-amber-400/15 text-amber-100 shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
+          : "border-amber-400/40 bg-black/40 text-amber-200/85 hover:border-amber-300/70 hover:bg-amber-400/10"
+      }`}
+    >
+      <Sparkles className="h-3.5 w-3.5" />
+      <BallersIQBrand variant="wordmark" size="sm" forceTheme="dark" transparent className="!h-3.5 w-auto" />
+      {on && <span className="text-[9.5px] font-heading uppercase tracking-[0.2em]">Live</span>}
+    </button>
   );
 }
 
