@@ -285,6 +285,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
           <div
             className="border-t bg-background relative overflow-hidden grid transition-[grid-template-columns] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{
+              minHeight: embedHeight,
               gridTemplateColumns: biqStandalone
                 ? "minmax(240px,1fr) minmax(0,2.4fr) minmax(240px,1fr)"
                 : "0fr minmax(0,1fr) 0fr",
