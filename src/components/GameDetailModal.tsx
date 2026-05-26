@@ -17,6 +17,7 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameActionLinks from "@/components/game/GameActionLinks";
 import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
+import GameBallersIQScheduledPanel from "@/components/game/GameBallersIQScheduledPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { Sparkles } from "lucide-react";
 
@@ -95,8 +96,9 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   // BIQ acts as side-panel expansion in both recap-open and recap-closed modes.
   const biqExpanded = recapOpen && biqOn;
   const biqStandalone = played && biqOn && !recapOpen;
+  const biqScheduled = !played && biqOn;
   const sidePanelsExpanded = panelsOpen || biqExpanded;
-  const modalExpanded = (recapOpen && sidePanelsExpanded) || biqStandalone;
+  const modalExpanded = (recapOpen && sidePanelsExpanded) || biqStandalone || biqScheduled;
   useEffect(() => { if (!recapOpen) setPanelsOpen(false); }, [recapOpen]);
   // Mutually exclusive expansion modes
   useEffect(() => { if (panelsOpen && biqOn && recapOpen) setBiqOn(false); /* eslint-disable-next-line */ }, [panelsOpen]);
@@ -107,6 +109,18 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
     const h = tableWrapRef.current?.offsetHeight;
     if (h && h > 200) setEmbedHeight(h);
   }, [recapOpen]);
+  const scheduledRef = useRef<HTMLDivElement | null>(null);
+  const [scheduledHeight, setScheduledHeight] = useState<number>(520);
+  useEffect(() => {
+    if (played) return;
+    const measure = () => {
+      const h = scheduledRef.current?.offsetHeight;
+      if (h && h > 200) setScheduledHeight(h);
+    };
+    measure();
+    const t = window.setTimeout(measure, 300);
+    return () => window.clearTimeout(t);
+  }, [played, biqScheduled, open]);
   const embedSrc = useMemo(
     () => toYouTubeEmbed(game.game_recap_url ?? null, game.youtube_recap_id ?? null),
     [game.game_recap_url, game.youtube_recap_id],
@@ -114,7 +128,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
   return (
     <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${played ? (modalExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : "max-w-xl"} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
+      <DialogContent className={`${played ? (modalExpanded ? "!max-w-[94vw] w-[94vw]" : "max-w-3xl") : (biqScheduled ? "!max-w-[94vw] w-[94vw]" : "max-w-xl")} rounded-xl p-0 overflow-hidden transition-[max-width] duration-500`}>
         <div className="relative px-4 pt-2 pb-1.5 overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card border-b border-border/40">
           {venue?.image && (
             <img
