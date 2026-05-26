@@ -478,7 +478,7 @@ export default function HealthDeskPanel() {
                   </Tooltip>
                 </TooltipProvider>
 
-                <Select value={teamFilter} onValueChange={(v) => setTeamFilter(v as any)}>
+                <Select value={teamFilter} onValueChange={setTeamFilter}>
                   <SelectTrigger className="h-7 w-[188px] bg-black/40 border-white/15 text-white/85">
                     {teamFilter === "all" ? (
                       <span className="font-heading text-[10px] uppercase tracking-[0.16em] text-white/85">All Teams</span>
