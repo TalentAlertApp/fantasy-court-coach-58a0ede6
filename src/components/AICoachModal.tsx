@@ -362,6 +362,19 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           <div className="mt-4 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent shadow-[0_0_8px_rgba(252,211,77,0.35)]" />
         </DialogHeader>
 
+        {/* Explicit broadcast-grade close button. Sits above all background layers
+            so the click always reaches Radix's DialogClose. */}
+        <DialogClose
+          aria-label="Close Ballers.IQ"
+          className="absolute top-3.5 right-3.5 z-[60] inline-flex h-9 w-9 items-center justify-center rounded-xl
+                     border border-white/15 bg-black/55 backdrop-blur-md text-white/85
+                     transition-all hover:text-white hover:bg-white/10 hover:border-amber-300/40
+                     hover:shadow-[0_0_18px_-4px_rgba(252,211,77,0.55)]
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60"
+        >
+          <XIcon className="h-4 w-4" />
+        </DialogClose>
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-5">
           {isRosterEmpty && (
             <div className="flex-1 min-h-0 overflow-y-auto">
