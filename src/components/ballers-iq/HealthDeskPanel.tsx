@@ -638,7 +638,7 @@ function InjuryRow({ rec, onSelect }: { rec: EnrichedRecord; onSelect: (id: numb
           alt=""
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full opacity-[0.18] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.5] group-hover:scale-110 transition-all duration-300",
+            "pointer-events-none absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 h-14 w-14 object-cover rounded-full ring-0 opacity-[0.18] saturate-150 contrast-110 brightness-110 group-hover:opacity-[0.7] group-hover:scale-110 group-hover:ring-2 group-hover:ring-amber-300/80 group-hover:shadow-[0_0_18px_-2px_rgba(252,211,77,0.65)] transition-all duration-300",
             league === "euroleague" && "object-top",
           )}
         />
