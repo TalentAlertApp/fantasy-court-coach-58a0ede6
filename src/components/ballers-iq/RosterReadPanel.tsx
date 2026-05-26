@@ -263,16 +263,6 @@ export default function RosterReadPanel({
                )}
              </div>
 
-             {/* Lineup strip */}
-             {(snapshot.starterPlayers.length > 0 || snapshot.benchPlayers.length > 0) && (
-               <GlassPanel className="p-4">
-                 <SectionLabel icon={Users}>Lineup Snapshot</SectionLabel>
-                 <div className="mt-3 space-y-2">
-                   <LineupRow label="Starters" players={snapshot.starterPlayers} captainId={snapshot.captainId} upcomingByTeam={upcomingByTeam} />
-                   <LineupRow label="Bench" players={snapshot.benchPlayers} captainId={snapshot.captainId} upcomingByTeam={upcomingByTeam} dim />
-                 </div>
-               </GlassPanel>
-             )}
            </div>
 
            {/* RIGHT — Signal Rail */}
@@ -292,17 +282,6 @@ export default function RosterReadPanel({
                    <Signal icon={TrendingUp} title="Upgrade Opportunity" chip="Look at" tone="good"
                      note={`${quickReads.valuePick.core.name} · best value index.`} />
                  )}
-               </div>
-             </GlassPanel>
-
-             {/* ACTION BOARD */}
-             <GlassPanel className="p-4">
-               <SectionLabel icon={Target}>Action Board</SectionLabel>
-               <div className="mt-3 grid grid-cols-2 gap-2">
-                 <ActionBtn icon={Crown}        label="Pick Captain"    onClick={() => onGoToTab("captain")} />
-                 <ActionBtn icon={ArrowLeftRight} label="Market Watch"  onClick={() => onGoToTab("transfers")} />
-                 <ActionBtn icon={Heart}        label="Health Desk"     onClick={() => onGoToTab("injuries")} />
-                 <ActionBtn icon={BarChart3}    label="Player Explain"  onClick={() => onGoToTab("explain")} />
                </div>
              </GlassPanel>
            </div>
