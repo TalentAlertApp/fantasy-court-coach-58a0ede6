@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { TrendingUp, TrendingDown, Clock, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw, Link2, Lightbulb } from "lucide-react";
-import { usePlayingTimeTrends, TrendRow } from "@/hooks/usePlayingTimeTrends";
+import { Flame, Snowflake, Search, ExternalLink, ChevronsUpDown, Check, X, ChevronLeft, ChevronRight, RotateCcw, Link2, Lightbulb } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Skeleton } from "@/components/ui/skeleton";
 import PlayerModal from "@/components/PlayerModal";
@@ -26,6 +25,7 @@ import { DEADLINES, getCurrentGameday } from "@/lib/deadlines";
 import AdvancedStatsTab from "@/components/advanced/AdvancedStatsTab";
 import TrendingTab from "@/components/advanced/TrendingTab";
 import PlaySubFilters from "@/components/advanced/PlaySubFilters";
+import LeaderTable, { LeaderRow, LeaderColumn } from "@/components/advanced/LeaderTable";
 import { ActionType, EMPTY_SUBFILTERS, SubFilterState, pruneSubFilters } from "@/lib/play-filter-config";
 import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
@@ -745,71 +745,6 @@ function NBAPlaySearchSection() {
   );
 }
 
-function TrendTable({ rows, type, onPlayerClick, onTeamClick }: {
-  rows: TrendRow[];
-  type: "increase" | "decrease";
-  onPlayerClick: (id: number) => void;
-  onTeamClick: (tricode: string) => void;
-}) {
-  const isIncrease = type === "increase";
-  return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card/40 backdrop-blur-sm">
-      <SectionHeader
-        tone={isIncrease ? "green" : "red"}
-        icon={isIncrease ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-        title={isIncrease ? "Increased Playing Time" : "Decreased Playing Time"}
-        meta="Last 7 Game Days"
-      />
-      <div className="grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 text-[10px] font-heading uppercase text-muted-foreground border-b bg-muted/40">
-        <span>Player</span>
-        <span className="text-center">GP</span>
-        <span className="text-right">Season</span>
-        <span className="text-right">7 Days</span>
-        <span className="text-right">{isIncrease ? "Increase" : "Decrease"}</span>
-      </div>
-      <div className="max-h-[480px] overflow-y-auto">
-        {rows.length === 0 && (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">No data available</div>
-        )}
-        {rows.map((r, i) => {
-          const logo = getTeamLogo(r.team);
-          return (
-            <div key={r.id} className={`grid grid-cols-[1fr_40px_60px_60px_65px] gap-0 px-3 py-1.5 items-center text-xs border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-card" : "bg-muted/20"}`}>
-              <div className="flex items-center gap-2 min-w-0">
-                {r.photo ? (
-                  <img src={r.photo} alt="" className="w-6 h-6 rounded-full object-cover bg-muted shrink-0" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-muted shrink-0" />
-                )}
-                <span
-                  className="truncate font-medium hover:text-primary hover:underline"
-                  onClick={() => onPlayerClick(r.id)}
-                >
-                  {r.name}
-                </span>
-                {logo && (
-                  <img
-                    src={logo}
-                    alt={r.team}
-                    className="w-4 h-4 shrink-0 cursor-pointer hover:scale-125 transition-transform"
-                    onClick={(e) => { e.stopPropagation(); onTeamClick(r.team); }}
-                  />
-                )}
-              </div>
-              <span className="text-center text-muted-foreground">{r.gp7d}</span>
-              <span className="text-right text-muted-foreground">{r.seasonAvg.toFixed(1)}</span>
-              <span className="text-right font-medium">{r.avg7d.toFixed(1)}</span>
-              <span className={`text-right font-bold ${isIncrease ? "text-emerald-500" : "text-destructive"}`}>
-                {isIncrease ? "+" : ""}{r.delta.toFixed(1)}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 export default function AdvancedPage() {
   const { league } = useLeague();
   const competition = getCompetition(league);
@@ -817,7 +752,7 @@ export default function AdvancedPage() {
   // that don't expose play-by-play data (e.g. EuroLeague today) still get
   // Playing Time / Advanced Stats / Trending — we just hide the Play Search tab.
   const showPlaySearch = competition.hasAdvancedPlaySearch;
-  const { data, isLoading } = usePlayingTimeTrends();
+  const { data: playersData, isLoading: playersLoading } = usePlayersQuery({ limit: 1000 });
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [tab, setTab] = useState<AdvancedTab>(() => {
@@ -828,11 +763,46 @@ export default function AdvancedPage() {
 
   const tabsDef = ([
     ...(showPlaySearch ? [["play-search", "Play Search"] as const] : []),
-    ["playing-time", "Playing Time"] as const,
+    ["playing-time", "Fantasy Points"] as const,
     ["advanced-stats", "Advanced Stats"] as const,
     ["trending", "Trending"] as const,
   ]);
   const gridColsCls = tabsDef.length === 4 ? "grid-cols-4" : "grid-cols-3";
+
+  const fpCols: LeaderColumn[] = [
+    { key: "fp", label: "FP", align: "right", tone: "accent" },
+    { key: "fp5", label: "FP5", align: "right" },
+    { key: "mpg", label: "MPG", align: "right" },
+    { key: "v", label: "V", align: "right" },
+    { key: "d", label: "Δ", align: "right", tone: "delta" },
+  ];
+  const fpItems = useMemo(() => ((playersData as any)?.items ?? []) as any[], [playersData]);
+  const fpRowsAll: LeaderRow[] = useMemo(() => {
+    return fpItems
+      .filter((p) => Number(p.season?.fp) > 0 && Number(p.season?.gp ?? p.last5?.gp ?? 0) >= 3)
+      .map((p) => ({
+        id: p.core.id,
+        name: p.core.name,
+        team: p.core.team,
+        photo: p.core.photo,
+        fc_bc: p.core.fc_bc,
+        values: [
+          Number(p.season?.fp ?? 0),
+          Number(p.last5?.fp5 ?? 0),
+          Number(p.last5?.mpg5 ?? p.season?.mpg ?? 0),
+          Number(p.computed?.value ?? 0),
+          Number(p.computed?.delta_fp ?? 0),
+        ],
+      }));
+  }, [fpItems]);
+  const topFpRows = useMemo(
+    () => [...fpRowsAll].sort((a, b) => Number(b.values[0]) - Number(a.values[0])),
+    [fpRowsAll],
+  );
+  const lessFpRows = useMemo(
+    () => [...fpRowsAll].sort((a, b) => Number(a.values[0]) - Number(b.values[0])),
+    [fpRowsAll],
+  );
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
@@ -865,30 +835,41 @@ export default function AdvancedPage() {
         <TabsContent value="playing-time" className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-muted-foreground" />
-              <h1 className="text-lg font-heading font-bold uppercase tracking-wider">Playing Time Trends</h1>
-              {data?.latestDate && (
-                <span className="text-[10px] text-muted-foreground font-body ml-2">
-                  Through {data.latestDate}
-                </span>
-              )}
-            </div>
-            {data?.updatedAt && (
-              <span className="text-[10px] text-muted-foreground font-body">
-                Updated {new Date(data.updatedAt).toLocaleString()}
+              <Flame className="h-5 w-5 text-[hsl(var(--nba-yellow))]" />
+              <h1 className="text-lg font-heading font-bold uppercase tracking-wider">Fantasy Points Leaders</h1>
+              <span className="text-[10px] text-muted-foreground font-body ml-2">
+                Season FP · FP5 · MPG · Value · Δ (FP5 vs season)
               </span>
-            )}
+            </div>
           </div>
 
-          {isLoading ? (
+          {playersLoading ? (
             <div className="grid md:grid-cols-2 gap-4">
               <Skeleton className="h-96 rounded-lg" />
               <Skeleton className="h-96 rounded-lg" />
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-4">
-              <TrendTable rows={data?.increased ?? []} type="increase" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
-              <TrendTable rows={data?.decreased ?? []} type="decrease" onPlayerClick={setSelectedPlayerId} onTeamClick={setSelectedTeam} />
+              <LeaderTable
+                title="Top FP"
+                subtitle="Season leaders"
+                icon={<Flame className="h-4 w-4 text-[hsl(var(--nba-yellow))]" />}
+                tone="yellow"
+                columns={fpCols}
+                rows={topFpRows}
+                onPlayerClick={setSelectedPlayerId}
+                onTeamClick={setSelectedTeam}
+              />
+              <LeaderTable
+                title="Less FP"
+                subtitle="Bottom of the board"
+                icon={<Snowflake className="h-4 w-4 text-blue-400" />}
+                tone="blue"
+                columns={fpCols}
+                rows={lessFpRows}
+                onPlayerClick={setSelectedPlayerId}
+                onTeamClick={setSelectedTeam}
+              />
             </div>
           )}
         </TabsContent>
