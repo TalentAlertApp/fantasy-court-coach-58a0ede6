@@ -11,6 +11,7 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 import { HealthStatusIcon } from "@/components/health";
 import type { PlayerHealth } from "@/lib/health";
 import { isHealthUnavailable, isHealthRisky } from "@/lib/health";
+import PlayerContextBadges, { type PlayerBadge } from "./PlayerContextBadges";
 
 export interface RosterPanePlayer {
   player_id: number;
@@ -20,6 +21,7 @@ export interface RosterPanePlayer {
   fc_bc: string;
   photo: string | null;
   health?: PlayerHealth | null;
+  badges?: PlayerBadge[];
 }
 
 interface RosterPaneProps {
@@ -93,6 +95,9 @@ function RosterRow({
           {player.fc_bc}
         </Badge>
         <span className="text-xs font-medium truncate flex-1 min-w-0">{player.name}</span>
+        {player.badges && player.badges.length > 0 && (
+          <PlayerContextBadges badges={player.badges} max={3} className="ml-0.5" />
+        )}
         <HealthStatusIcon health={player.health ?? null} size="xs" className="shrink-0" />
         <span className="text-sm font-bold tabular-nums text-foreground shrink-0">${player.salary}</span>
       </div>
