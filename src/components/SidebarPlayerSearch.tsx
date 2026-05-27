@@ -28,7 +28,7 @@ export default function SidebarPlayerSearch({ onSelect }: Props) {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search player…"
-        className="h-8 pl-7 text-[11px] font-heading uppercase tracking-[0.15em] rounded-lg bg-white/10 border-white/20 text-white placeholder:text-white/40 placeholder:font-heading placeholder:uppercase placeholder:tracking-[0.15em] focus-visible:ring-1 focus-visible:ring-accent/40"
+        className="h-8 pl-7 text-[11px] md:text-[11px] font-heading uppercase tracking-[0.15em] rounded-lg bg-white/10 border-white/20 text-white placeholder:text-[11px] placeholder:text-white/40 placeholder:font-heading placeholder:uppercase placeholder:tracking-[0.15em] focus-visible:ring-1 focus-visible:ring-accent/40"
       />
       {enabled && data && (
         <div className="absolute z-50 mt-1 left-0 right-0 max-h-72 overflow-auto rounded-lg border border-border bg-popover shadow-xl p-1">
