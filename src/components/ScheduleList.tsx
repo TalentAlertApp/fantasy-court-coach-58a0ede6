@@ -1297,9 +1297,40 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           </div>
         )}
 
-                <div className="relative z-10 flex items-center w-full">
-                {/* Teams */}
-                <div className="relative z-10 flex items-center gap-3 shrink-0">
+                <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 w-full">
+                {/* Left: player blurb */}
+                <div className="relative z-10 min-w-0 px-1 flex items-center justify-start">
+                  {isFinal && (() => {
+                    const box = boxscoreById[g.game_id] ?? [];
+                    const a = pickGameLeader(box, g.away_team);
+                    const h = pickGameLeader(box, g.home_team);
+                    return (
+                      <GameCardBlurb
+                        kind="outstanding"
+                        text={buildOutstandingBlurb(box, g.away_team, g.home_team)}
+                        awayPhoto={(a as any)?.photo} awayPlayerId={a?.player_id ?? null}
+                        homePhoto={(h as any)?.photo} homePlayerId={h?.player_id ?? null}
+                        onPlayerClick={setSelectedPlayerId}
+                      />
+                    );
+                  })()}
+                  {isScheduled && (() => {
+                    const a = pickWatchLeader(playerItems, g.away_team);
+                    const h = pickWatchLeader(playerItems, g.home_team);
+                    return (
+                      <GameCardBlurb
+                        kind="watch"
+                        text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
+                        awayPhoto={a?.core.photo ?? null} awayPlayerId={a?.core.id ?? null}
+                        homePhoto={h?.core.photo ?? null} homePlayerId={h?.core.id ?? null}
+                        onPlayerClick={setSelectedPlayerId}
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* Center: Teams + status (absolute center of the card) */}
+                <div className="relative z-10 flex items-center gap-3 shrink-0 justify-self-center">
                   <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
                     <div>
                       <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
@@ -1353,39 +1384,8 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   </div>
                 </div>
 
-                {/* Inline player blurb — centered between teams and actions */}
-                <div className="relative z-10 flex-1 min-w-0 px-3 self-stretch flex items-center justify-center">
-                  {isFinal && (() => {
-                    const box = boxscoreById[g.game_id] ?? [];
-                    const a = pickGameLeader(box, g.away_team);
-                    const h = pickGameLeader(box, g.home_team);
-                    return (
-                      <GameCardBlurb
-                        kind="outstanding"
-                        text={buildOutstandingBlurb(box, g.away_team, g.home_team)}
-                        awayPhoto={(a as any)?.photo} awayPlayerId={a?.player_id ?? null}
-                        homePhoto={(h as any)?.photo} homePlayerId={h?.player_id ?? null}
-                        onPlayerClick={setSelectedPlayerId}
-                      />
-                    );
-                  })()}
-                  {isScheduled && (() => {
-                    const a = pickWatchLeader(playerItems, g.away_team);
-                    const h = pickWatchLeader(playerItems, g.home_team);
-                    return (
-                      <GameCardBlurb
-                        kind="watch"
-                        text={buildWatchBlurb(playerItems, g.away_team, g.home_team)}
-                        awayPhoto={a?.core.photo ?? null} awayPlayerId={a?.core.id ?? null}
-                        homePhoto={h?.core.photo ?? null} homePlayerId={h?.core.id ?? null}
-                        onPlayerClick={setSelectedPlayerId}
-                      />
-                    );
-                  })()}
-                </div>
-
                 {/* Right: action icons */}
-                <div className="relative z-10 flex items-center gap-1.5">
+                <div className="relative z-10 flex items-center gap-1.5 justify-self-end">
                   {venue?.name && (
                     <span
                       className="hidden sm:inline-block text-[10px] italic text-muted-foreground/80 truncate max-w-[140px] mr-1"
