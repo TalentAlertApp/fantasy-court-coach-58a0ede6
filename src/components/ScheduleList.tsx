@@ -945,16 +945,33 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
     const showInjuryBtn =
       isScheduled || gh.rosterOut.length > 0 || gh.rosterRisk.length > 0;
 
+    // GameNight Arena Card v2 — premium broadcast accents per status
+    const statusRingExpanded = isLive
+      ? "ring-2 ring-red-500/70 shadow-[0_0_24px_-4px_rgb(239,68,68,0.55)]"
+      : isFinal
+        ? "ring-2 ring-green-500/70 shadow-[0_0_24px_-4px_rgb(34,197,94,0.55)]"
+        : "ring-2 ring-[hsl(var(--nba-yellow))]/80 shadow-[0_0_24px_-4px_hsl(var(--nba-yellow)/0.55)]";
+    const statusGlowHover = isLive
+      ? "hover:shadow-[0_0_18px_-6px_rgb(239,68,68,0.45)]"
+      : isFinal
+        ? "hover:shadow-[0_0_18px_-6px_rgb(34,197,94,0.45)]"
+        : "hover:shadow-[0_0_18px_-6px_hsl(var(--nba-yellow)/0.45)]";
+    const statusPillText = isLive
+      ? "text-red-500"
+      : isFinal
+        ? "text-green-500"
+        : "text-[hsl(var(--nba-yellow))]";
+
     return (
       <div
         onClick={() => isExpandable && setExpandedId(isExpanded ? null : g.game_id)}
         className={`relative overflow-hidden bg-card rounded-xl border border-l-4 ${getStatusBorder(g.status)} ${
           isGameLive(g.status, g.tipoff_utc) ? "border-l-red-500 before:content-[''] before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-red-500 before:animate-pulse before:z-10" : ""
         } ${
-          compact ? "flex flex-col px-3 py-2.5 gap-2" : "flex items-center px-5 py-3"
-        } ${isExpandable ? "cursor-pointer hover:bg-muted/50 transition-colors" : ""} ${
+          compact ? "group/card flex flex-col px-3 pt-2 pb-2.5 gap-2 transition-all duration-200 " + statusGlowHover : "flex items-center px-5 py-3"
+        } ${isExpandable ? "cursor-pointer hover:bg-muted/40 transition-colors" : ""} ${
           isExpanded && !compact ? "rounded-b-none border-b-0" : ""
-        } ${isExpanded && compact ? "ring-2 ring-primary/40" : ""}`}
+        } ${isExpanded && compact ? statusRingExpanded : ""}`}
       >
         {venue?.image && (
           <img
@@ -962,10 +979,17 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             alt=""
             aria-hidden
             loading="lazy"
-            className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.28] dark:opacity-[0.40]"
+            className={`pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.28] dark:opacity-[0.42] ${compact ? "transition-transform duration-500 group-hover/card:scale-[1.04] group-hover/card:opacity-[0.5]" : ""}`}
           />
         )}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
+        {compact ? (
+          <>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-card/85 via-card/30 to-card/95" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,hsl(var(--card)/0.55)_100%)]" />
+          </>
+        ) : (
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-card via-card/30 to-card" />
+        )}
         {gameBadges && gameBadges[g.game_id] && gameBadges[g.game_id].length > 0 && (
           <div className="absolute top-1.5 right-2 z-20 pointer-events-none">
             <GameCardBadges badges={gameBadges[g.game_id]} />
@@ -974,70 +998,69 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
 
         {compact ? (
           <>
-            {/* Top row: large centered team badges with @ in middle */}
-            <div className="relative z-10 flex items-center justify-center gap-3">
+            {/* Top status strip */}
+            <div className="relative z-10 flex items-center justify-between gap-2">
+              <span className={`font-heading font-black text-[10px] tracking-[0.14em] uppercase leading-none ${statusPillText} ${isLive ? "animate-pulse" : ""}`}>
+                {isLive ? "LIVE" : isFinal ? "FINAL" : "SCHEDULED"}
+              </span>
+              {g.tipoff_utc && !isFinal && (
+                <span className="text-[10px] font-mono font-bold text-foreground/80 tracking-wide leading-none">
+                  {formatTipoff(g.tipoff_utc)}
+                </span>
+              )}
+              {isLive && getLiveStatusLabel(g.status) && (
+                <span className="text-[10px] font-mono font-bold text-red-500/90 tracking-wide leading-none">
+                  {getLiveStatusLabel(g.status)}
+                </span>
+              )}
+            </div>
+
+            {/* Center matchup stage: large team badges with @ in middle */}
+            <div className="relative z-10 flex items-center justify-center gap-3 py-1">
               <div className="flex flex-col items-center gap-0.5">
                 {getTeamLogo(g.away_team) && (
                   <img
                     src={getTeamLogo(g.away_team)}
                     alt={g.away_team}
-                    className="w-14 h-14 transition-transform duration-200 hover:scale-110 drop-shadow-[0_0_18px_hsl(var(--accent)/0.45)]"
+                    className="w-16 h-16 transition-transform duration-200 hover:scale-110 drop-shadow-[0_0_22px_hsl(var(--accent)/0.55)] group-hover/card:drop-shadow-[0_0_28px_hsl(var(--accent)/0.7)]"
                   />
                 )}
-                <span className="font-heading font-bold text-[10px] uppercase">{g.away_team}</span>
+                <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.away_team}</span>
                 {(isFinal || isLive) && (
-                  <span className={`font-mono text-base leading-none ${isFinal && g.away_pts > g.home_pts ? "font-black" : "opacity-60"}`}>{g.away_pts}</span>
+                  <span className={`font-mono leading-none tabular-nums ${isFinal && g.away_pts > g.home_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.away_pts}</span>
                 )}
               </div>
-              <div className="flex flex-col items-center gap-0.5 px-1">
-                <span className="text-[10px] text-muted-foreground font-heading font-bold">@</span>
-                {isLive ? (
-                  <>
-                    <span className="text-[10px] font-heading font-black text-destructive animate-pulse">LIVE</span>
-                    {getLiveStatusLabel(g.status) && (
-                      <span className="text-[9px] font-mono font-bold text-destructive/80 tracking-wide">
-                        {getLiveStatusLabel(g.status)}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className={`text-[10px] font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
-                    {g.status}
-                  </span>
-                )}
-                {g.tipoff_utc && (
-                  <span className="text-[10px] font-mono font-bold text-muted-foreground">
-                    {formatTipoff(g.tipoff_utc)}
-                  </span>
-                )}
+              <div className="flex flex-col items-center justify-center gap-0.5 px-2 min-w-[44px]">
+                <span className="text-[11px] text-muted-foreground/70 font-heading font-black tracking-widest">VS</span>
+                <span className="block h-px w-6 bg-gradient-to-r from-transparent via-foreground/30 to-transparent" />
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 {getTeamLogo(g.home_team) && (
                   <img
                     src={getTeamLogo(g.home_team)}
                     alt={g.home_team}
-                    className="w-14 h-14 transition-transform duration-200 hover:scale-110 drop-shadow-[0_0_18px_hsl(var(--accent)/0.45)]"
+                    className="w-16 h-16 transition-transform duration-200 hover:scale-110 drop-shadow-[0_0_22px_hsl(var(--accent)/0.55)] group-hover/card:drop-shadow-[0_0_28px_hsl(var(--accent)/0.7)]"
                   />
                 )}
-                <span className="font-heading font-bold text-[10px] uppercase">{g.home_team}</span>
+                <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.home_team}</span>
                 {(isFinal || isLive) && (
-                  <span className={`font-mono text-base leading-none ${isFinal && g.home_pts > g.away_pts ? "font-black" : "opacity-60"}`}>{g.home_pts}</span>
+                  <span className={`font-mono leading-none tabular-nums ${isFinal && g.home_pts > g.away_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.home_pts}</span>
                 )}
               </div>
             </div>
 
-            {/* Bottom row: venue (left) + action icons (right) */}
-            <div className="relative z-10 flex items-center justify-between gap-2">
+            {/* Bottom info + action dock */}
+            <div className="relative z-10 flex items-center justify-between gap-2 pt-1 border-t border-foreground/5">
               {venue?.name ? (
-                <span className="text-[10px] italic text-muted-foreground/80 truncate min-w-0 flex-1" title={venue.name}>
+                <span className="text-[10px] italic text-muted-foreground/90 truncate min-w-0 flex-1" title={venue.name}>
                   {venue.name}
                 </span>
               ) : <span className="flex-1" />}
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0 opacity-80 group-hover/card:opacity-100 transition-opacity">
                 {isFinal && (
                   <span
                     onClick={(e) => { e.stopPropagation(); setExpandedId(isExpanded ? null : g.game_id); }}
-                    className={`p-0.5 cursor-pointer transition-colors ${hasYoutubeRecap ? "text-green-500" : "text-muted-foreground hover:text-primary"}`}
+                    className={`p-0.5 cursor-pointer transition-all duration-200 hover:scale-125 hover:-translate-y-0.5 ${hasYoutubeRecap ? "text-green-500 hover:brightness-125" : "text-muted-foreground hover:text-primary"}`}
                     title="Game Recap"
                   >
                     <Tv2 className="h-3.5 w-3.5" />
@@ -1060,7 +1083,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setComparePair({ a: g.away_team, b: g.home_team }); }}
-                  className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-colors"
+                  className="text-muted-foreground hover:text-[hsl(var(--nba-yellow))] transition-all duration-200 hover:scale-125 hover:-translate-y-0.5"
                   title={`Compare ${g.away_team} vs ${g.home_team}`}
                 >
                   <Swords className="h-3.5 w-3.5" />
@@ -1071,13 +1094,13 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="text-muted-foreground hover:text-primary transition-colors"
+                    className="text-muted-foreground hover:text-primary transition-all duration-200 hover:scale-125 hover:-translate-y-0.5"
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
                 {isExpandable && (
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                 )}
               </div>
             </div>
