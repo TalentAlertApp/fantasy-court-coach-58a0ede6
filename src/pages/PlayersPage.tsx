@@ -694,11 +694,11 @@ export default function PlayersPage() {
             />
 
             {scheduleOpen && (
-              <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 max-h-[460px] overflow-hidden animate-accordion-down">
+              <div className="absolute left-0 right-0 top-full mt-2 z-30 rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-2xl p-3 pr-10 max-h-[460px] overflow-hidden animate-accordion-down">
                 <button
                   type="button"
                   onClick={() => setScheduleOpen(false)}
-                  className="absolute top-2 right-2 z-10 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
+                  className="absolute top-1.5 right-1.5 z-20 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
                   aria-label="Close schedule"
                 >
                   <X className="h-3.5 w-3.5" />
