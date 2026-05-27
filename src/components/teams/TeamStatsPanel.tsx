@@ -487,8 +487,8 @@ function StatsTable({
         if (t.fpg <= 0) return "—";
         const s = t.top3Share;
         const label = s > 0.65 ? "High" : s >= 0.5 ? "Medium" : "Low";
-        const color = s > 0.65 ? "bg-rose-500/15 text-rose-500 border-rose-500/30" : s >= 0.5 ? "bg-amber-500/15 text-amber-500 border-amber-500/30" : "bg-emerald-500/15 text-emerald-500 border-emerald-500/30";
-        return <Badge variant="outline" className={cn("text-[9px] rounded-xl", color)}>{label}</Badge>;
+        const color = s > 0.65 ? "text-rose-500" : s >= 0.5 ? "text-amber-500" : "text-emerald-500";
+        return <span className={cn("text-[11px] font-semibold uppercase tracking-wide", color)}>{label}</span>;
       } },
     ];
     // schedule
@@ -512,11 +512,11 @@ function StatsTable({
         const s = scheduleStats[t.tricode];
         if (!s || s.upcoming === 0) return "—";
         const color =
-          s.label === "Strong" ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" :
-          s.label === "Good" ? "bg-sky-500/15 text-sky-500 border-sky-500/30" :
-          s.label === "Neutral" ? "bg-muted text-muted-foreground" :
-          "bg-rose-500/10 text-rose-500 border-rose-500/30";
-        return <Badge variant="outline" className={cn("text-[9px] rounded-xl", color)}>{s.label}</Badge>;
+          s.label === "Strong" ? "text-emerald-500" :
+          s.label === "Good" ? "text-sky-500" :
+          s.label === "Neutral" ? "text-muted-foreground" :
+          "text-rose-500";
+        return <span className={cn("text-[11px] font-semibold uppercase tracking-wide", color)}>{s.label}</span>;
       } },
     ];
   })();
