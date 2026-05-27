@@ -625,14 +625,13 @@ function OutstandingSlide({
             <PlayCircle className="h-3 w-3" /> Game Recap
           </span>
           {payload.game_recap_url && (
-            <a
-              href={payload.game_recap_url}
-              target="_blank"
-              rel="noreferrer"
+            <button
+              type="button"
+              onClick={() => onGameClick(payload.game)}
               className="text-[10px] text-white/55 hover:text-amber-300 inline-flex items-center gap-1"
             >
-              Open <ExternalLink className="h-2.5 w-2.5" />
-            </a>
+              Open <Maximize2 className="h-2.5 w-2.5" />
+            </button>
           )}
         </div>
         <div className="flex-1 min-h-0 bg-black">
