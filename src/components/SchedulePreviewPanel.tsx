@@ -421,6 +421,7 @@ function MatchupCard({
       game_recap_url: g.game_recap_url ?? null,
       nba_game_url: g.nba_game_url ?? null,
       youtube_recap_id: g.youtube_recap_id ?? null,
+      tipoff_utc: g.tipoff_utc ?? null,
       played: isFinal,
     });
   };
@@ -464,19 +465,6 @@ function MatchupCard({
 
       {/* Content — flex row: away badge | away name+stats | center @+time | home name+stats | home badge */}
       <div className="relative z-10 flex items-stretch gap-2 px-3 py-1.5 min-h-[64px]">
-        {isFinal && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); openFullGame(); }}
-            title="Open game recap"
-            aria-label="Open game recap"
-            className={`absolute top-1 right-1 z-20 inline-flex items-center justify-center h-5 w-5 rounded-md border border-white/10 bg-black/30 hover:bg-black/50 transition-colors ${
-              hasRecap ? "text-emerald-400" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Tv2 className="h-3 w-3" />
-          </button>
-        )}
         {/* Away cluster — name + stats, centered vertically */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 items-end pr-1">
           <div className="flex items-center gap-1.5 justify-end min-w-0 w-full">
@@ -509,6 +497,19 @@ function MatchupCard({
 
         {/* Center anchor — @ + tip-off time */}
         <div className="flex flex-col items-center justify-center leading-none gap-0.5 px-1 shrink-0">
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); openFullGame(); }}
+            title={isFinal ? (hasRecap ? "Open Game Recap" : "Open game details") : "Open game preview"}
+            aria-label="Open game details"
+            className={`inline-flex items-center justify-center h-4 w-4 rounded-md transition-colors ${
+              isFinal && hasRecap
+                ? "text-emerald-400 hover:text-emerald-300"
+                : "text-muted-foreground/70 hover:text-foreground"
+            }`}
+          >
+            <Tv2 className="h-3 w-3" />
+          </button>
           <span className="text-[11px] text-muted-foreground/80 font-bold">@</span>
           <span className="text-[10px] font-mono text-muted-foreground tabular-nums whitespace-nowrap">
             {fmtTime(g.tipoff_utc)}
