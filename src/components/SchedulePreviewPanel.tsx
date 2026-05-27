@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Tv2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
@@ -247,6 +247,15 @@ interface GameLite {
   home_team: string;
   away_team: string;
   tipoff_utc: string | null;
+  status?: string;
+  home_pts?: number;
+  away_pts?: number;
+  game_recap_url?: string | null;
+  nba_game_url?: string | null;
+  game_boxscore_url?: string | null;
+  game_charts_url?: string | null;
+  game_playbyplay_url?: string | null;
+  youtube_recap_id?: string | null;
 }
 
 interface MatchupCardProps {
@@ -388,11 +397,37 @@ function MatchupCard({
   const awayName = getTeamByTricode(g.away_team)?.name ?? g.away_team;
   const homeName = getTeamByTricode(g.home_team)?.name ?? g.home_team;
 
+  const statusUpper = (g.status ?? "").toUpperCase();
+  const isFinal = statusUpper.includes("FINAL");
+  const isLive = /^(Q[1-4]|END|HALF|OT|DELAY|LIVE|IN_PROGRESS)/.test(statusUpper);
+  const hasRecap = !!g.youtube_recap_id;
+  const borderClass = isFinal
+    ? "border-l-green-500"
+    : isLive
+    ? "border-l-red-500"
+    : "border-l-[hsl(var(--nba-yellow))]";
+
+  const openFullGame = () => {
+    onOpenGame({
+      game_id: g.game_id,
+      home_team: g.home_team,
+      away_team: g.away_team,
+      home_pts: g.home_pts ?? 0,
+      away_pts: g.away_pts ?? 0,
+      status: g.status ?? (isFinal ? "FINAL" : "SCHEDULED"),
+      game_boxscore_url: g.game_boxscore_url ?? null,
+      game_charts_url: g.game_charts_url ?? null,
+      game_playbyplay_url: g.game_playbyplay_url ?? null,
+      game_recap_url: g.game_recap_url ?? null,
+      nba_game_url: g.nba_game_url ?? null,
+      youtube_recap_id: g.youtube_recap_id ?? null,
+      played: isFinal,
+    });
+  };
+
   return (
     <div
-      className={`group relative overflow-visible rounded-lg ${rowBg} border-l-2 ${
-        involved ? "border-l-[hsl(var(--nba-yellow))]" : "border-l-transparent"
-      } shadow-sm hover:shadow-lg transition-shadow duration-300`}
+      className={`group relative overflow-visible rounded-lg ${rowBg} border-l-2 ${borderClass} shadow-sm hover:shadow-lg transition-shadow duration-300`}
     >
       {/* Clipped layer — venue art + gradient stay inside the rounded card */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-lg">
