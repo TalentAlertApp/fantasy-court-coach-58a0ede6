@@ -37,6 +37,14 @@ import { useLeague } from "@/contexts/LeagueContext";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
 import type { HealthFilter } from "@/components/FiltersPanel";
 import { HealthStatusIcon } from "@/components/health";
+import PlayerContextBadges, {
+  computePlayerBadges,
+  quantile,
+  type BadgePoolStats,
+  type PlayerBadge,
+} from "@/components/transactions/PlayerContextBadges";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
