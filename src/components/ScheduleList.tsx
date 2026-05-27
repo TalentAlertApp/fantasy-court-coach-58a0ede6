@@ -1293,9 +1293,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           </div>
         )}
 
-                <div className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-3 w-full">
+                <div className="relative z-10 flex min-h-[64px] items-center w-full">
                 {/* Left: player blurb */}
-                <div className="relative z-10 min-w-0 px-1 flex items-center justify-start">
+                <div className="relative z-20 min-w-0 w-[28%] max-w-[360px] px-1 flex items-center justify-start">
                   {isFinal && (() => {
                     const box = boxscoreById[g.game_id] ?? [];
                     const a = pickGameLeader(box, g.away_team);
@@ -1326,16 +1326,16 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                 </div>
 
                 {/* Center: Teams + status (absolute center of the card) */}
-                <div className="relative z-10 flex items-center gap-3 shrink-0 justify-self-center">
-                  <div className="flex items-center gap-2 justify-end text-right">
-                    <p className="font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
+                <div className="absolute inset-y-0 left-1/2 z-10 grid w-[min(760px,calc(100%-2rem))] -translate-x-1/2 grid-cols-[minmax(0,1fr)_80px_minmax(0,1fr)] items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-2 justify-end text-right overflow-hidden">
+                    <p className="min-w-0 truncate font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
                     {(isFinal || isLive) && (
-                      <span className={`text-2xl font-mono leading-none tabular-nums ${
+                      <span className={`shrink-0 text-2xl font-mono leading-none tabular-nums ${
                         isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
                       }`}>{g.away_pts}</span>
                     )}
                     {getTeamLogo(g.away_team) && (
-                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-12 h-12 transition-transform hover:scale-110" />
+                      <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-12 h-12 shrink-0 transition-transform hover:scale-110" />
                     )}
                   </div>
 
@@ -1363,21 +1363,21 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2 justify-start text-left">
+                  <div className="flex min-w-0 items-center gap-2 justify-start text-left overflow-hidden">
                     {getTeamLogo(g.home_team) && (
-                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 transition-transform hover:scale-110" />
+                      <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 shrink-0 transition-transform hover:scale-110" />
                     )}
                     {(isFinal || isLive) && (
-                      <span className={`text-2xl font-mono leading-none tabular-nums ${
+                      <span className={`shrink-0 text-2xl font-mono leading-none tabular-nums ${
                         isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
                       }`}>{g.home_pts}</span>
                     )}
-                    <p className="font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
+                    <p className="min-w-0 truncate font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
                   </div>
                 </div>
 
                 {/* Right: action icons */}
-                <div className="relative z-10 flex items-center gap-1.5 justify-self-end">
+                <div className="relative z-20 ml-auto flex items-center gap-1.5">
                   {venue?.name && (
                     <span
                       className="hidden sm:inline-block text-[10px] italic text-muted-foreground/80 truncate max-w-[140px] mr-1"
