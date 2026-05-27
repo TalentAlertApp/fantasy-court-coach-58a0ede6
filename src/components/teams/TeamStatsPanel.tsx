@@ -515,12 +515,35 @@ function StatsTable({
     return sortDir === "desc" ? <ArrowDown className="h-3 w-3 inline ml-1" /> : <ArrowUp className="h-3 w-3 inline ml-1" />;
   };
 
+  // Precompute green/red rank colors per graded column based on visible rows.
+  const gradeColors: Record<string, Record<string, string>> = {};
+  for (const c of cols) {
+    if (!c.grade) continue;
+    const entries = rows
+      .map((t) => ({ tri: t.tricode, v: c.grade!.value(t) }))
+      .filter((x) => Number.isFinite(x.v) && x.v > 0);
+    if (entries.length < 2) continue;
+    entries.sort((a, b) => (c.grade!.invert ? a.v - b.v : b.v - a.v));
+    const map: Record<string, string> = {};
+    entries.forEach((e, i) => {
+      const n = entries.length;
+      let cls = "";
+      if (i === 0) cls = "text-emerald-400 font-semibold";
+      else if (i < 3) cls = "text-emerald-500/80";
+      else if (i === n - 1) cls = "text-rose-400 font-semibold";
+      else if (i >= n - 3) cls = "text-rose-500/80";
+      if (cls) map[e.tri] = cls;
+    });
+    gradeColors[c.key] = map;
+  }
+
   return (
-    <div className="relative rounded-xl border border-border/60 bg-card/60 overflow-hidden">
+    <TooltipProvider delayDuration={150}>
+    <div className="relative rounded-xl border border-border/60 bg-card/60 overflow-hidden flex flex-col min-h-0">
       <img src={leagueLogo} alt="" aria-hidden className="pointer-events-none absolute inset-0 m-auto h-[55%] max-h-[360px] w-auto opacity-[0.04] dark:opacity-[0.05] select-none z-0" />
-      <div className="relative z-[1] overflow-x-auto">
+      <div className="relative z-[1] overflow-auto max-h-[62vh]">
         <table className="w-full text-xs">
-          <thead className="border-b border-border/60 bg-muted/30">
+          <thead className="border-b border-border/60 bg-muted/80 backdrop-blur sticky top-0 z-[2]">
             <tr>
               <th className="px-2 py-2 text-left font-heading uppercase tracking-wider text-[10px] text-muted-foreground w-10">#</th>
               {cols.map((c) => (
@@ -532,7 +555,20 @@ function StatsTable({
                   )}
                   onClick={() => onSort(c.key)}
                 >
-                  {c.label}<SortIcon k={c.key} />
+                  {c.tip ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center">
+                          {c.label}<SortIcon k={c.key} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-[11px] leading-snug">
+                        {c.tip}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <>{c.label}<SortIcon k={c.key} /></>
+                  )}
                 </th>
               ))}
             </tr>
@@ -551,6 +587,7 @@ function StatsTable({
                     className={cn(
                       "px-2 py-1.5 whitespace-nowrap",
                       c.align === "right" ? "text-right font-mono" : c.align === "center" ? "text-center" : "text-left",
+                      gradeColors[c.key]?.[t.tricode],
                     )}
                   >
                     {c.render(t, { sch: scheduleSlot(t), rank: i + 1 })}
@@ -562,6 +599,7 @@ function StatsTable({
         </table>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
