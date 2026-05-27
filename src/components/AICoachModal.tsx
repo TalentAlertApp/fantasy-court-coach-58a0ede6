@@ -381,12 +381,14 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-5">
           {isRosterEmpty && (
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <StylePreferencesPanel
-                players={allPlayers as any}
-                busy={draftingFromEmpty}
-                onDraft={handlePersonalisedDraft}
-              />
+            <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center py-6">
+              <div className="w-full max-w-[1400px]">
+                <StylePreferencesPanel
+                  players={allPlayers as any}
+                  busy={draftingFromEmpty}
+                  onDraft={handlePersonalisedDraft}
+                />
+              </div>
             </div>
           )}
           {!isRosterEmpty && (
