@@ -8,9 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import type { LeagueTeam } from "@/hooks/useLeagueTeams";
+import NationalityFlag from "@/components/NationalityFlag";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Player = {
-  core: { id: number; name: string; team: string; fc_bc: string; salary: number; photo: string | null };
+  core: { id: number; name: string; team: string; fc_bc: string; salary: number; photo: string | null; nationality?: string | null };
   season: { gp: number; fp: number; mpg: number };
   last5: { fp5: number; mpg5: number };
   computed: { value: number; value5: number };
@@ -371,6 +373,9 @@ type ColDef = {
   key: string;
   label: string;
   align?: "left" | "right" | "center";
+  tip?: React.ReactNode;
+  /** When set, cell text gets a green/red shade based on rank within visible rows. */
+  grade?: { value: (t: TeamAgg) => number; invert?: boolean };
   render: (t: TeamAgg, ctx: { sch: ReturnType<typeof scheduleSlot>; rank: number }) => React.ReactNode;
 };
 function scheduleSlot(_t: TeamAgg) { return {} as any; }
@@ -404,6 +409,22 @@ function StatsTable({
     </div>
   );
 
+  const playerCell = (p: Player | null) => {
+    if (!p) return <span>—</span>;
+    const nat = (p.core as any).nationality as string | null | undefined;
+    return (
+      <div className="flex items-center gap-1.5 min-w-0">
+        {p.core.photo ? (
+          <img src={p.core.photo} alt="" className="h-5 w-5 rounded-full object-cover bg-muted ring-1 ring-border shrink-0" />
+        ) : (
+          <div className="h-5 w-5 rounded-full bg-muted ring-1 ring-border shrink-0" />
+        )}
+        <span className="text-[11px] truncate max-w-[140px]">{p.core.name}</span>
+        {nat ? <NationalityFlag country={nat} size="xs" /> : null}
+      </div>
+    );
+  };
+
   const fmtDate = (iso: string | null) => {
     if (!iso) return "—";
     try {
@@ -415,47 +436,43 @@ function StatsTable({
   const cols: ColDef[] = (() => {
     if (category === "fantasy") return [
       { key: "team", label: "Team", align: "left", render: (t) => teamCell(t) },
-      { key: "gp", label: "GP", align: "right", render: (t) => t.gp || "—" },
-      { key: "record", label: "Record", align: "right", render: (t) => `${t.wins}-${t.losses}` },
-      { key: "fpg", label: "Team FP/G", align: "right", render: (t) => fmt(t.fpg, 1) },
-      { key: "fpg5", label: "Last 5 FP/G", align: "right", render: (t) => t.fpg5 > 0 ? fmt(t.fpg5, 1) : "—" },
-      { key: "deltaFp", label: "Δ FP", align: "right", render: (t) => {
+      { key: "gp", label: "GP", align: "right", tip: "Games played", render: (t) => t.gp || "—" },
+      { key: "record", label: "Record", align: "right", tip: "Wins–Losses", render: (t) => `${t.wins}-${t.losses}` },
+      { key: "fpg", label: "Team FP/G", align: "right", tip: "Season fantasy points per game scored by the whole team", render: (t) => fmt(t.fpg, 1) },
+      { key: "fpg5", label: "Last 5 FP/G", align: "right", tip: "Team FP/G using each player's last 5 played games", render: (t) => t.fpg5 > 0 ? fmt(t.fpg5, 1) : "—" },
+      { key: "deltaFp", label: "Δ FP", align: "right", tip: "Last 5 FP/G minus season FP/G — positive means trending up", render: (t) => {
         const d = t.fpg5 - t.fpg;
         if (!t.fpg5) return "—";
         return <span className={cn("font-mono", d >= 0 ? "text-emerald-500" : "text-rose-500")}>{d >= 0 ? "+" : ""}{fmt(d, 1)}</span>;
       } },
-      { key: "topFp", label: "Top FP Player", align: "left", render: (t) => t.topPlayer ? (
-        <span className="text-[11px] truncate inline-block max-w-[140px]">{t.topPlayer.core.name}</span>
-      ) : "—" },
-      { key: "topFpVal", label: "Top FP/G", align: "right", render: (t) => t.topPlayer ? fmt(t.topPlayer.season.fp, 1) : "—" },
-      { key: "fcFpg", label: "FC FP/G", align: "right", render: (t) => fmt(t.fcFpg, 1) },
-      { key: "bcFpg", label: "BC FP/G", align: "right", render: (t) => fmt(t.bcFpg, 1) },
+      { key: "topFp", label: "Top FP Player", align: "left", tip: "Highest season FP/G producer on the team", render: (t) => playerCell(t.topPlayer) },
+      { key: "topFpVal", label: "Top FP/G", align: "right", tip: "Season FP/G of the team's top fantasy producer", render: (t) => t.topPlayer ? fmt(t.topPlayer.season.fp, 1) : "—" },
+      { key: "fcFpg", label: "FC FP/G", align: "right", tip: "Total FP/G contributed by Front Court players", render: (t) => fmt(t.fcFpg, 1) },
+      { key: "bcFpg", label: "BC FP/G", align: "right", tip: "Total FP/G contributed by Back Court players", render: (t) => fmt(t.bcFpg, 1) },
     ];
     if (category === "efficiency") return [
       { key: "team", label: "Team", align: "left", render: (t) => teamCell(t) },
-      { key: "fpg", label: "Team FP/G", align: "right", render: (t) => fmt(t.fpg, 1) },
-      { key: "fpPerSalary", label: "FP / $M", align: "right", render: (t) => t.salaryTotal > 0 ? fmt(t.fpg / t.salaryTotal, 2) : "—" },
-      { key: "avgValue", label: "Avg Value", align: "right", render: (t) => t.avgValue > 0 ? fmt(t.avgValue, 2) : "—" },
-      { key: "bestVal", label: "Best Value Player", align: "left", render: (t) => t.bestValuePlayer ? (
-        <span className="text-[11px] truncate inline-block max-w-[140px]">{t.bestValuePlayer.core.name}</span>
-      ) : "—" },
-      { key: "bestValScore", label: "Score", align: "right", render: (t) => {
+      { key: "fpg", label: "Team FP/G", align: "right", tip: "Season FP per game", grade: { value: (t) => t.fpg }, render: (t) => fmt(t.fpg, 1) },
+      { key: "fpPerSalary", label: "FP / $M", align: "right", tip: "Fantasy points produced per $1M of team salary", grade: { value: (t) => (t.salaryTotal > 0 ? t.fpg / t.salaryTotal : 0) }, render: (t) => t.salaryTotal > 0 ? fmt(t.fpg / t.salaryTotal, 2) : "—" },
+      { key: "avgValue", label: "Avg Value", align: "right", tip: "Average per-player value index across the roster", grade: { value: (t) => t.avgValue }, render: (t) => t.avgValue > 0 ? fmt(t.avgValue, 2) : "—" },
+      { key: "bestVal", label: "Best Value Player", align: "left", tip: "Highest individual value index on the team", render: (t) => playerCell(t.bestValuePlayer) },
+      { key: "bestValScore", label: "Score", align: "right", tip: "Value score of the best-value player", grade: { value: (t) => t.bestValuePlayer ? (t.bestValuePlayer.computed.value5 || t.bestValuePlayer.computed.value) : 0 }, render: (t) => {
         const p = t.bestValuePlayer; if (!p) return "—";
         const v = p.computed.value5 || p.computed.value;
         return v > 0 ? fmt(v, 2) : "—";
       } },
-      { key: "salaryTotal", label: "Salary Total", align: "right", render: (t) => t.salaryTotal > 0 ? `$${fmt(t.salaryTotal, 1)}M` : "—" },
+      { key: "salaryTotal", label: "Salary Total", align: "right", tip: "Combined player salaries in $M — lower is a cheaper roster", grade: { value: (t) => t.salaryTotal, invert: true }, render: (t) => t.salaryTotal > 0 ? `$${fmt(t.salaryTotal, 1)}M` : "—" },
     ];
     if (category === "depth") return [
       { key: "team", label: "Team", align: "left", render: (t) => teamCell(t) },
-      { key: "players", label: "Players", align: "right", render: (t) => t.players.length },
-      { key: "active", label: "Active", align: "right", render: (t) => t.activePlayers },
-      { key: "fcCount", label: "FC", align: "right", render: (t) => t.fcCount },
-      { key: "bcCount", label: "BC", align: "right", render: (t) => t.bcCount },
-      { key: "top3Share", label: "Top 3 Share", align: "right", render: (t) => t.fpg > 0 ? `${fmt(t.top3Share * 100, 0)}%` : "—" },
-      { key: "depthShare", label: "Depth Share", align: "right", render: (t) => t.fpg > 0 ? `${fmt((1 - t.top3Share) * 100, 0)}%` : "—" },
-      { key: "depthIndex", label: "Depth Index", align: "right", render: (t) => t.fpg > 0 ? fmt(t.depthIndex * 100, 0) : "—" },
-      { key: "starDep", label: "Star Dep.", align: "center", render: (t) => {
+      { key: "players", label: "Players", align: "right", tip: "Total rostered players", render: (t) => t.players.length },
+      { key: "active", label: "Active", align: "right", tip: "Players with playing time / FP this season", render: (t) => t.activePlayers },
+      { key: "fcCount", label: "FC", align: "right", tip: "Number of Front Court players on the roster", render: (t) => t.fcCount },
+      { key: "bcCount", label: "BC", align: "right", tip: "Number of Back Court players on the roster", render: (t) => t.bcCount },
+      { key: "top3Share", label: "Top 3 Share", align: "right", tip: "Share of team FP scored by the top 3 producers — lower means more balanced", grade: { value: (t) => (t.fpg > 0 ? t.top3Share : 0), invert: true }, render: (t) => t.fpg > 0 ? `${fmt(t.top3Share * 100, 0)}%` : "—" },
+      { key: "depthShare", label: "Depth Share", align: "right", tip: "Share of team FP coming from players outside the top 3", grade: { value: (t) => (t.fpg > 0 ? 1 - t.top3Share : 0) }, render: (t) => t.fpg > 0 ? `${fmt((1 - t.top3Share) * 100, 0)}%` : "—" },
+      { key: "depthIndex", label: "Depth Index", align: "right", tip: "0–100 balance score — higher means a deeper rotation", grade: { value: (t) => (t.fpg > 0 ? t.depthIndex : 0) }, render: (t) => t.fpg > 0 ? fmt(t.depthIndex * 100, 0) : "—" },
+      { key: "starDep", label: "Star Dep.", align: "center", tip: "Star dependency — High: top 3 carry > 65% of FP · Medium: 50–65% · Low: < 50%", render: (t) => {
         if (t.fpg <= 0) return "—";
         const s = t.top3Share;
         const label = s > 0.65 ? "High" : s >= 0.5 ? "Medium" : "Low";
@@ -466,13 +483,21 @@ function StatsTable({
     // schedule
     return [
       { key: "team", label: "Team", align: "left", render: (t) => teamCell(t) },
-      { key: "upcoming", label: "Upcoming", align: "right", render: (t) => scheduleStats[t.tricode]?.upcoming ?? 0 },
-      { key: "thisGw", label: "This GW", align: "right", render: (t) => scheduleStats[t.tricode]?.thisGw ?? 0 },
-      { key: "next7", label: "Next 7d", align: "right", render: (t) => scheduleStats[t.tricode]?.next7 ?? 0 },
+      { key: "upcoming", label: "Upcoming", align: "right", tip: "Total remaining games this season", render: (t) => scheduleStats[t.tricode]?.upcoming ?? 0 },
+      { key: "thisGw", label: "This GW", align: "right", tip: "Games tipping off in the current gameweek", grade: { value: (t) => scheduleStats[t.tricode]?.thisGw ?? 0 }, render: (t) => scheduleStats[t.tricode]?.thisGw ?? 0 },
+      { key: "next7", label: "Next 7d", align: "right", tip: "Games tipping off in the next 7 days", grade: { value: (t) => scheduleStats[t.tricode]?.next7 ?? 0 }, render: (t) => scheduleStats[t.tricode]?.next7 ?? 0 },
       { key: "nextOpp", label: "Next Opp", align: "left", render: (t) => scheduleStats[t.tricode]?.nextOpp ?? "—" },
-      { key: "nextTip", label: "Tipoff", align: "left", render: (t) => fmtDate(scheduleStats[t.tricode]?.nextTipoff ?? null) },
-      { key: "scheduleScore", label: "Score", align: "right", render: (t) => scheduleStats[t.tricode]?.nextScore ?? 0 },
-      { key: "scheduleLabel", label: "Outlook", align: "center", render: (t) => {
+      { key: "nextTip", label: "Tipoff", align: "left", tip: "Date and time of the team's next scheduled game", render: (t) => fmtDate(scheduleStats[t.tricode]?.nextTipoff ?? null) },
+      { key: "scheduleScore", label: "Score", align: "right", tip: "Volume score: (Next 7d × 2) + This GW — higher means more upcoming opportunities", grade: { value: (t) => scheduleStats[t.tricode]?.nextScore ?? 0 }, render: (t) => scheduleStats[t.tricode]?.nextScore ?? 0 },
+      { key: "scheduleLabel", label: "Outlook", align: "center", tip: (
+        <div className="space-y-0.5">
+          <div>Schedule outlook based on games in the next 7 days:</div>
+          <div><b>Strong</b> — 4 or more games</div>
+          <div><b>Good</b> — 3 games</div>
+          <div><b>Neutral</b> — 2 games</div>
+          <div><b>Light</b> — 1 or fewer games</div>
+        </div>
+      ), render: (t) => {
         const s = scheduleStats[t.tricode];
         if (!s || s.upcoming === 0) return "—";
         const color =
@@ -490,12 +515,35 @@ function StatsTable({
     return sortDir === "desc" ? <ArrowDown className="h-3 w-3 inline ml-1" /> : <ArrowUp className="h-3 w-3 inline ml-1" />;
   };
 
+  // Precompute green/red rank colors per graded column based on visible rows.
+  const gradeColors: Record<string, Record<string, string>> = {};
+  for (const c of cols) {
+    if (!c.grade) continue;
+    const entries = rows
+      .map((t) => ({ tri: t.tricode, v: c.grade!.value(t) }))
+      .filter((x) => Number.isFinite(x.v) && x.v > 0);
+    if (entries.length < 2) continue;
+    entries.sort((a, b) => (c.grade!.invert ? a.v - b.v : b.v - a.v));
+    const map: Record<string, string> = {};
+    entries.forEach((e, i) => {
+      const n = entries.length;
+      let cls = "";
+      if (i === 0) cls = "text-emerald-400 font-semibold";
+      else if (i < 3) cls = "text-emerald-500/80";
+      else if (i === n - 1) cls = "text-rose-400 font-semibold";
+      else if (i >= n - 3) cls = "text-rose-500/80";
+      if (cls) map[e.tri] = cls;
+    });
+    gradeColors[c.key] = map;
+  }
+
   return (
-    <div className="relative rounded-xl border border-border/60 bg-card/60 overflow-hidden">
+    <TooltipProvider delayDuration={150}>
+    <div className="relative rounded-xl border border-border/60 bg-card/60 overflow-hidden flex flex-col min-h-0">
       <img src={leagueLogo} alt="" aria-hidden className="pointer-events-none absolute inset-0 m-auto h-[55%] max-h-[360px] w-auto opacity-[0.04] dark:opacity-[0.05] select-none z-0" />
-      <div className="relative z-[1] overflow-x-auto">
+      <div className="relative z-[1] overflow-auto max-h-[62vh]">
         <table className="w-full text-xs">
-          <thead className="border-b border-border/60 bg-muted/30">
+          <thead className="border-b border-border/60 bg-muted/80 backdrop-blur sticky top-0 z-[2]">
             <tr>
               <th className="px-2 py-2 text-left font-heading uppercase tracking-wider text-[10px] text-muted-foreground w-10">#</th>
               {cols.map((c) => (
@@ -507,7 +555,20 @@ function StatsTable({
                   )}
                   onClick={() => onSort(c.key)}
                 >
-                  {c.label}<SortIcon k={c.key} />
+                  {c.tip ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center">
+                          {c.label}<SortIcon k={c.key} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-[11px] leading-snug">
+                        {c.tip}
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <>{c.label}<SortIcon k={c.key} /></>
+                  )}
                 </th>
               ))}
             </tr>
@@ -526,6 +587,7 @@ function StatsTable({
                     className={cn(
                       "px-2 py-1.5 whitespace-nowrap",
                       c.align === "right" ? "text-right font-mono" : c.align === "center" ? "text-center" : "text-left",
+                      gradeColors[c.key]?.[t.tricode],
                     )}
                   >
                     {c.render(t, { sch: scheduleSlot(t), rank: i + 1 })}
@@ -537,6 +599,7 @@ function StatsTable({
         </table>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
