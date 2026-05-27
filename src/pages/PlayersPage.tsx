@@ -664,8 +664,14 @@ export default function PlayersPage() {
 
   const rosterPaneNode = (
     <RosterPane
-      starters={rosterStarters}
-      bench={rosterBench}
+      starters={rosterStarters.map((p) => ({
+        ...p,
+        badges: badgesForPlayer(playerById.get(p.player_id), { isOwned: false }),
+      }))}
+      bench={rosterBench.map((p) => ({
+        ...p,
+        badges: badgesForPlayer(playerById.get(p.player_id), { isOwned: false }),
+      }))}
       outZone={outZone}
       isLoading={rosterIdList.length > 0 && rosterStarters.length + rosterBench.length === 0}
       onToggleOut={onRosterToggleOut}
