@@ -12,7 +12,7 @@ import {
   Crown,
   Puzzle,
   CheckCircle2,
-  Star,
+  Heart,
   type LucideIcon,
 } from "lucide-react";
 import type { BadgeTone } from "./PlayerContextBadges";
@@ -39,7 +39,7 @@ export const BADGE_LEGEND: BadgeLegendEntry[] = [
   { key: "cap",       icon: Crown,         tone: "gold",   label: "Captain edge" },
   { key: "fit",       icon: Puzzle,        tone: "blue",   label: "Roster fit" },
   { key: "owned",     icon: CheckCircle2,  tone: "blue",   label: "Owned" },
-  { key: "watch",     icon: Star,          tone: "violet", label: "Watchlist" },
+  { key: "watch",     icon: Heart,         tone: "violet", label: "Wishlist" },
 ];
 
 export const BADGE_TONE_TEXT: Record<BadgeTone, string> = {
