@@ -313,8 +313,10 @@ function GameCardBlurb({
     >
       <PhotoBtn photo={awayPhoto} id={awayPlayerId} side="left" />
       <Icon className={`h-3 w-3 shrink-0 ${labelColor}`} aria-hidden />
-      <span className="text-[10px] md:text-[10.5px] font-medium italic text-foreground/90 text-center leading-snug">
-        {text}
+      <span className="text-[10px] md:text-[10.5px] font-medium italic text-foreground/90 text-center leading-snug whitespace-pre-line">
+        {text
+          .replace(/;\s*/g, "\n")
+          .replace(/\.\s*$/, "")}
       </span>
       <PhotoBtn photo={homePhoto} id={homePlayerId} side="right" />
     </div>
