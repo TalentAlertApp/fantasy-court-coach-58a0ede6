@@ -210,21 +210,32 @@ export default function TeamStatsPanel({ leagueTeams, players, leagueId, leagueL
       case "fpg5": return t.fpg5;
       case "deltaFp": return t.fpg5 - t.fpg;
       case "topFp": return t.topPlayer?.season.fp ?? 0;
+      case "topFpVal": return t.topPlayer?.season.fp ?? 0;
       case "fcFpg": return t.fcFpg;
       case "bcFpg": return t.bcFpg;
       case "fpPerSalary": return fpPerSalary(t);
       case "avgValue": return t.avgValue;
+      case "bestVal": return t.bestValuePlayer?.core.name ?? "";
+      case "bestValScore": return t.bestValuePlayer ? (t.bestValuePlayer.computed.value5 || t.bestValuePlayer.computed.value) : 0;
       case "salaryTotal": return t.salaryTotal;
       case "players": return t.players.length;
       case "active": return t.activePlayers;
       case "fcCount": return t.fcCount;
       case "bcCount": return t.bcCount;
       case "top3Share": return t.top3Share;
+      case "depthShare": return t.fpg > 0 ? 1 - t.top3Share : 0;
       case "depthIndex": return t.depthIndex;
+      case "starDep": return t.fpg > 0 ? t.top3Share : 0;
       case "upcoming": return sch?.upcoming ?? 0;
       case "thisGw": return sch?.thisGw ?? 0;
       case "next7": return sch?.next7 ?? 0;
+      case "nextOpp": return sch?.nextOpp ?? "";
+      case "nextTip": return sch?.nextTipoff ? new Date(sch.nextTipoff).getTime() : 0;
       case "scheduleScore": return sch?.nextScore ?? 0;
+      case "scheduleLabel": {
+        const order: Record<string, number> = { Strong: 4, Good: 3, Neutral: 2, Light: 1 };
+        return order[sch?.label ?? "Light"] ?? 0;
+      }
       default: return 0;
     }
   };
@@ -541,7 +552,7 @@ function StatsTable({
     <TooltipProvider delayDuration={150}>
     <div className="relative rounded-xl border border-border/60 bg-card/60 overflow-hidden flex flex-col min-h-0">
       <img src={leagueLogo} alt="" aria-hidden className="pointer-events-none absolute inset-0 m-auto h-[55%] max-h-[360px] w-auto opacity-[0.04] dark:opacity-[0.05] select-none z-0" />
-      <div className="relative z-[1] overflow-auto max-h-[62vh]">
+      <div className="relative z-[1] overflow-auto flex-1 min-h-0 max-h-[calc(100vh-260px)]">
         <table className="w-full text-xs">
           <thead className="border-b border-border/60 bg-muted/80 backdrop-blur sticky top-0 z-[2]">
             <tr>
