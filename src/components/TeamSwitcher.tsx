@@ -111,15 +111,13 @@ export default function TeamSwitcher() {
 
   if (isLoading || (teamsFetching > 0 && teams.length === 0)) {
     return (
-      <div className="flex items-center gap-1.5">
-        <div className="w-[150px] h-7 rounded-lg bg-white/10 border border-white/20 animate-pulse" />
-      </div>
+      <div className="w-full h-8 rounded-lg bg-white/10 border border-white/20 animate-pulse" />
     );
   }
 
   return (
     <>
-      <div className="flex items-center gap-1.5">
+      <div className="w-full">
         <Select value={selectedTeamId ?? ""} onValueChange={(v) => {
           if (v === "__new__") {
             markTeamPickedThisSession();
@@ -127,47 +125,55 @@ export default function TeamSwitcher() {
             navigate("/welcome", { state: { forceNewTeam: true } });
           } else setSelectedTeamId(v);
         }}>
-          <SelectTrigger className="w-[150px] h-7 bg-white/10 border-white/20 text-white text-xs font-heading uppercase rounded-lg">
+          <SelectTrigger className="w-full h-8 bg-white/10 border-white/20 text-white text-[11px] font-heading uppercase tracking-[0.15em] rounded-lg">
             <SelectValue placeholder="Select team" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="min-w-[--radix-select-trigger-width]">
             {teams.map((t: any) => (
-              <SelectItem key={t.id} value={t.id}>
-                <span className="flex items-center gap-1.5 min-w-0">
-                  <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
-                  <span className="truncate">{t.name}</span>
-                </span>
-              </SelectItem>
+              <div
+                key={t.id}
+                className="group relative flex items-center pr-14"
+              >
+                <SelectItem value={t.id} className="flex-1 font-heading uppercase tracking-[0.15em] text-[11px]">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <LeagueLogoBadge league={t.league_code ?? "nba"} size="xs" />
+                    <span className="truncate">{t.name}</span>
+                  </span>
+                </SelectItem>
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-60 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onClick={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      setRenameId(t.id); setRenameName(t.name); setRenameError(null); setRenameOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                    aria-label={`Rename ${t.name}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    disabled={teams.length <= 1}
+                    onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onClick={(e) => {
+                      e.preventDefault(); e.stopPropagation();
+                      setDeleteId(t.id); setDeleteOpen(true);
+                    }}
+                    className="inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-accent/40 disabled:opacity-30 disabled:pointer-events-none"
+                    aria-label={`Delete ${t.name}`}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
             ))}
-            <SelectItem value="__new__">
+            <SelectItem value="__new__" className="font-heading uppercase tracking-[0.15em] text-[11px]">
               <span className="flex items-center gap-1"><Plus className="h-3 w-3" /> New Team</span>
             </SelectItem>
           </SelectContent>
         </Select>
-        {selectedTeamId && (
-          <div className="flex items-center gap-0.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-white/60 hover:text-white hover:bg-white/10"
-              onClick={() => {
-                const team = teams.find((t) => t.id === selectedTeamId);
-                if (team) { setRenameId(team.id); setRenameName(team.name); setRenameError(null); setRenameOpen(true); }
-              }}
-            >
-              <Pencil className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 text-white/60 hover:text-destructive hover:bg-white/10"
-              onClick={() => { setDeleteId(selectedTeamId); setDeleteOpen(true); }}
-              disabled={teams.length <= 1}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
       </div>
 
       <Dialog open={renameOpen} onOpenChange={(o) => { setRenameOpen(o); if (!o) setRenameError(null); }}>
