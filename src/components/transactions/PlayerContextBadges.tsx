@@ -1,15 +1,18 @@
 import {
+  HeartPulse,
   Activity,
+  ShieldAlert,
+  Sparkles,
   Flame,
   Snowflake,
-  DollarSign,
-  AlertTriangle,
-  CalendarPlus,
-  CalendarOff,
-  Clock,
+  CalendarCheck2,
+  CalendarX2,
+  CalendarClock,
+  TrendingUp,
+  TrendingDown,
   Crown,
   Puzzle,
-  Check,
+  BadgeCheck,
   Star,
   type LucideIcon,
 } from "lucide-react";
@@ -25,12 +28,19 @@ import {
 
 export type BadgeTone =
   | "red"
+  | "rose"
+  | "orange"
   | "amber"
+  | "yellow"
+  | "lime"
   | "green"
-  | "blue"
+  | "teal"
+  | "cyan"
+  | "sky"
+  | "indigo"
   | "gold"
-  | "purple"
-  | "neutral";
+  | "violet"
+  | "slate";
 
 export interface PlayerBadge {
   key: string;
