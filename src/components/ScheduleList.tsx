@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, Fragment } from "react";
 import { z } from "zod";
 import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
-import { getTeamLogo } from "@/lib/nba-teams";
+import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -61,7 +61,8 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
   const [nbaExpanded, setNbaExpanded] = useState(false);
   const [nbaBlocked, setNbaBlocked] = useState(false);
   const { league } = useLeague();
-  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
+  const recapHost =
+    league === "wnba" ? "WNBA.com" : league === "euroleague" ? "EuroLeague.net" : "NBA.com";
   // WNBA.com sends X-Frame-Options: SAMEORIGIN on its game pages, so an
   // inline <iframe> always renders blank. Force outbound for WNBA when there
   // is no YouTube embed available.
@@ -178,7 +179,7 @@ function getStatusBorder(status: string): string {
   const s = status.toUpperCase();
   if (s.includes("FINAL")) return "border-l-green-500";
   if (isLiveStatusString(s)) return "border-l-red-500";
-  return "border-l-transparent";
+  return "border-l-[hsl(var(--nba-yellow))]";
 }
 
 function isGameFinal(status: string) {
