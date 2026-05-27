@@ -37,6 +37,14 @@ import { useLeague } from "@/contexts/LeagueContext";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
 import type { HealthFilter } from "@/components/FiltersPanel";
 import { HealthStatusIcon } from "@/components/health";
+import PlayerContextBadges, {
+  computePlayerBadges,
+  quantile,
+  type BadgePoolStats,
+  type PlayerBadge,
+} from "@/components/transactions/PlayerContextBadges";
+import { useWishlist } from "@/hooks/useWishlist";
+import { useUpcomingByTeam } from "@/hooks/useUpcomingByTeam";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -334,6 +342,94 @@ export default function PlayersPage() {
 
   const availableBudget = validation.availableForNextIn;
 
+  // ---- Contextual badges shared state ----
+  const { wishlistIds } = useWishlist();
+  const wishlistSet = useMemo(() => new Set<number>(wishlistIds), [wishlistIds]);
+  const { data: upcomingByTeam } = useUpcomingByTeam();
+
+  // Per-team upcoming counts (this GW + next 7d) for SCHED+ / NO GAME / LIGHT.
+  const upcomingCtxByTeam = useMemo(() => {
+    const out = new Map<string, { thisGw: number; next7: number }>();
+    if (!upcomingByTeam) return out;
+    const now = Date.now();
+    const week = now + 7 * 86400_000;
+    for (const [tri, games] of Object.entries(upcomingByTeam)) {
+      let thisGw = 0;
+      let next7 = 0;
+      for (const g of games as any[]) {
+        const ts = g.tipoffUtc ? new Date(g.tipoffUtc).getTime() : NaN;
+        if (!Number.isFinite(ts)) continue;
+        if (g.gw === gw && ts >= now - 6 * 3600_000) thisGw++;
+        if (ts >= now - 3 * 3600_000 && ts <= week) next7++;
+      }
+      out.set(tri.toUpperCase(), { thisGw, next7 });
+    }
+    return out;
+  }, [upcomingByTeam, gw]);
+
+  // Pool stats (computed once over the available pool).
+  const poolStats: BadgePoolStats = useMemo(() => {
+    const pool = allPlayersFull.length > 0 ? allPlayersFull : allPlayers;
+    const v5: number[] = [];
+    const sal: number[] = [];
+    const fp5: number[] = [];
+    for (const p of pool) {
+      const v = (p as any).computed?.value5 ?? (p as any).computed?.value ?? 0;
+      if (v > 0) v5.push(v);
+      if (p.core.salary > 0) sal.push(p.core.salary);
+      const f = (p as any).last5?.fp5 ?? 0;
+      if (f > 0) fp5.push(f);
+    }
+    return {
+      value5Q75: quantile(v5, 0.75),
+      salaryMedian: quantile(sal, 0.5),
+      fp5P90: quantile(fp5, 0.9),
+    };
+  }, [allPlayers, allPlayersFull]);
+
+  // Roster FC/BC needs (after staged OUTs / INs).
+  const rosterNeeds = useMemo(() => {
+    let fc = 0;
+    let bc = 0;
+    for (const p of rosterPlayers) {
+      if (outZone.includes(p.player_id)) continue;
+      if (p.fc_bc === "FC") fc++;
+      else if (p.fc_bc === "BC") bc++;
+    }
+    for (const p of inChips) {
+      if (p.fc_bc === "FC") fc++;
+      else if (p.fc_bc === "BC") bc++;
+    }
+    return { needsFc: fc < 5, needsBc: bc < 5 };
+  }, [rosterPlayers, outZone, inChips]);
+
+  const badgesForPlayer = (p: PlayerListItem | undefined, opts?: { isOwned?: boolean }): PlayerBadge[] => {
+    if (!p) return [];
+    const upcoming = upcomingCtxByTeam.get((p.core.team ?? "").toUpperCase()) ?? null;
+    return computePlayerBadges(
+      {
+        salary: p.core.salary,
+        fc_bc: p.core.fc_bc as "FC" | "BC",
+        team: p.core.team,
+        fpSeason: (p.season as any).fp ?? 0,
+        fpLast5: (p as any).last5?.fp5 ?? 0,
+        mpgSeason: (p.season as any).mpg ?? 0,
+        mpgLast5: (p as any).last5?.mpg5 ?? 0,
+        value: (p as any).computed?.value ?? 0,
+        value5: (p as any).computed?.value5 ?? 0,
+        health: normalizePlayerHealth(p),
+      },
+      {
+        pool: poolStats,
+        upcoming,
+        isOwned: !!opts?.isOwned,
+        isInWishlist: wishlistSet.has(p.core.id),
+        rosterNeedsFc: opts?.isOwned ? false : rosterNeeds.needsFc,
+        rosterNeedsBc: opts?.isOwned ? false : rosterNeeds.needsBc,
+      },
+    );
+  };
+
   const toggleOut = (id: number) => {
     setReportOpen(false);
     setOutZone((prev) => {
@@ -568,8 +664,14 @@ export default function PlayersPage() {
 
   const rosterPaneNode = (
     <RosterPane
-      starters={rosterStarters}
-      bench={rosterBench}
+      starters={rosterStarters.map((p) => ({
+        ...p,
+        badges: badgesForPlayer(playerById.get(p.player_id), { isOwned: false }),
+      }))}
+      bench={rosterBench.map((p) => ({
+        ...p,
+        badges: badgesForPlayer(playerById.get(p.player_id), { isOwned: false }),
+      }))}
       outZone={outZone}
       isLoading={rosterIdList.length > 0 && rosterStarters.length + rosterBench.length === 0}
       onToggleOut={onRosterToggleOut}
@@ -869,52 +971,10 @@ export default function PlayersPage() {
                                 <TooltipContent className="text-[10px]">{getHealthTooltipText(_rowHealth)}</TooltipContent>
                               </Tooltip>
                             )}
-                            {(() => {
-                              const v5 = Number((p as any).last5?.value5 ?? 0);
-                              const sal = Number(p.core.salary ?? 0);
-                              const dfp = Number((p as any).last5?.delta_fp ?? 0);
-                              const fp5 = Number((p as any).last5?.fp5 ?? 0);
-                              const _h = normalizePlayerHealth(p);
-                              const inj = isHealthUnavailable(_h) || isHealthRisky(_h);
-                              // Drop Risk wins, then Value Add, then Stream — at most one badge.
-                              if (inj || dfp <= -4) {
-                                return (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="inline-flex items-center text-[7.5px] font-heading font-bold uppercase tracking-wider px-1 py-0 h-3.5 rounded-sm border border-red-500/40 text-red-400 bg-red-500/10">
-                                        Drop Risk
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="text-[10px]">{inj ? getHealthTooltipText(_h) : `Form drop Δ${dfp.toFixed(1)} FP`}</TooltipContent>
-                                  </Tooltip>
-                                );
-                              }
-                              if (sal > 0 && v5 >= 2.2 && fp5 >= 18) {
-                                return (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="inline-flex items-center text-[7.5px] font-heading font-bold uppercase tracking-wider px-1 py-0 h-3.5 rounded-sm border border-emerald-500/40 text-emerald-400 bg-emerald-500/10">
-                                        Value
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="text-[10px]">V5 {v5.toFixed(1)} · FP5 {fp5.toFixed(1)}</TooltipContent>
-                                  </Tooltip>
-                                );
-                              }
-                              if (sal > 0 && sal <= 4 && fp5 >= 14) {
-                                return (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="inline-flex items-center text-[7.5px] font-heading font-bold uppercase tracking-wider px-1 py-0 h-3.5 rounded-sm border border-violet-500/40 text-violet-400 bg-violet-500/10">
-                                        Stream
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="text-[10px]">Cheap streamer · ${sal}M / FP5 {fp5.toFixed(1)}</TooltipContent>
-                                  </Tooltip>
-                                );
-                              }
-                              return null;
-                            })()}
+                            <PlayerContextBadges
+                              badges={badgesForPlayer(p, { isOwned: false })}
+                              max={3}
+                            />
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
