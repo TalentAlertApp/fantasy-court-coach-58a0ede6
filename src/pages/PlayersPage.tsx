@@ -342,6 +342,94 @@ export default function PlayersPage() {
 
   const availableBudget = validation.availableForNextIn;
 
+  // ---- Contextual badges shared state ----
+  const { wishlistIds } = useWishlist();
+  const wishlistSet = useMemo(() => new Set<number>(wishlistIds), [wishlistIds]);
+  const { data: upcomingByTeam } = useUpcomingByTeam();
+
+  // Per-team upcoming counts (this GW + next 7d) for SCHED+ / NO GAME / LIGHT.
+  const upcomingCtxByTeam = useMemo(() => {
+    const out = new Map<string, { thisGw: number; next7: number }>();
+    if (!upcomingByTeam) return out;
+    const now = Date.now();
+    const week = now + 7 * 86400_000;
+    for (const [tri, games] of Object.entries(upcomingByTeam)) {
+      let thisGw = 0;
+      let next7 = 0;
+      for (const g of games as any[]) {
+        const ts = g.tipoffUtc ? new Date(g.tipoffUtc).getTime() : NaN;
+        if (!Number.isFinite(ts)) continue;
+        if (g.gw === gw && ts >= now - 6 * 3600_000) thisGw++;
+        if (ts >= now - 3 * 3600_000 && ts <= week) next7++;
+      }
+      out.set(tri.toUpperCase(), { thisGw, next7 });
+    }
+    return out;
+  }, [upcomingByTeam, gw]);
+
+  // Pool stats (computed once over the available pool).
+  const poolStats: BadgePoolStats = useMemo(() => {
+    const pool = allPlayersFull.length > 0 ? allPlayersFull : allPlayers;
+    const v5: number[] = [];
+    const sal: number[] = [];
+    const fp5: number[] = [];
+    for (const p of pool) {
+      const v = (p as any).computed?.value5 ?? (p as any).computed?.value ?? 0;
+      if (v > 0) v5.push(v);
+      if (p.core.salary > 0) sal.push(p.core.salary);
+      const f = (p as any).last5?.fp5 ?? 0;
+      if (f > 0) fp5.push(f);
+    }
+    return {
+      value5Q75: quantile(v5, 0.75),
+      salaryMedian: quantile(sal, 0.5),
+      fp5P90: quantile(fp5, 0.9),
+    };
+  }, [allPlayers, allPlayersFull]);
+
+  // Roster FC/BC needs (after staged OUTs / INs).
+  const rosterNeeds = useMemo(() => {
+    let fc = 0;
+    let bc = 0;
+    for (const p of rosterPlayers) {
+      if (outZone.includes(p.player_id)) continue;
+      if (p.fc_bc === "FC") fc++;
+      else if (p.fc_bc === "BC") bc++;
+    }
+    for (const p of inChips) {
+      if (p.fc_bc === "FC") fc++;
+      else if (p.fc_bc === "BC") bc++;
+    }
+    return { needsFc: fc < 5, needsBc: bc < 5 };
+  }, [rosterPlayers, outZone, inChips]);
+
+  const badgesForPlayer = (p: PlayerListItem | undefined, opts?: { isOwned?: boolean }): PlayerBadge[] => {
+    if (!p) return [];
+    const upcoming = upcomingCtxByTeam.get((p.core.team ?? "").toUpperCase()) ?? null;
+    return computePlayerBadges(
+      {
+        salary: p.core.salary,
+        fc_bc: p.core.fc_bc as "FC" | "BC",
+        team: p.core.team,
+        fpSeason: (p.season as any).fp ?? 0,
+        fpLast5: (p as any).last5?.fp5 ?? 0,
+        mpgSeason: (p.season as any).mpg ?? 0,
+        mpgLast5: (p as any).last5?.mpg5 ?? 0,
+        value: (p as any).computed?.value ?? 0,
+        value5: (p as any).computed?.value5 ?? 0,
+        health: normalizePlayerHealth(p),
+      },
+      {
+        pool: poolStats,
+        upcoming,
+        isOwned: !!opts?.isOwned,
+        isInWishlist: wishlistSet.has(p.core.id),
+        rosterNeedsFc: opts?.isOwned ? false : rosterNeeds.needsFc,
+        rosterNeedsBc: opts?.isOwned ? false : rosterNeeds.needsBc,
+      },
+    );
+  };
+
   const toggleOut = (id: number) => {
     setReportOpen(false);
     setOutZone((prev) => {
