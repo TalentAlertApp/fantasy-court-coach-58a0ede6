@@ -234,10 +234,10 @@ export default function AppLayout() {
           {user && !collapsed && (
             <div className="flex items-center gap-2 rounded-lg px-2 py-1.5"
                  style={{ background: "hsl(0 0% 100% / 0.03)", boxShadow: "inset 0 0 0 1px hsl(var(--sidebar-border) / 0.5)" }}>
-              <span className="text-[10px] uppercase tracking-wider truncate flex-1"
+              <span className="text-[11px] font-heading uppercase tracking-[0.15em] truncate flex-1"
                     style={{ color: "hsl(var(--sidebar-foreground) / 0.7)" }}
                     title={user.email ?? ""}>
-                {user.email}
+                {(user.email ?? "").split("@")[0]}
               </span>
               <button
                 onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }}
@@ -269,7 +269,7 @@ export default function AppLayout() {
               >
                 {dark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
                 {!collapsed && (
-                  <span className="ml-1.5 text-[10px] uppercase tracking-wider">
+                  <span className="ml-1.5 text-[10px] font-heading uppercase tracking-[0.18em]">
                     {dark ? "Light" : "Dark"}
                   </span>
                 )}
@@ -285,7 +285,7 @@ export default function AppLayout() {
                   ? <ChevronRight className="h-3.5 w-3.5" />
                   : <ChevronLeft className="h-3.5 w-3.5" />}
                 {!collapsed && (
-                  <span className="ml-1.5 text-[10px] uppercase tracking-wider">Hide</span>
+                  <span className="ml-1.5 text-[10px] font-heading uppercase tracking-[0.18em]">Hide</span>
                 )}
               </button>
             </NavTooltip>
