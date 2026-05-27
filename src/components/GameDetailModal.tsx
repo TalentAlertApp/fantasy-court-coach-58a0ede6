@@ -195,7 +195,7 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                       title={panelsOpen ? "Hide team scoring" : "Show team scoring"}
                       className={`inline-flex items-center justify-center transition-all hover:scale-110 ${panelsOpen ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                     >
-                      <Columns2 className="h-5 w-5" />
+                      <Columns2 className="h-4 w-4" />
                     </button>
                   ) : (
                     <span className="text-muted-foreground">-</span>
