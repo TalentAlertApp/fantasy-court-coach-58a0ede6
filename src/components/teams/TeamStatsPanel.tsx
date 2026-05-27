@@ -373,6 +373,9 @@ type ColDef = {
   key: string;
   label: string;
   align?: "left" | "right" | "center";
+  tip?: React.ReactNode;
+  /** When set, cell text gets a green/red shade based on rank within visible rows. */
+  grade?: { value: (t: TeamAgg) => number; invert?: boolean };
   render: (t: TeamAgg, ctx: { sch: ReturnType<typeof scheduleSlot>; rank: number }) => React.ReactNode;
 };
 function scheduleSlot(_t: TeamAgg) { return {} as any; }
