@@ -984,14 +984,14 @@ export default function PlayersPage() {
                                 <TooltipContent className="text-[10px]">{getHealthTooltipText(_rowHealth)}</TooltipContent>
                               </Tooltip>
                             )}
-                            <PlayerContextBadges
-                              badges={badgesForPlayer(p, { isOwned: false })}
-                              max={3}
-                            />
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
                           <div className="flex items-center gap-1">
+                            <PlayerContextBadges
+                              badges={badgesForPlayer(p, { isOwned: false })}
+                              max={3}
+                            />
                             {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
                             <span>{p.core.team}</span>
                           </div>

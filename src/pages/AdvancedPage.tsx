@@ -712,7 +712,11 @@ function NBAPlaySearchSection() {
                       month: "2-digit",
                       day: "2-digit",
                     }).format(new Date(selectedGame.tipoff_utc)).replace(/-/g, "");
-                    open(`https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}games/${gameDateET}-${selectedGame.away_team}${selectedGame.home_team}`);
+                    // nbaplaydb uses PDX (not POR) for Portland in its URL scheme.
+                    const mapTri = (t: string) => (t?.toUpperCase() === "POR" ? "PDX" : t);
+                    const away = mapTri(selectedGame.away_team);
+                    const home = mapTri(selectedGame.home_team);
+                    open(`https://www.nbaplaydb.com/${isWnba ? "wnba/" : ""}games/${gameDateET}-${away}${home}`);
                   }}
                   className="rounded-lg h-10"
                 >

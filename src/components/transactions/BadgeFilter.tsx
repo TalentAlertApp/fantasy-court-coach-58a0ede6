@@ -27,7 +27,7 @@ export default function BadgeFilter({ value, onChange }: Props) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground block tracking-wider">
-          Icons
+          Market Status
         </Label>
         {value.length > 0 && (
           <button
