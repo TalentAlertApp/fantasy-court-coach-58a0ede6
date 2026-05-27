@@ -7,6 +7,7 @@ import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerModal from "@/components/PlayerModal";
 import FiltersPanel from "@/components/FiltersPanel";
+import BadgeLegendButton from "@/components/transactions/BadgeLegendButton";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -777,6 +778,8 @@ export default function PlayersPage() {
               addMode={addMode}
               rosterSize={rosterIdList.length}
               filtersToggle={(
+                <>
+                <BadgeLegendButton />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -792,6 +795,7 @@ export default function PlayersPage() {
                     {filtersOpen ? "Collapse filters" : "Expand filters"}
                   </TooltipContent>
                 </Tooltip>
+                </>
               )}
             />
 
