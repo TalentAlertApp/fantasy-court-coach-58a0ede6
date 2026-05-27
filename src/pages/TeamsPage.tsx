@@ -141,6 +141,8 @@ export default function TeamsPage() {
 
   const isLoading = schedLoading || playersLoading;
 
+  const { data: statsPlayers, isLoading: statsPlayersLoading } = usePlayersQuery({ limit: 1000 });
+
   const TABS: { value: Tab; label: string }[] = [
     { value: "teams", label: "Teams" },
     { value: "standings", label: "Standings" },
@@ -269,6 +271,17 @@ export default function TeamsPage() {
             </div>
           </div>
         )
+      )}
+
+      {tab === "stats" && (
+        <TeamStatsPanel
+          leagueTeams={leagueTeams}
+          players={(statsPlayers?.items ?? []) as any}
+          leagueId={leagueId}
+          leagueLogo={leagueLogo}
+          loading={statsPlayersLoading || schedLoading}
+          onTeamClick={setSelectedTeam}
+        />
       )}
 
       <TeamModal
