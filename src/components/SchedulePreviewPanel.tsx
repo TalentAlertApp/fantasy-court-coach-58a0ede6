@@ -481,6 +481,11 @@ function MatchupCard({
             >
               {awayName}
             </span>
+            {isFinal && (
+              <span className={`text-[15px] font-mono tabular-nums leading-none shrink-0 ${
+                (g.away_pts ?? 0) > (g.home_pts ?? 0) ? "font-black text-foreground" : "font-normal text-muted-foreground"
+              }`}>{g.away_pts ?? 0}</span>
+            )}
           </div>
           <div className="flex items-center gap-1.5 justify-end min-w-0 w-full">
             <ResultDots details={awayDetail} align="end" ownTri={g.away_team} onOpenGame={onOpenGame} />
@@ -519,6 +524,11 @@ function MatchupCard({
         {/* Home cluster — mirrored */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 items-start pl-1">
           <div className="flex items-center gap-1.5 justify-start min-w-0 w-full">
+            {isFinal && (
+              <span className={`text-[15px] font-mono tabular-nums leading-none shrink-0 ${
+                (g.home_pts ?? 0) > (g.away_pts ?? 0) ? "font-black text-foreground" : "font-normal text-muted-foreground"
+              }`}>{g.home_pts ?? 0}</span>
+            )}
             <span
               className={`text-[15px] font-heading font-black uppercase tracking-tight truncate ${
                 homeInvolved ? "text-[hsl(var(--nba-yellow))]" : "text-foreground"

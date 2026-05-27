@@ -1085,14 +1085,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             {/* Teams */}
             <div className="relative z-10 flex items-center gap-3 flex-1">
               <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
-                <div>
-                  <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
-                  {(isFinal || isLive) && (
-                    <p className={`text-2xl font-mono leading-tight ${
-                      isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
-                    }`}>{g.away_pts}</p>
-                  )}
-                </div>
+                <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
+                {(isFinal || isLive) && (
+                  <p className={`text-2xl font-mono leading-none ${
+                    isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
+                  }`}>{g.away_pts}</p>
+                )}
                 {getTeamLogo(g.away_team) && (
                   <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-12 h-12 transition-transform hover:scale-110" />
                 )}
@@ -1126,14 +1124,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                 {getTeamLogo(g.home_team) && (
                   <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 transition-transform hover:scale-110" />
                 )}
-                <div>
-                  <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
-                  {(isFinal || isLive) && (
-                    <p className={`text-2xl font-mono leading-tight ${
-                      isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
-                    }`}>{g.home_pts}</p>
-                  )}
-                </div>
+                {(isFinal || isLive) && (
+                  <p className={`text-2xl font-mono leading-none ${
+                    isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
+                  }`}>{g.home_pts}</p>
+                )}
+                <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
               </div>
             </div>
 
