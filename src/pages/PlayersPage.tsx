@@ -89,6 +89,7 @@ export default function PlayersPage() {
   const [rosterSheetOpen, setRosterSheetOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("ALL");
+  const [badgeFilter, setBadgeFilter] = useState<string[]>([]);
 
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
@@ -525,6 +526,13 @@ export default function PlayersPage() {
         }
       });
     }
+    if (badgeFilter.length > 0) {
+      const want = new Set(badgeFilter);
+      items = items.filter((p) => {
+        const bs = badgesForPlayer(p, { isOwned: false });
+        return bs.some((b) => want.has(b.key));
+      });
+    }
     items.sort((a, b) => {
       const getVal = (p: PlayerListItem): number => {
         const gp = p.season.gp || 1;
@@ -539,13 +547,14 @@ export default function PlayersPage() {
       return sortDir === "desc" ? getVal(b) - getVal(a) : getVal(a) - getVal(b);
     });
     return items;
-  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league, healthFilter]);
+  }, [allPlayers, rosterPlayerIds, fcBc, search, maxSalary, team, sortCol, sortDir, perfMode, league, healthFilter, badgeFilter, badgesForPlayer]);
 
   // When the league changes, drop a stale team filter (e.g. "ATL" carried
   // from NBA into WNBA where "ATL" exists but pointing back into NBA-only
   // codepaths is confusing). Just reset to ALL on league change.
   useEffect(() => { setTeam("ALL"); }, [league]);
   useEffect(() => { setCurrentPage(1); }, [healthFilter]);
+  useEffect(() => { setCurrentPage(1); }, [badgeFilter]);
 
   const handleSort = (col: string) => {
     if (sortCol === col) setSortDir((d) => d === "desc" ? "asc" : "desc");
@@ -668,11 +677,11 @@ export default function PlayersPage() {
       starters={rosterStarters.map((p) => ({
         ...p,
         badges: badgesForPlayer(playerById.get(p.player_id), { isOwned: false }),
-      }))}
+      })).filter((p) => badgeFilter.length === 0 || p.badges.some((b) => badgeFilter.includes(b.key)))}
       bench={rosterBench.map((p) => ({
         ...p,
         badges: badgesForPlayer(playerById.get(p.player_id), { isOwned: false }),
-      }))}
+      })).filter((p) => badgeFilter.length === 0 || p.badges.some((b) => badgeFilter.includes(b.key)))}
       outZone={outZone}
       isLoading={rosterIdList.length > 0 && rosterStarters.length + rosterBench.length === 0}
       onToggleOut={onRosterToggleOut}
@@ -1038,6 +1047,8 @@ export default function PlayersPage() {
                 onPerfModeChange={setPerfMode}
                 health={healthFilter}
                 onHealthChange={setHealthFilter}
+                badgeFilter={badgeFilter}
+                onBadgeFilterChange={setBadgeFilter}
               />
             </div>
           )}
