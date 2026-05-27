@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, Fragment } from "react";
 import { z } from "zod";
 import { ScheduleGameSchema } from "@/lib/contracts";
 import { Badge } from "@/components/ui/badge";
-import { getTeamLogo } from "@/lib/nba-teams";
+import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -61,7 +61,8 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
   const [nbaExpanded, setNbaExpanded] = useState(false);
   const [nbaBlocked, setNbaBlocked] = useState(false);
   const { league } = useLeague();
-  const recapHost = league === "wnba" ? "WNBA.com" : "NBA.com";
+  const recapHost =
+    league === "wnba" ? "WNBA.com" : league === "euroleague" ? "EuroLeague.net" : "NBA.com";
   // WNBA.com sends X-Frame-Options: SAMEORIGIN on its game pages, so an
   // inline <iframe> always renders blank. Force outbound for WNBA when there
   // is no YouTube embed available.
@@ -178,7 +179,7 @@ function getStatusBorder(status: string): string {
   const s = status.toUpperCase();
   if (s.includes("FINAL")) return "border-l-green-500";
   if (isLiveStatusString(s)) return "border-l-red-500";
-  return "border-l-transparent";
+  return "border-l-[hsl(var(--nba-yellow))]";
 }
 
 function isGameFinal(status: string) {
@@ -1085,7 +1086,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
             <div className="relative z-10 flex items-center gap-3 flex-1">
               <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
                 <div>
-                  <p className="font-heading font-bold text-sm uppercase leading-tight">{g.away_team}</p>
+                  <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
                   {(isFinal || isLive) && (
                     <p className={`text-2xl font-mono leading-tight ${
                       isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
@@ -1126,7 +1127,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 transition-transform hover:scale-110" />
                 )}
                 <div>
-                  <p className="font-heading font-bold text-sm uppercase leading-tight">{g.home_team}</p>
+                  <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
                   {(isFinal || isLive) && (
                     <p className={`text-2xl font-mono leading-tight ${
                       isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"

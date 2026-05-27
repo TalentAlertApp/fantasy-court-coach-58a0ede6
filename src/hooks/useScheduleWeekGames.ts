@@ -14,6 +14,12 @@ export interface ScheduleWeekGame {
   home_pts: number;
   away_pts: number;
   tipoff_utc: string | null;
+  game_recap_url: string | null;
+  nba_game_url: string | null;
+  game_boxscore_url: string | null;
+  game_charts_url: string | null;
+  game_playbyplay_url: string | null;
+  youtube_recap_id: string | null;
 }
 
 export function useScheduleWeekGames(gw: number) {
@@ -26,7 +32,7 @@ export function useScheduleWeekGames(gw: number) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("game_id, gw, day, home_team, away_team, status, home_pts, away_pts, tipoff_utc")
+        .select("game_id, gw, day, home_team, away_team, status, home_pts, away_pts, tipoff_utc, game_recap_url, nba_game_url, game_boxscore_url, game_charts_url, game_playbyplay_url, youtube_recap_id")
         .eq("league_id", leagueId!)
         .eq("gw", gw);
       if (error) throw error;
