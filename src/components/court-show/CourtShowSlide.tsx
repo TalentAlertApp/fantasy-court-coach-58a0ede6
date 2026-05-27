@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
 import type { CompetitionCode } from "@/lib/competitions";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, Bandage, PlayCircle, Crown, Medal } from "lucide-react";
+import { Trophy, Zap, Star, Clock, ExternalLink, Flame, ArrowRight, Brain, TrendingUp, Calendar, DollarSign, Shield, Bandage, PlayCircle, Crown, Medal, Maximize2 } from "lucide-react";
 import { getTeamLogo, getTeamByTricode } from "@/lib/nba-teams";
 import { getWnbaTeamLogo } from "@/lib/wnba-teams";
 import { getVenue } from "@/lib/nba-venues";
