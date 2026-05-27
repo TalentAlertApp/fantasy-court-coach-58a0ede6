@@ -12,7 +12,7 @@ import {
   Crown,
   Puzzle,
   CheckCircle2,
-  Star,
+  Heart,
   Info,
   type LucideIcon,
 } from "lucide-react";
@@ -45,7 +45,7 @@ const LEGEND: { icon: LucideIcon; tone: BadgeTone; label: string }[] = [
   { icon: Crown,         tone: "gold",   label: "Captain edge" },
   { icon: Puzzle,        tone: "blue",   label: "Roster fit" },
   { icon: CheckCircle2,  tone: "blue",   label: "Owned" },
-  { icon: Star,          tone: "violet", label: "Watchlist" },
+  { icon: Heart,         tone: "violet", label: "Wishlist" },
 ];
 
 export default function BadgeLegendButton({ className }: { className?: string }) {

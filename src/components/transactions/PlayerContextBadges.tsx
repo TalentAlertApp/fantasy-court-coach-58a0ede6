@@ -14,7 +14,7 @@ import {
   Puzzle,
   BadgeAlert,
   CheckCircle2,
-  Star,
+  Heart,
   type LucideIcon,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -261,14 +261,14 @@ export function computePlayerBadges(p: BadgePlayerInput, ctx: BadgeCtx): PlayerB
     });
   }
 
-  // 14. Watchlist
+  // 14. Wishlist
   if (ctx.isInWishlist) {
     out.push({
       key: "watch",
-      label: "WATCH",
+      label: "WISH",
       tone: "violet",
-      icon: Star,
-      tooltip: "Player is on your watchlist.",
+      icon: Heart,
+      tooltip: "Player is on your wishlist.",
       priority: 14,
     });
   }
