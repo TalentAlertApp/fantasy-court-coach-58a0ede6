@@ -9,6 +9,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useMemo } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import BadgeFilter from "@/components/transactions/BadgeFilter";
 interface FiltersPanelProps {
   fcBc: string;
   onFcBcChange: (v: string) => void;
@@ -23,6 +24,8 @@ interface FiltersPanelProps {
   onPerfModeChange?: (v: "pg" | "total") => void;
   health?: HealthFilter;
   onHealthChange?: (v: HealthFilter) => void;
+  badgeFilter?: string[];
+  onBadgeFilterChange?: (v: string[]) => void;
 }
 
 export type HealthFilter = "ALL" | "AVAILABLE" | "RISK" | "OUT" | "QDG" | "PROB";
@@ -32,6 +35,7 @@ export default function FiltersPanel({
   maxSalaryLimit = 50, team, onTeamChange,
   perfMode, onPerfModeChange,
   health, onHealthChange,
+  badgeFilter, onBadgeFilterChange,
 }: FiltersPanelProps) {
   const { league, teams } = useLeagueTeams();
   const sortedTeams = useMemo(
@@ -133,6 +137,9 @@ export default function FiltersPanel({
               </SelectContent>
             </Select>
           </div>
+        )}
+        {onBadgeFilterChange && (
+          <BadgeFilter value={badgeFilter ?? []} onChange={onBadgeFilterChange} />
         )}
       </div>
 
