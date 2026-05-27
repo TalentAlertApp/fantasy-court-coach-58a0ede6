@@ -777,6 +777,8 @@ export default function PlayersPage() {
               addMode={addMode}
               rosterSize={rosterIdList.length}
               filtersToggle={(
+                <>
+                <BadgeLegendButton />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -792,6 +794,7 @@ export default function PlayersPage() {
                     {filtersOpen ? "Collapse filters" : "Expand filters"}
                   </TooltipContent>
                 </Tooltip>
+                </>
               )}
             />
 
