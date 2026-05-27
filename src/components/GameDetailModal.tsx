@@ -184,7 +184,24 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
             </div>
             <div className="relative text-center">
               {played ? (
-                <span className="font-mono font-black text-3xl tabular-nums">{game.away_pts} <span className="text-muted-foreground">-</span> {game.home_pts}</span>
+                <span className="font-mono font-black text-3xl tabular-nums inline-flex items-center gap-2">
+                  <span>{game.away_pts}</span>
+                  {recapOpen && embedSrc ? (
+                    <button
+                      type="button"
+                      onClick={() => { if (biqOn) setBiqOn(false); setPanelsOpen((v) => !v); }}
+                      aria-pressed={panelsOpen}
+                      aria-label={panelsOpen ? "Hide team scoring panels" : "Show team scoring panels"}
+                      title={panelsOpen ? "Hide team scoring" : "Show team scoring"}
+                      className={`inline-flex items-center justify-center transition-all hover:scale-110 ${panelsOpen ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                    >
+                      <Columns2 className="h-5 w-5" />
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                  <span>{game.home_pts}</span>
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/40 bg-primary/10 backdrop-blur-sm shadow-[0_0_12px_-4px_hsl(var(--primary)/0.5)]">
                   <span className="relative flex h-2 w-2">
@@ -193,18 +210,6 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
                   </span>
                   <span className="font-heading uppercase tracking-[0.22em] text-[10px] font-bold text-foreground">Scheduled</span>
                 </span>
-              )}
-              {recapOpen && embedSrc && (
-                <button
-                  type="button"
-                  onClick={() => { if (biqOn) setBiqOn(false); setPanelsOpen((v) => !v); }}
-                  aria-pressed={panelsOpen}
-                  aria-label={panelsOpen ? "Hide team scoring panels" : "Show team scoring panels"}
-                  title={panelsOpen ? "Hide team scoring" : "Show team scoring"}
-                  className={`absolute left-1/2 -translate-x-1/2 -bottom-3 transition-all hover:scale-110 ${panelsOpen ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-                >
-                  <Columns2 className="h-4 w-4" />
-                </button>
               )}
             </div>
             {/* Home — name on left of watermark */}
