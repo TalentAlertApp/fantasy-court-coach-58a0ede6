@@ -409,6 +409,22 @@ function StatsTable({
     </div>
   );
 
+  const playerCell = (p: Player | null) => {
+    if (!p) return <span>—</span>;
+    const nat = (p.core as any).nationality as string | null | undefined;
+    return (
+      <div className="flex items-center gap-1.5 min-w-0">
+        {p.core.photo ? (
+          <img src={p.core.photo} alt="" className="h-5 w-5 rounded-full object-cover bg-muted ring-1 ring-border shrink-0" />
+        ) : (
+          <div className="h-5 w-5 rounded-full bg-muted ring-1 ring-border shrink-0" />
+        )}
+        <span className="text-[11px] truncate max-w-[140px]">{p.core.name}</span>
+        {nat ? <NationalityFlag country={nat} size="xs" /> : null}
+      </div>
+    );
+  };
+
   const fmtDate = (iso: string | null) => {
     if (!iso) return "—";
     try {
