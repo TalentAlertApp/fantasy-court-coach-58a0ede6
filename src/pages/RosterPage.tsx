@@ -948,11 +948,11 @@ export default function RosterPage() {
           <div className="min-w-0 flex-1 relative">
             {/* Schedule preview — absolute overlay, never pushes the court */}
             {scheduleOpen && (
-              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 max-h-[520px] overflow-hidden animate-accordion-down">
+              <div className="absolute left-0 right-0 top-0 z-30 bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl p-3 pr-10 max-h-[520px] overflow-hidden animate-accordion-down">
                 <button
                   type="button"
                   onClick={() => setScheduleOpen(false)}
-                  className="absolute top-2 right-2 z-10 h-6 w-6 inline-flex items-center justify-center rounded-md text-foreground/60 hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="absolute top-1.5 right-1.5 z-20 h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted/60 hover:bg-muted text-foreground/70 hover:text-foreground transition-colors"
                   aria-label="Close schedule"
                 >
                   <X className="h-3.5 w-3.5" />
