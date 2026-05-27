@@ -1,37 +1,46 @@
-## 1. Schedule expanded panel — X no longer overlaps the GW `>` button
+## Plan — /teams Stats tab polish
 
-In both `src/pages/RosterPage.tsx` (lines ~950–961) and `src/pages/PlayersPage.tsx` (lines ~696–712), the panel renders a close-X at `absolute top-2 right-2` while `SchedulePreviewBody` puts its own `>` (next GW) button at the right edge of its first row. They collide.
+Scope: `src/components/teams/TeamStatsPanel.tsx` only. No data/business logic changes.
 
-Fix: reserve space for the X by adding right padding on the panel wrapper (`pr-10`) so the `>` button can never reach the corner where the X sits. Keep X position as-is. Apply on both pages.
+### 1. Scrollable tables
+Wrap the table container in a fixed-height scroll region so every category (Fantasy, Efficiency, Depth, Schedule) scrolls vertically while keeping the column header sticky.
+- Outer wrapper: `max-h-[60vh] overflow-y-auto` (fall back to `min-h-0 flex-1` if the page allows).
+- `<thead>` gets `sticky top-0 z-[2] bg-muted/80 backdrop-blur` so headers stay visible while scrolling.
+- Horizontal scroll preserved.
 
-Optionally bump the X to `top-1.5 right-1.5` so it's clearly framed inside the corner, with a tiny bg pill (already styled on PlayersPage). RosterPage's X has no background — give it the same `bg-muted/60` chip for visibility.
+### 2. Player photo + flag inline (no new columns)
+Add a small avatar + flag inside the existing player cell, reusing app patterns:
+- Fantasy → **Top FP Player** cell: 18px round photo (fallback grey circle) · player name · `<NationalityFlag country={core.nationality} size="xs" />`.
+- Efficiency → **Best Value Player** cell: same composition.
+Add `nationality?: string | null` to the local `Player.core` type so TS stays happy (real payload already carries it — confirmed via PlayerRow usage).
 
-## 2. `/schedule` list view — inline rows + shared `@` baseline
+### 3. Grade color scale (best 3 green / worst 3 red)
+Introduce a small helper `rankColor(value, allValues, { invert? })` that:
+- Sorts unique numeric values, returns a Tailwind class:
+  - Top 1: `text-emerald-400 font-semibold`
+  - Top 2–3: `text-emerald-500/80`
+  - Bottom 1: `text-rose-400 font-semibold`
+  - Bottom 2–3: `text-rose-500/80`
+  - Else: default
+- Skips zero / non-finite values (treated as neutral) so empty cells don't poison the ranking.
 
-File: `src/components/ScheduleList.tsx`, the list-view rendering used today (lines ~1296–1381 — the `grid grid-cols-[1fr_auto_1fr]` branch).
+Applied to:
+- **Efficiency**: `Team FP/G`, `FP / $M`, `Avg Value`, `Score`, `Salary Total` (high salary = worst → invert), **excluding** Best Value Player and Team.
+- **Depth**: `Top 3 Share` (low = best → invert), `Depth Share`, `Depth Index`.
+- **Schedule**: `This GW`, `Next 7d`, `Score`.
 
-Current bug: the away/home clusters wrap team-name and score in a vertical `<div>` (lines 1331–1338 and 1372–1379). That stacks "LAS VEGAS ACES" above "101" and also makes card heights inconsistent, which throws off the vertical position of the centered `@`.
+Computed once per render from the visible `rows` so it follows the search filter. Implemented by precomputing a `Map<string, Map<tricode, className>>` per column key inside `StatsTable`.
 
-Changes inside the center "Teams + status" grid:
+### 4. Header tooltips
+Wrap every sortable `<th>` label (except `Team` and `Next Opp`) in a shadcn `Tooltip` from `@/components/ui/tooltip`. Tooltip text per column:
 
-- Away cluster (one flex row, items-center, gap-2):
-  - `NAME` (`text-sm`, `leading-none`) → optional `SCORE` (`text-2xl`, `leading-none`, `tabular-nums`, bold when winner) → `LOGO` (12×12).
-  - Justified to the right, with `whitespace-nowrap` on name.
-- Home cluster mirrors: `LOGO` → optional `SCORE` → `NAME`, justified left.
-- Remove the inner wrapper `<div>` that was stacking name + score.
+- **Fantasy**: GP — Games played · Record — Wins-Losses · Team FP/G — Season fantasy points scored per game by the whole team · Last 5 FP/G — Same metric using each player's last 5 played games · Δ FP — Last 5 minus season FP/G (positive = trending up) · Top FP Player — Best fantasy producer on the team · Top FP/G — Their season FP/G · FC FP/G — Total FP/G from Front Court players · BC FP/G — Total FP/G from Back Court players.
+- **Efficiency**: Team FP/G — Season FP per game · FP / $M — Fantasy points produced per $1M of salary · Avg Value — Average per-player value index · Score — Best value player's value score · Salary Total — Combined player salaries in $M (lower = cheaper roster).
+- **Depth**: Players — Total rostered players · Active — Players with playing time / FP this season · FC / BC — Counts by position group · Top 3 Share — % of team FP scored by the top 3 producers (lower = more balanced) · Depth Share — Inverse of Top 3 Share · Depth Index — 0–100 balance score (higher = deeper rotation) · Star Dep. — Star dependency label.
+- **Schedule**: Upcoming — Total remaining games · This GW — Games in the current gameweek · Next 7d — Games tipping off in the next 7 days · Tipoff — Date/time of the next game · Score — Volume score (Next 7d × 2 + This GW) · **Outlook** — Schedule outlook based on games in the next 7 days: **Strong** ≥ 4 games · **Good** = 3 games · **Neutral** = 2 games · **Light** ≤ 1 game.
 
-Center status column (the `@` block):
-
-- Keep `flex flex-col items-center justify-center` and use `leading-none` plus consistent `gap-0.5` between the three lines (`@`, status, time).
-- Render the time row even for SCHEDULED games (already does) and reserve a fixed min-height (e.g. `min-h-[60px]`) so every card — final, live, scheduled — has the same vertical footprint.
-- Set the parent row to `items-center` so the `@` block is vertically centered against the now single-row team clusters. With both clusters constrained to one line and the center column having a fixed height, the `@` glyph lands at the same y-coordinate across every card.
-
-Apply the same single-row layout to the older list branch at lines ~1086–1133 for parity (so any code path lands on the same look).
-
-No business-logic changes; presentation only.
-
-## Files touched
-
-- `src/components/ScheduleList.tsx` — restructure the two list-view team clusters and lock the center column height.
-- `src/pages/RosterPage.tsx` — `pr-10` on the schedule overlay; tidy X chip.
-- `src/pages/PlayersPage.tsx` — `pr-10` on the schedule overlay.
+### Technical notes
+- All work in `TeamStatsPanel.tsx`; no schema or query changes.
+- Use existing components: `NationalityFlag`, `Tooltip`/`TooltipTrigger`/`TooltipContent`, `cn`.
+- Keep current sort/click-through, summary cards, and category pills untouched.
+- Color classes stay token-friendly (emerald/rose are part of current palette and already used elsewhere in this file).
