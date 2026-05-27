@@ -552,7 +552,7 @@ function StatsTable({
     <TooltipProvider delayDuration={150}>
     <div className="relative rounded-xl border border-border/60 bg-card/60 overflow-hidden flex flex-col min-h-0">
       <img src={leagueLogo} alt="" aria-hidden className="pointer-events-none absolute inset-0 m-auto h-[55%] max-h-[360px] w-auto opacity-[0.04] dark:opacity-[0.05] select-none z-0" />
-      <div className="relative z-[1] overflow-auto max-h-[62vh]">
+      <div className="relative z-[1] overflow-auto flex-1 min-h-0 max-h-[calc(100vh-260px)]">
         <table className="w-full text-xs">
           <thead className="border-b border-border/60 bg-muted/80 backdrop-blur sticky top-0 z-[2]">
             <tr>
