@@ -1084,12 +1084,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
           <>
             {/* Teams */}
             <div className="relative z-10 flex items-center gap-3 flex-1">
-              <div className="flex items-center gap-2 min-w-[100px] justify-end text-right">
-                <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
+              <div className="flex items-center gap-2 justify-end text-right flex-1">
+                <p className="font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
                 {(isFinal || isLive) && (
-                  <p className={`text-2xl font-mono leading-none ${
+                  <span className={`text-2xl font-mono leading-none tabular-nums ${
                     isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
-                  }`}>{g.away_pts}</p>
+                  }`}>{g.away_pts}</span>
                 )}
                 {getTeamLogo(g.away_team) && (
                   <img src={getTeamLogo(g.away_team)} alt={g.away_team} className="w-12 h-12 transition-transform hover:scale-110" />
@@ -1097,39 +1097,39 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
               </div>
 
               {/* Center: status */}
-              <div className="flex flex-col items-center min-w-[80px]">
-                <span className="text-muted-foreground text-[10px] font-heading font-bold mb-0.5">@</span>
+              <div className="flex flex-col items-center justify-center min-w-[80px] min-h-[60px] gap-0.5 leading-none">
+                <span className="text-muted-foreground text-[10px] font-heading font-bold leading-none">@</span>
                 {isLive ? (
                   <>
-                    <span className="text-sm font-heading font-black text-destructive animate-pulse">LIVE</span>
+                    <span className="text-sm font-heading font-black text-destructive animate-pulse leading-none">LIVE</span>
                     {getLiveStatusLabel(g.status) && (
-                      <span className="text-[10px] font-mono font-bold text-destructive/80 tracking-wide mt-0.5">
+                      <span className="text-[10px] font-mono font-bold text-destructive/80 tracking-wide leading-none">
                         {getLiveStatusLabel(g.status)}
                       </span>
                     )}
                   </>
                 ) : (
-                  <span className={`text-sm font-heading font-bold ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
+                  <span className={`text-sm font-heading font-bold leading-none ${isFinal ? "text-green-600" : "text-muted-foreground"}`}>
                     {g.status}
                   </span>
                 )}
                 {g.tipoff_utc && (
-                  <span className="text-xs font-mono font-bold text-muted-foreground mt-0.5">
+                  <span className="text-xs font-mono font-bold text-muted-foreground leading-none">
                     {formatTipoff(g.tipoff_utc)}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 min-w-[100px]">
+              <div className="flex items-center gap-2 justify-start text-left flex-1">
                 {getTeamLogo(g.home_team) && (
                   <img src={getTeamLogo(g.home_team)} alt={g.home_team} className="w-12 h-12 transition-transform hover:scale-110" />
                 )}
                 {(isFinal || isLive) && (
-                  <p className={`text-2xl font-mono leading-none ${
+                  <span className={`text-2xl font-mono leading-none tabular-nums ${
                     isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
-                  }`}>{g.home_pts}</p>
+                  }`}>{g.home_pts}</span>
                 )}
-                <p className="font-heading font-bold text-sm uppercase leading-tight">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
+                <p className="font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
               </div>
             </div>
 
