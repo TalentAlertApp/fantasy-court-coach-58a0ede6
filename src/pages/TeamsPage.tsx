@@ -21,6 +21,7 @@ import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import PlayerModal from "@/components/PlayerModal";
 import { ArrowUpDown } from "lucide-react";
+import TeamStatsPanel from "@/components/teams/TeamStatsPanel";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -33,7 +34,7 @@ interface NbaTeamSummary {
   gamesRemaining: number;
 }
 
-type Tab = "teams" | "standings";
+type Tab = "teams" | "standings" | "stats";
 type SortMode = "winpct" | "alpha";
 
 export default function TeamsPage() {
@@ -55,10 +56,10 @@ export default function TeamsPage() {
   const { data: leagueId } = useLeagueId();
   const leagueLogo = getLeagueLogo(league);
   const headerTitle = isEuroleague
-    ? (tab === "standings" ? "EuroLeague Standings" : "EuroLeague Teams")
+    ? (tab === "standings" ? "EuroLeague Standings" : tab === "stats" ? "EuroLeague Team Stats" : "EuroLeague Teams")
     : league === "wnba"
-      ? (tab === "standings" ? "WNBA Standings" : "WNBA Teams")
-      : (tab === "standings" ? "NBA Standings" : "NBA Teams");
+      ? (tab === "standings" ? "WNBA Standings" : tab === "stats" ? "WNBA Team Stats" : "WNBA Teams")
+      : (tab === "standings" ? "NBA Standings" : tab === "stats" ? "NBA Team Stats" : "NBA Teams");
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["teams-schedule-stats", leagueId],
@@ -143,6 +144,7 @@ export default function TeamsPage() {
   const TABS: { value: Tab; label: string }[] = [
     { value: "teams", label: "Teams" },
     { value: "standings", label: "Standings" },
+    { value: "stats", label: "Stats" },
   ];
 
   return (
