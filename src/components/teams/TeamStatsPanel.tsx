@@ -8,9 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { ArrowDown, ArrowUp, ArrowUpDown, Search } from "lucide-react";
 import type { LeagueTeam } from "@/hooks/useLeagueTeams";
+import NationalityFlag from "@/components/NationalityFlag";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type Player = {
-  core: { id: number; name: string; team: string; fc_bc: string; salary: number; photo: string | null };
+  core: { id: number; name: string; team: string; fc_bc: string; salary: number; photo: string | null; nationality?: string | null };
   season: { gp: number; fp: number; mpg: number };
   last5: { fp5: number; mpg5: number };
   computed: { value: number; value5: number };
