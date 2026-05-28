@@ -402,22 +402,15 @@ export default function SchedulePage() {
           <div className="relative flex items-center flex-wrap gap-y-2">
             {/* LEFT: date / deadline / grid */}
             <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 md:pr-[280px]">
-              <h3 className="font-heading font-bold text-sm uppercase">{selectedDateLabel}</h3>
-              <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-xl">Day {day}</span>
-              {isToday && <Badge variant="destructive" className="text-[9px] rounded-xl px-1.5 py-0">TODAY</Badge>}
               {deadline && (
-                <>
-                  <span className="text-muted-foreground/40">·</span>
-                  <div
+                <div
                     className="flex items-center gap-1 text-[11px] text-muted-foreground"
                     title={`Deadline ${formatDeadline(deadline.deadline_utc)}`}
                   >
                     <Clock className="h-3 w-3" />
                     <span className="font-heading font-bold text-foreground">{formatDeadline(deadline.deadline_utc)}</span>
-                  </div>
-                </>
+                </div>
               )}
-              <span className="text-muted-foreground/40">·</span>
               <div className="inline-flex items-center rounded-xl border border-border overflow-hidden">
                 <button
                   onClick={() => setViewMode("list")}
