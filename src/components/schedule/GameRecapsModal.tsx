@@ -543,7 +543,7 @@ function CourtPicker({
           className="pointer-events-none absolute inset-0 rounded-[28px]"
           style={{ boxShadow: "inset 0 0 60px 20px rgba(0,0,0,0.45)" }}
         />
-        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-6 md:px-10 text-center">
+        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-6 md:px-10 pt-6 pb-10 md:pb-14 text-center">
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.55)]">
             <Clapperboard className="h-6 w-6 text-amber-300" />
           </div>
@@ -561,7 +561,7 @@ function CourtPicker({
             </p>
           )}
           {hasPlayed && (
-            <div className="w-full max-w-[640px] mt-1 flex-1 min-h-0 overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
+            <div className="w-full max-w-[640px] mt-1 max-h-[55%] overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
               {games.map((g) => (
                 <button
                   key={g.game_id}
