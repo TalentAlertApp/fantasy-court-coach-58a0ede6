@@ -8,7 +8,9 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Bandage, Clapperboard, Film } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Bandage, Clapperboard, Film, Calendar as CalendarIcon } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import InjuryReportModal from "@/components/InjuryReportModal";
 import CourtShowModal from "@/components/court-show/CourtShowModal";
 import GameRecapsModal from "@/components/schedule/GameRecapsModal";
@@ -73,6 +75,7 @@ export default function SchedulePage() {
   const [courtShowOpen, setCourtShowOpen] = useState(false);
   const [recapsOpen, setRecapsOpen] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "grid";
     return (localStorage.getItem("schedule_view_mode") as "list" | "grid") || "grid";
@@ -240,9 +243,38 @@ export default function SchedulePage() {
 
   const weekScrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const el = weekScrollRef.current?.querySelector(`[data-gw="${gw}"]`);
-    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    // Buttons use flex-wrap (no horizontal scroll), so scrollIntoView would
+    // bubble to the window and clip the top row behind the sticky header.
+    // Only horizontally scroll if the container itself is actually scrollable.
+    const container = weekScrollRef.current;
+    const el = container?.querySelector(`[data-gw="${gw}"]`) as HTMLElement | null;
+    if (!container || !el) return;
+    if (container.scrollWidth > container.clientWidth) {
+      const left = el.offsetLeft - container.clientWidth / 2 + el.clientWidth / 2;
+      container.scrollTo({ left, behavior: "smooth" });
+    }
   }, [gw]);
+
+  // Map ISO date → (gw, day) for the calendar picker
+  const dateToDay = useMemo(() => {
+    const m = new Map<string, { gw: number; day: number }>();
+    for (const d of deadlines) {
+      const authored = (d as unknown as { date?: string }).date;
+      const ds = authored ?? new Date(d.deadline_utc).toISOString().slice(0, 10);
+      m.set(ds, { gw: d.gw, day: d.day });
+    }
+    return m;
+  }, [deadlines]);
+
+  const selectedDate = useMemo(() => {
+    const found = weekDays.find((d) => d.day === day);
+    if (!found?.date) return undefined;
+    try {
+      return parse(found.date, "yyyy-MM-dd", new Date());
+    } catch {
+      return undefined;
+    }
+  }, [weekDays, day]);
 
   const hasTotwData = !!(weekCounts && Object.values(weekCounts).some((c) => c > 0));
 
@@ -271,6 +303,39 @@ export default function SchedulePage() {
             <span className="font-heading font-bold text-base dark:text-[hsl(var(--nba-yellow))]">GW {gw}</span>
             <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
             <span className="text-xs font-body dark:text-[hsl(var(--nba-yellow))]">{dateRange}</span>
+            <span className="dark:text-[hsl(var(--nba-yellow))] opacity-60">|</span>
+            <Popover open={calOpen} onOpenChange={setCalOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center h-6 w-6 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors dark:text-[hsl(var(--nba-yellow))]"
+                  title="Pick a date"
+                  aria-label="Pick a date"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="p-0 w-auto bg-popover" align="center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  defaultMonth={selectedDate}
+                  onSelect={(d) => {
+                    if (!d) return;
+                    const ds = format(d, "yyyy-MM-dd");
+                    const hit = dateToDay.get(ds);
+                    if (hit) {
+                      setGw(hit.gw);
+                      setDay(hit.day);
+                      setCalOpen(false);
+                    }
+                  }}
+                  disabled={(d) => !dateToDay.has(format(d, "yyyy-MM-dd"))}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div
             ref={weekScrollRef}
