@@ -1026,8 +1026,10 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   />
                 )}
                 <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.away_team}</span>
-                {(isFinal || isLive) && (
+                {(isFinal || isLive) ? (
                   <span className={`font-mono leading-none tabular-nums ${isFinal && g.away_pts > g.home_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.away_pts}</span>
+                ) : (
+                  <span aria-hidden className="font-mono leading-none text-lg opacity-0 select-none">0</span>
                 )}
               </div>
               <div className="flex flex-col items-center justify-center gap-0.5 px-2 min-w-[44px]">
@@ -1043,8 +1045,10 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   />
                 )}
                 <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.home_team}</span>
-                {(isFinal || isLive) && (
+                {(isFinal || isLive) ? (
                   <span className={`font-mono leading-none tabular-nums ${isFinal && g.home_pts > g.away_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.home_pts}</span>
+                ) : (
+                  <span aria-hidden className="font-mono leading-none text-lg opacity-0 select-none">0</span>
                 )}
               </div>
             </div>
