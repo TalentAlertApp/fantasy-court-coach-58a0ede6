@@ -256,8 +256,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
 
-              {/* MIDDLE: GW + Day + Calendar + Game cluster — anchored to the left, right after Gameday */}
-              <div className="flex items-center gap-2 flex-wrap justify-self-start">
+              {/* MIDDLE: GW + Day + Calendar + Recaps pill — centered */}
+              <div className="flex items-center gap-2 flex-wrap justify-self-center">
                 <div className="flex items-stretch gap-1">
                   <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-white/70 hover:text-white hover:bg-amber-300/10" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
                     <ChevronLeft className="h-4 w-4" />
@@ -320,20 +320,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
-                  Game
-                </div>
-                <GameRowPopover
-                  open={gameOpen}
-                  setOpen={setGameOpen}
-                  games={playedGames}
-                  selectedId={selectedGameId}
-                  selectedGame={selectedGame}
-                  onPick={(id) => { setSelectedGameId(id); setGameOpen(false); }}
-                  placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"}
-                  logoFor={logoFor}
-                  nameFor={nameFor}
-                />
+                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em] ml-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                  </span>
+                  {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
+                </span>
               </div>
 
               {/* RIGHT: actions */}
@@ -343,13 +336,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   disabled={!selectedGame}
                   onClick={() => setBiqOn((v) => !v)}
                 />
-                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                  </span>
-                  {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
-                </span>
               </div>
             </div>
           </div>
