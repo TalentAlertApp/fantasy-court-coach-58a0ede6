@@ -561,7 +561,7 @@ function CourtPicker({
             </p>
           )}
           {hasPlayed && (
-            <div className="w-full max-w-[640px] mt-1 max-h-[55%] overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
+            <div className="w-full max-w-[640px] mt-1 flex-1 min-h-0 overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
               {games.map((g) => (
                 <button
                   key={g.game_id}
