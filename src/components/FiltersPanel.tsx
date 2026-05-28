@@ -45,7 +45,8 @@ export default function FiltersPanel({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="space-y-4 p-3 bg-card border rounded-xl flex-1">
+      <div className="flex flex-col p-3 bg-card border rounded-xl flex-1 min-h-0">
+        <div className="space-y-4 flex-1">
         {onPerfModeChange && perfMode && (
           <div>
             <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground mb-2 block tracking-wider">View</Label>
@@ -141,12 +142,12 @@ export default function FiltersPanel({
         {onBadgeFilterChange && (
           <BadgeFilter value={badgeFilter ?? []} onChange={onBadgeFilterChange} />
         )}
-      </div>
-
-      {/* NBA FANTASY branding at bottom */}
-      <div className="mt-auto pt-4 flex items-center justify-center gap-2 opacity-30">
-        <img src={getLeagueLogo(league)} alt={league.toUpperCase()} className="h-6 w-auto" />
-        <span className="text-[10px] font-heading font-bold uppercase tracking-[0.2em]">Fantasy</span>
+        </div>
+        {/* NBA FANTASY branding pinned to bottom inside the card */}
+        <div className="mt-auto pt-4 flex items-center justify-center gap-2 opacity-30">
+          <img src={getLeagueLogo(league)} alt={league.toUpperCase()} className="h-6 w-auto" />
+          <span className="text-[10px] font-heading font-bold uppercase tracking-[0.2em]">Fantasy</span>
+        </div>
       </div>
     </div>
   );
