@@ -224,10 +224,11 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
           {/* Selector bar — single row */}
           <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
+            <div className="grid items-center gap-2 grid-cols-[auto_1fr_auto]">
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 justify-self-start">
                 Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
+              <div className="flex items-center gap-2 justify-self-center">
               <div className="flex items-stretch gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
                   <ChevronLeft className="h-4 w-4" />
@@ -271,18 +272,18 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                       const hL = logoFor(g.home_team);
                       return (
                         <SelectItem key={g.game_id} value={g.game_id}>
-                          <div className="grid w-full items-center gap-2 grid-cols-[1fr_auto_1fr]">
+                          <div className="grid w-full items-center grid-cols-[40px_minmax(0,1fr)_28px_minmax(0,1fr)_40px] gap-2">
+                            <span className="font-mono tabular-nums text-[11px] text-muted-foreground text-right">{g.away_pts ?? "—"}</span>
                             <div className="flex items-center justify-end gap-2 min-w-0">
-                              <span className="font-mono tabular-nums text-[11px] text-muted-foreground shrink-0">{g.away_pts}</span>
                               {aL && <img src={aL} alt="" className="w-5 h-5 shrink-0" />}
                               <span className="font-medium truncate">{nameFor(g.away_team)}</span>
                             </div>
-                            <span className="text-muted-foreground">@</span>
+                            <span className="text-muted-foreground text-center">@</span>
                             <div className="flex items-center justify-start gap-2 min-w-0">
                               <span className="font-medium truncate">{nameFor(g.home_team)}</span>
                               {hL && <img src={hL} alt="" className="w-5 h-5 shrink-0" />}
-                              <span className="font-mono tabular-nums text-[11px] text-muted-foreground shrink-0">{g.home_pts}</span>
                             </div>
+                            <span className="font-mono tabular-nums text-[11px] text-muted-foreground text-left">{g.home_pts ?? "—"}</span>
                           </div>
                         </SelectItem>
                       );
@@ -290,7 +291,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   </SelectContent>
                 </Select>
               </div>
-              <div className="ml-auto flex items-center gap-2">
+              </div>
+              <div className="flex items-center gap-2 justify-self-end">
                 <BallersIQButton
                   on={biqOn}
                   disabled={!selectedGame}
