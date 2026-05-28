@@ -22,6 +22,7 @@ import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import courtBg from "@/assets/court-bg.png";
 import GameTeamsFormRail from "@/components/schedule/GameTeamsFormRail";
+import GameActionLinks from "@/components/game/GameActionLinks";
 
 interface Props {
   open: boolean;
@@ -142,13 +143,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-[96vw] w-[96vw] h-[92vh] p-0 overflow-hidden border-amber-400/25 bg-background">
+      <DialogContent className="!max-w-[96vw] w-[96vw] h-[92vh] p-0 overflow-hidden border-amber-400/25 bg-background [&>button]:!text-white [&>button]:!opacity-90 [&>button]:hover:!opacity-100 [&>button]:z-50">
         <DialogHeader className="sr-only">
           <DialogTitle>Game Recaps</DialogTitle>
         </DialogHeader>
 
         {/* Modal background: amber radial fallback */}
-        <div className="relative flex h-full flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%)] bg-black/70 backdrop-blur-md">
+        <div className="relative flex h-full flex-col overflow-hidden text-foreground bg-[radial-gradient(ellipse_at_top,hsl(28_45%_22%/0.55),hsl(25_35%_14%)_70%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%),rgba(0,0,0,0.7)] backdrop-blur-md">
           {/* Full-modal venue background (below header), fades in on select */}
           {venue?.image && (
             <>
@@ -156,13 +157,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 src={venue.image}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-500"
+                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-80 transition-opacity duration-500"
               />
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/55" />
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/25 via-black/15 to-black/45" />
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
-                style={{ backgroundImage: "radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.5))" }}
+                style={{ backgroundImage: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.4))" }}
               />
             </>
           )}
@@ -196,7 +197,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
           {/* Selector bar — single row */}
           <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-400/15 bg-background/40 text-[11px] font-heading uppercase tracking-[0.18em] text-muted-foreground shrink-0">
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-muted-foreground text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
                 Gameday{selectedDateLabel ? <span className="ml-1.5 text-foreground/80 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
               <div className="flex items-stretch gap-1">
@@ -213,13 +214,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     setSelectedGameId(null);
                   }}
                 >
-                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em]"><SelectValue placeholder="GW" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="GW" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {allGws.map((g) => (<SelectItem key={g} value={String(g)}>GW {g}</SelectItem>))}
                   </SelectContent>
                 </Select>
                 <Select value={String(day)} onValueChange={(v) => { setDay(Number(v)); setSelectedGameId(null); }}>
-                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em]"><SelectValue placeholder="Day" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="Day" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {daysList.map((d) => (<SelectItem key={d} value={String(d)}>Day {d}</SelectItem>))}
                   </SelectContent>
@@ -228,12 +229,12 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-400/15 bg-background/40 text-[11px] font-heading uppercase tracking-[0.18em] text-muted-foreground shrink-0 ml-1">
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-muted-foreground text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
                 Game
               </div>
               <div className="w-[clamp(320px,42%,560px)]">
                 <Select value={selectedGameId ?? ""} onValueChange={(v) => setSelectedGameId(v || null)} disabled={playedGames.length === 0}>
-                  <SelectTrigger className="rounded-lg h-9 text-[11px]">
+                  <SelectTrigger className="rounded-lg h-9 text-[11px] bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-foreground border-amber-300/40 dark:border-amber-400/15">
                     <SelectValue placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
@@ -286,7 +287,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
-                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
+                  <div className="rounded-xl border border-amber-400/25 bg-stone-950/85 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="left"
@@ -333,7 +334,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     </div>
 
                   {/* RIGHT: home table OR BIQ market panel */}
-                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
+                  <div className="rounded-xl border border-amber-400/25 bg-stone-950/85 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="right"
@@ -365,6 +366,18 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 homeName={selectedGame ? nameFor(selectedGame.home_team) : ""}
                 referenceIso={referenceIso}
                 blurb={railBlurb}
+                actions={
+                  selectedGame ? (
+                    <GameActionLinks
+                      league={league}
+                      boxscoreUrl={selectedGame.game_boxscore_url}
+                      chartsUrl={selectedGame.game_charts_url}
+                      playByPlayUrl={selectedGame.game_playbyplay_url}
+                      leagueGameUrl={selectedGame.nba_game_url}
+                      className="flex items-center gap-1.5 flex-wrap"
+                    />
+                  ) : undefined
+                }
               />
             </div>
           </div>
