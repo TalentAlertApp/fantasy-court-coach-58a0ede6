@@ -296,7 +296,7 @@ function NBAPlaySearchSection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("game_id, away_team, home_team, tipoff_utc, status")
+        .select("game_id, away_team, home_team, tipoff_utc, status, home_pts, away_pts")
         .eq("league_id", leagueId!)
         .eq("gw", gw)
         .eq("day", day)
@@ -671,7 +671,7 @@ function NBAPlaySearchSection() {
                             : "No games on this gameday")
                     } />
                   </SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[320px]">
+                  <SelectContent className="rounded-lg max-h-[320px] min-w-[var(--radix-select-trigger-width)]">
                     {(gamesByDate ?? []).map((g: any) => {
                       const awayLogo = getTeamLogo(g.away_team);
                       const homeLogo = getTeamLogo(g.home_team);
@@ -680,20 +680,46 @@ function NBAPlaySearchSection() {
                         ? tip.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" })
                         : "";
                       const isPlayed = g.status === "FINAL";
+                      const aPts = g.away_pts ?? 0;
+                      const hPts = g.home_pts ?? 0;
+                      const awayWin = isPlayed && aPts > hPts;
+                      const homeWin = isPlayed && hPts > aPts;
                       return (
-                        <SelectItem key={g.game_id} value={g.game_id}>
-                          <div className={`flex items-center gap-2 w-full ${isPlayed ? "" : "opacity-50 grayscale"}`}>
-                            {awayLogo && <img src={awayLogo} alt="" className="w-5 h-5 shrink-0" />}
-                            <span className={`font-medium ${isPlayed ? "" : "text-muted-foreground"}`}>{TEAM_NAME[g.away_team] ?? g.away_team}</span>
-                            <span className="text-muted-foreground mx-1">@</span>
-                            {homeLogo && <img src={homeLogo} alt="" className="w-5 h-5 shrink-0" />}
-                            <span className={`font-medium ${isPlayed ? "" : "text-muted-foreground"}`}>{TEAM_NAME[g.home_team] ?? g.home_team}</span>
-                            {tipStr && (
-                              <span className={`ml-auto text-[10px] tabular-nums pl-3 ${isPlayed ? "text-muted-foreground" : "text-muted-foreground/70"}`}>{tipStr}</span>
-                            )}
-                            {!isPlayed && (
-                              <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 pl-2">Not played</span>
-                            )}
+                        <SelectItem key={g.game_id} value={g.game_id} className={isPlayed ? "" : "opacity-60"}>
+                          <div className="group grid items-center gap-2 w-full grid-cols-[44px_minmax(0,1fr)_28px_minmax(0,1fr)_44px]">
+                            <span className={cn("font-mono tabular-nums text-right text-[11px] text-foreground/80", awayWin && "font-bold text-foreground")}>
+                              {isPlayed ? aPts : ""}
+                            </span>
+                            <div className="relative flex items-center justify-end pr-12 min-w-0">
+                              <span className={cn("relative z-10 truncate whitespace-nowrap", awayWin ? "font-bold" : "font-medium")}>
+                                {TEAM_NAME[g.away_team] ?? g.away_team}
+                              </span>
+                              {awayLogo && (
+                                <img
+                                  src={awayLogo}
+                                  alt=""
+                                  aria-hidden
+                                  className="pointer-events-none select-none absolute right-0 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-30 group-hover:opacity-80 group-hover:scale-125 group-hover:translate-x-1 transition-all duration-300 ease-out drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
+                                />
+                              )}
+                            </div>
+                            <span className="text-center text-muted-foreground">@</span>
+                            <div className="relative flex items-center justify-start pl-12 min-w-0">
+                              {homeLogo && (
+                                <img
+                                  src={homeLogo}
+                                  alt=""
+                                  aria-hidden
+                                  className="pointer-events-none select-none absolute left-0 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-30 group-hover:opacity-80 group-hover:scale-125 group-hover:-translate-x-1 transition-all duration-300 ease-out drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
+                                />
+                              )}
+                              <span className={cn("relative z-10 truncate whitespace-nowrap", homeWin ? "font-bold" : "font-medium")}>
+                                {TEAM_NAME[g.home_team] ?? g.home_team}
+                              </span>
+                            </div>
+                            <span className={cn("font-mono tabular-nums text-left text-[11px] text-foreground/80", homeWin && "font-bold text-foreground")}>
+                              {isPlayed ? hPts : (tipStr || "")}
+                            </span>
                           </div>
                         </SelectItem>
                       );
