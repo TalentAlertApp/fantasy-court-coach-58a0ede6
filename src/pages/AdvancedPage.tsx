@@ -365,7 +365,7 @@ function NBAPlaySearchSection() {
     setGameId("");
   }, [gw, day]);
 
-  const { data: gamesByDate, isLoading: gamesLoading } = useQuery({
+  const { data: gamesByDate, isLoading: gamesLoading } = useQuery<AdvancedGameOption[]>({
     queryKey: ["games-by-gw-day", gw, day, leagueId],
     enabled: !!leagueId,
     queryFn: async () => {
@@ -781,7 +781,7 @@ function NBAPlaySearchSection() {
                       year: "numeric",
                       month: "2-digit",
                       day: "2-digit",
-                    }).format(new Date(selectedGame.tipoff_utc)).replace(/-/g, "");
+                    }).format(new Date(selectedGame.tipoff_utc ?? currentDeadline.deadline_utc)).replace(/-/g, "");
                     // nbaplaydb uses PDX (not POR) for Portland in its URL scheme.
                     const mapTri = (t: string) => (t?.toUpperCase() === "POR" ? "PDX" : t);
                     const away = mapTri(selectedGame.away_team);
