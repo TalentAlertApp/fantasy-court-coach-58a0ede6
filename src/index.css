@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Light-theme parquet texture for the Game Recaps empty state */
+.recap-empty-court-light {
+  background-color: #c98a4b;
+  background-image:
+    radial-gradient(ellipse at 50% 38%, rgba(255, 210, 130, 0.55), transparent 60%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(89, 45, 18, 0.18) 0px,
+      rgba(89, 45, 18, 0.18) 1px,
+      transparent 1px,
+      transparent 64px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(89, 45, 18, 0.10) 0px,
+      rgba(89, 45, 18, 0.10) 1px,
+      transparent 1px,
+      transparent 22px
+    ),
+    linear-gradient(180deg, #d9a86c 0%, #b97a3f 100%);
+}
+.dark .recap-empty-court-light {
+  background-color: transparent;
+  background-image: none;
+}
+
 /* =====================================================
    LIGHT THEME (default :root)
    ===================================================== */
