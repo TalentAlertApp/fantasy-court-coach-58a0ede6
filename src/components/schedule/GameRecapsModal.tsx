@@ -576,9 +576,29 @@ function BallersIQButton({ on, onClick, disabled }: { on: boolean; onClick: () =
 // length, score length, or selected state.
 // ============================================================================
 
-// columns: check | away score | away team (name → logo) | @ | home team (logo → name) | home score
+// columns: check | away score | away team name | @ | home team name | home score
+// Team badges render as oversized watermarks anchored to the inner edge of each
+// team-name cell (where the small logo used to sit), with a surge-on-hover scale.
 const GAME_ROW_GRID =
   "grid items-center gap-2 grid-cols-[20px_44px_minmax(0,1fr)_28px_minmax(0,1fr)_44px]";
+
+function TeamWatermark({ src, side }: { src?: string; side: "away" | "home" }) {
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={cn(
+        "pointer-events-none select-none absolute top-1/2 -translate-y-1/2 h-10 w-10 object-contain",
+        "opacity-30 group-hover:opacity-80 transition-all duration-300 ease-out",
+        "group-hover:scale-125 drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]",
+        side === "away" ? "right-0 group-hover:translate-x-1" : "left-0 group-hover:-translate-x-1",
+      )}
+    />
+  );
+}
 
 function GameRowPopover({
   open,
@@ -614,26 +634,30 @@ function GameRowPopover({
             disabled && "opacity-50 cursor-not-allowed",
           )}
         >
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 group">
             {selectedGame ? (
-              <div className={GAME_ROW_GRID}>
-                <span aria-hidden className="invisible">·</span>
-                <span className="font-mono tabular-nums text-right text-white/90">{selectedGame.away_pts ?? "—"}</span>
-                <div className="flex items-center justify-end gap-2 min-w-0">
-                  <span className="truncate font-medium text-white">{nameFor(selectedGame.away_team)}</span>
-                  {logoFor(selectedGame.away_team) && (
-                    <img src={logoFor(selectedGame.away_team)} alt="" className="w-5 h-5 shrink-0" />
-                  )}
-                </div>
-                <span className="text-center text-white/60">@</span>
-                <div className="flex items-center justify-start gap-2 min-w-0">
-                  {logoFor(selectedGame.home_team) && (
-                    <img src={logoFor(selectedGame.home_team)} alt="" className="w-5 h-5 shrink-0" />
-                  )}
-                  <span className="truncate font-medium text-white">{nameFor(selectedGame.home_team)}</span>
-                </div>
-                <span className="font-mono tabular-nums text-left text-white/90">{selectedGame.home_pts ?? "—"}</span>
-              </div>
+              (() => {
+                const a = selectedGame.away_pts ?? 0;
+                const h = selectedGame.home_pts ?? 0;
+                const awayWin = a > h;
+                const homeWin = h > a;
+                return (
+                  <div className={GAME_ROW_GRID}>
+                    <span aria-hidden className="invisible">·</span>
+                    <span className={cn("font-mono tabular-nums text-right text-white/90", awayWin && "font-bold text-white")}>{selectedGame.away_pts ?? "—"}</span>
+                    <div className="relative flex items-center justify-end pr-12 min-w-0">
+                      <span className={cn("relative z-10 truncate text-white", awayWin ? "font-bold" : "font-medium")}>{nameFor(selectedGame.away_team)}</span>
+                      <TeamWatermark src={logoFor(selectedGame.away_team)} side="away" />
+                    </div>
+                    <span className="text-center text-white/60">@</span>
+                    <div className="relative flex items-center justify-start pl-12 min-w-0">
+                      <TeamWatermark src={logoFor(selectedGame.home_team)} side="home" />
+                      <span className={cn("relative z-10 truncate text-white", homeWin ? "font-bold" : "font-medium")}>{nameFor(selectedGame.home_team)}</span>
+                    </div>
+                    <span className={cn("font-mono tabular-nums text-left text-white/90", homeWin && "font-bold text-white")}>{selectedGame.home_pts ?? "—"}</span>
+                  </div>
+                );
+              })()
             ) : (
               <span className="text-white/60 truncate block text-left">{placeholder}</span>
             )}
@@ -651,13 +675,17 @@ function GameRowPopover({
         ) : (
           games.map((g) => {
             const isSel = g.game_id === selectedId;
+            const a = g.away_pts ?? 0;
+            const h = g.home_pts ?? 0;
+            const awayWin = a > h;
+            const homeWin = h > a;
             return (
               <button
                 key={g.game_id}
                 type="button"
                 onClick={() => onPick(g.game_id)}
                 className={cn(
-                  "w-full rounded-md px-2 py-2 text-[12px] transition-colors text-left",
+                  "group w-full rounded-md px-2 py-2 text-[12px] transition-colors text-left",
                   isSel
                     ? "bg-amber-300/15 hover:bg-amber-300/20"
                     : "hover:bg-amber-300/10",
@@ -667,21 +695,17 @@ function GameRowPopover({
                   <span className="flex items-center justify-center">
                     {isSel ? <Check className="h-3.5 w-3.5 text-amber-300" /> : <span aria-hidden className="invisible">·</span>}
                   </span>
-                  <span className="font-mono tabular-nums text-right text-foreground/90">{g.away_pts ?? "—"}</span>
-                  <div className="flex items-center justify-end gap-2 min-w-0">
-                    <span className="truncate font-medium whitespace-nowrap">{nameFor(g.away_team)}</span>
-                    {logoFor(g.away_team) && (
-                      <img src={logoFor(g.away_team)} alt="" className="w-5 h-5 shrink-0" />
-                    )}
+                  <span className={cn("font-mono tabular-nums text-right text-foreground/90", awayWin && "font-bold text-foreground")}>{g.away_pts ?? "—"}</span>
+                  <div className="relative flex items-center justify-end pr-12 min-w-0">
+                    <span className={cn("relative z-10 truncate whitespace-nowrap", awayWin ? "font-bold" : "font-medium")}>{nameFor(g.away_team)}</span>
+                    <TeamWatermark src={logoFor(g.away_team)} side="away" />
                   </div>
                   <span className="text-center text-muted-foreground">@</span>
-                  <div className="flex items-center justify-start gap-2 min-w-0">
-                    {logoFor(g.home_team) && (
-                      <img src={logoFor(g.home_team)} alt="" className="w-5 h-5 shrink-0" />
-                    )}
-                    <span className="truncate font-medium whitespace-nowrap">{nameFor(g.home_team)}</span>
+                  <div className="relative flex items-center justify-start pl-12 min-w-0">
+                    <TeamWatermark src={logoFor(g.home_team)} side="home" />
+                    <span className={cn("relative z-10 truncate whitespace-nowrap", homeWin ? "font-bold" : "font-medium")}>{nameFor(g.home_team)}</span>
                   </div>
-                  <span className="font-mono tabular-nums text-left text-foreground/90">{g.home_pts ?? "—"}</span>
+                  <span className={cn("font-mono tabular-nums text-left text-foreground/90", homeWin && "font-bold text-foreground")}>{g.home_pts ?? "—"}</span>
                 </div>
               </button>
             );
