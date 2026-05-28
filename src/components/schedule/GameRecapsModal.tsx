@@ -23,6 +23,8 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import courtBg from "@/assets/court-bg.png";
 import GameTeamsFormRail from "@/components/schedule/GameTeamsFormRail";
 import GameActionLinks from "@/components/game/GameActionLinks";
+import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
+import type { TeamGameSlot } from "@/hooks/useTeamRecentUpcoming";
 
 interface Props {
   open: boolean;
@@ -46,6 +48,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [day, setDay] = useState(initialDay);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [biqOn, setBiqOn] = useState(false);
+  const [scheduledDetail, setScheduledDetail] = useState<GameDetailGame | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -53,6 +56,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
       setDay(initialDay);
       setSelectedGameId(null);
       setBiqOn(false);
+      setScheduledDetail(null);
     }
   }, [open, initialGw, initialDay]);
 
@@ -137,9 +141,31 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
     return new Date().toISOString();
   }, [selectedGame, deadlines, gw, day]);
 
-  const railBlurb = selectedGame
-    ? `${nameFor(selectedGame.away_team)} ${selectedGame.away_pts ?? "-"} @ ${selectedGame.home_pts ?? "-"} ${nameFor(selectedGame.home_team)}${venue?.name ? ` · ${venue.name}` : ""}`
-    : undefined;
+  const handleSelectPlayed = (gameId: string) => {
+    const inDay = playedGames.find((g) => g.game_id === gameId);
+    if (inDay) {
+      setSelectedGameId(gameId);
+      return;
+    }
+    const inWeek = weekGames.find((g) => g.game_id === gameId && isPlayedStatus(g.status));
+    if (inWeek) {
+      setDay(inWeek.day);
+      setSelectedGameId(gameId);
+    }
+  };
+
+  const handleSelectScheduled = (slot: TeamGameSlot) => {
+    setScheduledDetail({
+      game_id: slot.gameId,
+      home_team: slot.homeTeam,
+      away_team: slot.awayTeam,
+      home_pts: 0,
+      away_pts: 0,
+      status: slot.status ?? null,
+      tipoff_utc: slot.tipoffUtc,
+      played: false,
+    });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -149,7 +175,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
         </DialogHeader>
 
         {/* Modal background: amber radial fallback */}
-        <div className="relative flex h-full flex-col overflow-hidden text-foreground bg-[radial-gradient(ellipse_at_top,hsl(28_45%_22%/0.55),hsl(25_35%_14%)_70%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%),rgba(0,0,0,0.7)] backdrop-blur-md">
+        <div className="relative flex h-full flex-col overflow-hidden text-foreground bg-[radial-gradient(ellipse_at_top,hsl(30_55%_24%/0.65),hsl(25_42%_15%)_72%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%),rgba(0,0,0,0.7)] backdrop-blur-md">
           {/* Full-modal venue background (below header), fades in on select */}
           {venue?.image && (
             <>
@@ -169,10 +195,18 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
           )}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent shadow-[0_0_10px_rgba(252,211,77,0.4)]" />
 
+          {/* Large premium league watermark */}
+          <img
+            src={getLeagueLogo(league)}
+            alt=""
+            aria-hidden
+            className="pointer-events-none select-none absolute -top-6 -right-8 h-44 w-44 object-contain opacity-[0.12] rotate-[8deg] drop-shadow-[0_8px_24px_rgba(0,0,0,0.4)] z-[5]"
+            style={{ WebkitMaskImage: "radial-gradient(circle at center, black 55%, transparent 78%)", maskImage: "radial-gradient(circle at center, black 55%, transparent 78%)" }}
+          />
+
           {/* Top hero */}
           <div className="relative z-10 px-6 pt-5 pb-3 border-b border-amber-400/15">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
                 <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400/30 to-amber-600/10 border border-amber-400/30 flex items-center justify-center shadow-[0_0_24px_-4px_hsl(var(--primary)/0.4)]">
                   <Film className="h-5 w-5 text-amber-300" />
                 </div>
@@ -184,21 +218,14 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     Game Recaps
                   </h2>
                 </div>
-              </div>
-              <img
-                src={getLeagueLogo(league)}
-                alt=""
-                aria-hidden
-                className="h-10 w-10 object-contain opacity-80"
-              />
             </div>
           </div>
 
           {/* Selector bar — single row */}
           <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-muted-foreground text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
-                Gameday{selectedDateLabel ? <span className="ml-1.5 text-foreground/80 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
+                Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
               <div className="flex items-stretch gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
@@ -214,13 +241,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     setSelectedGameId(null);
                   }}
                 >
-                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="GW" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="GW" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {allGws.map((g) => (<SelectItem key={g} value={String(g)}>GW {g}</SelectItem>))}
                   </SelectContent>
                 </Select>
                 <Select value={String(day)} onValueChange={(v) => { setDay(Number(v)); setSelectedGameId(null); }}>
-                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="Day" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="Day" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {daysList.map((d) => (<SelectItem key={d} value={String(d)}>Day {d}</SelectItem>))}
                   </SelectContent>
@@ -229,12 +256,12 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-muted-foreground text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
                 Game
               </div>
               <div className="w-[clamp(320px,42%,560px)]">
                 <Select value={selectedGameId ?? ""} onValueChange={(v) => setSelectedGameId(v || null)} disabled={playedGames.length === 0}>
-                  <SelectTrigger className="rounded-lg h-9 text-[11px] bg-stone-900/85 dark:bg-background/40 text-amber-50 dark:text-foreground border-amber-300/40 dark:border-amber-400/15">
+                  <SelectTrigger className="rounded-lg h-9 text-[11px] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15">
                     <SelectValue placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
@@ -263,7 +290,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   disabled={!selectedGame}
                   onClick={() => setBiqOn((v) => !v)}
                 />
-                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
+                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -287,7 +314,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
-                  <div className="rounded-xl border border-amber-400/25 bg-stone-950/85 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
+                  <div className="rounded-xl border border-amber-400/30 bg-background/95 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="left"
@@ -334,7 +361,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     </div>
 
                   {/* RIGHT: home table OR BIQ market panel */}
-                  <div className="rounded-xl border border-amber-400/25 bg-stone-950/85 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
+                  <div className="rounded-xl border border-amber-400/30 bg-background/95 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="right"
@@ -365,7 +392,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 awayName={selectedGame ? nameFor(selectedGame.away_team) : ""}
                 homeName={selectedGame ? nameFor(selectedGame.home_team) : ""}
                 referenceIso={referenceIso}
-                blurb={railBlurb}
+                onSelectPlayedGame={handleSelectPlayed}
+                onSelectScheduledGame={handleSelectScheduled}
                 actions={
                   selectedGame ? (
                     <GameActionLinks
@@ -382,6 +410,11 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
             </div>
           </div>
         </div>
+        <GameDetailModal
+          game={scheduledDetail}
+          open={!!scheduledDetail}
+          onOpenChange={(o) => { if (!o) setScheduledDetail(null); }}
+        />
       </DialogContent>
     </Dialog>
   );
