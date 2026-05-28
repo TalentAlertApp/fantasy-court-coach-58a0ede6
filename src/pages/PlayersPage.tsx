@@ -1036,7 +1036,7 @@ export default function PlayersPage() {
 
           {/* RIGHT — Filters (retractable, − collapses inside the card) */}
           {filtersOpen && (
-            <div className="w-56 flex-shrink-0 self-start relative">
+            <div className="w-56 flex-shrink-0 relative flex flex-col min-h-0">
               <FiltersPanel
                 fcBc={fcBc}
                 onFcBcChange={setFcBc}
