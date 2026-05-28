@@ -172,12 +172,30 @@ export default function PlayerCard({
           </button>
         )}
 
-        <div className="flex items-stretch">
-          {teamLogo && (
-            <div className="w-12 shrink-0 flex items-center justify-center bg-muted/30 rounded-l-xl">
-              <img src={teamLogo} alt={core.team} className="w-9 h-9 transition-transform group-hover:scale-110" />
-            </div>
-          )}
+        {/* Team logo watermark — far right, big, surge on hover */}
+        {teamLogo && (
+          <img
+            src={teamLogo}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-14 h-14 object-contain opacity-25 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-40 z-0"
+          />
+        )}
+
+        <div className="flex items-stretch relative z-[1]">
+          <div className="w-12 shrink-0 flex items-center justify-center">
+            {core.photo ? (
+              <img
+                src={core.photo}
+                alt={core.name}
+                className="w-11 h-11 object-cover object-top rounded-full transition-transform duration-200 group-hover:scale-110"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-black/30 flex items-center justify-center text-[10px] font-heading font-bold text-white/80">
+                {core.name.substring(0, 2).toUpperCase()}
+              </div>
+            )}
+          </div>
           <div className="flex-1 px-2 py-1.5 min-w-0">
             <p className="text-sm font-heading font-bold leading-tight flex items-center gap-1 min-w-0">
               <span className="truncate">{formatShortName(core.name)}</span>
