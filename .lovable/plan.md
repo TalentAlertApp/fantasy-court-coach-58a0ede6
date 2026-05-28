@@ -1,20 +1,69 @@
-## Plan
+# Game Recaps modal — rework
 
-1. **Transactions Players table layout**
-   - Update the Team column so contextual icons sit **to the left of the team logo/code**.
-   - Reserve a fixed icon lane wide enough for the max visible icons (`max=3` plus overflow count), aligned to the **right edge of that lane**.
-   - Keep the team logo/code in a separate fixed area so icons cannot overlap it.
+Single-file rewrite of `src/components/schedule/GameRecapsModal.tsx`. No other files need to change; existing components (`GameBoxScoreTable`, `GameBallersIQSidePanel`, `getVenue`) provide everything required. The modal becomes a one-screen, no-scroll layout.
 
-2. **Expose the actual Schedule sync error**
-   - Improve `/commissioner` WNBA sync results so the red `errors: 1` can be expanded/read directly instead of only showing a count.
-   - Add enough diagnostic detail to identify the failing batch/row when Schedule sync partially succeeds.
+## 1. Selector bar (top, below modal header)
 
-3. **Fix WNBA live scores from Schedule sync**
-   - The database currently still has only `FINAL` and `SCHEDULED` WNBA schedule rows after the sync; the live rows in the sheet are not reaching `schedule_games`.
-   - The most likely remaining issue is the schedule upsert conflict target: `schedule_games` primary key is only `game_id`, while the sync now sends `league_id` too. I will adjust the WNBA schedule sync so it updates existing game IDs safely and preserves the live status strings/scores (`Q4 5:03`, `Half`, etc.).
-   - Verify after the change by checking the specific live game IDs (`1022600049`, `1022600050`) in `schedule_games` and confirming scores/status can update.
+Two inline rows on a single bar, no stacked labels:
 
-## Notes
+```text
+[Gameday · Wed, May 27]  [‹] [GW ▾] [Day ▾] [›]      ● N recaps
+[Game]                   [Away @ Home  ▾  (2/3 width)]
+```
 
-- `upserted: 130` with `read: 330` means one 200-row batch failed and one 130-row batch succeeded. That is why not all 330 sheet rows landed.
-- The app only shows `errors: 1` today because the Commissioner panel counts errors but does not display the error text; I will make that visible as part of the fix.
+- Labels sit inline to the left of their controls (not above).
+- The Game dropdown trigger width is reduced to ~`max-w-[66%]` / `w-2/3` of the row (was full-width).
+- Drop the `Ballers.IQ` toggle button entirely (item #5).
+- Keep prev/next chevrons, recap-count pill.
+
+## 2. Remove header & player table
+
+- Delete the `GameMatchupHeader` block (venue watermark + GW/D/tipoff/venue pills + away-score-home banner + `GameActionLinks`).
+- Delete the full-width `GameBoxScoreTable` block currently rendered below the header.
+
+## 3. New body (selected-game state) — three columns
+
+A single CSS grid filling the modal body with no inner vertical scroll:
+
+```text
+┌─ AWAY BOX (compact) ─┬─ VIDEO (16:9, scaled) ─┬─ HOME BOX (compact) ─┐
+│  GameBoxScoreTable   │   <iframe recap>       │  GameBoxScoreTable   │
+│  filterTeam=away     │                        │  filterTeam=home     │
+│  density="compact"   │                        │  density="compact"   │
+│  fillHeight          │                        │  fillHeight          │
+└──────────────────────┴────────────────────────┴──────────────────────┘
+┌──── Ballers.IQ horizontal rail (same total width, equal cards) ─────┐
+│  [MVP]   [Top Performers]   [Value Ace]   [Game Chips]              │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+- Grid columns: `grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)]` so the video stays the visual centerpiece while leaving real estate for the two side tables.
+- Video container keeps `aspect-video` but its width is now ~60% of the modal (smaller than before), and table column heights are matched to it via `fillHeight` on `GameBoxScoreTable` (already supported).
+- Each box-score column passes the existing `filterTeam` + `setFilterTeam={() => {}}` + `density="compact"` + `fillHeight` props — mirrors the pattern already used in `GameDetailModal` (lines 356, 383).
+- The whole body uses `overflow-hidden` and `h-full`; no scrollbars inside the modal.
+
+## 4. Venue background (item #6)
+
+When a game is selected:
+- Resolve via `getVenue(selectedGame.home_team)` from `@/lib/nba-venues` (already imported in `GameDetailModal`).
+- Render the venue image as an absolutely-positioned layer behind the body content (below modal header), with a dark gradient + slight blur overlay so foreground tables/video remain legible. Falls back to the current amber-radial gradient if no venue image.
+- When no game is selected (empty state) the background stays as the Ballers.IQ amber gradient.
+
+## 5. Ballers.IQ horizontal rail (item #7)
+
+Replace the right-side `GameBallersIQSidePanel` rail with a horizontal strip directly under the 3-column row. Split the existing intel into 3–4 equal cards laid out in a `grid grid-cols-2 lg:grid-cols-4 gap-3`:
+
+- **MVP** — top FP player (name, FP, team logo).
+- **Top Performers** — top-5 chip list.
+- **Value Ace** — best FP/$.
+- **Game Pulse** — the existing chips (HIGH FP GAME / CLOSE GAME / etc.).
+
+Implementation: extract this from `GameBallersIQSidePanel.tsx` logic inline in the modal file (memo using `useGameBoxscoreQuery(selectedGame.game_id)`), no new shared file required. Total rail width = away-table + video + home-table (i.e., it spans `col-span-3` of the grid above). Keep amber border treatment; remove the `BALLERS.IQ` brand label (item #5).
+
+## 6. Empty state
+
+Keep the placeholder card but scale it to the same shrunken video footprint so the layout sits in one screen. Skip the Ballers.IQ rail when no game is selected.
+
+## Files touched
+
+- `src/components/schedule/GameRecapsModal.tsx` — rewritten body and selector bar only. All other files (`GameMatchupHeader`, `GameBallersIQSidePanel`, `GameBoxScoreTable`, `GameDetailModal`) are untouched.
