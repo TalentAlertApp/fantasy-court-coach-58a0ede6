@@ -195,6 +195,81 @@ function PlayerCombobox({
   );
 }
 
+type AdvancedGameOption = {
+  game_id: string;
+  away_team: string;
+  home_team: string;
+  tipoff_utc: string | null;
+  status: string | null;
+  home_pts: number | null;
+  away_pts: number | null;
+};
+
+const ADVANCED_GAME_ROW_GRID =
+  "grid w-full min-w-0 items-center gap-2 grid-cols-[28px_52px_minmax(0,1fr)_32px_minmax(0,1fr)_64px]";
+
+function AdvancedGameLogo({ src, alt }: { src?: string; alt: string }) {
+  return src ? <img src={src} alt={alt} className="h-5 w-5 shrink-0 object-contain" /> : <span aria-hidden className="h-5 w-5 shrink-0" />;
+}
+
+function AdvancedGameSelectRow({
+  game,
+  isSelected,
+  nameFor,
+  compact = false,
+}: {
+  game: AdvancedGameOption;
+  isSelected: boolean;
+  nameFor: (team: string) => string;
+  compact?: boolean;
+}) {
+  const awayLogo = getTeamLogo(game.away_team);
+  const homeLogo = getTeamLogo(game.home_team);
+  const hasScores = game.away_pts != null && game.home_pts != null;
+  const isPlayed = String(game.status ?? "").toUpperCase() === "FINAL" || hasScores;
+  const awayWin = isPlayed && hasScores && Number(game.away_pts) > Number(game.home_pts);
+  const homeWin = isPlayed && hasScores && Number(game.home_pts) > Number(game.away_pts);
+  const tip = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
+  const tipStr = tip
+    ? tip.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" })
+    : "—";
+
+  return (
+    <div className={cn(ADVANCED_GAME_ROW_GRID, compact ? "text-[11px]" : "text-xs")}>
+      <span className="flex h-5 items-center justify-center">
+        {isSelected ? <Check className="h-3.5 w-3.5 text-primary" /> : <span aria-hidden className="invisible">·</span>}
+      </span>
+      <span
+        className={cn(
+          "font-mono tabular-nums text-right text-muted-foreground whitespace-nowrap",
+          isPlayed && "text-foreground",
+          awayWin && "font-bold",
+        )}
+      >
+        {isPlayed && hasScores ? game.away_pts : "—"}
+      </span>
+      <div className="flex min-w-0 items-center justify-end gap-1.5 text-right">
+        <span className={cn("min-w-0 truncate whitespace-nowrap", awayWin ? "font-bold text-foreground" : "font-medium")}>{nameFor(game.away_team)}</span>
+        <AdvancedGameLogo src={awayLogo} alt={`${nameFor(game.away_team)} logo`} />
+      </div>
+      <span className="text-center font-heading text-muted-foreground">@</span>
+      <div className="flex min-w-0 items-center justify-start gap-1.5 text-left">
+        <AdvancedGameLogo src={homeLogo} alt={`${nameFor(game.home_team)} logo`} />
+        <span className={cn("min-w-0 truncate whitespace-nowrap", homeWin ? "font-bold text-foreground" : "font-medium")}>{nameFor(game.home_team)}</span>
+      </div>
+      <span
+        className={cn(
+          "font-mono tabular-nums text-left text-muted-foreground whitespace-nowrap",
+          isPlayed && "text-foreground",
+          homeWin && "font-bold",
+        )}
+      >
+        {isPlayed && hasScores ? game.home_pts : tipStr}
+      </span>
+    </div>
+  );
+}
+
 function NBAPlaySearchSection() {
   const { league, isWnba } = useLeague();
   const { data: leagueId } = useLeagueId();
