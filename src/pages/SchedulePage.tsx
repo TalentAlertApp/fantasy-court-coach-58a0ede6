@@ -12,7 +12,6 @@ import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3
 import InjuryReportModal from "@/components/InjuryReportModal";
 import CourtShowModal from "@/components/court-show/CourtShowModal";
 import GameRecapsModal from "@/components/schedule/GameRecapsModal";
-import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline, type Deadline } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
@@ -236,12 +235,6 @@ export default function SchedulePage() {
     return `${format(first, "MMM d")} – ${format(last, "MMM d")}`;
   }, [gw, getDaysForWeek]);
   const todayStr = new Date().toISOString().slice(0, 10);
-  const selectedDateStr = WEEK_DAY_TO_DATE[`${gw}-${day}`] ?? "";
-  const isToday = selectedDateStr === todayStr;
-
-  const selectedDateLabel = selectedDateStr
-    ? format(parse(selectedDateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
-    : "";
 
   const deadline = deadlines.find((d) => d.gw === gw && d.day === day);
 
@@ -402,22 +395,15 @@ export default function SchedulePage() {
           <div className="relative flex items-center flex-wrap gap-y-2">
             {/* LEFT: date / deadline / grid */}
             <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0 md:pr-[280px]">
-              <h3 className="font-heading font-bold text-sm uppercase">{selectedDateLabel}</h3>
-              <span className="text-[10px] text-muted-foreground font-heading bg-muted px-1.5 py-0.5 rounded-xl">Day {day}</span>
-              {isToday && <Badge variant="destructive" className="text-[9px] rounded-xl px-1.5 py-0">TODAY</Badge>}
               {deadline && (
-                <>
-                  <span className="text-muted-foreground/40">·</span>
-                  <div
+                <div
                     className="flex items-center gap-1 text-[11px] text-muted-foreground"
                     title={`Deadline ${formatDeadline(deadline.deadline_utc)}`}
                   >
                     <Clock className="h-3 w-3" />
                     <span className="font-heading font-bold text-foreground">{formatDeadline(deadline.deadline_utc)}</span>
-                  </div>
-                </>
+                </div>
               )}
-              <span className="text-muted-foreground/40">·</span>
               <div className="inline-flex items-center rounded-xl border border-border overflow-hidden">
                 <button
                   onClick={() => setViewMode("list")}

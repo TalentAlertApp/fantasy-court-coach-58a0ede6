@@ -12,6 +12,10 @@ export interface TeamGameSlot {
   myPts?: number | null;
   oppPts?: number | null;
   status?: string | null;
+  homeTeam: string;
+  awayTeam: string;
+  gameRecapUrl?: string | null;
+  youtubeRecapId?: string | null;
 }
 
 export interface TeamRecentUpcoming {
@@ -34,7 +38,8 @@ export function useTeamRecentUpcoming(team: string | null, referenceIso: string 
       const ref = referenceIso!;
       const t = team!;
 
-      const baseSelect = "game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc";
+      const baseSelect =
+        "game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_recap_url, youtube_recap_id";
 
       const [pastRes, nextRes] = await Promise.all([
         supabase
@@ -73,6 +78,10 @@ export function useTeamRecentUpcoming(team: string | null, referenceIso: string 
           myPts,
           oppPts,
           status: g.status,
+          homeTeam: g.home_team,
+          awayTeam: g.away_team,
+          gameRecapUrl: g.game_recap_url ?? null,
+          youtubeRecapId: g.youtube_recap_id ?? null,
         };
       };
 
