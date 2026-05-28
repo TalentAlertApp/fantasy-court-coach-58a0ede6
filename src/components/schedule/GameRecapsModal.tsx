@@ -18,7 +18,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useScheduleWeekGames, type ScheduleWeekGame } from "@/hooks/useScheduleWeekGames";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getVenue } from "@/lib/nba-venues";
-import { getTeamByTricode } from "@/lib/nba-teams";
+import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { format, parse } from "date-fns";
 import { toYouTubeEmbed } from "@/lib/youtube-embed";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
@@ -45,7 +45,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const { league } = useLeague();
   const { deadlines } = useLeagueDeadlines();
   const { teams: leagueTeams } = useLeagueTeams();
-  const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const logoFor = (tri: string) =>
+    getTeamLogo(tri, league) ?? leagueTeams.find((t) => t.tricode === tri)?.logo;
   const nameFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.name ?? tri;
 
   const [gw, setGw] = useState(initialGw);
