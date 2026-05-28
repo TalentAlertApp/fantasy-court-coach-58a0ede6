@@ -550,11 +550,16 @@ function CourtPicker({
           <h3 className="font-heading font-black text-base md:text-lg uppercase tracking-wider bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300 bg-clip-text text-transparent">
             {hasPlayed ? "Pick a game to tip off" : "No recaps available"}
           </h3>
-          <p className="text-[11px] md:text-xs text-white/70">
-            {hasPlayed
-              ? `${games.length} recap${games.length === 1 ? "" : "s"}${dateLabel ? ` · ${dateLabel}` : ""}`
-              : `No played-game recaps were found${dateLabel ? ` for ${dateLabel}` : ""}. Choose another day or gameweek to browse available recaps.`}
-          </p>
+          {hasPlayed ? (
+            <p className="text-[11px] md:text-xs text-white/70">
+              {`${games.length} recap${games.length === 1 ? "" : "s"}${dateLabel ? ` · ${dateLabel}` : ""}`}
+            </p>
+          ) : (
+            <p className="text-[11px] md:text-xs text-white/70">
+              <span className="block">{`No played-game recaps were found${dateLabel ? ` for ${dateLabel}` : ""}.`}</span>
+              <span className="block">Choose another day or gameweek to browse available recaps.</span>
+            </p>
+          )}
           {hasPlayed && (
             <div className="w-full max-w-[640px] mt-1 flex-1 min-h-0 overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
               {games.map((g) => (
