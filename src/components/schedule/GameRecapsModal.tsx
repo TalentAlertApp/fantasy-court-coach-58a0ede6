@@ -10,7 +10,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, Check, ChevronDown } from "lucide-react";
+import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
@@ -53,7 +53,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [biqOn, setBiqOn] = useState(false);
   const [scheduledDetail, setScheduledDetail] = useState<GameDetailGame | null>(null);
-  const [gameOpen, setGameOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
 
   useEffect(() => {
@@ -63,7 +62,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
       setSelectedGameId(null);
       setBiqOn(false);
       setScheduledDetail(null);
-      setGameOpen(false);
       setCalOpen(false);
     }
   }, [open, initialGw, initialDay]);
