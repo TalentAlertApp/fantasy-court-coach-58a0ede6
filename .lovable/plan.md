@@ -1,46 +1,20 @@
-## Plan — /teams Stats tab polish
+## Plan
 
-Scope: `src/components/teams/TeamStatsPanel.tsx` only. No data/business logic changes.
+1. **Transactions Players table layout**
+   - Update the Team column so contextual icons sit **to the left of the team logo/code**.
+   - Reserve a fixed icon lane wide enough for the max visible icons (`max=3` plus overflow count), aligned to the **right edge of that lane**.
+   - Keep the team logo/code in a separate fixed area so icons cannot overlap it.
 
-### 1. Scrollable tables
-Wrap the table container in a fixed-height scroll region so every category (Fantasy, Efficiency, Depth, Schedule) scrolls vertically while keeping the column header sticky.
-- Outer wrapper: `max-h-[60vh] overflow-y-auto` (fall back to `min-h-0 flex-1` if the page allows).
-- `<thead>` gets `sticky top-0 z-[2] bg-muted/80 backdrop-blur` so headers stay visible while scrolling.
-- Horizontal scroll preserved.
+2. **Expose the actual Schedule sync error**
+   - Improve `/commissioner` WNBA sync results so the red `errors: 1` can be expanded/read directly instead of only showing a count.
+   - Add enough diagnostic detail to identify the failing batch/row when Schedule sync partially succeeds.
 
-### 2. Player photo + flag inline (no new columns)
-Add a small avatar + flag inside the existing player cell, reusing app patterns:
-- Fantasy → **Top FP Player** cell: 18px round photo (fallback grey circle) · player name · `<NationalityFlag country={core.nationality} size="xs" />`.
-- Efficiency → **Best Value Player** cell: same composition.
-Add `nationality?: string | null` to the local `Player.core` type so TS stays happy (real payload already carries it — confirmed via PlayerRow usage).
+3. **Fix WNBA live scores from Schedule sync**
+   - The database currently still has only `FINAL` and `SCHEDULED` WNBA schedule rows after the sync; the live rows in the sheet are not reaching `schedule_games`.
+   - The most likely remaining issue is the schedule upsert conflict target: `schedule_games` primary key is only `game_id`, while the sync now sends `league_id` too. I will adjust the WNBA schedule sync so it updates existing game IDs safely and preserves the live status strings/scores (`Q4 5:03`, `Half`, etc.).
+   - Verify after the change by checking the specific live game IDs (`1022600049`, `1022600050`) in `schedule_games` and confirming scores/status can update.
 
-### 3. Grade color scale (best 3 green / worst 3 red)
-Introduce a small helper `rankColor(value, allValues, { invert? })` that:
-- Sorts unique numeric values, returns a Tailwind class:
-  - Top 1: `text-emerald-400 font-semibold`
-  - Top 2–3: `text-emerald-500/80`
-  - Bottom 1: `text-rose-400 font-semibold`
-  - Bottom 2–3: `text-rose-500/80`
-  - Else: default
-- Skips zero / non-finite values (treated as neutral) so empty cells don't poison the ranking.
+## Notes
 
-Applied to:
-- **Efficiency**: `Team FP/G`, `FP / $M`, `Avg Value`, `Score`, `Salary Total` (high salary = worst → invert), **excluding** Best Value Player and Team.
-- **Depth**: `Top 3 Share` (low = best → invert), `Depth Share`, `Depth Index`.
-- **Schedule**: `This GW`, `Next 7d`, `Score`.
-
-Computed once per render from the visible `rows` so it follows the search filter. Implemented by precomputing a `Map<string, Map<tricode, className>>` per column key inside `StatsTable`.
-
-### 4. Header tooltips
-Wrap every sortable `<th>` label (except `Team` and `Next Opp`) in a shadcn `Tooltip` from `@/components/ui/tooltip`. Tooltip text per column:
-
-- **Fantasy**: GP — Games played · Record — Wins-Losses · Team FP/G — Season fantasy points scored per game by the whole team · Last 5 FP/G — Same metric using each player's last 5 played games · Δ FP — Last 5 minus season FP/G (positive = trending up) · Top FP Player — Best fantasy producer on the team · Top FP/G — Their season FP/G · FC FP/G — Total FP/G from Front Court players · BC FP/G — Total FP/G from Back Court players.
-- **Efficiency**: Team FP/G — Season FP per game · FP / $M — Fantasy points produced per $1M of salary · Avg Value — Average per-player value index · Score — Best value player's value score · Salary Total — Combined player salaries in $M (lower = cheaper roster).
-- **Depth**: Players — Total rostered players · Active — Players with playing time / FP this season · FC / BC — Counts by position group · Top 3 Share — % of team FP scored by the top 3 producers (lower = more balanced) · Depth Share — Inverse of Top 3 Share · Depth Index — 0–100 balance score (higher = deeper rotation) · Star Dep. — Star dependency label.
-- **Schedule**: Upcoming — Total remaining games · This GW — Games in the current gameweek · Next 7d — Games tipping off in the next 7 days · Tipoff — Date/time of the next game · Score — Volume score (Next 7d × 2 + This GW) · **Outlook** — Schedule outlook based on games in the next 7 days: **Strong** ≥ 4 games · **Good** = 3 games · **Neutral** = 2 games · **Light** ≤ 1 game.
-
-### Technical notes
-- All work in `TeamStatsPanel.tsx`; no schema or query changes.
-- Use existing components: `NationalityFlag`, `Tooltip`/`TooltipTrigger`/`TooltipContent`, `cn`.
-- Keep current sort/click-through, summary cards, and category pills untouched.
-- Color classes stay token-friendly (emerald/rose are part of current palette and already used elsewhere in this file).
+- `upserted: 130` with `read: 330` means one 200-row batch failed and one 130-row batch succeeded. That is why not all 330 sheet rows landed.
+- The app only shows `errors: 1` today because the Commissioner panel counts errors but does not display the error text; I will make that visible as part of the fix.
