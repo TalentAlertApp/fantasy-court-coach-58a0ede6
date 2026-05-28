@@ -252,7 +252,26 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
               {/* CENTER: full cluster (Gameday → < → GW → Day → Cal → > → Recaps → BIQ) */}
               <div className="flex items-center gap-2 flex-wrap justify-self-center">
                 <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
-                  Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
+                  Gameday
+                  {selectedDateLabel ? (
+                    <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans">
+                      · {selectedDateLabel}
+                    </span>
+                  ) : null}
+                  <span className="ml-1.5 text-white/40">·</span>
+                  <span className="ml-1.5 inline-flex items-center gap-1.5 normal-case">
+                    <span className="relative flex h-2 w-2">
+                      {playedGames.length > 0 ? (
+                        <>
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+                          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                        </>
+                      ) : (
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                      )}
+                    </span>
+                    <span className="font-heading font-bold tabular-nums">{playedGames.length}</span>
+                  </span>
                 </div>
                 <div className="flex items-stretch gap-1">
                   <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-white/70 hover:text-white hover:bg-amber-300/10" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
@@ -316,13 +335,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                  </span>
-                  {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
-                </span>
                 <BallersIQButton
                   on={biqOn}
                   disabled={!selectedGame}
