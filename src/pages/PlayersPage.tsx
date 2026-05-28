@@ -976,6 +976,16 @@ export default function PlayersPage() {
                             </Avatar>
                             <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md shrink-0">{p.core.fc_bc}</Badge>
                             <span className="font-medium whitespace-nowrap">{p.core.name}</span>
+                            <span className="group/team inline-flex items-center gap-1 shrink-0 ml-1">
+                              {teamLogo && (
+                                <img
+                                  src={teamLogo}
+                                  alt=""
+                                  className="h-3.5 w-3.5 shrink-0 opacity-60 transition-transform duration-200 group-hover/team:scale-150 group-hover/team:opacity-100"
+                                />
+                              )}
+                              <span className="text-[10px] text-muted-foreground whitespace-nowrap">{p.core.team}</span>
+                            </span>
                             {_rowHealth.status && (
                               <Tooltip>
                                 <TooltipTrigger asChild>
@@ -987,17 +997,11 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 pr-2 text-xs">
-                          <div className="flex w-full items-center justify-between gap-3">
-                            <div className="flex shrink-0 items-center gap-1.5">
-                              {teamLogo && <img src={teamLogo} alt="" className="h-4 w-4 shrink-0" />}
-                              <span className="shrink-0">{p.core.team}</span>
-                            </div>
-                            <div className="flex min-w-0 items-center justify-end pr-1">
-                              <PlayerContextBadges
-                                badges={badgesForPlayer(p, { isOwned: false })}
-                                max={3}
-                              />
-                            </div>
+                          <div className="flex w-full items-center justify-end pr-1">
+                            <PlayerContextBadges
+                              badges={badgesForPlayer(p, { isOwned: false })}
+                              max={3}
+                            />
                           </div>
                         </td>
                         <td className={`px-1 py-1.5 text-xs text-right font-mono ${sortCol === "gp" ? "text-primary font-bold" : ""}`}>{gp}</td>
