@@ -262,7 +262,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
               </div>
               <div className="w-[clamp(320px,42%,560px)]">
                 <Select value={selectedGameId ?? ""} onValueChange={(v) => setSelectedGameId(v || null)} disabled={playedGames.length === 0}>
-                  <SelectTrigger className="rounded-lg h-9 text-[11px] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15">
+                  <SelectTrigger className="rounded-lg h-9 text-[11px] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15 [&>span]:flex-1 [&>span]:min-w-0">
                     <SelectValue placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
@@ -271,13 +271,17 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                       const hL = logoFor(g.home_team);
                       return (
                         <SelectItem key={g.game_id} value={g.game_id}>
-                          <div className="flex items-center gap-2 w-full">
-                            {aL && <img src={aL} alt="" className="w-5 h-5 shrink-0" />}
-                            <span className="font-medium">{nameFor(g.away_team)}</span>
-                            <span className="text-muted-foreground mx-1">@</span>
-                            {hL && <img src={hL} alt="" className="w-5 h-5 shrink-0" />}
-                            <span className="font-medium">{nameFor(g.home_team)}</span>
-                            <span className="ml-auto font-mono tabular-nums text-[11px] text-muted-foreground pl-3">{g.away_pts}-{g.home_pts}</span>
+                          <div className="grid w-full items-center gap-2 grid-cols-[1fr_auto_1fr_auto]">
+                            <div className="flex items-center justify-end gap-2 min-w-0">
+                              {aL && <img src={aL} alt="" className="w-5 h-5 shrink-0" />}
+                              <span className="font-medium truncate">{nameFor(g.away_team)}</span>
+                            </div>
+                            <span className="text-muted-foreground">@</span>
+                            <div className="flex items-center justify-start gap-2 min-w-0">
+                              {hL && <img src={hL} alt="" className="w-5 h-5 shrink-0" />}
+                              <span className="font-medium truncate">{nameFor(g.home_team)}</span>
+                            </div>
+                            <span className="font-mono tabular-nums text-[11px] text-muted-foreground pl-3 justify-self-end">{g.away_pts}-{g.home_pts}</span>
                           </div>
                         </SelectItem>
                       );
