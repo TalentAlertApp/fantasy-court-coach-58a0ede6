@@ -8,9 +8,10 @@ import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Bandage, Clapperboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3, Medal, Star, RefreshCw, AlertTriangle, Rows3, LayoutGrid, Bandage, Clapperboard, Film } from "lucide-react";
 import InjuryReportModal from "@/components/InjuryReportModal";
 import CourtShowModal from "@/components/court-show/CourtShowModal";
+import GameRecapsModal from "@/components/schedule/GameRecapsModal";
 import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline, type Deadline } from "@/lib/deadlines";
@@ -71,6 +72,7 @@ export default function SchedulePage() {
   const [potdOpen, setPotdOpen] = useState(false);
   const [injuryOpen, setInjuryOpen] = useState(false);
   const [courtShowOpen, setCourtShowOpen] = useState(false);
+  const [recapsOpen, setRecapsOpen] = useState(false);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     if (typeof window === "undefined") return "grid";
@@ -454,6 +456,14 @@ export default function SchedulePage() {
             {/* CENTER: TOTW | POTD (absolute on md+, inline on mobile) */}
             <div className="order-3 md:order-2 w-full md:w-auto flex md:absolute md:left-1/2 md:-translate-x-1/2 items-center justify-center gap-2">
               <button
+                onClick={() => setRecapsOpen(true)}
+                className="flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border border-emerald-400/40 text-foreground hover:bg-emerald-400/10 hover:border-emerald-400 transition-all"
+              >
+                <Film className="h-4 w-4" />
+                Game Recaps
+              </button>
+              <span className="text-muted-foreground/40">|</span>
+              <button
                 onClick={() => hasTotwData && setTotwOpen(true)}
                 disabled={!hasTotwData}
                 className={`flex items-center justify-center gap-1.5 min-w-[180px] px-3 py-1.5 text-xs font-heading font-bold rounded-xl border transition-all ${
@@ -539,6 +549,7 @@ export default function SchedulePage() {
       <TeamOfTheWeekModal open={totwOpen} onOpenChange={setTotwOpen} gw={gw} />
       <InjuryReportModal open={injuryOpen} onOpenChange={setInjuryOpen} />
       <CourtShowModal open={courtShowOpen} onOpenChange={setCourtShowOpen} gw={gw} day={day} />
+      <GameRecapsModal open={recapsOpen} onOpenChange={setRecapsOpen} initialGw={gw} initialDay={day} />
       <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
     </div>
   );
