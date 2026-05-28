@@ -8,18 +8,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Crown, Flame, DollarSign, Activity } from "lucide-react";
+import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles } from "lucide-react";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useScheduleWeekGames, type ScheduleWeekGame } from "@/hooks/useScheduleWeekGames";
-import { useGameBoxscoreQuery } from "@/hooks/useGameBoxscoreQuery";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getVenue } from "@/lib/nba-venues";
 import { format, parse } from "date-fns";
 import { toYouTubeEmbed } from "@/lib/youtube-embed";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
-import { cn } from "@/lib/utils";
+import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
+import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
+import courtBg from "@/assets/court-bg.png";
 
 interface Props {
   open: boolean;
@@ -42,12 +43,14 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [gw, setGw] = useState(initialGw);
   const [day, setDay] = useState(initialDay);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [biqOn, setBiqOn] = useState(false);
 
   useEffect(() => {
     if (open) {
       setGw(initialGw);
       setDay(initialDay);
       setSelectedGameId(null);
+      setBiqOn(false);
     }
   }, [open, initialGw, initialDay]);
 
@@ -130,8 +133,20 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
           <DialogTitle>Game Recaps</DialogTitle>
         </DialogHeader>
 
-        {/* Ballers.IQ signature background */}
+        {/* Modal background: amber radial fallback */}
         <div className="relative flex h-full flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%)] bg-black/70 backdrop-blur-md">
+          {/* Full-modal venue background (below header), fades in on select */}
+          {venue?.image && (
+            <>
+              <img
+                src={venue.image}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-25 transition-opacity duration-500"
+              />
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/85 backdrop-blur-[2px]" />
+            </>
+          )}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent shadow-[0_0_10px_rgba(252,211,77,0.4)]" />
 
           {/* Top hero */}
@@ -159,8 +174,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
             </div>
           </div>
 
-          {/* Selector bar — inline labels */}
-          <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10 space-y-2">
+          {/* Selector bar — single row */}
+          <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
             <div className="flex items-center gap-3 flex-wrap">
               <label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground shrink-0">
                 Gameday{selectedDateLabel ? <span className="text-foreground/70 normal-case tracking-normal"> · {selectedDateLabel}</span> : null}
@@ -179,13 +194,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     setSelectedGameId(null);
                   }}
                 >
-                  <SelectTrigger className="rounded-lg h-9 w-[110px]"><SelectValue placeholder="GW" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[100px]"><SelectValue placeholder="GW" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {allGws.map((g) => (<SelectItem key={g} value={String(g)}>GW {g}</SelectItem>))}
                   </SelectContent>
                 </Select>
                 <Select value={String(day)} onValueChange={(v) => { setDay(Number(v)); setSelectedGameId(null); }}>
-                  <SelectTrigger className="rounded-lg h-9 w-[110px]"><SelectValue placeholder="Day" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[100px]"><SelectValue placeholder="Day" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {daysList.map((d) => (<SelectItem key={d} value={String(d)}>Day {d}</SelectItem>))}
                   </SelectContent>
@@ -194,17 +209,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <span className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-400/30 bg-emerald-400/5 font-heading font-bold text-[11px] uppercase tracking-wider">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                </span>
-                {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground shrink-0">Game</label>
-              <div className="w-2/3">
+              <label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground shrink-0 ml-2">Game</label>
+              <div className="w-[clamp(220px,28%,380px)]">
                 <Select value={selectedGameId ?? ""} onValueChange={(v) => setSelectedGameId(v || null)} disabled={playedGames.length === 0}>
                   <SelectTrigger className="rounded-lg h-9">
                     <SelectValue placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"} />
@@ -229,18 +235,25 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   </SelectContent>
                 </Select>
               </div>
+              <div className="ml-auto flex items-center gap-2">
+                <BallersIQButton
+                  on={biqOn}
+                  disabled={!selectedGame}
+                  onClick={() => setBiqOn((v) => !v)}
+                />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-400/30 bg-emerald-400/5 font-heading font-bold text-[11px] uppercase tracking-wider">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                  </span>
+                  {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Body with venue background */}
+          {/* Body */}
           <div className="relative z-10 flex-1 min-h-0 overflow-hidden">
-            {venue?.image && (
-              <>
-                <img src={venue.image} alt="" aria-hidden className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-25" />
-                <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-black/80 backdrop-blur-[2px]" />
-              </>
-            )}
-
             <div className="relative h-full w-full px-5 py-4 flex flex-col gap-3 overflow-hidden">
               {!selectedGame ? (
                 <EmptyState
@@ -249,10 +262,19 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   dateLabel={selectedDateLabel}
                 />
               ) : (
-                <>
-                  {/* 3-column row: away table | video | home table */}
-                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)] gap-3 min-h-0 flex-1">
-                    <div className="rounded-xl border border-border/50 bg-background/70 backdrop-blur-sm overflow-hidden min-h-0">
+                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)] gap-3 min-h-0 flex-1 transition-all duration-300 ease-out">
+                  {/* LEFT: away table OR BIQ recap panel */}
+                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden min-h-0 animate-in fade-in duration-300">
+                    {biqOn ? (
+                      <GameBallersIQSidePanel
+                        side="left"
+                        gameId={selectedGame.game_id}
+                        homeTeam={selectedGame.home_team}
+                        awayTeam={selectedGame.away_team}
+                        homePts={selectedGame.home_pts ?? 0}
+                        awayPts={selectedGame.away_pts ?? 0}
+                      />
+                    ) : (
                       <GameBoxScoreTable
                         game={{ game_id: selectedGame.game_id, home_team: selectedGame.home_team, away_team: selectedGame.away_team }}
                         filterTeam={selectedGame.away_team}
@@ -260,9 +282,10 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                         density="compact"
                         fillHeight
                       />
-                    </div>
+                    )}
+                  </div>
 
-                    <div className="flex items-center justify-center min-h-0">
+                  <div className="flex items-center justify-center min-h-0">
                       <div className="relative w-full rounded-2xl overflow-hidden border border-amber-400/30 bg-black shadow-[0_0_32px_-12px_hsl(var(--primary)/0.5)] aspect-video max-h-full">
                         {embedSrc ? (
                           <iframe
@@ -287,7 +310,18 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border/50 bg-background/70 backdrop-blur-sm overflow-hidden min-h-0">
+                  {/* RIGHT: home table OR BIQ market panel */}
+                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden min-h-0 animate-in fade-in duration-300">
+                    {biqOn ? (
+                      <GameBallersIQSidePanel
+                        side="right"
+                        gameId={selectedGame.game_id}
+                        homeTeam={selectedGame.home_team}
+                        awayTeam={selectedGame.away_team}
+                        homePts={selectedGame.home_pts ?? 0}
+                        awayPts={selectedGame.away_pts ?? 0}
+                      />
+                    ) : (
                       <GameBoxScoreTable
                         game={{ game_id: selectedGame.game_id, home_team: selectedGame.home_team, away_team: selectedGame.away_team }}
                         filterTeam={selectedGame.home_team}
@@ -295,18 +329,9 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                         density="compact"
                         fillHeight
                       />
-                    </div>
+                    )}
                   </div>
-
-                  {/* Ballers.IQ horizontal rail */}
-                  <BallersIQRail
-                    gameId={selectedGame.game_id}
-                    homeTeam={selectedGame.home_team}
-                    awayTeam={selectedGame.away_team}
-                    homePts={selectedGame.home_pts ?? 0}
-                    awayPts={selectedGame.away_pts ?? 0}
-                  />
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -327,129 +352,59 @@ function EmptyState({
 }) {
   return (
     <div className="flex-1 min-h-0 flex items-center justify-center">
-      <div className="relative w-full max-w-3xl rounded-2xl overflow-hidden border border-amber-400/25 bg-gradient-to-br from-black via-zinc-950 to-black aspect-video">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-[0.06]"
-            style={{
-              backgroundImage:
-                "linear-gradient(hsl(45 90% 60%) 1px, transparent 1px), linear-gradient(90deg, hsl(45 90% 60%) 1px, transparent 1px)",
-              backgroundSize: "56px 56px",
-            }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0"
-            style={{
-              backgroundImage:
-                "radial-gradient(ellipse at 50% 30%, hsl(45 90% 55% / 0.18), transparent 60%)",
-            }}
-          />
-          <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-8 text-center">
-            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.5)]">
-              <Clapperboard className="h-7 w-7 text-amber-300" />
-            </div>
-            <h3 className="font-heading font-black text-base md:text-lg uppercase tracking-wider bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300 bg-clip-text text-transparent">
-              {hasPlayed ? "Select a game to watch the recap" : "No recaps available"}
-            </h3>
-            <p className="text-xs md:text-sm text-muted-foreground max-w-md">
-              {hasPlayed
-                ? `${count} recap${count === 1 ? "" : "s"} available${dateLabel ? ` for ${dateLabel}` : ""}. Pick a matchup from the Game dropdown above to load the video, both team box scores and Ballers.IQ insights.`
-                : `No played-game recaps were found${dateLabel ? ` for ${dateLabel}` : ""}. Choose another day or gameweek to browse available recaps.`}
-            </p>
+      <div
+        className="relative w-full max-w-5xl rounded-2xl overflow-hidden border border-amber-400/25 aspect-video bg-black"
+        style={{
+          backgroundImage: `url(${courtBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        {/* Darken the court */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/75" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(ellipse at 50% 35%, hsl(45 90% 55% / 0.20), transparent 60%)",
+          }}
+        />
+        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-8 text-center">
+          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.55)]">
+            <Clapperboard className="h-7 w-7 text-amber-300" />
+          </div>
+          <h3 className="font-heading font-black text-base md:text-lg uppercase tracking-wider bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300 bg-clip-text text-transparent">
+            {hasPlayed ? "Court is set — pick a game to tip off" : "No recaps available"}
+          </h3>
+          <p className="text-xs md:text-sm text-white/75 max-w-md">
+            {hasPlayed
+              ? `${count} recap${count === 1 ? "" : "s"} available${dateLabel ? ` for ${dateLabel}` : ""}. Pick a matchup from the Game dropdown above to load the video, both team box scores and Ballers.IQ insights.`
+              : `No played-game recaps were found${dateLabel ? ` for ${dateLabel}` : ""}. Choose another day or gameweek to browse available recaps.`}
+          </p>
+        </div>
       </div>
-    </div>
     </div>
   );
 }
 
-// ===== Ballers.IQ horizontal rail =====
-
-const TONE: Record<string, string> = {
-  amber: "border-amber-400/45 bg-amber-400/10 text-amber-200",
-  sky: "border-sky-400/45 bg-sky-400/10 text-sky-200",
-  rose: "border-rose-400/45 bg-rose-400/10 text-rose-200",
-  emerald: "border-emerald-400/45 bg-emerald-400/10 text-emerald-200",
-  violet: "border-violet-400/45 bg-violet-400/10 text-violet-200",
-};
-
-const num = (v: unknown, d = 0) => {
-  const x = typeof v === "number" ? v : Number(v);
-  return Number.isFinite(x) ? x : d;
-};
-
-function BallersIQRail({ gameId, homePts, awayPts }: { gameId: string; homeTeam: string; awayTeam: string; homePts: number; awayPts: number }) {
-  const { data } = useGameBoxscoreQuery(gameId);
-  const players = (data?.players ?? []) as any[];
-
-  const intel = useMemo(() => {
-    if (!players.length) return null;
-    const sorted = [...players].sort((a, b) => num(b.fp) - num(a.fp));
-    const mvp = sorted[0];
-    const top5 = sorted.slice(0, 5);
-    const valueAce = [...players].filter((p) => num(p.salary) > 0 && num(p.fp) > 0).sort((a, b) => num(b.fp) / num(b.salary, 1) - num(a.fp) / num(a.salary, 1))[0];
-    const totalPts = homePts + awayPts;
-    const chips: { label: string; tone: keyof typeof TONE }[] = [];
-    if (totalPts >= 230) chips.push({ label: "HIGH FP GAME", tone: "amber" });
-    if (totalPts > 0 && totalPts <= 180) chips.push({ label: "LOW SCORING", tone: "sky" });
-    if (Math.abs(homePts - awayPts) <= 4 && totalPts > 0) chips.push({ label: "CLOSE GAME", tone: "rose" });
-    if (Math.abs(homePts - awayPts) >= 20) chips.push({ label: "BLOWOUT", tone: "emerald" });
-    if (num(mvp?.fp) >= 45) chips.push({ label: "MVP SHOWING", tone: "amber" });
-    return { mvp, top5, valueAce, chips };
-  }, [players, homePts, awayPts]);
-
-  if (!intel) return null;
-
+function BallersIQButton({ on, onClick, disabled }: { on: boolean; onClick: () => void; disabled?: boolean }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 shrink-0">
-      <Card icon={<Crown className="h-3 w-3 text-violet-300" />} title="MVP" tone="violet">
-        {intel.mvp && (
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[12px] font-bold text-white truncate">{intel.mvp.name}</span>
-            <span className="font-mono font-black text-amber-200 tabular-nums text-sm">{num(intel.mvp.fp).toFixed(1)}<span className="text-[9px] font-heading uppercase tracking-wider text-white/50 ml-1">FP</span></span>
-          </div>
-        )}
-      </Card>
-      <Card icon={<Flame className="h-3 w-3 text-amber-300" />} title="Top Performers" tone="amber">
-        <ul className="space-y-0.5">
-          {intel.top5.map((p, i) => (
-            <li key={p.player_id} className="flex items-center gap-1.5 text-[10.5px]">
-              <span className={cn("font-mono w-3 text-[9.5px]", i === 0 ? "text-amber-300" : "text-white/40")}>{i + 1}</span>
-              <span className="truncate font-medium text-white/90 flex-1 min-w-0">{p.name}</span>
-              <span className="font-mono font-bold tabular-nums text-amber-200 text-[10.5px]">{num(p.fp).toFixed(1)}</span>
-            </li>
-          ))}
-        </ul>
-      </Card>
-      <Card icon={<DollarSign className="h-3 w-3 text-emerald-300" />} title="Value Ace" tone="emerald">
-        {intel.valueAce ? (
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="text-[12px] font-bold text-white truncate">{intel.valueAce.name}</span>
-            <span className="font-mono font-black text-emerald-200 tabular-nums text-sm">{(num(intel.valueAce.fp) / num(intel.valueAce.salary, 1)).toFixed(1)}<span className="text-[9px] font-heading uppercase tracking-wider text-white/50 ml-1">V</span></span>
-          </div>
-        ) : <span className="text-[11px] text-white/50">No data</span>}
-      </Card>
-      <Card icon={<Activity className="h-3 w-3 text-sky-300" />} title="Game Pulse" tone="sky">
-        {intel.chips.length ? (
-          <div className="flex flex-wrap gap-1">
-            {intel.chips.map((c) => (
-              <span key={c.label} className={cn("px-1.5 py-0.5 rounded-md border text-[9px] font-heading font-bold tracking-[0.14em]", TONE[c.tone])}>{c.label}</span>
-            ))}
-          </div>
-        ) : <span className="text-[11px] text-white/50">Standard game flow</span>}
-      </Card>
-    </div>
-  );
-}
-
-function Card({ icon, title, tone, children }: { icon: React.ReactNode; title: string; tone: keyof typeof TONE; children: React.ReactNode }) {
-  return (
-    <div className={cn("rounded-xl border bg-black/55 backdrop-blur-sm px-3 py-2 min-h-[64px]", TONE[tone])}>
-      <div className="flex items-center gap-1.5 mb-1.5">
-        {icon}
-        <span className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/80">{title}</span>
-      </div>
-      <div className="text-white/90">{children}</div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={on}
+      title={on ? "Disable Ballers.IQ Live" : "Activate Ballers.IQ Live"}
+      className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl border transition-all hover:scale-[1.04] disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed ${
+        on
+          ? "border-amber-300/70 bg-amber-400/15 text-amber-100 shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
+          : "border-amber-400/40 bg-black/40 text-amber-200/85 hover:border-amber-300/70 hover:bg-amber-400/10"
+      }`}
+    >
+      <Sparkles className="h-3.5 w-3.5" />
+      <BallersIQBrand variant="wordmark" size="sm" transparent className="!h-3.5 w-auto" />
+      {on && <span className="text-[9.5px] font-heading uppercase tracking-[0.2em]">Live</span>}
+    </button>
   );
 }
