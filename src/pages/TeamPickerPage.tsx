@@ -68,7 +68,7 @@ export default function TeamPickerPage() {
 
   return (
     <div
-      className="relative min-h-screen w-full bg-background text-foreground flex flex-col overflow-y-auto"
+      className="relative h-screen w-full bg-background text-foreground flex flex-col overflow-hidden"
       style={{
         backgroundImage: `
           radial-gradient(ellipse at 20% 10%, hsl(var(--primary) / 0.18), transparent 55%),
@@ -118,21 +118,22 @@ export default function TeamPickerPage() {
         </button>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center flex-1 px-6 pt-24 pb-12 max-w-6xl mx-auto w-full">
-        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">
+      <div className="relative z-10 flex flex-col items-center flex-1 min-h-0 px-6 pt-24 pb-6 max-w-6xl mx-auto w-full">
+        <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4 shrink-0">
           Welcome back · <span className="text-foreground/80">{displayName}</span>
         </p>
         <h1
-          className="font-heading font-black uppercase tracking-[0.15em] text-foreground text-center"
+          className="font-heading font-black uppercase tracking-[0.15em] text-foreground text-center shrink-0"
           style={{ fontSize: "clamp(1.75rem, 5vh, 3.25rem)", lineHeight: 1 }}
         >
           Pick <span className="text-accent">Your Team</span>
         </h1>
-        <p className="mt-3 text-sm md:text-base text-foreground/60 text-center max-w-xl">
+        <p className="mt-3 text-sm md:text-base text-foreground/60 text-center max-w-xl shrink-0">
           Which team will you manage today?
         </p>
 
-        <div className="mt-10 grid gap-3 w-full" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(220px, 1fr))` }}>
+        <div className="mt-10 flex-1 min-h-0 w-full overflow-y-auto pr-1 -mr-1">
+          <div className="grid gap-3 w-full pb-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(220px, 1fr))` }}>
           {ownedTeams.map((t: any) => {
             const leagueLogo = getLeagueLogo(t.league_code);
             const leagueCode = (t.league_code ?? "nba").toUpperCase();
@@ -192,6 +193,7 @@ export default function TeamPickerPage() {
               </p>
             </div>
           </button>
+          </div>
         </div>
       </div>
     </div>
