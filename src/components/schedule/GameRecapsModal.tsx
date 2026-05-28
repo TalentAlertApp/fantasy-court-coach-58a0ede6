@@ -406,8 +406,8 @@ function EmptyState({
           backgroundPosition: "center",
         }}
       >
-        {/* Darken the court (lighter in light theme so parquet shows) */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/30 dark:bg-black/70" />
+        {/* Darken the court (more in light theme so it feels involving) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/55 dark:bg-black/70" />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
