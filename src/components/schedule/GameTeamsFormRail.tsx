@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { format } from "date-fns";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { useTeamRecentUpcoming, type TeamGameSlot } from "@/hooks/useTeamRecentUpcoming";
@@ -10,6 +10,7 @@ interface Props {
   homeName: string;
   referenceIso: string | null;
   blurb?: string;
+  actions?: ReactNode;
 }
 
 function Circle({ slot, leading }: { slot: TeamGameSlot | null; leading?: boolean }) {
@@ -35,12 +36,12 @@ function Circle({ slot, leading }: { slot: TeamGameSlot | null; leading?: boolea
   return (
     <div
       title={tip}
-      className={`w-6 h-6 rounded-full bg-background/70 flex items-center justify-center overflow-hidden shrink-0 ${leading ? "" : ""}`}
+      className="relative w-7 h-7 rounded-full bg-background/80 dark:bg-background/70 flex items-center justify-center overflow-hidden shrink-0 transform-gpu transition-transform duration-200 ease-out hover:scale-[1.4] hover:z-10 hover:shadow-[0_0_18px_-4px_hsl(45_90%_55%/0.8)]"
       style={{ border: `2px solid ${ring}` }}
     >
       {slot ? (
         oppLogo ? (
-          <img src={oppLogo} alt={slot.opponent} className="w-3.5 h-3.5 object-contain" />
+          <img src={oppLogo} alt={slot.opponent} className="w-5 h-5 object-contain" />
         ) : (
           <span className="text-[7px] font-bold">{slot.opponent}</span>
         )
@@ -74,11 +75,11 @@ function TeamRow({
 
   const content = (
     <div className="flex items-center gap-1.5">
-      <span className="text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground/70 mr-1">Last</span>
+      <span className="text-[9px] font-heading uppercase tracking-[0.18em] text-stone-700 dark:text-muted-foreground/70 mr-1">Last</span>
       {past.map((s, i) => <Circle key={`p${i}`} slot={s} />)}
       <span className="mx-1 text-amber-400/40 text-xs">•</span>
       {next.map((s, i) => <Circle key={`n${i}`} slot={s} />)}
-      <span className="text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground/70 ml-1">Next</span>
+      <span className="text-[9px] font-heading uppercase tracking-[0.18em] text-stone-700 dark:text-muted-foreground/70 ml-1">Next</span>
     </div>
   );
   return <div className={align === "right" ? "ml-auto" : "mr-auto"}>{content}</div>;
@@ -91,6 +92,7 @@ export default function GameTeamsFormRail({
   homeName,
   referenceIso,
   blurb,
+  actions,
 }: Props) {
   const sentence =
     blurb ??
@@ -98,15 +100,31 @@ export default function GameTeamsFormRail({
       ? `${awayName} face ${homeName} — recent form and what's next`
       : "Pick a game to see each team's recent and upcoming matchups");
 
+  const gameSelected = !!(awayTeam && homeTeam);
+
   return (
-    <div className="rounded-2xl border border-amber-400/20 bg-background/55 backdrop-blur-sm px-4 py-2.5 flex items-center gap-4">
-      <TeamRow team={awayTeam} referenceIso={referenceIso} align="left" />
-      <span className="text-amber-400/40 select-none">|</span>
-      <p className="flex-1 text-center text-[11px] md:text-xs text-foreground/85 leading-snug">
+    <div className="rounded-2xl border border-amber-300/40 dark:border-amber-400/20 bg-stone-900/80 dark:bg-background/55 backdrop-blur-sm px-4 py-2.5 flex items-center gap-4">
+      {gameSelected && (
+        <>
+          <TeamRow team={awayTeam} referenceIso={referenceIso} align="left" />
+          <span className="text-amber-400/50 select-none">|</span>
+        </>
+      )}
+      <p className="flex-1 text-center text-xs md:text-sm font-semibold text-amber-50 dark:text-foreground/90 leading-snug">
         {sentence}
       </p>
-      <span className="text-amber-400/40 select-none">|</span>
-      <TeamRow team={homeTeam} referenceIso={referenceIso} align="right" />
+      {actions && (
+        <>
+          <span className="text-amber-400/50 select-none">|</span>
+          <div className="shrink-0">{actions}</div>
+        </>
+      )}
+      {gameSelected && (
+        <>
+          <span className="text-amber-400/50 select-none">|</span>
+          <TeamRow team={homeTeam} referenceIso={referenceIso} align="right" />
+        </>
+      )}
     </div>
   );
 }
