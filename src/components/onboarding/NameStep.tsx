@@ -31,26 +31,26 @@ export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: 
   const canSubmit = trimmed.length >= 2 && !submitting;
 
   return (
-    <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
+    <div className="relative flex flex-col min-h-screen px-6 py-6 items-center justify-center">
       <StepIndicator step={2} />
 
       <div className="w-full max-w-2xl text-center animate-fade-in">
         <h2
           className="font-heading font-black uppercase tracking-[0.15em] text-foreground"
-          style={{ fontSize: "clamp(2.5rem, 8vh, 5rem)", lineHeight: 1 }}
+          style={{ fontSize: "clamp(1.75rem, 5.5vh, 3.5rem)", lineHeight: 1 }}
         >
           Name Your
           <br />
           <span className="text-accent">Franchise</span>
         </h2>
 
-        <div className="mt-8 relative">
+        <div className="mt-6 relative">
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Court Kings"
             maxLength={48}
-            className="h-16 text-2xl md:text-3xl font-heading uppercase tracking-[0.1em] text-center rounded-2xl bg-background/60 border-foreground/15 focus-visible:ring-accent"
+            className="h-14 text-xl md:text-2xl font-heading uppercase tracking-[0.1em] text-center rounded-2xl bg-background/60 border-foreground/15 focus-visible:ring-accent"
             disabled={submitting}
             onKeyDown={(e) => {
               if (e.key === "Enter" && canSubmit) onSubmit(trimmed, leagueCode);
@@ -67,20 +67,20 @@ export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: 
           </button>
         </div>
 
-        <div className="mt-6 mx-auto max-w-md">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mb-3 text-center">
+        <div className="mt-4 mx-auto max-w-md">
+          <div className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mb-2 text-center">
             {lockedSport ? "League (preselected)" : "Choose your league"}
           </div>
           <LeaguePickerCards
             value={leagueCode}
             onChange={setLeagueCode}
-            size="lg"
+            size="md"
             disabled={submitting || !!lockedSport}
             showSubtitle
           />
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           <span className="text-[10px] uppercase tracking-[0.3em] text-foreground/40 mr-2">
             Suggestions
           </span>
@@ -97,19 +97,19 @@ export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: 
           ))}
         </div>
 
-        <div className="mt-10 flex items-center justify-center gap-4">
+        <div className="mt-6 flex items-center justify-center gap-4">
           <Button
             variant="ghost"
             onClick={onBack}
             disabled={submitting}
-            className="h-12 rounded-full px-6 text-foreground/60 hover:text-foreground"
+            className="h-11 rounded-full px-6 text-foreground/60 hover:text-foreground"
           >
             <ChevronLeft className="mr-1 h-4 w-4" /> Back
           </Button>
           <Button
             onClick={() => canSubmit && onSubmit(trimmed, leagueCode)}
             disabled={!canSubmit}
-            className="h-14 rounded-full px-10 tracking-[0.25em] shadow-[0_0_40px_-10px_hsl(var(--accent))] hover:translate-y-[-1px] hover:shadow-[0_0_60px_-10px_hsl(var(--accent))] transition-all"
+            className="h-12 rounded-full px-10 tracking-[0.25em] shadow-[0_0_40px_-10px_hsl(var(--accent))] hover:translate-y-[-1px] hover:shadow-[0_0_60px_-10px_hsl(var(--accent))] transition-all"
           >
             {submitting ? (
               <>
