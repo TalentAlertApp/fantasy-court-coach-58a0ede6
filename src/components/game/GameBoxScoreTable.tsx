@@ -118,8 +118,8 @@ export default function GameBoxScoreTable({
         aria-hidden
         className={`pointer-events-none absolute inset-0 m-auto h-48 w-48 ${watermarkOpacity} select-none object-contain`}
       />
-      <div className={`relative z-[1] grid ${gridCols} gap-0 ${compact ? "px-1.5 py-1 text-[10px]" : "px-2 py-1.5 text-xs"} font-heading uppercase text-muted-foreground border-b bg-muted/40`}>
-        <span className="text-left">#</span>
+      <div className={`relative z-[1] grid ${gridCols} gap-0 items-center ${compact ? "px-1.5 pt-3 pb-2 text-[10px]" : "px-2 pt-3.5 pb-2 text-xs"} font-heading uppercase text-muted-foreground border-b bg-muted/40`}>
+        <span className="text-left self-center">#</span>
         <div className={`pr-2 flex items-center ${compact ? "gap-1.5" : "gap-2"} flex-wrap h-7`}>
           {visibleTriBadges.map((tri) => {
             const tlogo = logoFor(tri);
