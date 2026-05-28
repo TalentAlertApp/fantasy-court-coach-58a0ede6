@@ -987,12 +987,16 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <PlayerContextBadges
                               badges={badgesForPlayer(p, { isOwned: false })}
                               max={3}
                             />
-                            {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
+                            <span
+                              aria-hidden="true"
+                              className="inline-block h-3 w-px bg-border/60 mx-0.5 shrink-0"
+                            />
+                            {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0" />}
                             <span>{p.core.team}</span>
                           </div>
                         </td>
