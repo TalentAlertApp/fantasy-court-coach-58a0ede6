@@ -271,7 +271,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                       const hL = logoFor(g.home_team);
                       return (
                         <SelectItem key={g.game_id} value={g.game_id}>
-                          <div className="grid w-full items-center gap-2 grid-cols-[1fr_auto_1fr_auto]">
+                          <div className="relative grid w-full items-center gap-2 grid-cols-[1fr_auto_1fr] pr-16">
                             <div className="flex items-center justify-end gap-2 min-w-0">
                               {aL && <img src={aL} alt="" className="w-5 h-5 shrink-0" />}
                               <span className="font-medium truncate">{nameFor(g.away_team)}</span>
@@ -281,7 +281,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                               {hL && <img src={hL} alt="" className="w-5 h-5 shrink-0" />}
                               <span className="font-medium truncate">{nameFor(g.home_team)}</span>
                             </div>
-                            <span className="font-mono tabular-nums text-[11px] text-muted-foreground pl-3 justify-self-end">{g.away_pts}-{g.home_pts}</span>
+                            <span className="absolute right-0 top-1/2 -translate-y-1/2 font-mono tabular-nums text-[11px] text-muted-foreground">{g.away_pts}-{g.home_pts}</span>
                           </div>
                         </SelectItem>
                       );
