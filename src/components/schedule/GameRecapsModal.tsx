@@ -440,7 +440,7 @@ function EmptyState({
         }}
       >
         {/* Darken the court (more in light theme so it feels involving) */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/55 dark:bg-black/70" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[hsl(28_55%_18%/0.55)] dark:bg-black/70" />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
@@ -485,13 +485,18 @@ function BallersIQButton({ on, onClick, disabled }: { on: boolean; onClick: () =
       title={on ? "Disable Ballers.IQ Live" : "Activate Ballers.IQ Live"}
       className={`h-9 inline-flex items-center gap-1.5 text-[11px] font-heading uppercase tracking-[0.18em] px-3 rounded-lg border transition-all hover:scale-[1.03] disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed ${
         on
-          ? "border-amber-300/70 bg-amber-400/15 text-amber-100 shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
-          : "border-amber-400/40 bg-black/40 text-amber-200/85 hover:border-amber-300/70 hover:bg-amber-400/10"
+          ? "border-amber-300/70 bg-gradient-to-r from-amber-400/30 to-amber-500/15 text-white shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
+          : "border-amber-300/40 bg-stone-900/85 dark:bg-background/40 text-white hover:border-amber-300/70 hover:bg-amber-400/10"
       }`}
     >
       <Sparkles className="h-3.5 w-3.5" />
       <BallersIQBrand variant="wordmark" size="sm" transparent className="!h-3.5 w-auto" />
-      {on && <span className="text-[9.5px] font-heading uppercase tracking-[0.2em]">Live</span>}
+      {on && (
+        <span className="relative flex h-2 w-2 ml-0.5">
+          <span className="absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-60 animate-ping" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-300" />
+        </span>
+      )}
     </button>
   );
 }
