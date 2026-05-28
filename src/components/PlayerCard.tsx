@@ -287,12 +287,12 @@ export default function PlayerCard({
           <img
             src={core.photo}
             alt={core.name}
-            className={`w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-top bg-black/20 shadow-2xl transition-transform duration-300 group-hover:scale-110 ${
+            className={`w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-top bg-black/20 shadow-2xl transition-opacity duration-300 group-hover:opacity-0 ${
               isOut ? "ring-2 ring-red-500/70" : isRisky ? "ring-2 ring-amber-400/60" : ""
             }`}
           />
         ) : (
-          <div className={`w-28 h-28 md:w-36 md:h-36 rounded-full bg-black/40 flex items-center justify-center text-2xl font-heading font-bold text-white/80 ${
+          <div className={`w-28 h-28 md:w-36 md:h-36 rounded-full bg-black/40 flex items-center justify-center text-2xl font-heading font-bold text-white/80 transition-opacity duration-300 group-hover:opacity-0 ${
             isOut ? "ring-2 ring-red-500/70" : isRisky ? "ring-2 ring-amber-400/60" : ""
           }`}>
             {core.name.substring(0, 2).toUpperCase()}
@@ -301,8 +301,9 @@ export default function PlayerCard({
         {teamLogo && (
           <img
             src={teamLogo}
-            alt={core.team}
-            className="absolute -top-0.5 -right-0.5 w-7 h-7 object-contain drop-shadow-md pointer-events-none"
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 w-28 h-28 md:w-36 md:h-36 object-contain opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           />
         )}
       </div>
