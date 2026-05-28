@@ -315,7 +315,14 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
-                  <div className="rounded-xl border border-amber-400/30 bg-background/95 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
+                  <div
+                    className="rounded-2xl border-[1.5px] backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch [&>div]:!bg-transparent"
+                    style={{
+                      borderColor: `${getTeamByTricode(selectedGame.away_team, league)?.primaryColor ?? "#f59e0b"}99`,
+                      backgroundColor: `${getTeamByTricode(selectedGame.away_team, league)?.primaryColor ?? "#1c1917"}26`,
+                      boxShadow: `0 0 0 1px ${getTeamByTricode(selectedGame.away_team, league)?.primaryColor ?? "#f59e0b"}33, 0 18px 38px -22px ${getTeamByTricode(selectedGame.away_team, league)?.primaryColor ?? "#000"}88`,
+                    }}
+                  >
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="left"
@@ -362,7 +369,14 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     </div>
 
                   {/* RIGHT: home table OR BIQ market panel */}
-                  <div className="rounded-xl border border-amber-400/30 bg-background/95 dark:bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
+                  <div
+                    className="rounded-2xl border-[1.5px] backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch [&>div]:!bg-transparent"
+                    style={{
+                      borderColor: `${getTeamByTricode(selectedGame.home_team, league)?.primaryColor ?? "#f59e0b"}99`,
+                      backgroundColor: `${getTeamByTricode(selectedGame.home_team, league)?.primaryColor ?? "#1c1917"}26`,
+                      boxShadow: `0 0 0 1px ${getTeamByTricode(selectedGame.home_team, league)?.primaryColor ?? "#f59e0b"}33, 0 18px 38px -22px ${getTeamByTricode(selectedGame.home_team, league)?.primaryColor ?? "#000"}88`,
+                    }}
+                  >
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="right"
