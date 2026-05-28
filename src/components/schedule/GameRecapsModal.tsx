@@ -666,7 +666,7 @@ function GameRowPopover({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className="p-1 w-[var(--radix-popover-trigger-width)] max-h-[360px] overflow-y-auto bg-popover border-amber-300/30 rounded-lg"
+        className="p-1 w-[var(--radix-popover-trigger-width)] max-h-[70vh] overflow-y-auto bg-popover border-amber-300/30 rounded-lg"
         align="start"
         sideOffset={6}
       >
