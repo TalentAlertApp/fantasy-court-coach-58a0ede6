@@ -987,14 +987,14 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
-                          <div className="grid w-full grid-cols-[72px_1fr] items-center gap-2">
-                            <div className="flex min-w-0 items-center justify-end">
+                          <div className="flex w-full items-center justify-between gap-3">
+                            <div className="flex min-w-0 items-center justify-start">
                               <PlayerContextBadges
                                 badges={badgesForPlayer(p, { isOwned: false })}
                                 max={3}
                               />
                             </div>
-                            <div className="flex min-w-0 items-center gap-1.5">
+                            <div className="flex shrink-0 items-center gap-1.5">
                               {teamLogo && <img src={teamLogo} alt="" className="h-4 w-4 shrink-0" />}
                               <span className="shrink-0">{p.core.team}</span>
                             </div>
