@@ -737,71 +737,33 @@ function NBAPlaySearchSection() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground">Game</Label>
                 <Select value={gameId} onValueChange={setGameId} disabled={gamesLoading || !(gamesByDate?.length)}>
-                  <SelectTrigger className="rounded-lg">
-                    <SelectValue placeholder={
-                      gamesLoading
-                        ? "Loading games…"
-                        : (gamesByDate?.length
-                            ? (lisbonDateLabel ? `Pick a game · ${lisbonDateLabel}` : "Pick a game")
-                            : "No games on this gameday")
-                    } />
+                  <SelectTrigger className="rounded-lg h-10 px-3 [&>span]:line-clamp-none [&>span]:w-full [&>span]:min-w-0">
+                    {selectedGame ? (
+                      <AdvancedGameSelectRow game={selectedGame} isSelected={false} nameFor={(team) => TEAM_NAME[team] ?? team} compact />
+                    ) : (
+                      <SelectValue placeholder={
+                        gamesLoading
+                          ? "Loading games…"
+                          : (gamesByDate?.length
+                              ? (lisbonDateLabel ? `Pick a game · ${lisbonDateLabel}` : "Pick a game")
+                              : "No games on this gameday")
+                      } />
+                    )}
                   </SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[70vh] min-w-[var(--radix-select-trigger-width)]">
-                    {(gamesByDate ?? []).map((g: any) => {
-                      const awayLogo = getTeamLogo(g.away_team);
-                      const homeLogo = getTeamLogo(g.home_team);
-                      const tip = g.tipoff_utc ? new Date(g.tipoff_utc) : null;
-                      const tipStr = tip
-                        ? tip.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" })
-                        : "";
-                      const isPlayed = g.status === "FINAL";
-                      const aPts = g.away_pts ?? 0;
-                      const hPts = g.home_pts ?? 0;
-                      const awayWin = isPlayed && aPts > hPts;
-                      const homeWin = isPlayed && hPts > aPts;
+                  <SelectContent className="rounded-lg max-h-[70vh] w-[720px] max-w-[min(900px,calc(100vw-48px))] min-w-[var(--radix-select-trigger-width)]">
+                    {(gamesByDate ?? []).map((g: AdvancedGameOption) => {
+                      const isSelected = g.game_id === gameId;
                       return (
                         <SelectItem
                           key={g.game_id}
                           value={g.game_id}
                           className={cn(
-                            "!pl-2 !pr-2 [&>span:first-child]:hidden",
-                            isPlayed ? "" : "opacity-60",
+                            "group !pl-0 !pr-0 py-1.5 rounded-md overflow-hidden focus:bg-accent/80 data-[state=checked]:bg-primary/10",
+                            "[&>span:first-child]:hidden [&>span:last-child]:w-full [&>span:last-child]:min-w-0",
                           )}
                         >
-                          <div className="group grid items-center gap-2 w-full grid-cols-[44px_minmax(0,1fr)_28px_minmax(0,1fr)_44px]">
-                            <span className={cn("font-mono tabular-nums text-right text-[11px] text-foreground/80", awayWin && "font-bold text-foreground")}>
-                              {isPlayed ? aPts : ""}
-                            </span>
-                            <div className="relative flex items-center justify-end pr-12 min-w-0">
-                              <span className={cn("relative z-10 truncate whitespace-nowrap", awayWin ? "font-bold" : "font-medium")}>
-                                {TEAM_NAME[g.away_team] ?? g.away_team}
-                              </span>
-                              {awayLogo && (
-                                <img
-                                  src={awayLogo}
-                                  alt=""
-                                  aria-hidden
-                                  className="pointer-events-none select-none absolute right-0 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-30 group-hover:opacity-80 group-hover:scale-125 group-hover:translate-x-1 transition-all duration-300 ease-out drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
-                                />
-                              )}
-                            </div>
-                            <span className="text-center text-muted-foreground">@</span>
-                            <div className="relative flex items-center justify-start pl-12 min-w-0">
-                              {homeLogo && (
-                                <img
-                                  src={homeLogo}
-                                  alt=""
-                                  aria-hidden
-                                  className="pointer-events-none select-none absolute left-0 top-1/2 -translate-y-1/2 h-10 w-10 object-contain opacity-30 group-hover:opacity-80 group-hover:scale-125 group-hover:-translate-x-1 transition-all duration-300 ease-out drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
-                                />
-                              )}
-                              <span className={cn("relative z-10 truncate whitespace-nowrap", homeWin ? "font-bold" : "font-medium")}>
-                                {TEAM_NAME[g.home_team] ?? g.home_team}
-                              </span>
-                            </div>
-                            <span className={cn("font-mono tabular-nums text-left text-[11px] text-foreground/80", homeWin && "font-bold text-foreground")}>
-                              {isPlayed ? hPts : (tipStr || "")}
-                            </span>
+                          <div className="w-full px-2 transition-colors group-hover:bg-accent/30">
+                            <AdvancedGameSelectRow game={g} isSelected={isSelected} nameFor={(team) => TEAM_NAME[team] ?? team} />
                           </div>
                         </SelectItem>
                       );
