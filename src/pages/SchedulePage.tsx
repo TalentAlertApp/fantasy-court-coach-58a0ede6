@@ -12,7 +12,6 @@ import { ChevronLeft, ChevronRight, CalendarDays, Clock, CircleCheckBig, Grid3X3
 import InjuryReportModal from "@/components/InjuryReportModal";
 import CourtShowModal from "@/components/court-show/CourtShowModal";
 import GameRecapsModal from "@/components/schedule/GameRecapsModal";
-import { Badge } from "@/components/ui/badge";
 import { format, parse } from "date-fns";
 import { DEADLINES, getCurrentGameday, formatDeadline, type Deadline } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
