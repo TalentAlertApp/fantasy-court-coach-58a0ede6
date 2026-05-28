@@ -569,3 +569,125 @@ function BallersIQButton({ on, onClick, disabled }: { on: boolean; onClick: () =
     </button>
   );
 }
+
+// ============================================================================
+// Game selector dropdown — custom Popover with fixed-grid rows so the "@"
+// separator stays perfectly aligned across every row regardless of name
+// length, score length, or selected state.
+// ============================================================================
+
+// columns: check | away score | away team (name → logo) | @ | home team (logo → name) | home score
+const GAME_ROW_GRID =
+  "grid items-center gap-2 grid-cols-[20px_44px_minmax(0,1fr)_28px_minmax(0,1fr)_44px]";
+
+function GameRowPopover({
+  open,
+  setOpen,
+  games,
+  selectedId,
+  selectedGame,
+  onPick,
+  placeholder,
+  logoFor,
+  nameFor,
+}: {
+  open: boolean;
+  setOpen: (o: boolean) => void;
+  games: ScheduleWeekGame[];
+  selectedId: string | null;
+  selectedGame: ScheduleWeekGame | null;
+  onPick: (id: string) => void;
+  placeholder: string;
+  logoFor: (tri: string) => string | undefined;
+  nameFor: (tri: string) => string;
+}) {
+  const disabled = games.length === 0;
+  return (
+    <Popover open={open} onOpenChange={(o) => !disabled && setOpen(o)}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={disabled}
+          className={cn(
+            "h-9 w-[600px] max-w-full rounded-lg flex items-center px-3 text-[11px] border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white transition-colors",
+            !disabled && "hover:border-amber-300/70 hover:bg-amber-300/5",
+            disabled && "opacity-50 cursor-not-allowed",
+          )}
+        >
+          <div className="flex-1 min-w-0">
+            {selectedGame ? (
+              <div className={GAME_ROW_GRID}>
+                <span aria-hidden className="invisible">·</span>
+                <span className="font-mono tabular-nums text-right text-white/90">{selectedGame.away_pts ?? "—"}</span>
+                <div className="flex items-center justify-end gap-2 min-w-0">
+                  <span className="truncate font-medium text-white">{nameFor(selectedGame.away_team)}</span>
+                  {logoFor(selectedGame.away_team) && (
+                    <img src={logoFor(selectedGame.away_team)} alt="" className="w-5 h-5 shrink-0" />
+                  )}
+                </div>
+                <span className="text-center text-white/60">@</span>
+                <div className="flex items-center justify-start gap-2 min-w-0">
+                  {logoFor(selectedGame.home_team) && (
+                    <img src={logoFor(selectedGame.home_team)} alt="" className="w-5 h-5 shrink-0" />
+                  )}
+                  <span className="truncate font-medium text-white">{nameFor(selectedGame.home_team)}</span>
+                </div>
+                <span className="font-mono tabular-nums text-left text-white/90">{selectedGame.home_pts ?? "—"}</span>
+              </div>
+            ) : (
+              <span className="text-white/60 truncate block text-left">{placeholder}</span>
+            )}
+          </div>
+          <ChevronDown className="ml-2 h-4 w-4 opacity-60 shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="p-1 w-[var(--radix-popover-trigger-width)] max-h-[360px] overflow-y-auto bg-popover border-amber-300/30 rounded-lg"
+        align="start"
+        sideOffset={6}
+      >
+        {games.length === 0 ? (
+          <div className="p-3 text-xs text-muted-foreground">No recaps available</div>
+        ) : (
+          games.map((g) => {
+            const isSel = g.game_id === selectedId;
+            return (
+              <button
+                key={g.game_id}
+                type="button"
+                onClick={() => onPick(g.game_id)}
+                className={cn(
+                  "w-full rounded-md px-2 py-2 text-[12px] transition-colors text-left",
+                  isSel
+                    ? "bg-amber-300/15 hover:bg-amber-300/20"
+                    : "hover:bg-amber-300/10",
+                )}
+              >
+                <div className={GAME_ROW_GRID}>
+                  <span className="flex items-center justify-center">
+                    {isSel ? <Check className="h-3.5 w-3.5 text-amber-300" /> : <span aria-hidden className="invisible">·</span>}
+                  </span>
+                  <span className="font-mono tabular-nums text-right text-foreground/90">{g.away_pts ?? "—"}</span>
+                  <div className="flex items-center justify-end gap-2 min-w-0">
+                    <span className="truncate font-medium whitespace-nowrap">{nameFor(g.away_team)}</span>
+                    {logoFor(g.away_team) && (
+                      <img src={logoFor(g.away_team)} alt="" className="w-5 h-5 shrink-0" />
+                    )}
+                  </div>
+                  <span className="text-center text-muted-foreground">@</span>
+                  <div className="flex items-center justify-start gap-2 min-w-0">
+                    {logoFor(g.home_team) && (
+                      <img src={logoFor(g.home_team)} alt="" className="w-5 h-5 shrink-0" />
+                    )}
+                    <span className="truncate font-medium whitespace-nowrap">{nameFor(g.home_team)}</span>
+                  </div>
+                  <span className="font-mono tabular-nums text-left text-foreground/90">{g.home_pts ?? "—"}</span>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
