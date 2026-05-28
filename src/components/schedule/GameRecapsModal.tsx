@@ -233,9 +233,9 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
           {/* Top hero + selector — single combined row */}
           <div className="relative z-10 px-6 pt-4 pb-3 border-b border-amber-400/15">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="grid items-center gap-4 grid-cols-[auto_1fr_auto]">
               {/* LEFT: Brand */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 justify-self-start">
                 <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400/30 to-amber-600/10 border border-amber-400/30 flex items-center justify-center shadow-[0_0_24px_-4px_hsl(var(--primary)/0.4)]">
                   <Film className="h-5 w-5 text-amber-300" />
                 </div>
@@ -249,8 +249,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 </div>
               </div>
 
-              {/* RIGHT: full cluster (Gameday → < → GW → Day → Cal → > → Recaps → BIQ) */}
-              <div className="flex items-center gap-2 flex-wrap justify-end">
+              {/* CENTER: full cluster (Gameday → < → GW → Day → Cal → > → Recaps → BIQ) */}
+              <div className="flex items-center gap-2 flex-wrap justify-self-center">
                 <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
                   Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
                 </div>
@@ -329,6 +329,9 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   onClick={() => setBiqOn((v) => !v)}
                 />
               </div>
+
+              {/* RIGHT: spacer to balance close button */}
+              <div className="w-8 justify-self-end" aria-hidden />
             </div>
           </div>
 
