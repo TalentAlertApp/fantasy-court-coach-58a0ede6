@@ -497,15 +497,20 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   );
 }
 
-function EmptyState({
-  hasPlayed,
-  count,
+function CourtPicker({
+  games,
   dateLabel,
+  onPick,
+  logoFor,
+  nameFor,
 }: {
-  hasPlayed: boolean;
-  count: number;
+  games: ScheduleWeekGame[];
   dateLabel: string;
+  onPick: (id: string) => void;
+  logoFor: (tri: string) => string | undefined;
+  nameFor: (tri: string) => string;
 }) {
+  const hasPlayed = games.length > 0;
   return (
     <div className="flex items-center justify-center w-full">
       <div
@@ -516,7 +521,6 @@ function EmptyState({
           backgroundPosition: "center",
         }}
       >
-        {/* Darken the court (more in light theme so it feels involving) */}
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[hsl(28_55%_18%/0.55)] dark:bg-black/70" />
         <div
           aria-hidden
@@ -526,26 +530,37 @@ function EmptyState({
               "radial-gradient(ellipse at 50% 35%, hsl(45 90% 55% / 0.28), transparent 65%)",
           }}
         />
-        {/* Soft inner edge fade */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-[28px]"
-          style={{
-            boxShadow: "inset 0 0 60px 20px rgba(0,0,0,0.45)",
-          }}
+          style={{ boxShadow: "inset 0 0 60px 20px rgba(0,0,0,0.45)" }}
         />
-        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-8 text-center">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.55)]">
-            <Clapperboard className="h-7 w-7 text-amber-300" />
+        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-6 md:px-10 text-center">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.55)]">
+            <Clapperboard className="h-6 w-6 text-amber-300" />
           </div>
           <h3 className="font-heading font-black text-base md:text-lg uppercase tracking-wider bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300 bg-clip-text text-transparent">
-            {hasPlayed ? "Court is set — pick a game to tip off" : "No recaps available"}
+            {hasPlayed ? "Pick a game to tip off" : "No recaps available"}
           </h3>
-          <p className="text-xs md:text-sm text-white/75 max-w-md">
+          <p className="text-[11px] md:text-xs text-white/70">
             {hasPlayed
-              ? `${count} recap${count === 1 ? "" : "s"} available${dateLabel ? ` for ${dateLabel}` : ""}. Pick a matchup from the Game dropdown above to load the video, both team box scores and Ballers.IQ insights.`
+              ? `${games.length} recap${games.length === 1 ? "" : "s"}${dateLabel ? ` · ${dateLabel}` : ""}`
               : `No played-game recaps were found${dateLabel ? ` for ${dateLabel}` : ""}. Choose another day or gameweek to browse available recaps.`}
           </p>
+          {hasPlayed && (
+            <div className="w-full max-w-[640px] mt-1 flex-1 min-h-0 overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
+              {games.map((g) => (
+                <button
+                  key={g.game_id}
+                  type="button"
+                  onClick={() => onPick(g.game_id)}
+                  className="group w-full rounded-md px-2 py-2 text-[12px] text-left text-white transition-colors hover:bg-amber-300/10"
+                >
+                  <GameRow game={g} logoFor={logoFor} nameFor={nameFor} tone="dark" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
