@@ -15,6 +15,7 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useScheduleWeekGames, type ScheduleWeekGame } from "@/hooks/useScheduleWeekGames";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getVenue } from "@/lib/nba-venues";
+import { getTeamByTricode } from "@/lib/nba-teams";
 import { format, parse } from "date-fns";
 import { toYouTubeEmbed } from "@/lib/youtube-embed";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
