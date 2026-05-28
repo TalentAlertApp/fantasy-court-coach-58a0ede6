@@ -21,6 +21,7 @@ import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import courtBg from "@/assets/court-bg.png";
+import GameTeamsFormRail from "@/components/schedule/GameTeamsFormRail";
 
 interface Props {
   open: boolean;
@@ -126,6 +127,19 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
   const venue = selectedGame ? getVenue(selectedGame.home_team) : null;
 
+  // Reference timestamp for "past/next" rail: prefer the selected game's tipoff,
+  // else the selected gameday deadline, else now.
+  const referenceIso = useMemo(() => {
+    if (selectedGame?.tipoff_utc) return selectedGame.tipoff_utc;
+    const dl = deadlines.find((d) => d.gw === gw && d.day === day);
+    if (dl?.deadline_utc) return dl.deadline_utc;
+    return new Date().toISOString();
+  }, [selectedGame, deadlines, gw, day]);
+
+  const railBlurb = selectedGame
+    ? `${nameFor(selectedGame.away_team)} ${selectedGame.away_pts ?? "-"} @ ${selectedGame.home_pts ?? "-"} ${nameFor(selectedGame.home_team)}${venue?.arena ? ` · ${venue.arena}` : ""}`
+    : undefined;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[96vw] w-[96vw] h-[92vh] p-0 overflow-hidden border-amber-400/25 bg-background">
@@ -142,9 +156,14 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 src={venue.image}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-25 transition-opacity duration-500"
+                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-60 transition-opacity duration-500"
               />
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/75 via-black/60 to-black/85 backdrop-blur-[2px]" />
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/55" />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{ backgroundImage: "radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.5))" }}
+              />
             </>
           )}
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent shadow-[0_0_10px_rgba(252,211,77,0.4)]" />
@@ -176,10 +195,10 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
           {/* Selector bar — single row */}
           <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
-            <div className="flex items-center gap-3 flex-wrap">
-              <label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground shrink-0">
-                Gameday{selectedDateLabel ? <span className="text-foreground/70 normal-case tracking-normal"> · {selectedDateLabel}</span> : null}
-              </label>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-400/15 bg-background/40 text-[11px] font-heading uppercase tracking-[0.18em] text-muted-foreground shrink-0">
+                Gameday{selectedDateLabel ? <span className="ml-1.5 text-foreground/80 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
+              </div>
               <div className="flex items-stretch gap-1">
                 <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
                   <ChevronLeft className="h-4 w-4" />
@@ -194,13 +213,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     setSelectedGameId(null);
                   }}
                 >
-                  <SelectTrigger className="rounded-lg h-9 w-[100px]"><SelectValue placeholder="GW" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em]"><SelectValue placeholder="GW" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {allGws.map((g) => (<SelectItem key={g} value={String(g)}>GW {g}</SelectItem>))}
                   </SelectContent>
                 </Select>
                 <Select value={String(day)} onValueChange={(v) => { setDay(Number(v)); setSelectedGameId(null); }}>
-                  <SelectTrigger className="rounded-lg h-9 w-[100px]"><SelectValue placeholder="Day" /></SelectTrigger>
+                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em]"><SelectValue placeholder="Day" /></SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
                     {daysList.map((d) => (<SelectItem key={d} value={String(d)}>Day {d}</SelectItem>))}
                   </SelectContent>
@@ -209,10 +228,12 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <label className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground shrink-0 ml-2">Game</label>
-              <div className="w-[clamp(220px,28%,380px)]">
+              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-400/15 bg-background/40 text-[11px] font-heading uppercase tracking-[0.18em] text-muted-foreground shrink-0 ml-1">
+                Game
+              </div>
+              <div className="w-[clamp(320px,42%,560px)]">
                 <Select value={selectedGameId ?? ""} onValueChange={(v) => setSelectedGameId(v || null)} disabled={playedGames.length === 0}>
-                  <SelectTrigger className="rounded-lg h-9">
+                  <SelectTrigger className="rounded-lg h-9 text-[11px]">
                     <SelectValue placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg max-h-[320px]">
@@ -241,7 +262,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   disabled={!selectedGame}
                   onClick={() => setBiqOn((v) => !v)}
                 />
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-emerald-400/30 bg-emerald-400/5 font-heading font-bold text-[11px] uppercase tracking-wider">
+                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -255,16 +276,17 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
           {/* Body */}
           <div className="relative z-10 flex-1 min-h-0 overflow-hidden">
             <div className="relative h-full w-full px-5 py-4 flex flex-col gap-3 overflow-hidden">
-              {!selectedGame ? (
-                <EmptyState
-                  hasPlayed={playedGames.length > 0}
-                  count={playedGames.length}
-                  dateLabel={selectedDateLabel}
-                />
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)_minmax(0,1fr)] gap-3 min-h-0 flex-1 transition-all duration-300 ease-out">
+              <div className="flex-1 min-h-0 flex items-center justify-center">
+                {!selectedGame ? (
+                  <EmptyState
+                    hasPlayed={playedGames.length > 0}
+                    count={playedGames.length}
+                    dateLabel={selectedDateLabel}
+                  />
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
-                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden min-h-0 animate-in fade-in duration-300">
+                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="left"
@@ -285,8 +307,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     )}
                   </div>
 
-                  <div className="flex items-center justify-center min-h-0">
-                      <div className="relative w-full rounded-2xl overflow-hidden border border-amber-400/30 bg-black shadow-[0_0_32px_-12px_hsl(var(--primary)/0.5)] aspect-video max-h-full">
+                  <div className="flex items-center justify-center">
+                      <div className="relative w-full rounded-2xl overflow-hidden border border-amber-400/30 bg-black shadow-[0_0_32px_-12px_hsl(var(--primary)/0.5)] aspect-video">
                         {embedSrc ? (
                           <iframe
                             key={selectedGame.game_id}
@@ -311,7 +333,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     </div>
 
                   {/* RIGHT: home table OR BIQ market panel */}
-                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden min-h-0 animate-in fade-in duration-300">
+                  <div className="rounded-xl border border-amber-400/25 bg-background/70 backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch">
                     {biqOn ? (
                       <GameBallersIQSidePanel
                         side="right"
@@ -331,8 +353,19 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                       />
                     )}
                   </div>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
+
+              {/* Past 2 + Next 2 rail — always mounted */}
+              <GameTeamsFormRail
+                awayTeam={selectedGame?.away_team ?? null}
+                homeTeam={selectedGame?.home_team ?? null}
+                awayName={selectedGame ? nameFor(selectedGame.away_team) : ""}
+                homeName={selectedGame ? nameFor(selectedGame.home_team) : ""}
+                referenceIso={referenceIso}
+                blurb={railBlurb}
+              />
             </div>
           </div>
         </div>
@@ -351,23 +384,31 @@ function EmptyState({
   dateLabel: string;
 }) {
   return (
-    <div className="flex-1 min-h-0 flex items-center justify-center">
+    <div className="flex items-center justify-center w-full">
       <div
-        className="relative w-full max-w-5xl rounded-2xl overflow-hidden border border-amber-400/25 aspect-video bg-black"
+        className="recap-empty-court-light relative w-full max-w-3xl rounded-[28px] overflow-hidden border border-amber-400/25 ring-1 ring-amber-400/15 shadow-[0_24px_60px_-30px_rgba(0,0,0,0.7)] aspect-[16/10] dark:bg-black"
         style={{
           backgroundImage: `url(${courtBg})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        {/* Darken the court */}
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/75" />
+        {/* Darken the court (lighter in light theme so parquet shows) */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-black/30 dark:bg-black/70" />
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
             backgroundImage:
-              "radial-gradient(ellipse at 50% 35%, hsl(45 90% 55% / 0.20), transparent 60%)",
+              "radial-gradient(ellipse at 50% 35%, hsl(45 90% 55% / 0.28), transparent 65%)",
+          }}
+        />
+        {/* Soft inner edge fade */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-[28px]"
+          style={{
+            boxShadow: "inset 0 0 60px 20px rgba(0,0,0,0.45)",
           }}
         />
         <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-8 text-center">
@@ -396,7 +437,7 @@ function BallersIQButton({ on, onClick, disabled }: { on: boolean; onClick: () =
       disabled={disabled}
       aria-pressed={on}
       title={on ? "Disable Ballers.IQ Live" : "Activate Ballers.IQ Live"}
-      className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-xl border transition-all hover:scale-[1.04] disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed ${
+      className={`h-9 inline-flex items-center gap-1.5 text-[11px] font-heading uppercase tracking-[0.18em] px-3 rounded-lg border transition-all hover:scale-[1.03] disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed ${
         on
           ? "border-amber-300/70 bg-amber-400/15 text-amber-100 shadow-[0_0_18px_-4px_rgba(252,211,77,0.7)]"
           : "border-amber-400/40 bg-black/40 text-amber-200/85 hover:border-amber-300/70 hover:bg-amber-400/10"
