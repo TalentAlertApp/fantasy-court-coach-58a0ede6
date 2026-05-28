@@ -10,7 +10,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, Check, ChevronDown } from "lucide-react";
+import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
@@ -53,7 +53,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [biqOn, setBiqOn] = useState(false);
   const [scheduledDetail, setScheduledDetail] = useState<GameDetailGame | null>(null);
-  const [gameOpen, setGameOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
 
   useEffect(() => {
@@ -63,7 +62,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
       setSelectedGameId(null);
       setBiqOn(false);
       setScheduledDetail(null);
-      setGameOpen(false);
       setCalOpen(false);
     }
   }, [open, initialGw, initialDay]);
@@ -258,8 +256,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
 
-              {/* MIDDLE: GW + Day + Calendar + Game cluster — anchored to the left, right after Gameday */}
-              <div className="flex items-center gap-2 flex-wrap justify-self-start">
+              {/* MIDDLE: GW + Day + Calendar + Recaps pill — centered */}
+              <div className="flex items-center gap-2 flex-wrap justify-self-center">
                 <div className="flex items-stretch gap-1">
                   <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-white/70 hover:text-white hover:bg-amber-300/10" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
                     <ChevronLeft className="h-4 w-4" />
@@ -322,20 +320,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
-                  Game
-                </div>
-                <GameRowPopover
-                  open={gameOpen}
-                  setOpen={setGameOpen}
-                  games={playedGames}
-                  selectedId={selectedGameId}
-                  selectedGame={selectedGame}
-                  onPick={(id) => { setSelectedGameId(id); setGameOpen(false); }}
-                  placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"}
-                  logoFor={logoFor}
-                  nameFor={nameFor}
-                />
+                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em] ml-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                  </span>
+                  {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
+                </span>
               </div>
 
               {/* RIGHT: actions */}
@@ -345,13 +336,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   disabled={!selectedGame}
                   onClick={() => setBiqOn((v) => !v)}
                 />
-                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-                  </span>
-                  {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
-                </span>
               </div>
             </div>
           </div>
@@ -361,13 +345,36 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
             <div className="relative h-full w-full px-5 py-4 flex flex-col gap-3 overflow-hidden">
               <div className="flex-1 min-h-0 flex items-center justify-center">
                 {!selectedGame ? (
-                  <EmptyState
-                    hasPlayed={playedGames.length > 0}
-                    count={playedGames.length}
+                  <CourtPicker
+                    games={playedGames}
                     dateLabel={selectedDateLabel}
+                    onPick={(id) => setSelectedGameId(id)}
+                    logoFor={logoFor}
+                    nameFor={nameFor}
                   />
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
+                  <div className="flex flex-col gap-3 w-full">
+                    {/* Selected game mini-header — centered */}
+                    <div className="flex justify-center">
+                      <div className="relative w-full max-w-[640px] rounded-lg border border-amber-300/40 bg-stone-900/85 dark:bg-background/40 px-3 py-2 text-white">
+                        <GameRow
+                          game={selectedGame}
+                          logoFor={logoFor}
+                          nameFor={nameFor}
+                          tone="dark"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSelectedGameId(null)}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-amber-300/10"
+                          title="Pick another game"
+                          aria-label="Pick another game"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
                   <div
                     className="rounded-2xl border-[1.5px] backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch text-white [&>div]:!bg-transparent [&_*]:!text-white [&_.text-red-500]:!text-amber-300 [&_.font-semibold]:!font-bold"
@@ -451,6 +458,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     )}
                   </div>
                   </div>
+                  </div>
                 )}
               </div>
 
@@ -489,15 +497,20 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   );
 }
 
-function EmptyState({
-  hasPlayed,
-  count,
+function CourtPicker({
+  games,
   dateLabel,
+  onPick,
+  logoFor,
+  nameFor,
 }: {
-  hasPlayed: boolean;
-  count: number;
+  games: ScheduleWeekGame[];
   dateLabel: string;
+  onPick: (id: string) => void;
+  logoFor: (tri: string) => string | undefined;
+  nameFor: (tri: string) => string;
 }) {
+  const hasPlayed = games.length > 0;
   return (
     <div className="flex items-center justify-center w-full">
       <div
@@ -508,7 +521,6 @@ function EmptyState({
           backgroundPosition: "center",
         }}
       >
-        {/* Darken the court (more in light theme so it feels involving) */}
         <div aria-hidden className="pointer-events-none absolute inset-0 bg-[hsl(28_55%_18%/0.55)] dark:bg-black/70" />
         <div
           aria-hidden
@@ -518,26 +530,37 @@ function EmptyState({
               "radial-gradient(ellipse at 50% 35%, hsl(45 90% 55% / 0.28), transparent 65%)",
           }}
         />
-        {/* Soft inner edge fade */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-[28px]"
-          style={{
-            boxShadow: "inset 0 0 60px 20px rgba(0,0,0,0.45)",
-          }}
+          style={{ boxShadow: "inset 0 0 60px 20px rgba(0,0,0,0.45)" }}
         />
-        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-8 text-center">
-          <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.55)]">
-            <Clapperboard className="h-7 w-7 text-amber-300" />
+        <div className="relative h-full w-full flex flex-col items-center justify-center gap-3 px-6 md:px-10 text-center">
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-amber-400/25 to-transparent border border-amber-400/40 flex items-center justify-center shadow-[0_0_32px_-8px_hsl(45_90%_55%/0.55)]">
+            <Clapperboard className="h-6 w-6 text-amber-300" />
           </div>
           <h3 className="font-heading font-black text-base md:text-lg uppercase tracking-wider bg-gradient-to-r from-amber-200 via-amber-100 to-amber-300 bg-clip-text text-transparent">
-            {hasPlayed ? "Court is set — pick a game to tip off" : "No recaps available"}
+            {hasPlayed ? "Pick a game to tip off" : "No recaps available"}
           </h3>
-          <p className="text-xs md:text-sm text-white/75 max-w-md">
+          <p className="text-[11px] md:text-xs text-white/70">
             {hasPlayed
-              ? `${count} recap${count === 1 ? "" : "s"} available${dateLabel ? ` for ${dateLabel}` : ""}. Pick a matchup from the Game dropdown above to load the video, both team box scores and Ballers.IQ insights.`
+              ? `${games.length} recap${games.length === 1 ? "" : "s"}${dateLabel ? ` · ${dateLabel}` : ""}`
               : `No played-game recaps were found${dateLabel ? ` for ${dateLabel}` : ""}. Choose another day or gameweek to browse available recaps.`}
           </p>
+          {hasPlayed && (
+            <div className="w-full max-w-[640px] mt-1 flex-1 min-h-0 overflow-y-auto rounded-xl border border-amber-300/20 bg-black/40 backdrop-blur-sm p-1">
+              {games.map((g) => (
+                <button
+                  key={g.game_id}
+                  type="button"
+                  onClick={() => onPick(g.game_id)}
+                  className="group w-full rounded-md px-2 py-2 text-[12px] text-left text-white transition-colors hover:bg-amber-300/10"
+                >
+                  <GameRow game={g} logoFor={logoFor} nameFor={nameFor} tone="dark" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -600,118 +623,39 @@ function TeamWatermark({ src, side }: { src?: string; side: "away" | "home" }) {
   );
 }
 
-function GameRowPopover({
-  open,
-  setOpen,
-  games,
-  selectedId,
-  selectedGame,
-  onPick,
-  placeholder,
+function GameRow({
+  game,
   logoFor,
   nameFor,
+  tone = "dark",
 }: {
-  open: boolean;
-  setOpen: (o: boolean) => void;
-  games: ScheduleWeekGame[];
-  selectedId: string | null;
-  selectedGame: ScheduleWeekGame | null;
-  onPick: (id: string) => void;
-  placeholder: string;
+  game: ScheduleWeekGame;
   logoFor: (tri: string) => string | undefined;
   nameFor: (tri: string) => string;
+  tone?: "dark" | "popover";
 }) {
-  const disabled = games.length === 0;
+  const a = game.away_pts ?? 0;
+  const h = game.home_pts ?? 0;
+  const awayWin = a > h;
+  const homeWin = h > a;
+  const nameClass = tone === "dark" ? "text-white" : "text-foreground";
+  const scoreClass = tone === "dark" ? "text-white/90" : "text-foreground/90";
+  const winnerScore = tone === "dark" ? "text-white" : "text-foreground";
+  const atClass = tone === "dark" ? "text-white/60" : "text-muted-foreground";
   return (
-    <Popover open={open} onOpenChange={(o) => !disabled && setOpen(o)}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className={cn(
-            "h-9 w-[600px] max-w-full rounded-lg flex items-center px-3 text-[11px] border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white transition-colors",
-            !disabled && "hover:border-amber-300/70 hover:bg-amber-300/5",
-            disabled && "opacity-50 cursor-not-allowed",
-          )}
-        >
-          <div className="flex-1 min-w-0 group">
-            {selectedGame ? (
-              (() => {
-                const a = selectedGame.away_pts ?? 0;
-                const h = selectedGame.home_pts ?? 0;
-                const awayWin = a > h;
-                const homeWin = h > a;
-                return (
-                  <div className={GAME_ROW_GRID}>
-                    <span aria-hidden className="invisible">·</span>
-                    <span className={cn("font-mono tabular-nums text-right text-white/90", awayWin && "font-bold text-white")}>{selectedGame.away_pts ?? "—"}</span>
-                    <div className="relative flex items-center justify-end pr-12 min-w-0">
-                      <span className={cn("relative z-10 truncate text-white", awayWin ? "font-bold" : "font-medium")}>{nameFor(selectedGame.away_team)}</span>
-                      <TeamWatermark src={logoFor(selectedGame.away_team)} side="away" />
-                    </div>
-                    <span className="text-center text-white/60">@</span>
-                    <div className="relative flex items-center justify-start pl-12 min-w-0">
-                      <TeamWatermark src={logoFor(selectedGame.home_team)} side="home" />
-                      <span className={cn("relative z-10 truncate text-white", homeWin ? "font-bold" : "font-medium")}>{nameFor(selectedGame.home_team)}</span>
-                    </div>
-                    <span className={cn("font-mono tabular-nums text-left text-white/90", homeWin && "font-bold text-white")}>{selectedGame.home_pts ?? "—"}</span>
-                  </div>
-                );
-              })()
-            ) : (
-              <span className="text-white/60 truncate block text-left">{placeholder}</span>
-            )}
-          </div>
-          <ChevronDown className="ml-2 h-4 w-4 opacity-60 shrink-0" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="p-1 w-[var(--radix-popover-trigger-width)] max-h-[70vh] overflow-y-auto bg-popover border-amber-300/30 rounded-lg"
-        align="start"
-        sideOffset={6}
-      >
-        {games.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">No recaps available</div>
-        ) : (
-          games.map((g) => {
-            const isSel = g.game_id === selectedId;
-            const a = g.away_pts ?? 0;
-            const h = g.home_pts ?? 0;
-            const awayWin = a > h;
-            const homeWin = h > a;
-            return (
-              <button
-                key={g.game_id}
-                type="button"
-                onClick={() => onPick(g.game_id)}
-                className={cn(
-                  "group w-full rounded-md px-2 py-2 text-[12px] transition-colors text-left",
-                  isSel
-                    ? "bg-amber-300/15 hover:bg-amber-300/20"
-                    : "hover:bg-amber-300/10",
-                )}
-              >
-                <div className={GAME_ROW_GRID}>
-                  <span className="flex items-center justify-center">
-                    {isSel ? <Check className="h-3.5 w-3.5 text-amber-300" /> : <span aria-hidden className="invisible">·</span>}
-                  </span>
-                  <span className={cn("font-mono tabular-nums text-right text-foreground/90", awayWin && "font-bold text-foreground")}>{g.away_pts ?? "—"}</span>
-                  <div className="relative flex items-center justify-end pr-12 min-w-0">
-                    <span className={cn("relative z-10 truncate whitespace-nowrap", awayWin ? "font-bold" : "font-medium")}>{nameFor(g.away_team)}</span>
-                    <TeamWatermark src={logoFor(g.away_team)} side="away" />
-                  </div>
-                  <span className="text-center text-muted-foreground">@</span>
-                  <div className="relative flex items-center justify-start pl-12 min-w-0">
-                    <TeamWatermark src={logoFor(g.home_team)} side="home" />
-                    <span className={cn("relative z-10 truncate whitespace-nowrap", homeWin ? "font-bold" : "font-medium")}>{nameFor(g.home_team)}</span>
-                  </div>
-                  <span className={cn("font-mono tabular-nums text-left text-foreground/90", homeWin && "font-bold text-foreground")}>{g.home_pts ?? "—"}</span>
-                </div>
-              </button>
-            );
-          })
-        )}
-      </PopoverContent>
-    </Popover>
+    <div className={GAME_ROW_GRID}>
+      <span aria-hidden className="invisible">·</span>
+      <span className={cn("font-mono tabular-nums text-right", scoreClass, awayWin && cn("font-bold", winnerScore))}>{game.away_pts ?? "—"}</span>
+      <div className="relative flex items-center justify-end pr-12 min-w-0">
+        <span className={cn("relative z-10 truncate whitespace-nowrap", nameClass, awayWin ? "font-bold" : "font-medium")}>{nameFor(game.away_team)}</span>
+        <TeamWatermark src={logoFor(game.away_team)} side="away" />
+      </div>
+      <span className={cn("text-center", atClass)}>@</span>
+      <div className="relative flex items-center justify-start pl-12 min-w-0">
+        <TeamWatermark src={logoFor(game.home_team)} side="home" />
+        <span className={cn("relative z-10 truncate whitespace-nowrap", nameClass, homeWin ? "font-bold" : "font-medium")}>{nameFor(game.home_team)}</span>
+      </div>
+      <span className={cn("font-mono tabular-nums text-left", scoreClass, homeWin && cn("font-bold", winnerScore))}>{game.home_pts ?? "—"}</span>
+    </div>
   );
 }
