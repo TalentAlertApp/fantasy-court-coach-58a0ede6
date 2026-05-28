@@ -17,6 +17,7 @@ import React from "react";
 import NationalityFlag from "@/components/NationalityFlag";
 import { countryLabel } from "@/lib/nationality";
 import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
+import PlayerContextBadges, { type PlayerBadge } from "@/components/transactions/PlayerContextBadges";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -37,9 +38,13 @@ interface PlayerRowProps {
   gameLogs?: Record<string, { fp: number; mp: number; pts: number }>;
   /** Hide the College column (e.g. EuroLeague). Default true (show). */
   showCollege?: boolean;
+  /** Optional market-status badges (matches /transactions). When provided,
+   *  a "Market" column is rendered right after Health. */
+  badges?: PlayerBadge[];
+  showBadgesColumn?: boolean;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs, showCollege = true }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs, showCollege = true, badges, showBadgesColumn }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const { isWnba } = useLeague();
   const teamLogo = getTeamLogo(core.team);
@@ -183,6 +188,15 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
           <span className="text-[11px] text-muted-foreground/50">—</span>
         )}
       </TableCell>
+      {showBadgesColumn && (
+        <TableCell className="px-1.5 text-center w-[110px]">
+          {badges && badges.length > 0 ? (
+            <PlayerContextBadges badges={badges} max={3} className="justify-center" />
+          ) : (
+            <span className="text-[11px] text-muted-foreground/50">—</span>
+          )}
+        </TableCell>
+      )}
       <TableCell title={salaryTip} className={`px-1.5 text-right text-[11px] w-[68px] tabular-nums font-bold ${salaryToneCls || "text-muted-foreground"}`}>{formatSalary(core.salary)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(last5?.fp5, 1, preseason)}</TableCell>
       <TableCell className="px-1.5 text-right text-[11px] text-muted-foreground w-14 tabular-nums">{formatStat(computed?.value5, 1, preseason)}</TableCell>
