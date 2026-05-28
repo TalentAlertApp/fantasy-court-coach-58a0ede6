@@ -396,7 +396,7 @@ function NBAPlaySearchSection() {
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   }, [playersData]);
 
-  const selectedGame = (gamesByDate ?? []).find((g: any) => g.game_id === gameId);
+  const selectedGame = (gamesByDate ?? []).find((g: AdvancedGameOption) => g.game_id === gameId);
   const gamecode = selectedGame ? `${yyyymmdd}/${selectedGame.away_team}${selectedGame.home_team}` : "";
   const gameSearchDisabled = !selectedGame;
 
