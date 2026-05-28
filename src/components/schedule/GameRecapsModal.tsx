@@ -345,13 +345,36 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
             <div className="relative h-full w-full px-5 py-4 flex flex-col gap-3 overflow-hidden">
               <div className="flex-1 min-h-0 flex items-center justify-center">
                 {!selectedGame ? (
-                  <EmptyState
-                    hasPlayed={playedGames.length > 0}
-                    count={playedGames.length}
+                  <CourtPicker
+                    games={playedGames}
                     dateLabel={selectedDateLabel}
+                    onPick={(id) => setSelectedGameId(id)}
+                    logoFor={logoFor}
+                    nameFor={nameFor}
                   />
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
+                  <div className="flex flex-col gap-3 w-full">
+                    {/* Selected game mini-header — centered */}
+                    <div className="flex justify-center">
+                      <div className="relative w-full max-w-[640px] rounded-lg border border-amber-300/40 bg-stone-900/85 dark:bg-background/40 px-3 py-2 text-white">
+                        <GameRow
+                          game={selectedGame}
+                          logoFor={logoFor}
+                          nameFor={nameFor}
+                          tone="dark"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSelectedGameId(null)}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-amber-300/10"
+                          title="Pick another game"
+                          aria-label="Pick another game"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
                   <div
                     className="rounded-2xl border-[1.5px] backdrop-blur-sm overflow-hidden animate-in fade-in duration-300 self-stretch text-white [&>div]:!bg-transparent [&_*]:!text-white [&_.text-red-500]:!text-amber-300 [&_.font-semibold]:!font-bold"
@@ -433,6 +456,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                         fillHeight
                       />
                     )}
+                  </div>
                   </div>
                   </div>
                 )}
