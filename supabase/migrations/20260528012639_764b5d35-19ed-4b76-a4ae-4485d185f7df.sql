@@ -1,0 +1,1 @@
+ALTER TABLE public.schedule_games DROP CONSTRAINT IF EXISTS schedule_games_status_check;

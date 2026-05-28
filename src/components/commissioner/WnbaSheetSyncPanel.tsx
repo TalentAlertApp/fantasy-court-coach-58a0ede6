@@ -330,19 +330,26 @@ export default function WnbaSheetSyncPanel() {
           {Object.entries(results)
             .filter(([k]) => k !== "all")
             .map(([key, r]) => (
-              <div key={key} className="border rounded-md p-2 text-xs flex flex-wrap gap-x-4 gap-y-1">
-                <span className="font-semibold">{key}</span>
-                <span className="text-muted-foreground">{r.tab}</span>
-                {r.rows_read !== undefined && <span>read: <b>{r.rows_read}</b></span>}
-                {r.upserted !== undefined && <span>upserted: <b>{r.upserted}</b></span>}
-                {r.skipped !== undefined && <span>skipped: <b>{r.skipped}</b></span>}
-                {r.nulled_out !== undefined && <span>nulled: <b>{r.nulled_out}</b></span>}
-                {r.games_upserted !== undefined && <span>games: <b>{r.games_upserted}</b></span>}
-                {r.last_game_updated !== undefined && <span>last_game: <b>{r.last_game_updated}</b></span>}
-                {r.players_aggregated !== undefined && <span>aggregated: <b>{r.players_aggregated}</b></span>}
-                <span className="text-muted-foreground">{r.elapsed_ms}ms</span>
+              <div key={key} className="border rounded-md p-2 text-xs space-y-1">
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  <span className="font-semibold">{key}</span>
+                  <span className="text-muted-foreground">{r.tab}</span>
+                  {r.rows_read !== undefined && <span>read: <b>{r.rows_read}</b></span>}
+                  {r.upserted !== undefined && <span>upserted: <b>{r.upserted}</b></span>}
+                  {r.skipped !== undefined && <span>skipped: <b>{r.skipped}</b></span>}
+                  {r.nulled_out !== undefined && <span>nulled: <b>{r.nulled_out}</b></span>}
+                  {r.games_upserted !== undefined && <span>games: <b>{r.games_upserted}</b></span>}
+                  {r.last_game_updated !== undefined && <span>last_game: <b>{r.last_game_updated}</b></span>}
+                  {r.players_aggregated !== undefined && <span>aggregated: <b>{r.players_aggregated}</b></span>}
+                  <span className="text-muted-foreground">{r.elapsed_ms}ms</span>
+                  {r.errors && r.errors.length > 0 && (
+                    <span className="text-destructive">errors: {r.errors.length}</span>
+                  )}
+                </div>
                 {r.errors && r.errors.length > 0 && (
-                  <span className="text-destructive">errors: {r.errors.length}</span>
+                  <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 font-mono text-[10px] leading-relaxed text-destructive">
+                    {r.errors.slice(0, 4).map((err, i) => <div key={i}>{err}</div>)}
+                  </div>
                 )}
               </div>
             ))}

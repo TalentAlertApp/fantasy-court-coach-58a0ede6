@@ -366,8 +366,15 @@ async function syncSchedule(token: string, sb: ReturnType<typeof makeSb>, league
   for (let i = 0; i < games.length; i += BATCH) {
     const batch = games.slice(i, i + BATCH);
     const { error } = await sb.from("schedule_games").upsert(batch, { onConflict: "game_id" });
-    if (error) errors.push(`batch ${i}: ${error.message}`);
-    else upserted += batch.length;
+    if (error) {
+      const sample = batch.slice(0, 8).map((g) => `${g.game_id}:${g.status}`).join(", ");
+      errors.push(`batch ${i}-${i + batch.length - 1}: ${error.message} (sample ${sample})`);
+      for (const game of batch) {
+        const { error: rowError } = await sb.from("schedule_games").upsert(game, { onConflict: "game_id" });
+        if (rowError) errors.push(`game ${game.game_id} (${game.status}): ${rowError.message}`);
+        else upserted++;
+      }
+    } else upserted += batch.length;
   }
   return { tab: "Schedule", rows_read: data.length, upserted, skipped: 0, errors };
 }

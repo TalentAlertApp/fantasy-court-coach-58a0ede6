@@ -879,7 +879,7 @@ export default function PlayersPage() {
                   <colgroup>
                     <col style={{ width: "44px" }} />
                     <col />
-                    <col style={{ width: "60px" }} />
+                    <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
                     {columns.map((c) => <col key={c.key} style={{ width: "44px" }} />)}
                     <col style={{ width: "52px" }} />
@@ -902,7 +902,7 @@ export default function PlayersPage() {
                   <colgroup>
                     <col style={{ width: "44px" }} />
                     <col />
-                    <col style={{ width: "60px" }} />
+                    <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
                     {columns.map((c) => <col key={c.key} style={{ width: "44px" }} />)}
                     <col style={{ width: "52px" }} />
@@ -987,14 +987,16 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
-                          <div className="flex items-center gap-1.5 w-full">
-                            {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0" />}
-                            <span className="shrink-0">{p.core.team}</span>
-                            <div className="ml-auto flex items-center justify-end shrink-0">
+                          <div className="grid w-full grid-cols-[72px_1fr] items-center gap-2">
+                            <div className="flex min-w-0 items-center justify-end">
                               <PlayerContextBadges
                                 badges={badgesForPlayer(p, { isOwned: false })}
                                 max={3}
                               />
+                            </div>
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              {teamLogo && <img src={teamLogo} alt="" className="h-4 w-4 shrink-0" />}
+                              <span className="shrink-0">{p.core.team}</span>
                             </div>
                           </div>
                         </td>
