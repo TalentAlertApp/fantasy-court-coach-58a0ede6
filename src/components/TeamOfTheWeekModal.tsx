@@ -82,12 +82,20 @@ function TOTWCard({ player, onClick }: { player: TOTWPlayer; onClick: () => void
           <img
             src={player.photo}
             alt={player.name}
-            className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-top bg-black/20 shadow-2xl transition-transform duration-300 group-hover:scale-110"
+            className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-top bg-black/20 shadow-2xl transition-opacity duration-300 group-hover:opacity-0"
           />
         ) : (
           <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-black/40 flex items-center justify-center text-2xl font-heading font-bold text-white/80">
             {player.name.substring(0, 2).toUpperCase()}
           </div>
+        )}
+        {teamLogo && (
+          <img
+            src={teamLogo}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute inset-0 w-28 h-28 md:w-36 md:h-36 object-contain opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+          />
         )}
       </div>
 
