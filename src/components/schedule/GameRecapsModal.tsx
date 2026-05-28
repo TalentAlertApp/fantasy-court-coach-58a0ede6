@@ -623,118 +623,39 @@ function TeamWatermark({ src, side }: { src?: string; side: "away" | "home" }) {
   );
 }
 
-function GameRowPopover({
-  open,
-  setOpen,
-  games,
-  selectedId,
-  selectedGame,
-  onPick,
-  placeholder,
+function GameRow({
+  game,
   logoFor,
   nameFor,
+  tone = "dark",
 }: {
-  open: boolean;
-  setOpen: (o: boolean) => void;
-  games: ScheduleWeekGame[];
-  selectedId: string | null;
-  selectedGame: ScheduleWeekGame | null;
-  onPick: (id: string) => void;
-  placeholder: string;
+  game: ScheduleWeekGame;
   logoFor: (tri: string) => string | undefined;
   nameFor: (tri: string) => string;
+  tone?: "dark" | "popover";
 }) {
-  const disabled = games.length === 0;
+  const a = game.away_pts ?? 0;
+  const h = game.home_pts ?? 0;
+  const awayWin = a > h;
+  const homeWin = h > a;
+  const nameClass = tone === "dark" ? "text-white" : "text-foreground";
+  const scoreClass = tone === "dark" ? "text-white/90" : "text-foreground/90";
+  const winnerScore = tone === "dark" ? "text-white" : "text-foreground";
+  const atClass = tone === "dark" ? "text-white/60" : "text-muted-foreground";
   return (
-    <Popover open={open} onOpenChange={(o) => !disabled && setOpen(o)}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className={cn(
-            "h-9 w-[600px] max-w-full rounded-lg flex items-center px-3 text-[11px] border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white transition-colors",
-            !disabled && "hover:border-amber-300/70 hover:bg-amber-300/5",
-            disabled && "opacity-50 cursor-not-allowed",
-          )}
-        >
-          <div className="flex-1 min-w-0 group">
-            {selectedGame ? (
-              (() => {
-                const a = selectedGame.away_pts ?? 0;
-                const h = selectedGame.home_pts ?? 0;
-                const awayWin = a > h;
-                const homeWin = h > a;
-                return (
-                  <div className={GAME_ROW_GRID}>
-                    <span aria-hidden className="invisible">·</span>
-                    <span className={cn("font-mono tabular-nums text-right text-white/90", awayWin && "font-bold text-white")}>{selectedGame.away_pts ?? "—"}</span>
-                    <div className="relative flex items-center justify-end pr-12 min-w-0">
-                      <span className={cn("relative z-10 truncate text-white", awayWin ? "font-bold" : "font-medium")}>{nameFor(selectedGame.away_team)}</span>
-                      <TeamWatermark src={logoFor(selectedGame.away_team)} side="away" />
-                    </div>
-                    <span className="text-center text-white/60">@</span>
-                    <div className="relative flex items-center justify-start pl-12 min-w-0">
-                      <TeamWatermark src={logoFor(selectedGame.home_team)} side="home" />
-                      <span className={cn("relative z-10 truncate text-white", homeWin ? "font-bold" : "font-medium")}>{nameFor(selectedGame.home_team)}</span>
-                    </div>
-                    <span className={cn("font-mono tabular-nums text-left text-white/90", homeWin && "font-bold text-white")}>{selectedGame.home_pts ?? "—"}</span>
-                  </div>
-                );
-              })()
-            ) : (
-              <span className="text-white/60 truncate block text-left">{placeholder}</span>
-            )}
-          </div>
-          <ChevronDown className="ml-2 h-4 w-4 opacity-60 shrink-0" />
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="p-1 w-[var(--radix-popover-trigger-width)] max-h-[70vh] overflow-y-auto bg-popover border-amber-300/30 rounded-lg"
-        align="start"
-        sideOffset={6}
-      >
-        {games.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">No recaps available</div>
-        ) : (
-          games.map((g) => {
-            const isSel = g.game_id === selectedId;
-            const a = g.away_pts ?? 0;
-            const h = g.home_pts ?? 0;
-            const awayWin = a > h;
-            const homeWin = h > a;
-            return (
-              <button
-                key={g.game_id}
-                type="button"
-                onClick={() => onPick(g.game_id)}
-                className={cn(
-                  "group w-full rounded-md px-2 py-2 text-[12px] transition-colors text-left",
-                  isSel
-                    ? "bg-amber-300/15 hover:bg-amber-300/20"
-                    : "hover:bg-amber-300/10",
-                )}
-              >
-                <div className={GAME_ROW_GRID}>
-                  <span className="flex items-center justify-center">
-                    {isSel ? <Check className="h-3.5 w-3.5 text-amber-300" /> : <span aria-hidden className="invisible">·</span>}
-                  </span>
-                  <span className={cn("font-mono tabular-nums text-right text-foreground/90", awayWin && "font-bold text-foreground")}>{g.away_pts ?? "—"}</span>
-                  <div className="relative flex items-center justify-end pr-12 min-w-0">
-                    <span className={cn("relative z-10 truncate whitespace-nowrap", awayWin ? "font-bold" : "font-medium")}>{nameFor(g.away_team)}</span>
-                    <TeamWatermark src={logoFor(g.away_team)} side="away" />
-                  </div>
-                  <span className="text-center text-muted-foreground">@</span>
-                  <div className="relative flex items-center justify-start pl-12 min-w-0">
-                    <TeamWatermark src={logoFor(g.home_team)} side="home" />
-                    <span className={cn("relative z-10 truncate whitespace-nowrap", homeWin ? "font-bold" : "font-medium")}>{nameFor(g.home_team)}</span>
-                  </div>
-                  <span className={cn("font-mono tabular-nums text-left text-foreground/90", homeWin && "font-bold text-foreground")}>{g.home_pts ?? "—"}</span>
-                </div>
-              </button>
-            );
-          })
-        )}
-      </PopoverContent>
-    </Popover>
+    <div className={GAME_ROW_GRID}>
+      <span aria-hidden className="invisible">·</span>
+      <span className={cn("font-mono tabular-nums text-right", scoreClass, awayWin && cn("font-bold", winnerScore))}>{game.away_pts ?? "—"}</span>
+      <div className="relative flex items-center justify-end pr-12 min-w-0">
+        <span className={cn("relative z-10 truncate whitespace-nowrap", nameClass, awayWin ? "font-bold" : "font-medium")}>{nameFor(game.away_team)}</span>
+        <TeamWatermark src={logoFor(game.away_team)} side="away" />
+      </div>
+      <span className={cn("text-center", atClass)}>@</span>
+      <div className="relative flex items-center justify-start pl-12 min-w-0">
+        <TeamWatermark src={logoFor(game.home_team)} side="home" />
+        <span className={cn("relative z-10 truncate whitespace-nowrap", nameClass, homeWin ? "font-bold" : "font-medium")}>{nameFor(game.home_team)}</span>
+      </div>
+      <span className={cn("font-mono tabular-nums text-left", scoreClass, homeWin && cn("font-bold", winnerScore))}>{game.home_pts ?? "—"}</span>
+    </div>
   );
 }
