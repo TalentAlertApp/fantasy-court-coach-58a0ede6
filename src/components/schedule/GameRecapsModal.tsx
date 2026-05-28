@@ -137,7 +137,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   }, [selectedGame, deadlines, gw, day]);
 
   const railBlurb = selectedGame
-    ? `${nameFor(selectedGame.away_team)} ${selectedGame.away_pts ?? "-"} @ ${selectedGame.home_pts ?? "-"} ${nameFor(selectedGame.home_team)}${venue?.arena ? ` · ${venue.arena}` : ""}`
+    ? `${nameFor(selectedGame.away_team)} ${selectedGame.away_pts ?? "-"} @ ${selectedGame.home_pts ?? "-"} ${nameFor(selectedGame.home_team)}${venue?.name ? ` · ${venue.name}` : ""}`
     : undefined;
 
   return (
