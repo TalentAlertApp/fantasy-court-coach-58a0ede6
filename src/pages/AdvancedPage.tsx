@@ -208,8 +208,22 @@ type AdvancedGameOption = {
 const ADVANCED_GAME_ROW_GRID =
   "grid w-full min-w-0 items-center gap-2 grid-cols-[28px_52px_minmax(0,1fr)_32px_minmax(0,1fr)_64px]";
 
-function AdvancedGameLogo({ src, alt }: { src?: string; alt: string }) {
-  return src ? <img src={src} alt={alt} className="h-5 w-5 shrink-0 object-contain" /> : <span aria-hidden className="h-5 w-5 shrink-0" />;
+function AdvancedTeamWatermark({ src, side }: { src?: string; side: "away" | "home" }) {
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt=""
+      aria-hidden
+      draggable={false}
+      className={cn(
+        "pointer-events-none select-none absolute top-1/2 -translate-y-1/2 h-9 w-9 object-contain",
+        "opacity-30 group-hover:opacity-80 transition-all duration-300 ease-out",
+        "group-hover:scale-125 drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]",
+        side === "away" ? "right-0 group-hover:translate-x-1" : "left-0 group-hover:-translate-x-1",
+      )}
+    />
+  );
 }
 
 function AdvancedGameSelectRow({
@@ -226,16 +240,14 @@ function AdvancedGameSelectRow({
   const awayLogo = getTeamLogo(game.away_team);
   const homeLogo = getTeamLogo(game.home_team);
   const hasScores = game.away_pts != null && game.home_pts != null;
-  const isPlayed = String(game.status ?? "").toUpperCase() === "FINAL" || hasScores;
+  const bothZero = hasScores && Number(game.away_pts) === 0 && Number(game.home_pts) === 0;
+  const statusFinal = String(game.status ?? "").toUpperCase() === "FINAL";
+  const isPlayed = statusFinal || (hasScores && !bothZero);
   const awayWin = isPlayed && hasScores && Number(game.away_pts) > Number(game.home_pts);
   const homeWin = isPlayed && hasScores && Number(game.home_pts) > Number(game.away_pts);
-  const tip = game.tipoff_utc ? new Date(game.tipoff_utc) : null;
-  const tipStr = tip
-    ? tip.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Lisbon" })
-    : "—";
 
   return (
-    <div className={cn(ADVANCED_GAME_ROW_GRID, compact ? "text-[11px]" : "text-xs")}>
+    <div className={cn("group", ADVANCED_GAME_ROW_GRID, compact ? "text-[11px]" : "text-xs")}>
       <span className="flex h-5 items-center justify-center">
         {isSelected ? <Check className="h-3.5 w-3.5 text-primary" /> : <span aria-hidden className="invisible">·</span>}
       </span>
@@ -246,16 +258,16 @@ function AdvancedGameSelectRow({
           awayWin && "font-bold",
         )}
       >
-        {isPlayed && hasScores ? game.away_pts : "—"}
+        {isPlayed ? game.away_pts : ""}
       </span>
-      <div className="flex min-w-0 items-center justify-end gap-1.5 text-right">
-        <span className={cn("min-w-0 truncate whitespace-nowrap", awayWin ? "font-bold text-foreground" : "font-medium")}>{nameFor(game.away_team)}</span>
-        <AdvancedGameLogo src={awayLogo} alt={`${nameFor(game.away_team)} logo`} />
+      <div className="relative flex min-w-0 items-center justify-end pr-11 text-right">
+        <span className={cn("relative z-10 min-w-0 truncate whitespace-nowrap", awayWin ? "font-bold text-foreground" : "font-medium")}>{nameFor(game.away_team)}</span>
+        <AdvancedTeamWatermark src={awayLogo} side="away" />
       </div>
       <span className="text-center font-heading text-muted-foreground">@</span>
-      <div className="flex min-w-0 items-center justify-start gap-1.5 text-left">
-        <AdvancedGameLogo src={homeLogo} alt={`${nameFor(game.home_team)} logo`} />
-        <span className={cn("min-w-0 truncate whitespace-nowrap", homeWin ? "font-bold text-foreground" : "font-medium")}>{nameFor(game.home_team)}</span>
+      <div className="relative flex min-w-0 items-center justify-start pl-11 text-left">
+        <AdvancedTeamWatermark src={homeLogo} side="home" />
+        <span className={cn("relative z-10 min-w-0 truncate whitespace-nowrap", homeWin ? "font-bold text-foreground" : "font-medium")}>{nameFor(game.home_team)}</span>
       </div>
       <span
         className={cn(
@@ -264,7 +276,7 @@ function AdvancedGameSelectRow({
           homeWin && "font-bold",
         )}
       >
-        {isPlayed && hasScores ? game.home_pts : tipStr}
+        {isPlayed ? game.home_pts : ""}
       </span>
     </div>
   );
