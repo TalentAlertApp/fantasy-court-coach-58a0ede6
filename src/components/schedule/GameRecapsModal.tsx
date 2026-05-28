@@ -231,9 +231,11 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
             style={{ WebkitMaskImage: "radial-gradient(circle at center, black 55%, transparent 78%)", maskImage: "radial-gradient(circle at center, black 55%, transparent 78%)" }}
           />
 
-          {/* Top hero */}
-          <div className="relative z-10 px-6 pt-5 pb-3 border-b border-amber-400/15">
-            <div className="flex items-center gap-3">
+          {/* Top hero + selector — single combined row */}
+          <div className="relative z-10 px-6 pt-4 pb-3 border-b border-amber-400/15">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              {/* LEFT: Brand */}
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400/30 to-amber-600/10 border border-amber-400/30 flex items-center justify-center shadow-[0_0_24px_-4px_hsl(var(--primary)/0.4)]">
                   <Film className="h-5 w-5 text-amber-300" />
                 </div>
@@ -245,19 +247,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     Game Recaps
                   </h2>
                 </div>
-            </div>
-          </div>
-
-          {/* Selector bar — single row */}
-          <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
-            <div className="grid items-center gap-3 grid-cols-[auto_1fr_auto]">
-              {/* LEFT: Gameday label */}
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 justify-self-start">
-                Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
 
-              {/* MIDDLE: GW + Day + Calendar + Recaps pill — centered */}
-              <div className="flex items-center gap-2 flex-wrap justify-self-center">
+              {/* RIGHT: full cluster (Gameday → < → GW → Day → Cal → > → Recaps → BIQ) */}
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
+                  Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
+                </div>
                 <div className="flex items-stretch gap-1">
                   <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-white/70 hover:text-white hover:bg-amber-300/10" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
                     <ChevronLeft className="h-4 w-4" />
@@ -320,17 +316,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                     <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
-                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em] ml-1">
+                <span className="h-9 inline-flex items-center gap-1.5 px-3 rounded-lg border border-emerald-400/30 bg-emerald-400/5 text-white font-heading font-bold text-[11px] uppercase tracking-[0.18em]">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                   </span>
                   {playedGames.length} recap{playedGames.length === 1 ? "" : "s"}
                 </span>
-              </div>
-
-              {/* RIGHT: actions */}
-              <div className="flex items-center gap-2 justify-self-end">
                 <BallersIQButton
                   on={biqOn}
                   disabled={!selectedGame}
