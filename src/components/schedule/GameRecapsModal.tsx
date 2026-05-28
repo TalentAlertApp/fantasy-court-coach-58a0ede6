@@ -7,8 +7,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles } from "lucide-react";
+import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, Check, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
@@ -50,6 +53,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [biqOn, setBiqOn] = useState(false);
   const [scheduledDetail, setScheduledDetail] = useState<GameDetailGame | null>(null);
+  const [gameOpen, setGameOpen] = useState(false);
+  const [calOpen, setCalOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -58,6 +63,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
       setSelectedGameId(null);
       setBiqOn(false);
       setScheduledDetail(null);
+      setGameOpen(false);
+      setCalOpen(false);
     }
   }, [open, initialGw, initialDay]);
 
@@ -123,6 +130,27 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
       return format(parse(found.date, "yyyy-MM-dd", new Date()), "EEE, MMM d");
     } catch {
       return "";
+    }
+  }, [daysForGw, day]);
+
+  // Map ISO date → (gw, day) for the calendar picker
+  const dateToDay = useMemo(() => {
+    const m = new Map<string, { gw: number; day: number }>();
+    for (const d of deadlines) {
+      const authored = (d as unknown as { date?: string }).date;
+      const ds = authored ?? new Date(d.deadline_utc).toISOString().slice(0, 10);
+      m.set(ds, { gw: d.gw, day: d.day });
+    }
+    return m;
+  }, [deadlines]);
+
+  const selectedDate = useMemo(() => {
+    const found = daysForGw.find((d) => d.day === day);
+    if (!found?.date) return undefined;
+    try {
+      return parse(found.date, "yyyy-MM-dd", new Date());
+    } catch {
+      return undefined;
     }
   }, [daysForGw, day]);
 
@@ -224,74 +252,93 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
           {/* Selector bar — single row */}
           <div className="relative z-10 px-6 py-2.5 border-b border-amber-400/10">
-            <div className="grid items-center gap-2 grid-cols-[auto_1fr_auto]">
+            <div className="grid items-center gap-3 grid-cols-[auto_1fr_auto]">
+              {/* LEFT: Gameday label */}
               <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 justify-self-start">
                 Gameday{selectedDateLabel ? <span className="ml-1.5 text-white/85 normal-case tracking-normal font-sans"> · {selectedDateLabel}</span> : null}
               </div>
-              <div className="flex items-center gap-2 justify-self-center">
-              <div className="flex items-stretch gap-1">
-                <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Select
-                  value={String(gw)}
-                  onValueChange={(v) => {
-                    const newGw = Number(v);
-                    setGw(newGw);
-                    const days = deadlines.filter((d) => d.gw === newGw).map((d) => d.day);
-                    if (!days.includes(day)) setDay(days[0] ?? 1);
-                    setSelectedGameId(null);
-                  }}
-                >
-                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="GW" /></SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[320px]">
-                    {allGws.map((g) => (<SelectItem key={g} value={String(g)}>GW {g}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <Select value={String(day)} onValueChange={(v) => { setDay(Number(v)); setSelectedGameId(null); }}>
-                  <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="Day" /></SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[320px]">
-                    {daysList.map((d) => (<SelectItem key={d} value={String(d)}>Day {d}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-muted-foreground hover:text-foreground" onClick={() => shiftDay(1)} disabled={!canNext} aria-label="Next gameday">
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+
+              {/* MIDDLE: GW + Day + Calendar + Game cluster — anchored to the left, right after Gameday */}
+              <div className="flex items-center gap-2 flex-wrap justify-self-start">
+                <div className="flex items-stretch gap-1">
+                  <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-white/70 hover:text-white hover:bg-amber-300/10" onClick={() => shiftDay(-1)} disabled={!canPrev} aria-label="Previous gameday">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Select
+                    value={String(gw)}
+                    onValueChange={(v) => {
+                      const newGw = Number(v);
+                      setGw(newGw);
+                      const days = deadlines.filter((d) => d.gw === newGw).map((d) => d.day);
+                      if (!days.includes(day)) setDay(days[0] ?? 1);
+                      setSelectedGameId(null);
+                    }}
+                  >
+                    <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="GW" /></SelectTrigger>
+                    <SelectContent className="rounded-lg max-h-[320px]">
+                      {allGws.map((g) => (<SelectItem key={g} value={String(g)}>GW {g}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={String(day)} onValueChange={(v) => { setDay(Number(v)); setSelectedGameId(null); }}>
+                    <SelectTrigger className="rounded-lg h-9 w-[92px] text-[11px] font-heading uppercase tracking-[0.18em] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15"><SelectValue placeholder="Day" /></SelectTrigger>
+                    <SelectContent className="rounded-lg max-h-[320px]">
+                      {daysList.map((d) => (<SelectItem key={d} value={String(d)}>Day {d}</SelectItem>))}
+                    </SelectContent>
+                  </Select>
+                  <Popover open={calOpen} onOpenChange={setCalOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9 rounded-md shrink-0 px-0 text-white/80 hover:text-white border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 hover:bg-amber-300/10"
+                        title="Pick a date"
+                        aria-label="Pick a date"
+                      >
+                        <CalendarIcon className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0 w-auto bg-popover" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        defaultMonth={selectedDate}
+                        onSelect={(d) => {
+                          if (!d) return;
+                          const ds = format(d, "yyyy-MM-dd");
+                          const hit = dateToDay.get(ds);
+                          if (hit) {
+                            setGw(hit.gw);
+                            setDay(hit.day);
+                            setSelectedGameId(null);
+                            setCalOpen(false);
+                          }
+                        }}
+                        disabled={(d) => !dateToDay.has(format(d, "yyyy-MM-dd"))}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button variant="ghost" size="icon" className="h-9 w-7 rounded-md shrink-0 px-0 text-white/70 hover:text-white hover:bg-amber-300/10" onClick={() => shiftDay(1)} disabled={!canNext} aria-label="Next gameday">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
+                  Game
+                </div>
+                <GameRowPopover
+                  open={gameOpen}
+                  setOpen={setGameOpen}
+                  games={playedGames}
+                  selectedId={selectedGameId}
+                  selectedGame={selectedGame}
+                  onPick={(id) => { setSelectedGameId(id); setGameOpen(false); }}
+                  placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"}
+                  logoFor={logoFor}
+                  nameFor={nameFor}
+                />
               </div>
-              <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0 ml-1">
-                Game
-              </div>
-              <div className="w-[clamp(320px,42%,560px)]">
-                <Select value={selectedGameId ?? ""} onValueChange={(v) => setSelectedGameId(v || null)} disabled={playedGames.length === 0}>
-                  <SelectTrigger className="rounded-lg h-9 text-[11px] bg-stone-900/85 dark:bg-background/40 text-white dark:text-foreground border-amber-300/40 dark:border-amber-400/15 [&>span]:flex-1 [&>span]:min-w-0">
-                    <SelectValue placeholder={playedGames.length ? `Pick a game · ${selectedDateLabel || "this gameday"}` : "No recaps available on this gameday"} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[320px]">
-                    {playedGames.map((g) => {
-                      const aL = logoFor(g.away_team);
-                      const hL = logoFor(g.home_team);
-                      return (
-                        <SelectItem key={g.game_id} value={g.game_id}>
-                          <div className="grid w-full items-center grid-cols-[40px_minmax(0,1fr)_28px_minmax(0,1fr)_40px] gap-2">
-                            <span className="font-mono tabular-nums text-[11px] text-muted-foreground text-right">{g.away_pts ?? "—"}</span>
-                            <div className="flex items-center justify-end gap-2 min-w-0">
-                              {aL && <img src={aL} alt="" className="w-5 h-5 shrink-0" />}
-                              <span className="font-medium truncate">{nameFor(g.away_team)}</span>
-                            </div>
-                            <span className="text-muted-foreground text-center">@</span>
-                            <div className="flex items-center justify-start gap-2 min-w-0">
-                              <span className="font-medium truncate">{nameFor(g.home_team)}</span>
-                              {hL && <img src={hL} alt="" className="w-5 h-5 shrink-0" />}
-                            </div>
-                            <span className="font-mono tabular-nums text-[11px] text-muted-foreground text-left">{g.home_pts ?? "—"}</span>
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
-              </div>
+
+              {/* RIGHT: actions */}
               <div className="flex items-center gap-2 justify-self-end">
                 <BallersIQButton
                   on={biqOn}
