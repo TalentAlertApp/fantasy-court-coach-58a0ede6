@@ -671,7 +671,7 @@ function NBAPlaySearchSection() {
                             : "No games on this gameday")
                     } />
                   </SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[320px] min-w-[var(--radix-select-trigger-width)]">
+                  <SelectContent className="rounded-lg max-h-[70vh] min-w-[var(--radix-select-trigger-width)]">
                     {(gamesByDate ?? []).map((g: any) => {
                       const awayLogo = getTeamLogo(g.away_team);
                       const homeLogo = getTeamLogo(g.home_team);
@@ -685,7 +685,14 @@ function NBAPlaySearchSection() {
                       const awayWin = isPlayed && aPts > hPts;
                       const homeWin = isPlayed && hPts > aPts;
                       return (
-                        <SelectItem key={g.game_id} value={g.game_id} className={isPlayed ? "" : "opacity-60"}>
+                        <SelectItem
+                          key={g.game_id}
+                          value={g.game_id}
+                          className={cn(
+                            "!pl-2 !pr-2 [&>span:first-child]:hidden",
+                            isPlayed ? "" : "opacity-60",
+                          )}
+                        >
                           <div className="group grid items-center gap-2 w-full grid-cols-[44px_minmax(0,1fr)_28px_minmax(0,1fr)_44px]">
                             <span className={cn("font-mono tabular-nums text-right text-[11px] text-foreground/80", awayWin && "font-bold text-foreground")}>
                               {isPlayed ? aPts : ""}
