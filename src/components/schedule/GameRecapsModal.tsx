@@ -210,9 +210,10 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 src={venue.image}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-80 transition-opacity duration-500"
+                className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-45 transition-opacity duration-500"
               />
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/25 via-black/15 to-black/45" />
+              {/* Darker scrim at the very top so header cluster stays readable */}
+              <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/80 via-black/35 to-black/55" />
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0"
@@ -233,9 +234,9 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
 
           {/* Top hero + selector — single combined row */}
           <div className="relative z-10 px-6 pt-4 pb-3 border-b border-amber-400/15">
-            <div className="grid items-center gap-4 grid-cols-[auto_1fr_auto]">
+            <div className="relative flex items-center min-h-[56px]">
               {/* LEFT: Brand */}
-              <div className="flex items-center gap-3 shrink-0 justify-self-start">
+              <div className="flex items-center gap-3 shrink-0">
                 <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400/30 to-amber-600/10 border border-amber-400/30 flex items-center justify-center shadow-[0_0_24px_-4px_hsl(var(--primary)/0.4)]">
                   <Film className="h-5 w-5 text-amber-300" />
                 </div>
@@ -249,8 +250,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 </div>
               </div>
 
-              {/* CENTER: full cluster (Gameday → < → GW → Day → Cal → > → Recaps → BIQ) */}
-              <div className="flex items-center gap-2 flex-wrap justify-self-center">
+              {/* CENTER: full cluster absolutely centered on the modal width */}
+              <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 flex-wrap">
                 <div className="h-9 inline-flex items-center px-3 rounded-lg border border-amber-300/40 dark:border-amber-400/15 bg-stone-900/85 dark:bg-background/40 text-white text-[11px] font-heading uppercase tracking-[0.18em] shrink-0">
                   Gameday
                   {selectedDateLabel ? (
@@ -342,8 +343,8 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                 />
               </div>
 
-              {/* RIGHT: spacer to balance close button */}
-              <div className="w-8 justify-self-end" aria-hidden />
+              {/* RIGHT: spacer pushes brand to the left edge */}
+              <div className="ml-auto w-8" aria-hidden />
             </div>
           </div>
 
