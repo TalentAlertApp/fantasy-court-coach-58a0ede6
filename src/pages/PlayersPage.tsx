@@ -879,7 +879,7 @@ export default function PlayersPage() {
                   <colgroup>
                     <col style={{ width: "44px" }} />
                     <col />
-                    <col style={{ width: "116px" }} />
+                    <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
                     {columns.map((c) => <col key={c.key} style={{ width: "44px" }} />)}
                     <col style={{ width: "52px" }} />
@@ -902,7 +902,7 @@ export default function PlayersPage() {
                   <colgroup>
                     <col style={{ width: "44px" }} />
                     <col />
-                    <col style={{ width: "116px" }} />
+                    <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
                     {columns.map((c) => <col key={c.key} style={{ width: "44px" }} />)}
                     <col style={{ width: "52px" }} />
@@ -987,7 +987,7 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
-                          <div className="grid w-full grid-cols-[48px_1fr] items-center gap-2">
+                          <div className="grid w-full grid-cols-[72px_1fr] items-center gap-2">
                             <div className="flex min-w-0 items-center justify-end">
                               <PlayerContextBadges
                                 badges={badgesForPlayer(p, { isOwned: false })}
