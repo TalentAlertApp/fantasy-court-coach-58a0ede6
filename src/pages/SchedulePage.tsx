@@ -236,12 +236,6 @@ export default function SchedulePage() {
     return `${format(first, "MMM d")} – ${format(last, "MMM d")}`;
   }, [gw, getDaysForWeek]);
   const todayStr = new Date().toISOString().slice(0, 10);
-  const selectedDateStr = WEEK_DAY_TO_DATE[`${gw}-${day}`] ?? "";
-  const isToday = selectedDateStr === todayStr;
-
-  const selectedDateLabel = selectedDateStr
-    ? format(parse(selectedDateStr, "yyyy-MM-dd", new Date()), "EEE, MMM d")
-    : "";
 
   const deadline = deadlines.find((d) => d.gw === gw && d.day === day);
 
