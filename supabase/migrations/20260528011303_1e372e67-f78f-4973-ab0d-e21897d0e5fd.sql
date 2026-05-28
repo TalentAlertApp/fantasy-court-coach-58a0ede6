@@ -1,0 +1,2 @@
+ALTER TABLE public.schedule_games DROP CONSTRAINT IF EXISTS schedule_games_status_check;
+ALTER TABLE public.schedule_games ADD CONSTRAINT schedule_games_status_check CHECK (status IN ('SCHEDULED','FINAL','LIVE','IN_PROGRESS','HALF','HALFTIME','DELAY','PRE') OR status ~ '^(Q[1-4]|END|HALF|OT)');
