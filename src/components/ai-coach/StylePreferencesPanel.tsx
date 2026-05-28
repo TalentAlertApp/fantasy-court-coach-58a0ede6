@@ -62,24 +62,24 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-7 md:p-9 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-8">
-      <div className="space-y-2">
+    <div className="rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-4 md:p-6 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-4 md:space-y-5">
+      <div className="space-y-1">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />
           <p className="font-heading uppercase tracking-[0.22em] text-sm font-bold">
             Tell the coach your style
           </p>
         </div>
-        <p className="text-xs md:text-sm text-muted-foreground pl-7">
+        <p className="text-[11px] md:text-xs text-muted-foreground pl-7">
           Five quick choices. We'll build a legal lineup that matches your vibe.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 md:gap-10">
-      <div className="space-y-7">
+      <div className="grid md:grid-cols-2 gap-5 md:gap-7">
+      <div className="space-y-4">
       {/* Archetype */}
       <Section icon={<DollarSign className="h-3.5 w-3.5 text-accent" />} label="Salary archetype">
-        <div className="grid sm:grid-cols-3 gap-3">
+        <div className="grid sm:grid-cols-3 gap-2">
           {ARCHETYPES.map((a) => {
             const active = archetype === a.id;
             return (
@@ -87,14 +87,14 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
                 key={a.id}
                 type="button"
                 onClick={() => setArchetype(a.id)}
-                className={`text-left rounded-xl border-2 p-4 transition-all hover:-translate-y-0.5 ${
+                className={`text-left rounded-xl border-2 p-2.5 transition-all hover:-translate-y-0.5 ${
                   active
                     ? "border-accent bg-accent/10 shadow-[0_0_30px_-12px_hsl(var(--accent))]"
                     : "border-border hover:border-foreground/30"
                 }`}
               >
-                <p className="font-heading uppercase text-xs tracking-wider">{a.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{a.sub}</p>
+                <p className="font-heading uppercase text-[11px] tracking-wider">{a.title}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 leading-snug">{a.sub}</p>
               </button>
             );
           })}
@@ -112,13 +112,13 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
       </Section>
       </div>
 
-      <div className="space-y-7">
+      <div className="space-y-4">
       {/* Favourite teams — borderless badges */}
       <Section
         icon={<Heart className="h-3.5 w-3.5 text-accent" />}
         label={`Favourite teams · pick up to 3 (${favouriteTeams.length}/3)`}
       >
-        <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-wrap gap-2 items-center">
           {teams.map((t) => {
             const active = favouriteTeams.includes(t.tricode);
             return (
@@ -137,7 +137,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
                     <img
                       src={t.logo}
                       alt={t.tricode}
-                      className="h-10 w-10 object-contain"
+                      className="h-8 w-8 object-contain"
                     />
                   </button>
                 </TooltipTrigger>
@@ -150,9 +150,9 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
 
       {/* Live preview */}
       {preview && (
-        <div className="rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-5 space-y-4">
+        <div className="rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent p-3 space-y-2">
           <CaptainPreview captain={preview.captain} logoByTri={logoByTri} nameByTri={nameByTri} />
-          <div className="grid grid-cols-2 gap-3 text-center pt-3 border-t border-accent/20">
+          <div className="grid grid-cols-2 gap-2 text-center pt-2 border-t border-accent/20">
             <Stat label="Salary used" value={`$${preview.totalSalary.toFixed(1)}M`} />
             <Stat label="Roster" value={preview.legal ? "Legal ✓" : `${preview.starters.length + preview.bench.length}/10`} />
           </div>
@@ -165,7 +165,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
         onClick={() => onDraft(prefs)}
         disabled={busy || !players.length}
         size="lg"
-        className="w-full font-heading uppercase tracking-widest h-14 text-base shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
+        className="w-full font-heading uppercase tracking-widest h-11 text-sm shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
       >
         {busy ? (
           <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Drafting…</>
