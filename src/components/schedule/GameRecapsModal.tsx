@@ -42,7 +42,6 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [gw, setGw] = useState(initialGw);
   const [day, setDay] = useState(initialDay);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
-  const [biqOn, setBiqOn] = useState(false);
 
   useEffect(() => {
     if (open) {
