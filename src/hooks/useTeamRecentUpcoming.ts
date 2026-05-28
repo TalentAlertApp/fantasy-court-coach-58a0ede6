@@ -50,7 +50,7 @@ export function useTeamRecentUpcoming(team: string | null, referenceIso: string 
           .lte("tipoff_utc", ref)
           .ilike("status", "%FINAL%")
           .order("tipoff_utc", { ascending: false })
-          .limit(2),
+          .limit(3),
         supabase
           .from("schedule_games")
           .select(baseSelect)
