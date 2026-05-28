@@ -296,7 +296,7 @@ function NBAPlaySearchSection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("schedule_games")
-        .select("game_id, away_team, home_team, tipoff_utc, status")
+        .select("game_id, away_team, home_team, tipoff_utc, status, home_pts, away_pts")
         .eq("league_id", leagueId!)
         .eq("gw", gw)
         .eq("day", day)
