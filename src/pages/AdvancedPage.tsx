@@ -762,7 +762,10 @@ function NBAPlaySearchSection() {
                       } />
                     )}
                   </SelectTrigger>
-                  <SelectContent className="rounded-lg max-h-[70vh] w-[720px] max-w-[min(900px,calc(100vw-48px))] min-w-[var(--radix-select-trigger-width)]">
+                  <SelectContent
+                    position="popper"
+                    className="rounded-lg w-[720px] max-w-[min(900px,calc(100vw-48px))] min-w-[var(--radix-select-trigger-width)] [&_[data-radix-select-viewport]]:max-h-[60vh] [&_[data-radix-select-viewport]]:overflow-y-auto"
+                  >
                     {(gamesByDate ?? []).map((g: AdvancedGameOption) => {
                       const isSelected = g.game_id === gameId;
                       return (
