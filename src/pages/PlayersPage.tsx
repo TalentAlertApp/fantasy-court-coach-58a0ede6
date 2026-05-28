@@ -987,17 +987,15 @@ export default function PlayersPage() {
                           </div>
                         </td>
                         <td className="px-1 py-1.5 pl-1 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <PlayerContextBadges
-                              badges={badgesForPlayer(p, { isOwned: false })}
-                              max={3}
-                            />
-                            <span
-                              aria-hidden="true"
-                              className="inline-block h-3 w-px bg-border/60 mx-0.5 shrink-0"
-                            />
+                          <div className="flex items-center gap-1.5 w-full">
                             {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 shrink-0" />}
-                            <span>{p.core.team}</span>
+                            <span className="shrink-0">{p.core.team}</span>
+                            <div className="ml-auto flex items-center justify-end shrink-0">
+                              <PlayerContextBadges
+                                badges={badgesForPlayer(p, { isOwned: false })}
+                                max={3}
+                              />
+                            </div>
                           </div>
                         </td>
                         <td className={`px-1 py-1.5 text-xs text-right font-mono ${sortCol === "gp" ? "text-primary font-bold" : ""}`}>{gp}</td>
