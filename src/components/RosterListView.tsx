@@ -3,7 +3,7 @@ import { getLeagueLogo } from "@/lib/competitions";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import PlayerRow from "./PlayerRow";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useUpcomingByTeam, getTeamGameweekSlots, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
@@ -12,6 +12,15 @@ import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDead
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import { useLeague } from "@/contexts/LeagueContext";
+import { usePlayersQuery } from "@/hooks/usePlayersQuery";
+import { useWishlist } from "@/hooks/useWishlist";
+import { normalizePlayerHealth } from "@/lib/health";
+import {
+  computePlayerBadges,
+  quantile,
+  type BadgePoolStats,
+  type PlayerBadge,
+} from "@/components/transactions/PlayerContextBadges";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -34,6 +43,75 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
   const { league } = useLeague();
   const leagueLogo = getLeagueLogo(league);
   const showCollege = league !== "euroleague";
+
+  // ── Market-status badges (same logic as /transactions) ────────────────
+  const { data: playersData } = usePlayersQuery({ limit: 1000 });
+  const { wishlistIds } = useWishlist();
+  const wishlistSet = useMemo(() => new Set<number>(wishlistIds ?? []), [wishlistIds]);
+
+  const upcomingCtxByTeam = useMemo(() => {
+    const out = new Map<string, { thisGw: number; next7: number }>();
+    if (!upcomingByTeam) return out;
+    const now = Date.now();
+    const week = now + 7 * 86400_000;
+    for (const [tri, games] of Object.entries(upcomingByTeam)) {
+      let thisGw = 0;
+      let next7 = 0;
+      for (const g of games as any[]) {
+        const ts = g.tipoffUtc ? new Date(g.tipoffUtc).getTime() : NaN;
+        if (!Number.isFinite(ts)) continue;
+        if (g.gw === currentGw && ts >= now - 6 * 3600_000) thisGw++;
+        if (ts >= now - 3 * 3600_000 && ts <= week) next7++;
+      }
+      out.set(tri.toUpperCase(), { thisGw, next7 });
+    }
+    return out;
+  }, [upcomingByTeam, currentGw]);
+
+  const poolStats: BadgePoolStats = useMemo(() => {
+    const pool: PlayerListItem[] = (playersData?.items as PlayerListItem[] | undefined) ?? [...starters, ...bench];
+    const v5: number[] = [];
+    const sal: number[] = [];
+    const fp5: number[] = [];
+    for (const p of pool) {
+      const v = (p as any).computed?.value5 ?? (p as any).computed?.value ?? 0;
+      if (v > 0) v5.push(v);
+      if (p.core.salary > 0) sal.push(p.core.salary);
+      const f = (p as any).last5?.fp5 ?? 0;
+      if (f > 0) fp5.push(f);
+    }
+    return {
+      value5Q75: quantile(v5, 0.75),
+      salaryMedian: quantile(sal, 0.5),
+      fp5P90: quantile(fp5, 0.9),
+    };
+  }, [playersData, starters, bench]);
+
+  const badgesForPlayer = (p: PlayerListItem): PlayerBadge[] => {
+    const upcoming = upcomingCtxByTeam.get((p.core.team ?? "").toUpperCase()) ?? null;
+    return computePlayerBadges(
+      {
+        salary: p.core.salary,
+        fc_bc: p.core.fc_bc as "FC" | "BC",
+        team: p.core.team,
+        fpSeason: (p.season as any)?.fp ?? 0,
+        fpLast5: (p as any).last5?.fp5 ?? 0,
+        mpgSeason: (p.season as any)?.mpg ?? 0,
+        mpgLast5: (p as any).last5?.mpg5 ?? 0,
+        value: (p as any).computed?.value ?? 0,
+        value5: (p as any).computed?.value5 ?? 0,
+        health: normalizePlayerHealth(p),
+      },
+      {
+        pool: poolStats,
+        upcoming,
+        isOwned: true,
+        isInWishlist: wishlistSet.has(p.core.id),
+        rosterNeedsFc: false,
+        rosterNeedsBc: false,
+      },
+    );
+  };
 
   const handleDragStart = (e: React.DragEvent, playerId: number) => {
     e.dataTransfer.setData("text/plain", String(playerId));
@@ -69,6 +147,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
         <TableHead className="px-1.5 w-36 font-heading uppercase tracking-wider text-[10px]">Nation</TableHead>
         <TableHead className="px-1.5 text-center w-14 font-heading uppercase tracking-wider text-[10px]">FC/BC</TableHead>
         <TableHead className="px-1.5 text-center w-12 font-heading uppercase tracking-wider text-[10px]" title="Health status">Health</TableHead>
+        <TableHead className="px-1.5 text-center w-[110px] font-heading uppercase tracking-wider text-[10px]" title="Market status — same icons as /transactions">Market</TableHead>
         <TableHead className="px-1.5 text-right w-[68px] font-heading uppercase tracking-wider text-[10px]">Salary</TableHead>
         <TableHead className="px-1.5 text-right w-14 font-heading uppercase tracking-wider text-[10px]">FP5</TableHead>
         <TableHead className="px-1.5 text-right w-14 font-heading uppercase tracking-wider text-[10px]">Value5</TableHead>
@@ -95,6 +174,8 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       onSlotClick={onSlotClick}
       gameLogs={gameLogsByPlayer?.[p.core.id]}
       showCollege={showCollege}
+      showBadgesColumn
+      badges={badgesForPlayer(p)}
     />
   );
 
@@ -113,7 +194,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">STARTING 5</div>
         <div className="overflow-x-auto premium-scroll">
-          <Table className={showCollege ? "min-w-[1080px]" : "min-w-[980px]"}>{header}
+          <Table className={showCollege ? "min-w-[1190px]" : "min-w-[1090px]"}>{header}
             <TableBody>{starters.map(renderRow)}</TableBody>
           </Table>
         </div>
@@ -121,7 +202,7 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
       <div className="rounded-xl border border-border bg-card/40 backdrop-blur-sm overflow-hidden shadow-[0_2px_12px_-6px_hsl(var(--primary)/0.25)]">
         <div className="section-bar rounded-none">BENCH</div>
         <div className="overflow-x-auto premium-scroll">
-          <Table className={showCollege ? "min-w-[1080px]" : "min-w-[980px]"}>{header}
+          <Table className={showCollege ? "min-w-[1190px]" : "min-w-[1090px]"}>{header}
             <TableBody>{bench.map(renderRow)}</TableBody>
           </Table>
         </div>
