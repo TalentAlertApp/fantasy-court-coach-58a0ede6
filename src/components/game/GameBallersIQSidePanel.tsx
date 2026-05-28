@@ -106,8 +106,8 @@ export default function GameBallersIQSidePanel({
         {side === "left" ? (
           <>
             {/* Recap card */}
-            <div className="rounded-lg border border-amber-400/30 bg-gradient-to-br from-black/60 via-black/40 to-black/60 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="rounded-lg border border-amber-400/30 bg-gradient-to-br from-black/60 via-black/40 to-black/60 px-3 py-3.5">
+              <div className="flex items-center gap-1.5 mb-2">
                 <Activity className="h-3 w-3 text-amber-300" />
                 <span className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-200/90">Recap Story</span>
               </div>
@@ -116,8 +116,8 @@ export default function GameBallersIQSidePanel({
 
             {/* Intelligence chips */}
             {intel.chips.length > 0 && (
-              <div className="rounded-lg border border-white/10 bg-black/40 px-3 py-2">
-                <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/55 mb-1.5">Game Intelligence</div>
+              <div className="rounded-lg border border-white/10 bg-black/40 px-3 py-3">
+                <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/55 mb-2">Game Intelligence</div>
                 <div className="flex flex-wrap gap-1">
                   {intel.chips.map((c) => (
                     <span key={c.label} className={cn(
@@ -134,7 +134,7 @@ export default function GameBallersIQSidePanel({
               <button
                 type="button"
                 onClick={() => intel.mvp.player_id && setOpenPlayerId(Number(intel.mvp.player_id))}
-                className="group relative w-full text-left overflow-hidden rounded-lg border border-violet-400/30 bg-gradient-to-br from-violet-500/10 via-black/40 to-black/60 px-3 py-2 hover:border-violet-300/60 transition-colors"
+                className="group relative w-full text-left overflow-hidden rounded-lg border border-violet-400/30 bg-gradient-to-br from-violet-500/10 via-black/40 to-black/60 px-3 py-3.5 hover:border-violet-300/60 transition-colors"
               >
                 {(() => {
                   const wm = getTeamLogo(intel.mvp.team, league);
@@ -147,7 +147,7 @@ export default function GameBallersIQSidePanel({
                     />
                   ) : null;
                 })()}
-                <div className="relative flex items-center gap-1.5 mb-1.5">
+                <div className="relative flex items-center gap-1.5 mb-2">
                   <Crown className="h-3 w-3 text-violet-300" />
                   <span className="text-[9px] font-heading uppercase tracking-[0.22em] text-violet-200">Captain Edge</span>
                 </div>
@@ -167,12 +167,12 @@ export default function GameBallersIQSidePanel({
         ) : (
           <>
             {/* Top Performers */}
-            <div className="rounded-lg border border-white/10 bg-black/40 px-3 py-2">
-              <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="rounded-lg border border-white/10 bg-black/40 px-3 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
                 <Flame className="h-3 w-3 text-amber-300" />
                 <span className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/70">Top Fantasy Performers</span>
               </div>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {intel.top5.map((p, i) => {
                   const isMvp = i === 0;
                   const isValue = p.player_id === intel.valueAce?.player_id;
@@ -201,8 +201,8 @@ export default function GameBallersIQSidePanel({
             </div>
 
             {/* Market reaction */}
-            <div className="rounded-lg border border-white/10 bg-black/40 px-3 py-2">
-              <div className="flex items-center gap-1.5 mb-1.5">
+            <div className="rounded-lg border border-white/10 bg-black/40 px-3 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
                 <Sparkles className="h-3 w-3 text-amber-300" />
                 <span className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/70">Market Reaction</span>
               </div>

@@ -84,8 +84,8 @@ function TeamRow({
   const { data } = useTeamRecentUpcoming(team, referenceIso);
   const past = useMemo(() => {
     const arr: (TeamGameSlot | null)[] = [...(data?.past ?? [])];
-    while (arr.length < 2) arr.unshift(null);
-    return arr.slice(-2);
+    while (arr.length < 3) arr.unshift(null);
+    return arr.slice(-3);
   }, [data]);
   const next = useMemo(() => {
     const arr: (TeamGameSlot | null)[] = [...(data?.next ?? [])];
