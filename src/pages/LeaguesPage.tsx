@@ -628,7 +628,7 @@ export default function LeaguesPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+            <div className="rounded-2xl border border-border/70 bg-card overflow-hidden divide-y divide-border">
               {filteredMine.map((l) => (
                 <LeagueListRow
                   key={l.id}
@@ -861,7 +861,7 @@ function DiscoverPanel({
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+            <div className="rounded-2xl border border-border/70 bg-card overflow-hidden divide-y divide-border">
               {accumulated.map((l) => (
                 <PublicLeagueListRow
                   key={l.id}
