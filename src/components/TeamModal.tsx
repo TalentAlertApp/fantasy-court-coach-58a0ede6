@@ -275,7 +275,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                             className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm"
                           >
                             <button onClick={openDetail} className="hover:opacity-80 transition-opacity">
-                              <Badge variant={won ? "default" : "destructive"} className="rounded-lg text-[9px] w-5 justify-center cursor-pointer">{won ? "W" : "L"}</Badge>
+                              <Badge
+                                variant={won ? "default" : "destructive"}
+                                className={`rounded-lg text-[9px] w-5 justify-center cursor-pointer ${won ? "bg-green-500 hover:bg-green-500/90 text-white border-transparent" : ""}`}
+                              >
+                                {won ? "W" : "L"}
+                              </Badge>
                             </button>
                             <span className="font-heading text-xs uppercase inline-flex items-center gap-1">
                               {isHome ? "vs" : "@"} {opp}
