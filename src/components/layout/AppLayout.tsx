@@ -111,7 +111,7 @@ export default function AppLayout() {
                 src={euroleagueLogo}
                 alt=""
                 aria-hidden
-                className="pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 h-16 w-16 object-contain opacity-[0.06] select-none"
+                className="pointer-events-none absolute -bottom-5 left-1/2 -translate-x-1/2 h-24 w-24 object-contain opacity-[0.06] select-none"
               />
             </>
           )}
@@ -121,14 +121,12 @@ export default function AppLayout() {
                 to="/"
                 end
                 aria-label="Go to My Roster (home)"
-                className="flex flex-col leading-none truncate flex-1 relative z-10 cursor-pointer rounded-md hover:bg-white/5 transition-colors -mx-1 px-1 py-0.5"
+                className="group flex flex-col leading-none truncate flex-1 relative z-10 cursor-pointer -mx-1 px-1 py-0.5"
               >
-                <span className="text-[13px] font-heading font-bold uppercase tracking-[0.08em] whitespace-nowrap"
-                      style={{ color: "hsl(var(--sidebar-foreground))" }}>
+                <span className="text-[13px] font-heading font-bold uppercase tracking-[0.08em] whitespace-nowrap text-sidebar-foreground transition-colors group-hover:text-accent">
                   {HOOPSFANTASY_NAME}
                 </span>
-                <span className="text-[8px] font-heading font-semibold uppercase tracking-[0.35em] mt-1"
-                      style={{ color: "hsl(var(--accent) / 0.85)" }}>
+                <span className="text-[8px] font-heading font-semibold uppercase tracking-[0.35em] mt-1 text-accent/85 transition-colors group-hover:text-accent">
                   Manager
                 </span>
               </NavLink>
