@@ -3,7 +3,7 @@ import { TableRow, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import { PlayerListItemSchema } from "@/lib/contracts";
-import { ArrowLeftRight, GripVertical } from "lucide-react";
+import { ArrowLeftRight, GripVertical, Star } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { formatTipoffLabel, type UpcomingGame } from "@/hooks/useUpcomingByTeam";
 import { difficultyRingColor, slotTooltip } from "@/lib/ballers-iq/difficultyColor";
@@ -25,6 +25,10 @@ interface PlayerRowProps {
   player: PlayerListItem;
   onClick?: () => void;
   onSwap?: () => void;
+  /** When true, a clickable Captain star is shown after the player name. */
+  isCaptain?: boolean;
+  /** Toggles captain on/off for this player. */
+  onSetCaptain?: () => void;
   actionButton?: React.ReactNode;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
@@ -44,7 +48,7 @@ interface PlayerRowProps {
   showBadgesColumn?: boolean;
 }
 
-export default function PlayerRow({ player, onClick, onSwap, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs, showCollege = true, badges, showBadgesColumn }: PlayerRowProps) {
+export default function PlayerRow({ player, onClick, onSwap, isCaptain, onSetCaptain, actionButton, draggable, onDragStart, onDragOver, onDrop, onDragEnd, weekSlots, difficultyMap, onSlotClick, gameLogs, showCollege = true, badges, showBadgesColumn }: PlayerRowProps) {
   const { core, last5, lastGame, computed } = player;
   const { isWnba } = useLeague();
   const teamLogo = getTeamLogo(core.team);
