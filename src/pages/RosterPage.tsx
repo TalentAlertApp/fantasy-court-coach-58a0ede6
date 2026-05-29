@@ -1049,6 +1049,33 @@ export default function RosterPage() {
             swapPlayerPosition={swapPlayerId && totalPlayers >= 10 ? swapPlayerPosition : null}
           />
           <WishlistModal open={wishlistOpen} onOpenChange={setWishlistOpen} onPlayerClick={setSelectedPlayerId} />
+          <LineupLockCenterModal
+            open={lineupLockOpen}
+            onOpenChange={setLineupLockOpen}
+            teamName={teamName}
+            gw={currentGameday.gw}
+            day={currentGameday.day}
+            deadlineFormatted={deadlineFormatted}
+            countdown={countdown}
+            rosterLocked={deadlineStatus?.locked}
+            starters={starters}
+            bench={bench}
+            captainId={captainId}
+            upcomingByTeam={upcomingByTeam}
+            allPlayers={allPlayers}
+            rosterIds={rosterIds}
+            bankRemaining={roster?.bank_remaining ?? 0}
+            freeTransfers={roster?.free_transfers_remaining ?? 0}
+            salaryCap={roster?.constraints?.salary_cap ?? 100}
+            totalSalary={totalSalary}
+            fcStarters={fcStarters}
+            bcStarters={bcStarters}
+            onApplyCaptain={(id) => handleSetCaptain(id)}
+            onOptimize={() => { setLineupLockOpen(false); handleOptimize(); }}
+            onOpenCoach={() => { setLineupLockOpen(false); setAiCoachOpen(true); }}
+            onOpenAdvisor={biqAdvisor ? () => { setLineupLockOpen(false); setAdvisorOpen(true); } : undefined}
+            onOpenSchedule={() => { setLineupLockOpen(false); setScheduleOpen(true); }}
+          />
           <GameDetailModal
             game={gameDetail}
             open={gameDetail !== null}
