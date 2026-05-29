@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -52,9 +52,7 @@ export default function ScoringPage() {
   const { user } = useAuth();
   const { teams: userTeams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
   const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId } = useFantasyLeague();
-  const { league: activeLeagueCode } = useLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
-  const headerLogo = getLeagueLogo(activeLeagueCode);
 
   const [tab, setTab] = useState<TabValue>(() => {
     if (typeof window === "undefined") return "league";
