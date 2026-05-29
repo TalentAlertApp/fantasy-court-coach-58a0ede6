@@ -52,7 +52,7 @@ export default function CommissionerAccessGate({ children }: { children: ReactNo
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center">
+    <div className="relative h-full min-h-[60vh] flex items-center justify-center">
       {/* Top-right HoopsFantasy watermark with hover surge */}
       <img
         src={logoSrc}
