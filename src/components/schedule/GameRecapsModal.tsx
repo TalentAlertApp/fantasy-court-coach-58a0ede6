@@ -414,13 +414,13 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   </div>
 
                   <div className="flex items-center justify-center">
-                      <div className="relative w-full rounded-2xl overflow-hidden border border-amber-400/30 bg-black shadow-[0_0_32px_-12px_hsl(var(--primary)/0.5)] aspect-video">
+                      <div className="relative w-full rounded-2xl overflow-hidden border border-amber-400/30 bg-black shadow-[0_0_32px_-12px_hsl(var(--primary)/0.5)] aspect-video transform-gpu isolate z-10 [backface-visibility:hidden]">
                         {embedSrc ? (
                           <iframe
                             key={selectedGame.game_id}
                             src={embedSrc}
                             title={`Recap · ${nameFor(selectedGame.away_team)} @ ${nameFor(selectedGame.home_team)}`}
-                            className="absolute inset-0 w-full h-full"
+                            className="absolute inset-0 w-full h-full transform-gpu [backface-visibility:hidden]"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
                             referrerPolicy="strict-origin-when-cross-origin"
