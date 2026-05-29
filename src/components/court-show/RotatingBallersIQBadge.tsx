@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useLeague } from "@/contexts/LeagueContext";
-import { cn } from "@/lib/utils";
 
 /**
  * Premium broadcast-quality rotating Ballers.IQ badge.
@@ -11,13 +10,8 @@ import { cn } from "@/lib/utils";
  */
 export default function RotatingBallersIQBadge({
   width = 480,
-  spinDelayMs = 0,
-  className,
 }: {
   width?: number;
-  /** Delay (ms) before the 3D rotation begins. Lets the entrance animation settle first. */
-  spinDelayMs?: number;
-  className?: string;
 }) {
   const { league } = useLeague();
   const [paused, setPaused] = useState(false);
@@ -30,12 +24,6 @@ export default function RotatingBallersIQBadge({
   const leagueLabel =
     league === "wnba" ? "WNBA" : league === "euroleague" ? "EUROLEAGUE" : "NBA";
 
-  // Warm the front artwork before the rotation starts to avoid first-frame decode jank.
-  useEffect(() => {
-    const img = new Image();
-    img.src = front;
-  }, [front]);
-
   // Aspect ratio of the supplied artwork (~2.4:1).
   const aspect = 2.4;
   const height = Math.round(width / aspect);
@@ -44,7 +32,7 @@ export default function RotatingBallersIQBadge({
 
   return (
     <div
-      className={cn("biq-badge-stage", className)}
+      className="biq-badge-stage"
       style={{
         width,
         height,
@@ -71,7 +59,6 @@ export default function RotatingBallersIQBadge({
           width,
           height,
           transformStyle: "preserve-3d",
-          animationDelay: spinDelayMs ? `${spinDelayMs}ms` : undefined,
         }}
       >
         {/* Edge band — gives the card visible thickness */}
