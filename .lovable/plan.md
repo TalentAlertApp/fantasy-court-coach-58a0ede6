@@ -1,45 +1,63 @@
-## 1. Sidebar divider above Player Search — simple premium hairline
+All changes are presentation-only — no data, hooks, or business logic touched.
 
-In `src/components/layout/AppLayout.tsx` (line ~204) the divider is a gradient bar that reads too thick/fancy. Replace it with a dead-simple, ultra-faint static hairline — no gradient, no hover surge, no color change:
-
+## 1. Sidebar divider — delete it
+In `src/components/layout/AppLayout.tsx` (line ~204), remove the hairline element above Player Search entirely:
 ```text
 <div className="mx-3 my-1 h-px bg-sidebar-border/40" />
 ```
+The expanded branch then renders just the `px-3 py-2` Search box wrapper. The collapsed branch (separate, uses `.sidebar-divider`) is untouched.
 
-(plain 1px line, fixed opacity, matches the Player Search box width via `mx-3`). No hover state is attached so nothing animates.
+## 2. /scoring — add a top header
+In `src/pages/ScoringPage.tsx`, add a `PageHeaderCaption` directly above the existing 3-column grid (line ~134), matching the /transactions caption exactly (same component, font, size, position):
+```text
+<PageHeaderCaption className="mb-2">Scoring · League & Team</PageHeaderCaption>
+```
+Add `PageHeaderCaption` to the existing import from `@/components/layout/PageHeaderTabs`. The current league selector / centered tabs / team selector row stays as-is, just below the new caption.
 
-## 2. /scoring header
+## 3. /transactions — soften the bar below the 4 buttons
+The "bar" is the `TradeWorkbench` outer container in `src/components/transactions/TradeWorkbench.tsx` (line 158), currently a hard card:
+```text
+rounded-2xl border border-border bg-card p-4 space-y-3
+```
+Replace it with the soft, quiet style used by the /advanced tab bar (bottom border only, faint translucent fill, subtle blur):
+```text
+border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-4 py-3 space-y-3
+```
+Internal rows/chips are unchanged.
 
-In `src/pages/ScoringPage.tsx`:
+## 4. /teams — center the 3 tabs + add a context word on the far left
+In `src/pages/TeamsPage.tsx` the tabs use `UnderlineTabsBarManual` with only a `right` slot (the sort icon / standings filters), so the bar isn't truly centered.
 
-- **(a) Remove the upper header** — delete the entire premium gradient title bar block (lines ~135–160: the `Activity` icon + "SCORING / League standings · Team performance").
-- **(b) Center the tab toggle.** The current row is `FantasyLeagueSelector` + `UnderlineTabsBar(flex-1)` + team selector at right. Replace the flex row with a **3-column grid** (`grid grid-cols-[1fr_auto_1fr] items-center`) so the LEAGUE / YOUR TEAM / TX PULSE bar sits in the dead-center column and gets equal space on both sides:
-  - left cell: `MAIN LEAGUE` selector (justify-start)
-  - center cell: the underline tab group (justify-center)
-  - right cell: the `TEAM` selector when on "Your Team" (justify-end); empty otherwise so the center stays put.
+- Extend `UnderlineTabsBarManual` in `src/components/layout/PageHeaderTabs.tsx` with an optional `left` slot. When `left` and/or `right` are present, lay the row out so the tab group is **optically centered** regardless of side widths: render `left` and `right` as absolutely-positioned clusters (`absolute left-0 / right-0`) over a `relative` row, with the centered tab grid in the middle. Existing callers that pass only `right` keep working.
+- In TeamsPage, pass a `left` node: a small, context-sensitive **count word** styled like a muted caption (`text-[10px] font-heading uppercase tracking-wider text-muted-foreground`), changing per active tab:
+  - Teams tab → e.g. `30 Teams`
+  - Standings tab → e.g. `30 Teams`
+  - Stats tab → e.g. `121 Players`
+  (rendered as the existing list length so it stays accurate). The far-right sort icon / filters stay exactly intact.
 
-This keeps all three tabs and their content unchanged.
+## 5. /leagues — soften the filter+search+dropdown bars
+In `src/pages/LeaguesPage.tsx` there are two identical filter bars (Mine tab line ~539 and Discover tab line ~767), both:
+```text
+flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3
+```
+Replace each with the same soft /advanced style as #3 (keeping enough padding for the inputs):
+```text
+flex flex-wrap items-center gap-2 border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-3 py-2
+```
+Filters, search input, and dropdown controls inside are unchanged.
 
-## 3. /leagues header
-
-In `src/pages/LeaguesPage.tsx`:
-
-- **(a) Remove the upper header** — delete the big gradient card block (lines ~440–510: Swords icon, "MY LEAGUES / Fantasy competitions", and the two large buttons in their current form). Keep the `PageHeaderCaption` ("Leagues · Mine & Discover").
-- **(b) Single centered control row.** Rebuild the tab row as a **3-column grid** (`grid grid-cols-[1fr_auto_1fr] items-center`):
-  - **left cell:** `JOIN WITH CODE` and `CREATE LEAGUE` restyled as **compact cards** matching the height of the Grid/List view buttons (`h-7`, small `text-[9px]` heading, tighter padding). The Create-League HF logo watermark + hover surge is preserved at a smaller scale.
-  - **center cell:** the MY LEAGUES / DISCOVER underline tab group, justify-center.
-  - **right cell:** the existing Grid/List view toggle, justify-end.
-
-The tabs are thus fully centered with balanced space to the Join/Create cards (left) and the Grid/List buttons (right). Both tab contents stay unchanged. The Join dialog stays wired to the compact "Join with code" card.
-
-## 4. /teams and /advanced caption — league/team logo watermark instead of the name
-
-Replace the league-name text in the caption with the league logo image (the same `getLeagueLogo(league)` asset already used on these pages), rendered inline as a small watermark a touch larger than the caption text, with a subtle hover surge:
-
-- **`src/pages/TeamsPage.tsx`** (caption ~line 150): change `{league} · Teams Hub` so the leading "WNBA/NBA/EuroLeague" word becomes `<img src={leagueLogo} className="inline-block h-4 w-auto opacity-70 transition-transform duration-300 hover:scale-125 align-[-2px]" />` followed by `· Teams Hub`.
-- **`src/pages/AdvancedPage.tsx`** (caption ~line 899): change `Advanced · {competition.label} Insights` to `Advanced · <logo img> Insights`, importing/using the same `getLeagueLogo(league)` (Advanced already has `useLeague`). Logo height ~`h-4` (slightly above the `text-[10px]` caption), `opacity-70`, hover `scale-125`.
+## 6. /advanced — lift the header to the /transactions position
+In `src/pages/AdvancedPage.tsx` the page wrapper (line ~897) adds extra top padding on top of the global `.page-scroll` (`py-5`):
+```text
+max-w-7xl mx-auto py-6 px-4 space-y-4
+```
+Drop the vertical padding so the caption sits at the same height as the /transactions caption (which relies only on `.page-scroll`):
+```text
+max-w-7xl mx-auto px-4 space-y-4
+```
+Everything below moves up with it since it's all inside this wrapper.
 
 ### Technical notes
-- All changes are presentation-only — no data/hooks/business-logic touched.
-- Centering uses a `grid-cols-[1fr_auto_1fr]` wrapper so the middle tab group is optically centered regardless of the differing widths of the side clusters (the requested "same space left and right").
-- Reuse existing tokens (`--sidebar-border`, `--nba-yellow`, `getLeagueLogo`, `getHoopsFantasyLogo`) and the existing `UnderlineTabsBar` / `UnderlineTabsBarManual` primitives; the compact Join/Create cards reuse the existing `Button` with smaller size classes.
+- New shared capability: `UnderlineTabsBarManual` gains an optional `left?: ReactNode` prop and absolute-positioned side clusters for true centering; default behavior for existing `right`-only callers is preserved.
+- Reuse existing tokens/classes (`bg-card/30`, `backdrop-blur-sm`, `border-border`, `rounded-t-lg`) so the softened bars match /advanced precisely.
+- The /teams left word is derived from already-loaded counts (team list length / players length) — no new fetches.

@@ -33,7 +33,7 @@ import { HealthStatusIcon } from "@/components/health";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import AICoachModal from "@/components/AICoachModal";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
-import { UnderlineTabsBar } from "@/components/layout/PageHeaderTabs";
+import { UnderlineTabsBar, PageHeaderCaption } from "@/components/layout/PageHeaderTabs";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import { supabase } from "@/integrations/supabase/client";
