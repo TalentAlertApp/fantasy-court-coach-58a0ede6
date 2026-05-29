@@ -1,4 +1,4 @@
-import { Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
+import { Table2, BarChart3, Mic } from "lucide-react";
 import { getLeagueLogo } from "@/lib/competitions";
 import type { CompetitionCode } from "@/lib/competitions";
 
