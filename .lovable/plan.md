@@ -1,63 +1,66 @@
-All changes are presentation-only — no data, hooks, or business logic touched.
+## Goal
 
-## 1. Sidebar divider — delete it
-In `src/components/layout/AppLayout.tsx` (line ~204), remove the hairline element above Player Search entirely:
-```text
-<div className="mx-3 my-1 h-px bg-sidebar-border/40" />
-```
-The expanded branch then renders just the `px-3 py-2` Search box wrapper. The collapsed branch (separate, uses `.sidebar-divider`) is untouched.
+Two independent fixes:
+1. Make the "3 league logos + HOOPSFANTASY" bundle render **identically** (order, size, spacing, position) on every onboarding page.
+2. Remove the accidental horizontal scrollbar that appears in the left sidebar directly above the "Search player…" input — without touching dividers or sidebar design.
 
-## 2. /scoring — add a top header
-In `src/pages/ScoringPage.tsx`, add a `PageHeaderCaption` directly above the existing 3-column grid (line ~134), matching the /transactions caption exactly (same component, font, size, position):
-```text
-<PageHeaderCaption className="mb-2">Scoring · League & Team</PageHeaderCaption>
-```
-Add `PageHeaderCaption` to the existing import from `@/components/layout/PageHeaderTabs`. The current league selector / centered tabs / team selector row stays as-is, just below the new caption.
+---
 
-## 3. /transactions — soften the bar below the 4 buttons
-The "bar" is the `TradeWorkbench` outer container in `src/components/transactions/TradeWorkbench.tsx` (line 158), currently a hard card:
-```text
-rounded-2xl border border-border bg-card p-4 space-y-3
-```
-Replace it with the soft, quiet style used by the /advanced tab bar (bottom border only, faint translucent fill, subtle blur):
-```text
-border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-4 py-3 space-y-3
-```
-Internal rows/chips are unchanged.
+## Part 1 — Consistent brand bundle
 
-## 4. /teams — center the 3 tabs + add a context word on the far left
-In `src/pages/TeamsPage.tsx` the tabs use `UnderlineTabsBarManual` with only a `right` slot (the sort icon / standings filters), so the bar isn't truly centered.
+### What's inconsistent today
 
-- Extend `UnderlineTabsBarManual` in `src/components/layout/PageHeaderTabs.tsx` with an optional `left` slot. When `left` and/or `right` are present, lay the row out so the tab group is **optically centered** regardless of side widths: render `left` and `right` as absolutely-positioned clusters (`absolute left-0 / right-0`) over a `relative` row, with the centered tab grid in the middle. Existing callers that pass only `right` keep working.
-- In TeamsPage, pass a `left` node: a small, context-sensitive **count word** styled like a muted caption (`text-[10px] font-heading uppercase tracking-wider text-muted-foreground`), changing per active tab:
-  - Teams tab → e.g. `30 Teams`
-  - Standings tab → e.g. `30 Teams`
-  - Stats tab → e.g. `121 Players`
-  (rendered as the existing list length so it stays accurate). The far-right sort icon / filters stay exactly intact.
+The bundle is hand-coded separately in three files and they differ:
 
-## 5. /leagues — soften the filter+search+dropdown bars
-In `src/pages/LeaguesPage.tsx` there are two identical filter bars (Mine tab line ~539 and Discover tab line ~767), both:
-```text
-flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3
-```
-Replace each with the same soft /advanced style as #3 (keeping enough padding for the inputs):
-```text
-flex flex-wrap items-center gap-2 border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-3 py-2
-```
-Filters, search input, and dropdown controls inside are unchanged.
+| File | Logo order | Dividers | Logo size | Brand text |
+|------|-----------|----------|-----------|------------|
+| `OnboardingHero.tsx` | NBA, WNBA, EuroLeague | yes (`w-px` lines) | `h-9` | `text-xs` / opacity 70 |
+| `WelcomeBackHero.tsx` | WNBA, NBA, EuroLeague | none | `h-9` | `text-xs` / opacity 70 |
+| `TeamPickerPage.tsx` | WNBA, NBA, EuroLeague | none | `h-8` | `text-[10px]` / opacity 60 |
 
-## 6. /advanced — lift the header to the /transactions position
-In `src/pages/AdvancedPage.tsx` the page wrapper (line ~897) adds extra top padding on top of the global `.page-scroll` (`py-5`):
-```text
-max-w-7xl mx-auto py-6 px-4 space-y-4
-```
-Drop the vertical padding so the caption sits at the same height as the /transactions caption (which relies only on `.page-scroll`):
-```text
-max-w-7xl mx-auto px-4 space-y-4
-```
-Everything below moves up with it since it's all inside this wrapper.
+Placement also differs: the two hero files put it inside a `<header class="px-8 py-4">`; `TeamPickerPage` uses `absolute top-6 left-6`.
 
-### Technical notes
-- New shared capability: `UnderlineTabsBarManual` gains an optional `left?: ReactNode` prop and absolute-positioned side clusters for true centering; default behavior for existing `right`-only callers is preserved.
-- Reuse existing tokens/classes (`bg-card/30`, `backdrop-blur-sm`, `border-border`, `rounded-t-lg`) so the softened bars match /advanced precisely.
-- The /teams left word is derived from already-loaded counts (team list length / players length) — no new fetches.
+### Fix
+
+Create one shared presentational component, e.g. `src/components/onboarding/BrandMark.tsx`, that renders the canonical bundle:
+
+```text
+[WNBA] [NBA] [EuroLeague]  HOOPSFANTASY
+```
+
+- Order: WNBA, NBA, EuroLeague, then the `HOOPSFANTASY_NAME` text.
+- Logos: `h-9 w-auto object-contain` (one size for all three).
+- No divider lines.
+- Brand text: `text-xs font-heading uppercase tracking-[0.3em] text-foreground/70`.
+- Wrapper: `flex items-center gap-3`.
+
+Then use `<BrandMark />` in all three files, replacing the inline markup:
+- `OnboardingHero.tsx` — drop the NBA/divider/WNBA/divider/EuroLeague block and dividers.
+- `WelcomeBackHero.tsx` — replace its inline bundle.
+- `TeamPickerPage.tsx` — replace its inline bundle.
+
+To make **position** identical too, align the placement. Keep each page's existing top-left anchor but use the same offset: the two heroes already sit in a `px-8 py-4` header (≈32px/16px); set `TeamPickerPage`'s wrapper to match that same inset so the bundle lands in the exact same spot visually across pages. (Single source for the inner content guarantees size/spacing; matching the inset guarantees position.)
+
+---
+
+## Part 2 — Remove stray horizontal scrollbar above Player Search
+
+The sidebar nav uses `overflow-y-auto` with no horizontal control. Combined with `.nav-item` `margin-right: 8px` + hover `translateX(2px)`, content can exceed width and trigger the global 4px webkit horizontal scrollbar (which also turns accent on hover), appearing right above the Player Search box.
+
+### Fix
+
+1. In `src/components/layout/AppLayout.tsx`, change the nav class from `overflow-y-auto` to `overflow-y-auto overflow-x-hidden`.
+2. In `src/index.css`, add a defensive rule: `.sidebar nav { overflow-x: hidden; }`.
+
+Constraints respected:
+- No `.sidebar-divider` elements removed.
+- Player Search component untouched.
+- Vertical scrolling preserved.
+- Verify both expanded and collapsed sidebar states.
+
+---
+
+## Verification
+
+- Compare the three onboarding pages side by side: bundle order, logo size, gaps, and top-left position match exactly.
+- Confirm no horizontal bar/accent line appears above Player Search, including on hover, in both expanded and collapsed sidebar; vertical scroll still works.
