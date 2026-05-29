@@ -1087,7 +1087,11 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
 }) {
   const logo = getLeagueLogo(league.sport);
   return (
-    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+    <div
+      className="group relative overflow-hidden flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/10"
+      title={`${league.name} — ${league.sport.toUpperCase()} · ${league.team_count} teams · ${league.status === "draft" ? "open" : league.status}`}
+    >
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-0.5 bg-accent opacity-0 transition-opacity group-hover:opacity-100" />
       <img
         src={courtBg}
         alt=""
@@ -1105,7 +1109,7 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
         <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-heading font-bold uppercase tracking-wider truncate">{league.name}</h3>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+          <div className="flex items-center gap-2 text-[11px] text-foreground/70 font-heading uppercase tracking-wider mt-0.5">
             <span>{league.sport}</span>
             <span>·</span>
             <span>{league.team_count} teams</span>
@@ -1113,7 +1117,7 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
           </div>
         </div>
       </div>
-      <div className="relative z-10 flex items-center gap-2 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
         {isMember ? (
           <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
             <LayoutDashboard className="h-3.5 w-3.5" />
