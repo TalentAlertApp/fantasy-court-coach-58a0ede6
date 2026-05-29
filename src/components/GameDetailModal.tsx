@@ -20,6 +20,7 @@ import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import GameBallersIQScheduledPanel from "@/components/game/GameBallersIQScheduledPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { Sparkles } from "lucide-react";
+import { toYouTubeEmbed } from "@/lib/youtube-embed";
 
 export interface GameDetailGame {
   game_id: string;
