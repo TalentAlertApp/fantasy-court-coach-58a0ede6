@@ -215,11 +215,31 @@ const TONE: Record<string, string> = {
   zinc: "border-zinc-500/20",
 };
 
+function PlayerChip({
+  name, photo, team, prefix, nameClass, onClick,
+}: {
+  name: string; photo?: string | null; team?: string | null;
+  prefix?: string; nameClass?: string; onClick?: () => void;
+}) {
+  const logo = team ? getTeamLogo(team) : null;
+  return (
+    <span className="group/pc inline-flex items-center gap-1">
+      {photo ? (
+        <img src={photo} alt="" className="w-5 h-5 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
+      ) : (
+        <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[8px] font-bold shrink-0">{name.slice(0, 1)}</span>
+      )}
+      <button onClick={onClick} className={cn("font-medium hover:underline", nameClass)}>{prefix ? `${prefix} ` : ""}{name}</button>
+      {logo && <img src={logo} alt="" className="w-4 h-4 object-contain shrink-0 transition-transform group-hover/pc:scale-150" />}
+    </span>
+  );
+}
+
 function Lane({
   label, icon, rows, tone, onPick,
 }: {
   label: string; icon: React.ReactNode; tone: keyof typeof TONE;
-  rows: { id: number; name: string; meta: string }[]; onPick?: (id: number) => void;
+  rows: { id: number; name: string; meta: string; photo?: string | null; team?: string | null }[]; onPick?: (id: number) => void;
 }) {
   return (
     <div className={cn("rounded-lg border bg-amber-400/10 dark:bg-card/50 p-2", TONE[tone])}>
@@ -235,9 +255,17 @@ function Lane({
             <li key={r.id}>
               <button
                 onClick={() => onPick?.(r.id)}
-                className="w-full text-left text-[10.5px] flex items-center gap-1.5 hover:bg-muted/40 rounded px-1 py-0.5 transition-colors"
+                className="group/row w-full text-left text-[10.5px] flex items-center gap-1.5 hover:bg-muted/40 rounded px-1 py-0.5 transition-colors"
               >
+                {r.photo ? (
+                  <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
+                ) : (
+                  <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[8px] font-bold shrink-0">{r.name.slice(0, 1)}</span>
+                )}
                 <span className="font-medium truncate">{r.name}</span>
+                {r.team && getTeamLogo(r.team) && (
+                  <img src={getTeamLogo(r.team)!} alt="" className="w-4 h-4 object-contain shrink-0 transition-transform group-hover/row:scale-150" />
+                )}
                 <span className="ml-auto font-mono text-[9.5px] text-muted-foreground truncate">{r.meta}</span>
               </button>
             </li>
