@@ -367,12 +367,14 @@ function GameDetailModalInner({ game, open, onOpenChange, initialRecapOpen }: { 
             </div>
             <div className="relative z-10 transform-gpu" style={{ height: embedHeight }}>
               <iframe
+                key={embedSrc}
                 src={embedSrc}
                 title="Game Recap"
                 className="absolute inset-0 w-full h-full transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ opacity: 1 }}
-                allow="autoplay; encrypted-media; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             </div>
             <div
