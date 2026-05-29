@@ -572,10 +572,28 @@ function LineupLockCenterInner({
                               tag="Best swap"
                               tone="good"
                               title={`${transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]} → ${transferIdeas.bestSwap.in_.core.name}`}
+                              titleNode={
+                                <span className="block font-heading font-bold text-[11px] text-white truncate">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPlayerModalId(transferIdeas.bestSwap!.out.core.id)}
+                                    className="transition-colors hover:text-amber-200"
+                                  >
+                                    {transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]}
+                                  </button>
+                                  <span className="text-white/50"> → </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPlayerModalId(transferIdeas.bestSwap!.in_.core.id)}
+                                    className="transition-colors hover:text-amber-200"
+                                  >
+                                    {transferIdeas.bestSwap.in_.core.name}
+                                  </button>
+                                </span>
+                              }
                               sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
                               p={transferIdeas.bestSwap.in_}
                               logoFor={logoFor}
-                              onTitleClick={() => setPlayerModalId(transferIdeas.bestSwap!.in_.core.id)}
                             />
                           )}
                           {transferIdeas.bestAdd && (
