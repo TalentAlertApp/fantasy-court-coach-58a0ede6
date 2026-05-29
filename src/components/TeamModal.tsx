@@ -13,6 +13,8 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
+import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
+import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import TeamCompareModal from "@/components/TeamCompareModal";
 import PlayerModal from "@/components/PlayerModal";
