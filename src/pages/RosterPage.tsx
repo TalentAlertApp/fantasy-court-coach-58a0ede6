@@ -534,6 +534,11 @@ export default function RosterPage() {
 
   const handleSetCaptain = (playerId: number) => {
     if (!roster) return;
+    // Toggle off — clicking the active captain clears the captain slot.
+    if (playerId === captainId && captainId > 0) {
+      commitCaptain(0);
+      return;
+    }
     // Enforce once-per-week captain rule
     if (weeklyCaptainData && weeklyCaptainData.day !== currentGameday.day) {
       toast({
