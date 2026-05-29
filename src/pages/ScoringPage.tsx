@@ -176,55 +176,45 @@ export default function ScoringPage() {
               )}
             />
           </div>
-          <TabsList className="grid grid-cols-3 max-w-xl bg-card border border-border h-10 p-1 rounded-xl">
-            <TabsTrigger
-              value="league"
-              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-[hsl(var(--nba-yellow))]/15 data-[state=active]:text-[hsl(var(--nba-yellow))] data-[state=active]:shadow-none"
-            >
-              <Crown className="h-3.5 w-3.5" /> League
-            </TabsTrigger>
-            <TabsTrigger
-              value="team"
-              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none"
-            >
-              <Shield className="h-3.5 w-3.5" /> Your Team
-            </TabsTrigger>
-            <TabsTrigger
-              value="pulse"
-              className="font-heading uppercase text-xs tracking-wider gap-2 rounded-lg data-[state=active]:bg-orange-500/15 data-[state=active]:text-orange-400 data-[state=active]:shadow-none"
-            >
-              <Repeat className="h-3.5 w-3.5" /> Tx Pulse
-            </TabsTrigger>
-          </TabsList>
-          {tab === "team" && myTeams.length > 0 && (
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-[10px] uppercase font-heading tracking-[0.2em] text-muted-foreground">Team</span>
-              <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
-                <SelectTrigger className="w-64 h-10 rounded-xl bg-card border-border font-heading text-xs uppercase tracking-wider">
-                  <SelectValue placeholder="Pick a team…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {myTeams.map((t: any) => {
-                    const code = t.league_code === "wnba" ? "wnba" : "nba";
-                    const lgLogo = getLeagueLogo(code);
-                    return (
-                      <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
-                        <span className="relative flex items-center pr-7 min-w-[180px]">
-                          <span className="truncate">{t.name}</span>
-                          <img
-                            src={lgLogo}
-                            alt=""
-                            aria-hidden
-                            className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-7 w-7 object-contain opacity-25 rotate-12 select-none"
-                          />
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <UnderlineTabsBar
+            className="flex-1 min-w-[280px]"
+            tabs={[
+              { value: "league", label: (<><Crown className="h-3.5 w-3.5" /> League</>) },
+              { value: "team", label: (<><Shield className="h-3.5 w-3.5" /> Your Team</>) },
+              { value: "pulse", label: (<><Repeat className="h-3.5 w-3.5" /> Tx Pulse</>) },
+            ]}
+            right={
+              tab === "team" && myTeams.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-heading tracking-[0.2em] text-muted-foreground">Team</span>
+                  <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
+                    <SelectTrigger className="w-56 h-9 rounded-xl bg-card border-border font-heading text-xs uppercase tracking-wider">
+                      <SelectValue placeholder="Pick a team…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {myTeams.map((t: any) => {
+                        const code = t.league_code === "wnba" ? "wnba" : "nba";
+                        const lgLogo = getLeagueLogo(code);
+                        return (
+                          <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
+                            <span className="relative flex items-center pr-7 min-w-[180px]">
+                              <span className="truncate">{t.name}</span>
+                              <img
+                                src={lgLogo}
+                                alt=""
+                                aria-hidden
+                                className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-7 w-7 object-contain opacity-25 rotate-12 select-none"
+                              />
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : undefined
+            }
+          />
         </div>
 
         {/* ════════════════════════ LEAGUE TAB ════════════════════════ */}
