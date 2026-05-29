@@ -86,6 +86,9 @@ export default function PlayerExplainStudio(props: Props) {
     onClearResult, onGoToTab,
   } = props;
 
+  const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
+  const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
+
   /* -------- roster suggestions -------- */
   const rosterIds = useMemo(() => new Set<number>([
     ...(rosterData?.roster?.starters ?? []),
