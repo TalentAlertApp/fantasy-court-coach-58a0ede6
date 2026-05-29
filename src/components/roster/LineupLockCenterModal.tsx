@@ -92,6 +92,7 @@ function LineupLockCenterInner({
   const navigate = useNavigate();
   const { data: diffMap } = useTeamDifficultyMap();
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
+  const [playerModalId, setPlayerModalId] = useState<number | null>(null);
 
   const roster = useMemo(() => [...starters, ...bench], [starters, bench]);
   const hasRoster = roster.length > 0;
