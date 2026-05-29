@@ -690,18 +690,25 @@ function CaptainContext({ p, g }: { p: any; g: UpcomingGame | null }) {
   );
 }
 
-function RosterRow({ p, slot, status, g, logoFor }: {
-  p: any; slot: string; status: AvailStatus; g: UpcomingGame | null; logoFor: (t: string) => string | undefined;
+function RosterRow({ p, slot, status, g, logoFor, onClick }: {
+  p: any; slot: string; status: AvailStatus; g: UpcomingGame | null; logoFor: (t: string) => string | undefined; onClick?: () => void;
 }) {
   const teamLogo = logoFor(p.core.team);
   return (
-    <div className="group relative overflow-hidden flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-amber-400/5">
+    <div
+      role={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cn(
+        "group/row relative overflow-hidden flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-amber-400/5",
+        onClick && "cursor-pointer",
+      )}
+    >
       {teamLogo && (
         <img
           src={teamLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
+          className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 object-contain opacity-20 transition-transform duration-200 group-hover/row:scale-125 group-hover/row:opacity-35 z-0"
         />
       )}
       <span className="relative z-[1] w-6 shrink-0 text-[9px] font-mono text-white/35 text-center">{slot}</span>
