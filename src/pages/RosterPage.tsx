@@ -534,6 +534,11 @@ export default function RosterPage() {
 
   const handleSetCaptain = (playerId: number) => {
     if (!roster) return;
+    // Toggle off — clicking the active captain clears the captain slot.
+    if (playerId === captainId && captainId > 0) {
+      commitCaptain(0);
+      return;
+    }
     // Enforce once-per-week captain rule
     if (weeklyCaptainData && weeklyCaptainData.day !== currentGameday.day) {
       toast({
@@ -1011,7 +1016,7 @@ export default function RosterPage() {
               />
             ) : (
               <>
-                <RosterListView starters={starters} bench={bench} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} gameLogsByPlayer={gameLogsByPlayer} />
+                <RosterListView starters={starters} bench={bench} captainId={captainId} onSetCaptain={handleSetCaptain} onPlayerClick={setSelectedPlayerId} onSwap={handleSwapRequest} onDnDSwap={handleDnDSwap} onSlotClick={openGameFromSlot} gameLogsByPlayer={gameLogsByPlayer} />
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <RosterSidebar
                     gw={currentGameday.gw}

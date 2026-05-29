@@ -27,6 +27,8 @@ type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 interface RosterListViewProps {
   starters: PlayerListItem[];
   bench: PlayerListItem[];
+  captainId?: number;
+  onSetCaptain?: (id: number) => void;
   onPlayerClick: (id: number) => void;
   onSwap?: (playerId: number) => void;
   onDnDSwap?: (fromId: number, toId: number) => void;
@@ -34,7 +36,7 @@ interface RosterListViewProps {
   gameLogsByPlayer?: Record<number, Record<string, { fp: number; mp: number; pts: number }>>;
 }
 
-export default function RosterListView({ starters, bench, onPlayerClick, onSwap, onDnDSwap, onSlotClick, gameLogsByPlayer }: RosterListViewProps) {
+export default function RosterListView({ starters, bench, captainId, onSetCaptain, onPlayerClick, onSwap, onDnDSwap, onSlotClick, gameLogsByPlayer }: RosterListViewProps) {
   const [dragOverId, setDragOverId] = useState<number | null>(null);
   const { data: upcomingByTeam } = useUpcomingByTeam();
   const { data: difficultyMap } = useTeamDifficultyMap();
@@ -162,6 +164,8 @@ export default function RosterListView({ starters, bench, onPlayerClick, onSwap,
     <PlayerRow
       key={p.core.id}
       player={p}
+      isCaptain={captainId != null && captainId > 0 && p.core.id === captainId}
+      onSetCaptain={onSetCaptain ? () => onSetCaptain(p.core.id) : undefined}
       onClick={() => onPlayerClick(p.core.id)}
       onSwap={onSwap ? () => onSwap(p.core.id) : undefined}
       draggable

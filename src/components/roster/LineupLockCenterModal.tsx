@@ -16,6 +16,7 @@ import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
+import PlayerModal from "@/components/PlayerModal";
 import {
   normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel,
 } from "@/lib/health";
@@ -91,6 +92,7 @@ function LineupLockCenterInner({
   const navigate = useNavigate();
   const { data: diffMap } = useTeamDifficultyMap();
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
+  const [playerModalId, setPlayerModalId] = useState<number | null>(null);
 
   const roster = useMemo(() => [...starters, ...bench], [starters, bench]);
   const hasRoster = roster.length > 0;
@@ -479,11 +481,11 @@ function LineupLockCenterInner({
                     <Panel title="Roster Availability" icon={<Users className="h-3.5 w-3.5 text-amber-300" />}>
                       <div className="space-y-1">
                         {starters.map((p, i) => (
-                          <RosterRow key={p.core.id} p={p} slot={`S${i + 1}`} status={statusOf(p, true)} g={dayGameOf(p)} logoFor={logoFor} />
+                          <RosterRow key={p.core.id} p={p} slot={`S${i + 1}`} status={statusOf(p, true)} g={dayGameOf(p)} logoFor={logoFor} onClick={() => setPlayerModalId(p.core.id)} />
                         ))}
                         {bench.length > 0 && <div className="h-px bg-amber-400/10 my-1.5" />}
                         {bench.map((p, i) => (
-                          <RosterRow key={p.core.id} p={p} slot={`B${i + 1}`} status={statusOf(p, false)} g={dayGameOf(p)} logoFor={logoFor} />
+                          <RosterRow key={p.core.id} p={p} slot={`B${i + 1}`} status={statusOf(p, false)} g={dayGameOf(p)} logoFor={logoFor} onClick={() => setPlayerModalId(p.core.id)} />
                         ))}
                       </div>
                     </Panel>
@@ -559,6 +561,8 @@ function LineupLockCenterInner({
                               tone="good"
                               title={`${transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]} → ${transferIdeas.bestSwap.in_.core.name}`}
                               sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
+                              p={transferIdeas.bestSwap.in_}
+                              logoFor={logoFor}
                             />
                           )}
                           {transferIdeas.bestAdd && (
@@ -567,6 +571,8 @@ function LineupLockCenterInner({
                               tone="neutral"
                               title={transferIdeas.bestAdd.core.name}
                               sub={`Projected ${projFpOf(transferIdeas.bestAdd).toFixed(1)} FP · ${num(transferIdeas.bestAdd.core.salary).toFixed(1)}M`}
+                              p={transferIdeas.bestAdd}
+                              logoFor={logoFor}
                             />
                           )}
                           {transferIdeas.watchlist && (
@@ -575,6 +581,8 @@ function LineupLockCenterInner({
                               tone="bad"
                               title={transferIdeas.watchlist.core.name}
                               sub={getHealthLabel(normalizePlayerHealth(transferIdeas.watchlist))}
+                              p={transferIdeas.watchlist}
+                              logoFor={logoFor}
                             />
                           )}
                           <button
@@ -621,6 +629,11 @@ function LineupLockCenterInner({
         open={!!teamModalTri}
         onOpenChange={(o) => { if (!o) setTeamModalTri(null); }}
       />
+      <PlayerModal
+        playerId={playerModalId}
+        open={!!playerModalId}
+        onOpenChange={(o) => { if (!o) setPlayerModalId(null); }}
+      />
     </Dialog>
   );
 }
@@ -655,8 +668,10 @@ function StatusCard({ label, icon, value, sub, tone }: {
         <span className={valCls}>{icon}</span>
         {label}
       </div>
-      <div className={cn("font-heading font-black text-lg leading-none", valCls)}>{value}</div>
-      <div className="text-[10px] text-white/45 mt-1 truncate">{sub}</div>
+      <div className="flex items-baseline gap-2 min-w-0">
+        <div className={cn("font-heading font-black text-lg leading-none shrink-0", valCls)}>{value}</div>
+        <div className="text-[10px] text-white/45 truncate">{sub}</div>
+      </div>
     </div>
   );
 }
@@ -686,18 +701,25 @@ function CaptainContext({ p, g }: { p: any; g: UpcomingGame | null }) {
   );
 }
 
-function RosterRow({ p, slot, status, g, logoFor }: {
-  p: any; slot: string; status: AvailStatus; g: UpcomingGame | null; logoFor: (t: string) => string | undefined;
+function RosterRow({ p, slot, status, g, logoFor, onClick }: {
+  p: any; slot: string; status: AvailStatus; g: UpcomingGame | null; logoFor: (t: string) => string | undefined; onClick?: () => void;
 }) {
   const teamLogo = logoFor(p.core.team);
   return (
-    <div className="group relative overflow-hidden flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-amber-400/5">
+    <div
+      role={onClick ? "button" : undefined}
+      onClick={onClick}
+      className={cn(
+        "group/row relative overflow-hidden flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-amber-400/5",
+        onClick && "cursor-pointer",
+      )}
+    >
       {teamLogo && (
         <img
           src={teamLogo}
           alt=""
           aria-hidden
-          className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
+          className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 object-contain opacity-20 transition-transform duration-200 group-hover/row:scale-125 group-hover/row:opacity-35 z-0"
         />
       )}
       <span className="relative z-[1] w-6 shrink-0 text-[9px] font-mono text-white/35 text-center">{slot}</span>
@@ -737,13 +759,19 @@ function ImpactRow({ label, value, tone, emphasize }: {
   );
 }
 
-function TransferIdea({ tag, title, sub, tone }: { tag: string; title: string; sub: string; tone: "good" | "neutral" | "bad" }) {
+function TransferIdea({ tag, title, sub, tone, p, logoFor }: {
+  tag: string; title: string; sub: string; tone: "good" | "neutral" | "bad";
+  p?: any; logoFor?: (t: string) => string | undefined;
+}) {
   const tagCls = tone === "good" ? "text-emerald-300 bg-emerald-400/10" : tone === "bad" ? "text-red-300 bg-red-500/10" : "text-amber-300 bg-amber-400/10";
   return (
-    <div className="rounded-lg border border-amber-400/15 bg-black/25 p-2">
-      <span className={cn("inline-block text-[8px] font-heading font-bold uppercase tracking-[0.18em] px-1.5 py-0.5 rounded mb-1", tagCls)}>{tag}</span>
-      <div className="font-heading font-bold text-[11px] text-white truncate">{title}</div>
-      <div className="text-[10px] text-white/50">{sub}</div>
+    <div className="rounded-lg border border-amber-400/15 bg-black/25 p-2 flex items-center gap-2">
+      {p && logoFor && <div className="shrink-0"><PlayerAvatar p={p} logoFor={logoFor} size="sm" /></div>}
+      <div className="min-w-0 flex-1">
+        <span className={cn("inline-block text-[8px] font-heading font-bold uppercase tracking-[0.18em] px-1.5 py-0.5 rounded mb-0.5", tagCls)}>{tag}</span>
+        <div className="font-heading font-bold text-[11px] text-white truncate">{title}</div>
+        <div className="text-[10px] text-white/50 truncate">{sub}</div>
+      </div>
     </div>
   );
 }
