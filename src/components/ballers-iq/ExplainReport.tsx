@@ -241,8 +241,8 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
               {riskFlags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {riskFlags.slice(0, 4).map((f, i) => (
-                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-background/40 border border-current/30 font-mono lowercase">
-                      {f}
+                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-background/40 border border-current/30 font-heading font-semibold uppercase tracking-wide">
+                      {humanizeFlag(f)}
                     </span>
                   ))}
                 </div>
