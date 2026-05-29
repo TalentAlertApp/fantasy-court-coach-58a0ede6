@@ -508,16 +508,21 @@ export default function LeaguesPage() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-          <TabsList>
-            <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
-              <Swords className="h-3.5 w-3.5 mr-1" /> My Leagues
-              <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
-            </TabsTrigger>
-            <TabsTrigger value="discover" className="font-heading uppercase tracking-wider text-[10px]">
-              <Globe className="h-3.5 w-3.5 mr-1" /> Discover
-            </TabsTrigger>
-          </TabsList>
+      <PageHeaderCaption>Leagues · Mine &amp; Discover</PageHeaderCaption>
+      <UnderlineTabsBar
+        tabs={[
+          {
+            value: "mine",
+            label: (
+              <>
+                <Swords className="h-3.5 w-3.5" /> My Leagues
+                <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
+              </>
+            ),
+          },
+          { value: "discover", label: (<><Globe className="h-3.5 w-3.5" /> Discover</>) },
+        ]}
+        right={
           <div className="inline-flex items-center rounded-md border border-border bg-card/60 p-0.5">
             <Button
               size="sm"
@@ -538,6 +543,8 @@ export default function LeaguesPage() {
               <LayoutGrid className="h-3.5 w-3.5" />
             </Button>
           </div>
+        }
+      />
       </div>
       </div>
 
