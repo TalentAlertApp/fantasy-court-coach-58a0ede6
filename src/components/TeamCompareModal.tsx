@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -85,7 +86,7 @@ export default function TeamCompareModal({ teamA, teamB, open, onOpenChange }: T
   const { data: isPreseason } = useIsPreseason();
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
-  const watermarkLogo = getLeagueLogo(league);
+  const watermarkLogo = getHoopsFantasyLogo(league);
   const hasConferences = league !== "euroleague";
   const teamLookup = (tri: string) => {
     const lt = leagueTeams.find((t) => t.tricode === tri);
