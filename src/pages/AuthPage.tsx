@@ -12,7 +12,6 @@ import { Loader2, Mail, Lock } from "lucide-react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.png";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 export default function AuthPage() {
   const navigate = useNavigate();
