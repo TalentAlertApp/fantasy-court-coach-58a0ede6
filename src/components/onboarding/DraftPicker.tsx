@@ -18,6 +18,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { playSfx } from "@/hooks/useSfx";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 type Strategy = "auto" | "manual" | "ai";
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -188,7 +189,7 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
       {leagueCode && (
         <div
           aria-hidden
-          className="pointer-events-none absolute top-4 right-6 z-0 animate-in fade-in zoom-in-95 duration-700"
+          className="absolute top-4 right-6 z-0 animate-in fade-in zoom-in-95 duration-700 group"
         >
           <div className="relative">
             <div
@@ -198,8 +199,8 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
             <img
               src={watermarkSrc}
               alt={watermarkLabel}
-              className="relative h-56 w-56 md:h-64 md:w-64 object-contain opacity-[0.10] animate-pulse"
-              style={{ animationDuration: "4s", filter: "blur(0.3px)" }}
+              className="relative h-64 w-64 md:h-72 md:w-72 object-contain opacity-[0.18] transition-all duration-500 group-hover:scale-125 group-hover:opacity-35"
+              style={{ filter: "drop-shadow(0 8px 40px rgba(0,0,0,0.32))" }}
             />
           </div>
         </div>
@@ -219,6 +220,10 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
           Back
         </button>
       )}
+
+      <div className="absolute top-7 left-1/2 -translate-x-1/2 text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
+        {HOOPSFANTASY_NAME}
+      </div>
 
       <div className="w-full max-w-4xl text-center animate-fade-in flex flex-col items-center">
         <p className="text-[11px] uppercase tracking-[0.4em] text-accent mb-4">Step 3 of 3</p>
