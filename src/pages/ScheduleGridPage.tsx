@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useScheduleWeekGames } from "@/hooks/useScheduleWeekGames";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { getLeagueLogo } from "@/lib/competitions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Swords } from "lucide-react";
@@ -14,6 +16,7 @@ export default function ScheduleGridPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { teams: LEAGUE_TEAMS } = useLeagueTeams();
+  const { league } = useLeague();
   const { deadlines } = useLeagueDeadlines();
   const gw = parseInt(searchParams.get("gw") ?? "1", 10);
   const { data: games, isLoading } = useScheduleWeekGames(gw);
@@ -131,7 +134,8 @@ export default function ScheduleGridPage() {
       {/* Body: sidebar + table */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Sidebar — Day Filters */}
-        <div className="w-[180px] shrink-0 border-r bg-card p-3 space-y-3 overflow-y-auto hidden md:block">
+        <div className="w-[180px] shrink-0 border-r bg-card p-3 overflow-y-auto hidden md:flex md:flex-col">
+          <div className="space-y-3">
           <div>
             <h3 className="font-heading font-bold text-[11px] uppercase tracking-wider text-muted-foreground mb-2">
               Show teams playing on
@@ -177,6 +181,17 @@ export default function ScheduleGridPage() {
               Clear filters
             </Button>
           )}
+          </div>
+          {/* League watermark — bottom of sidebar, surges on hover */}
+          <div className="mt-auto pt-6 flex items-center justify-center">
+            <img
+              src={getLeagueLogo(league)}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className="pointer-events-auto select-none h-24 w-24 object-contain opacity-20 transition-all duration-300 ease-out hover:opacity-60 hover:scale-110 drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+            />
+          </div>
         </div>
 
         {/* Mobile day filter strip */}
