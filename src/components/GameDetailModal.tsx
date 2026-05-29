@@ -20,6 +20,7 @@ import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import GameBallersIQScheduledPanel from "@/components/game/GameBallersIQScheduledPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { Sparkles } from "lucide-react";
+import { toYouTubeEmbed } from "@/lib/youtube-embed";
 
 export interface GameDetailGame {
   game_id: string;
@@ -366,12 +367,14 @@ function GameDetailModalInner({ game, open, onOpenChange, initialRecapOpen }: { 
             </div>
             <div className="relative z-10 transform-gpu" style={{ height: embedHeight }}>
               <iframe
+                key={embedSrc}
                 src={embedSrc}
                 title="Game Recap"
                 className="absolute inset-0 w-full h-full transition-opacity duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
                 style={{ opacity: 1 }}
-                allow="autoplay; encrypted-media; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                 allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
               />
             </div>
             <div
@@ -455,31 +458,6 @@ function BallersIQButton({ on, onClick }: { on: boolean; onClick: () => void }) 
       {on && <span className="text-[9.5px] font-heading uppercase tracking-[0.2em]">Live</span>}
     </button>
   );
-}
-
-/** Convert YouTube watch / youtu.be URLs (or a raw video id) into embeddable URLs. */
-function toYouTubeEmbed(url: string | null, ytId?: string | null): string | null {
-  if (ytId && /^[A-Za-z0-9_-]{6,}$/.test(ytId)) {
-    return `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0`;
-  }
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    let id: string | null = null;
-    if (u.hostname.includes("youtu.be")) {
-      id = u.pathname.replace(/^\//, "").split("/")[0] || null;
-    } else if (u.hostname.includes("youtube.com")) {
-      if (u.pathname.startsWith("/embed/")) return url;
-      id = u.searchParams.get("v");
-      if (!id && u.pathname.startsWith("/shorts/")) {
-        id = u.pathname.split("/")[2] ?? null;
-      }
-    }
-    if (!id) return null;
-    return `https://www.youtube.com/embed/${id}?autoplay=1&rel=0`;
-  } catch {
-    return null;
-  }
 }
 
 function ScheduledInsights({ game }: { game: GameDetailGame }) {

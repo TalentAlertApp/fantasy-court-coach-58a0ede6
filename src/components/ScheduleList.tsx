@@ -36,6 +36,7 @@ import {
   type PlayerHealth,
 } from "@/lib/health";
 import { HealthStatusIcon } from "@/components/health";
+import { buildYouTubeEmbedUrl } from "@/lib/youtube-embed";
 
 /* ---------- League-aware team meta (conference) ---------- */
 // Conference grouping is only defined for NBA/WNBA. EuroLeague uses a single
@@ -73,10 +74,12 @@ function RecapCard({ url, youtubeRecapId, awayTeam, homeTeam }: {
     return (
       <div className="relative w-full h-full rounded-xl overflow-hidden bg-black">
         <iframe
-          src={`https://www.youtube-nocookie.com/embed/${youtubeRecapId}?rel=0&modestbranding=1`}
+          key={youtubeRecapId}
+          src={buildYouTubeEmbedUrl(youtubeRecapId, { nocookie: true, modestBranding: true })}
           title="Game Recap"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
           className="w-full h-full border-0"
         />
         {url && (
