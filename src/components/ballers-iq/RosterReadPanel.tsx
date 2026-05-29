@@ -382,17 +382,35 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "def
    );
  }
 
-function QuickRead({ icon: Icon, label, value, tint, onClick }: { icon: any; label: string; value: string; tint: string; onClick?: () => void }) {
+function QuickRead({ icon: Icon, label, value, tint, onClick, player }: { icon: any; label: string; value: string; tint: string; onClick?: () => void; player?: any }) {
+   const logo = player?.core?.team ? getTeamLogo(player.core.team) : null;
    const inner = (
      <>
-       <div className="flex items-center gap-1.5 text-[9px] font-heading uppercase tracking-[0.18em] opacity-90">
+       {logo && (
+         <img
+           src={logo}
+           alt=""
+           aria-hidden
+           className="pointer-events-none absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.14] group-hover:opacity-30 group-hover:scale-125 transition-all"
+         />
+       )}
+       <div className="relative flex items-center gap-1.5 text-[9px] font-heading uppercase tracking-[0.18em] opacity-90">
          <Icon className="h-3 w-3" /> {label}
        </div>
-       <div className="mt-1.5 font-heading font-bold text-sm truncate">{value}</div>
+       <div className="relative mt-1.5 flex items-center gap-2 min-w-0">
+         {player && (
+           player.core?.photo ? (
+             <img src={player.core.photo} alt="" className="w-7 h-7 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
+           ) : (
+             <div className="w-7 h-7 rounded-full bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 shrink-0">{value.slice(0, 1)}</div>
+           )
+         )}
+         <div className="font-heading font-bold text-sm truncate">{value}</div>
+       </div>
      </>
    );
    const cls = cn(
-     "relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3 text-left w-full transition-all",
+     "group relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3 text-left w-full transition-all",
      onClick && "hover:brightness-125 hover:-translate-y-0.5 hover:shadow-[0_0_24px_-6px_rgba(252,211,77,0.4)] cursor-pointer",
      tint,
    );
