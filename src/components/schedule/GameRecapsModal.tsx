@@ -421,8 +421,9 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                             src={embedSrc}
                             title={`Recap · ${nameFor(selectedGame.away_team)} @ ${nameFor(selectedGame.home_team)}`}
                             className="absolute inset-0 w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                             allowFullScreen
+                            referrerPolicy="strict-origin-when-cross-origin"
                           />
                         ) : (
                           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-6">
