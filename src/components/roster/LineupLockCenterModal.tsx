@@ -655,8 +655,10 @@ function StatusCard({ label, icon, value, sub, tone }: {
         <span className={valCls}>{icon}</span>
         {label}
       </div>
-      <div className={cn("font-heading font-black text-lg leading-none", valCls)}>{value}</div>
-      <div className="text-[10px] text-white/45 mt-1 truncate">{sub}</div>
+      <div className="flex items-baseline gap-2 min-w-0">
+        <div className={cn("font-heading font-black text-lg leading-none shrink-0", valCls)}>{value}</div>
+        <div className="text-[10px] text-white/45 truncate">{sub}</div>
+      </div>
     </div>
   );
 }
