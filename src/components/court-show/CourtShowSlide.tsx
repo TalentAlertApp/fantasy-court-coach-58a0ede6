@@ -18,7 +18,6 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
 import TopPerformerBlock from "./TopPerformerBlock";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube-embed";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
