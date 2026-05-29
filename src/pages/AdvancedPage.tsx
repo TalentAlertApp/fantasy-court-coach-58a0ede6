@@ -897,7 +897,7 @@ export default function AdvancedPage() {
     <div className="max-w-7xl mx-auto px-4 space-y-4">
       <div className="flex flex-col items-center gap-1">
         <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground inline-flex items-center gap-1.5">
-          Advanced ·
+          Advanced
           <img
             src={getLeagueLogo(league)}
             alt={competition.label}
