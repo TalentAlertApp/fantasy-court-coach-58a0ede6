@@ -552,7 +552,7 @@ function LineupLockCenterInner({
 
 /* ------------------------------ subcomponents ----------------------------- */
 
-function Panel({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
+function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-amber-400/15 bg-black/30 backdrop-blur-sm p-3">
       <div className="flex items-center gap-1.5 mb-2.5">
@@ -565,7 +565,7 @@ function Panel({ title, icon, children }: { title: string; icon: React.ReactNode
 }
 
 function StatusCard({ label, icon, value, sub, tone }: {
-  label: string; icon: React.ReactNode; value: string; sub: string; tone: "good" | "warn" | "bad";
+  label: string; icon: ReactNode; value: string; sub: string; tone: "good" | "warn" | "bad";
 }) {
   const toneCls =
     tone === "good" ? "border-emerald-400/30 from-emerald-400/10" :
@@ -671,7 +671,7 @@ function TransferIdea({ tag, title, sub, tone }: { tag: string; title: string; s
   );
 }
 
-function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick?: () => void }) {
+function QuickAction({ icon, label, onClick }: { icon: ReactNode; label: string; onClick?: () => void }) {
   return (
     <button
       type="button"
@@ -686,7 +686,7 @@ function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: s
   );
 }
 
-function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
+function EmptyState({ icon, text }: { icon: ReactNode; text: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
       {icon}
