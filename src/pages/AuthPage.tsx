@@ -12,7 +12,6 @@ import { Loader2, Mail, Lock } from "lucide-react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.png";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -121,10 +120,15 @@ export default function AuthPage() {
               <img src={euroleagueLogo} alt="EuroLeague" className="max-h-12 max-w-full object-contain scale-150" />
             </div>
           </div>
-          <h1 className="text-2xl font-heading font-bold uppercase tracking-[0.2em] text-foreground">
-            {HOOPSFANTASY_NAME}
+          <h1 className="relative text-3xl font-heading font-black uppercase tracking-[0.28em] leading-none">
+            <span className="bg-gradient-to-b from-white via-white to-white/70 bg-clip-text text-transparent drop-shadow-[0_2px_12px_hsl(var(--accent)/0.25)]">
+              Hoops
+            </span>
+            <span className="bg-gradient-to-b from-accent via-accent to-amber-500 bg-clip-text text-transparent drop-shadow-[0_2px_14px_hsl(var(--accent)/0.45)]">
+              Fantasy
+            </span>
           </h1>
-          <p className="text-sm text-muted-foreground">Sign in to manage your team</p>
+          <p className="text-sm text-muted-foreground tracking-wide">Sign in to manage your team</p>
         </div>
 
         <Card className="p-6">

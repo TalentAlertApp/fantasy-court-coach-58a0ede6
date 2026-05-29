@@ -18,7 +18,6 @@ import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
 import TopPerformerBlock from "./TopPerformerBlock";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube-embed";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
@@ -1260,8 +1259,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
 
       {/* header */}
       <div className="relative z-[1] px-8 pt-6 pb-3 shrink-0">
-        <p className="text-[10px] font-heading font-bold uppercase tracking-[0.3em] text-amber-400">{HOOPSFANTASY_NAME} Court Daily</p>
-        <h2 className="font-heading font-black text-2xl md:text-3xl text-white mt-1 leading-tight">{slide.title}</h2>
+        <h2 className="font-heading font-black text-2xl md:text-3xl text-white leading-tight">{slide.title}</h2>
         {slide.subtitle && <p className="text-xs md:text-sm text-white/60 mt-1">{slide.subtitle}</p>}
       </div>
 
