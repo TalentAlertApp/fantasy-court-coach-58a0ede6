@@ -19,6 +19,8 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 import { useLeague } from "@/contexts/LeagueContext";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import TeamModal from "@/components/TeamModal";
+import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
+import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
 import BallersIQPlayerVerdict from "@/components/ballers-iq/BallersIQPlayerVerdict";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import BallersIQShareCardModal from "@/components/ballers-iq/share/BallersIQShareCardModal";
@@ -95,6 +97,7 @@ interface PlayerModalProps {
 
 export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModalProps) {
   const { league } = useLeague();
+  const { data: difficultyMap } = useTeamDifficultyMap();
   const { data, isLoading } = useQuery({
     queryKey: ["player-detail", playerId],
     queryFn: () => fetchPlayerDetail(playerId!),
@@ -548,6 +551,8 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             const isAway = g.away_team === playerTeam;
                             const oppTeam = isAway ? g.home_team : g.away_team;
                             const oppLogo = getTeamLogo(oppTeam);
+                            const diff = difficultyMap?.[String(oppTeam ?? "").toUpperCase()];
+                            const diffColor = difficultyRingColor(diff?.label);
                             const dateStr = g.tipoff_utc ? format(new Date(g.tipoff_utc), "MMM d, HH:mm") : "TBD";
                             return (
                               <TableRow
@@ -580,6 +585,15 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                   <div className="flex items-center gap-1">
                                     {oppLogo && <img src={oppLogo} alt="" className="w-3.5 h-3.5" />}
                                     <span>{isAway ? "@" : "vs."}{oppTeam}</span>
+                                    {diff?.label && (
+                                      <span
+                                        className="ml-1 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider"
+                                        style={{ color: diffColor, borderColor: diffColor }}
+                                        title={`Matchup difficulty: ${diff.label}`}
+                                      >
+                                        {diff.label}
+                                      </span>
+                                    )}
                                   </div>
                                 </TableCell>
                               </TableRow>
