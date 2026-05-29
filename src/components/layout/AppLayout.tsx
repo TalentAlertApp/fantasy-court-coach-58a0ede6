@@ -334,6 +334,12 @@ export default function AppLayout() {
         onOpenChange={(o) => { if (!o) setQuickPlayerId(null); }}
       />
       <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <GameRecapsModal
+        open={gameRecapsOpen}
+        onOpenChange={setGameRecapsOpen}
+        initialGw={recapInitialGw}
+        initialDay={recapInitialDay}
+      />
     </div>
     </TooltipProvider>
   );
