@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
+import { useLeague } from "@/contexts/LeagueContext";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import {
   buildPersonalisedRoster,
   type DraftPlayer,
@@ -28,6 +30,7 @@ const ARCHETYPES: { id: SalaryArchetype; title: string; sub: string }[] = [
 
 export default function StylePreferencesPanel({ players, busy, onDraft }: Props) {
   const { teams } = useLeagueTeams();
+  const { league } = useLeague();
   const logoByTri = useMemo(() => {
     const m = new Map<string, string>();
     for (const t of teams) m.set(t.tricode, t.logo);
@@ -62,7 +65,15 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-4 md:p-6 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-4 md:space-y-5">
+    <div className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-4 md:p-6 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-4 md:space-y-5">
+      {/* HoopsFantasy watermark — top right, surges on hover */}
+      <img
+        src={getHoopsFantasyLogo(league)}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        className="pointer-events-auto select-none absolute top-3 right-3 z-10 h-20 w-20 md:h-24 md:w-24 object-contain opacity-25 transition-all duration-300 ease-out hover:opacity-70 hover:scale-110 drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+      />
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />

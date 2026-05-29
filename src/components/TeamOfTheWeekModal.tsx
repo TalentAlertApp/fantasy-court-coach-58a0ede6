@@ -173,6 +173,15 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
                 </span>
               </div>
 
+              {/* HF4 logo watermark — centered on court, subtle, no container */}
+              <img
+                src={getHoopsFantasyLogo("euroleague")}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                className="pointer-events-none select-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 h-40 w-40 md:h-52 md:w-52 object-contain opacity-[0.16]"
+              />
+
               {formation.map(({ player, style }, i) => (
                 <motion.div
                   key={player.id}
