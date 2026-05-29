@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo } from "react";
 import {
   registerEuroLeagueTeams,
-  getEuroLeagueTeamRecord,
   type EuroLeagueTeamRecord,
 } from "@/lib/euroleague-team-registry";
 
