@@ -30,7 +30,14 @@ interface TeamModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type RosterSort = "mpg" | "ppg" | "fpg" | "salary";
+type RosterSort = "mpg" | "ppg" | "fpg" | "salary" | "height";
+
+function heightToInches(h: unknown): number {
+  if (!h) return -1;
+  const m = String(h).match(/(\d+)'?\s*(\d+)?/);
+  if (!m) return -1;
+  return parseInt(m[1], 10) * 12 + (m[2] ? parseInt(m[2], 10) : 0);
+}
 
 export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProps) {
   const { teams: leagueTeams } = useLeagueTeams();
@@ -43,6 +50,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const watermarkLogo = getLeagueLogo(league);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
+  const [rosterDir, setRosterDir] = useState<"desc" | "asc">("desc");
   const [selectedGame, setSelectedGame] = useState<GameDetailGame | null>(null);
   const [compareOpp, setCompareOpp] = useState<string | null>(null);
   const [comparePickerOpen, setComparePickerOpen] = useState(false);
@@ -112,11 +120,13 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
 
   const sortedRoster = useMemo(() => {
     if (!rosterData) return [];
+    const val = (p: any) =>
+      rosterSort === "height" ? heightToInches((p as any).height) : (p as any)[rosterSort];
     return [...rosterData].sort((a, b) => {
-      if (rosterSort === "salary") return b.salary - a.salary;
-      return b[rosterSort] - a[rosterSort];
+      const diff = val(a) - val(b);
+      return rosterDir === "asc" ? diff : -diff;
     });
-  }, [rosterData, rosterSort]);
+  }, [rosterData, rosterSort, rosterDir]);
 
   const played = useMemo(() => (gamesData ?? []).filter(g => g.status?.toUpperCase().includes("FINAL")), [gamesData]);
   const upcoming = useMemo(() => (gamesData ?? []).filter(g => !g.status?.toUpperCase().includes("FINAL")).reverse(), [gamesData]);
@@ -125,7 +135,14 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
 
   const sortHeader = (label: string, key: RosterSort) => (
     <button
-      onClick={() => setRosterSort(key)}
+      onClick={() => {
+        if (rosterSort === key) {
+          setRosterDir((d) => (d === "desc" ? "asc" : "desc"));
+        } else {
+          setRosterSort(key);
+          setRosterDir("desc");
+        }
+      }}
       className={`text-[10px] uppercase tracking-wider ${rosterSort === key ? "font-bold text-foreground" : "text-muted-foreground"} hover:text-foreground transition-colors`}
     >
       {label}
@@ -411,7 +428,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                   <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border sticky top-0 bg-card z-10">
                     <span className="w-6 text-left text-[10px] uppercase tracking-wider text-muted-foreground">#</span>
                     <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground">Player</span>
-                    <span className="w-12 text-right text-[10px] uppercase tracking-wider text-muted-foreground" title="Height">H</span>
+                    <span className="w-12 text-right" title="Height">{sortHeader("H", "height")}</span>
                     <span className="w-12 text-right" title="Minutes Per Game">{sortHeader("MPG", "mpg")}</span>
                     <span className="w-12 text-right" title="Points Per Game">{sortHeader("PPG", "ppg")}</span>
                     <span className="w-12 text-right" title="Fantasy Points Per Game">{sortHeader("FP", "fpg")}</span>
