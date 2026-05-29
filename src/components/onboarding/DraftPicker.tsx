@@ -18,7 +18,6 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { playSfx } from "@/hooks/useSfx";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 type Strategy = "auto" | "manual" | "ai";
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
