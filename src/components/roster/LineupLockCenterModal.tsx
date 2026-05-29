@@ -279,7 +279,7 @@ function LineupLockCenterInner({
 
           {/* Header */}
           <div className="relative z-10 px-6 pt-4 pb-3 border-b border-amber-400/15 shrink-0">
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative flex items-center gap-3 flex-wrap">
               <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400/30 to-amber-600/10 border border-amber-400/30 flex items-center justify-center shadow-[0_0_24px_-4px_hsl(var(--primary)/0.4)]">
                 <LockKeyhole className="h-5 w-5 text-amber-300" />
               </div>
@@ -291,21 +291,41 @@ function LineupLockCenterInner({
                   Lineup Lock Center
                 </h2>
               </div>
+
+              {/* LOCK IN countdown — centered across the modal, bigger, urgency-aware */}
+              <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 hidden md:block">
+                <span className={cn(
+                  "inline-flex items-center gap-2 rounded-xl border px-4 py-1.5 font-mono font-black tabular-nums text-base lg:text-lg tracking-tight shadow-lg",
+                  urgency === "locked" || urgency === "critical"
+                    ? "border-red-500/60 bg-red-500/20 text-red-300 animate-pulse shadow-[0_0_26px_-4px_rgba(239,68,68,0.65)]"
+                    : urgency === "warning"
+                    ? "border-orange-400/60 bg-orange-400/15 text-orange-300 shadow-[0_0_22px_-4px_rgba(251,146,60,0.55)]"
+                    : "border-emerald-400/40 bg-emerald-400/10 text-emerald-200",
+                )}>
+                  <Clock className={cn("h-5 w-5", urgency === "critical" && "animate-pulse")} />
+                  {locked ? "LOCKED" : countdown ? `LOCK IN ${countdown}` : (deadlineFormatted ?? "Lock deadline unavailable")}
+                </span>
+              </div>
+
               <div className="ml-auto flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-amber-300/30 bg-black/40 text-white text-[11px] font-heading uppercase tracking-[0.16em]">
+                  <img src={getLeagueLogo(league)} alt="" className="h-[11px] w-[11px] object-contain shrink-0" />
                   {teamName}
                 </span>
                 <span className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-amber-300/30 bg-black/40 text-white text-[11px] font-heading uppercase tracking-[0.16em]">
                   GW {gw}.{day}
                 </span>
+                {/* Compact countdown fallback for small screens (centered version hidden there) */}
                 <span className={cn(
-                  "inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[11px] font-mono tabular-nums",
-                  countdown === "LOCKED" || rosterLocked
+                  "md:hidden inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-[11px] font-mono tabular-nums",
+                  urgency === "locked" || urgency === "critical"
                     ? "border-red-500/40 bg-red-500/15 text-red-300"
+                    : urgency === "warning"
+                    ? "border-orange-400/40 bg-orange-400/15 text-orange-300"
                     : "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
                 )}>
                   <Clock className="h-3.5 w-3.5" />
-                  {rosterLocked ? "LOCKED" : countdown ? `LOCK IN ${countdown}` : (deadlineFormatted ?? "Lock deadline unavailable")}
+                  {locked ? "LOCKED" : countdown ? `LOCK IN ${countdown}` : (deadlineFormatted ?? "—")}
                 </span>
               </div>
             </div>
