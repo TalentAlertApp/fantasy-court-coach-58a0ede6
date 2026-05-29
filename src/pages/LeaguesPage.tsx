@@ -454,8 +454,8 @@ export default function LeaguesPage() {
           <div className="flex items-center gap-2">
             <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="font-heading uppercase tracking-wider text-[10px]">
-                  <KeyRound className="h-3.5 w-3.5 mr-1" /> Join with code
+                <Button variant="outline" className="h-11 px-6 font-heading uppercase tracking-wider text-[11px]">
+                  <KeyRound className="h-4 w-4 mr-1.5" /> Join with code
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -492,8 +492,17 @@ export default function LeaguesPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button size="sm" onClick={() => navigate("/leagues/create")} className="font-heading uppercase tracking-wider text-[10px]">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Create League
+            <Button
+              onClick={() => navigate("/leagues/create")}
+              className="group relative h-11 pl-6 pr-12 overflow-hidden font-heading uppercase tracking-wider text-[11px]"
+            >
+              <Plus className="h-4 w-4 mr-1.5" /> Create League
+              <img
+                src={getHoopsFantasyLogo(activeLeague)}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-9 w-9 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60 select-none"
+              />
             </Button>
           </div>
         </div>
