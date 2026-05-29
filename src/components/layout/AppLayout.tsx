@@ -124,7 +124,7 @@ export default function AppLayout() {
                 aria-label="Go to My Roster (home)"
                 className="flex flex-col leading-none truncate flex-1 relative z-10 cursor-pointer rounded-md hover:bg-white/5 transition-colors -mx-1 px-1 py-0.5"
               >
-                <span className="text-sm font-heading font-bold uppercase tracking-[0.22em] truncate"
+                <span className="text-[13px] font-heading font-bold uppercase tracking-[0.08em] whitespace-nowrap"
                       style={{ color: "hsl(var(--sidebar-foreground))" }}>
                   {HOOPSFANTASY_NAME}
                 </span>
