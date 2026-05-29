@@ -25,6 +25,7 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { useLeague } from "@/contexts/LeagueContext";
 import { getLeagueLogo } from "@/lib/competitions";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 const MIN_WEEK = 1;
 
@@ -291,6 +292,13 @@ export default function SchedulePage() {
       <div className="sticky top-0 z-20 bg-background pb-0 space-y-0">
         {/* Week strip with GW info */}
         <div className="relative overflow-hidden bg-[hsl(var(--nba-navy))] text-primary-foreground rounded-t-xl px-3 py-2 group">
+          {/* HoopsFantasy logo watermark — far left, mirrors the league logo */}
+          <img
+            src={getHoopsFantasyLogo(league)}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none select-none absolute -top-6 -left-6 h-40 w-40 object-contain opacity-[0.08] -rotate-6 transition-all duration-500 group-hover:opacity-[0.22] group-hover:scale-110 group-hover:rotate-0 z-0"
+          />
           {/* League logo watermark */}
           <img
             src={getLeagueLogo(league)}

@@ -1,39 +1,41 @@
-# Polish pass: onboarding, /leagues, sidebar, team modal, logo splash
+# Plan — 4 UI consistency fixes
 
-## 1. Onboarding — align the brand bundle position
-The "Name Your Franchise" screen positions the NBA / WNBA / EuroLeague + HOOPSFANTASY bundle differently from the "Draft Your Squad" screen.
+## 1. Undo the modal "Logo Splash"
+Restore Team of the Week and Court Show modals to how they were before the splash was added.
+- `src/components/TeamOfTheWeekModal.tsx`: remove the `LogoSplash` import and the `<LogoSplash open={open} league={league} />` line.
+- `src/components/court-show/CourtShowModal.tsx`: remove the `LogoSplash` import and its usage.
+- Delete `src/components/brand/LogoSplash.tsx` (no longer referenced).
 
-- In `src/components/onboarding/NameStep.tsx`, change the bundle wrapper from `absolute top-6 left-6` to `absolute top-4 left-8` so it sits at the exact same offset as the `px-8 py-4` header used in `OnboardingHero.tsx` (Draft Your Squad). Logo sizes, separators and spacing already match.
+## 2. Sidebar divider above Player Search
+Currently `mx-4 my-1 h-px` with a `0.45`-opacity gradient — it reads too strong and is narrower than the search box (which sits in a `px-3` container).
+- In `src/components/layout/AppLayout.tsx` (the expanded branch, line ~204): change `mx-4` → `mx-3` so its width matches the Player Search box exactly, and drop the gradient opacity from `0.45` → `0.22` so it appears as a far fainter, thinner hairline.
 
-## 2. /leagues — premium header, bigger action buttons, consistent separator, scoring-aligned position
-File: `src/pages/LeaguesPage.tsx`
+## 3. /schedule — HoopsFantasy logo watermark at far left
+The user-team league logo already sits as a watermark at the top-right of the week-strip header (`-top-6 -right-6 h-40 w-40 opacity-[0.08] rotate-6` with hover surge). Mirror it on the left with the HF logo.
+- In `src/pages/SchedulePage.tsx`, inside the same `group` header (next to the existing league-logo `<img>`), add a second `<img src={getHoopsFantasyLogo(league)}>` using identical sizing/opacity/effects but mirrored: `-top-6 -left-6 ... -rotate-6 group-hover:opacity-[0.22] group-hover:scale-110 group-hover:rotate-0`.
+- Import `getHoopsFantasyLogo` from `@/lib/hoopsfantasy-brand`.
 
-**a) Bigger Join / Create buttons + HF watermark**
-- Enlarge both header buttons ("Join with code", "Create League") — taller and wider (e.g. `h-11`, more horizontal padding, slightly larger label/icon). They still fit inside the current header block, so the header's overall height is unchanged.
-- Add the HoopsFantasy logo (`getHoopsFantasyLogo`) as a watermark pinned to the far-right inside the "Create League" button, with a hover "surge" (scale-up + opacity increase) matching the app's existing watermark surge pattern. Make the button `relative overflow-hidden group` so the watermark clips and animates on hover.
+## 4. Header consistency across /scoring, /transactions, /teams, /leagues
+Adopt the clean `/advanced` pattern: a small centered caption line over a full-width, underline-style tab bar (bottom border on the row, active tab marked by a yellow underline). Each page keeps its own tabs and content — only the header chrome changes.
 
-**b) Consistent thin separator under the tabs**
-- Today the sticky header's bottom border sits directly under the tab toggles on Discover, but under the filter bar on My Leagues (because the Mine filter bar lives inside the sticky region). Move the My Leagues filter bar out of the sticky region into the `TabsContent value="mine"` block (mirroring how Discover renders its own filter bar). Result: on both tabs the thin separator renders identically right beneath the toggle row.
+Reference (`/advanced`):
+```text
+            ADVANCED · WNBA INSIGHTS          (centered, tiny, wide tracking)
+ ──────────────────────────────────────────
+  PLAY SEARCH   FANTASY POINTS   ADV STATS   [TRENDING]   (underline tabs)
+```
 
-**c) Match the /scoring header vertical position**
-- Remove the redundant horizontal padding and extra top offset so the header starts at the same point as `/scoring`. Change the page container from `px-6 pb-5 ...` to `pb-5 ...` (the `.page-scroll` wrapper already supplies `px-6`/`py-5`), and reduce the sticky region's top padding (`pt-5` → `pt-0`) so the header — and everything below it — moves up to align with the Scoring page header.
+Create a small shared presentational component `src/components/layout/PageHeaderTabs.tsx` that renders:
+- the centered caption (`text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground`), and
+- a full-width `TabsList` styled exactly like Advanced (transparent list, bottom border row, `data-[state=active]` yellow underline).
 
-## 3. Left sidebar — restyle the divider above Player Search
-File: `src/components/layout/AppLayout.tsx`
-- Keep the separator above the Player Search box but make it more subtle/refined than the structural `sidebar-divider`s: render an inset, lower-opacity hairline (horizontal margin + reduced opacity) so it reads as a lighter, more premium separation. Only this one divider is changed; the global `.sidebar-divider` style stays intact.
+Then apply per page:
+- **/teams** (`TeamsPage.tsx`): replace the inline `h1 + pill tabs` row with the caption (e.g. "WNBA · TEAMS") + the underline tab bar for Teams / Standings / Stats. Keep the sort button and (Standings) division filter aligned to the right of the bar; keep all tab content unchanged.
+- **/scoring** (`ScoringPage.tsx`): keep the existing premium gradient title bar but swap the boxed pill `TabsList` for the underline tab bar (League / Your Team / Tx Pulse). Keep the Fantasy-league selector and the per-tab team selector. Content unchanged.
+- **/leagues** (`LeaguesPage.tsx`): convert the Mine / Discover pill tabs to the underline tab bar and add the centered caption ("LEAGUES · MINE & DISCOVER"). Keep the sticky header, the Join/Create buttons, and both tabs' content.
+- **/transactions** (`PlayersPage.tsx`): this page has no tabs (single trade workbench). Apply only the caption line ("TRANSACTIONS · TRADE CENTER") for visual consistency and keep the existing toolbar (Roster / Schedule / Ballers.IQ / chips). No tab bar is added since there are no tabs.
 
-## 4. Team modal — add Height ("H") column to the Roster tab
-File: `src/components/TeamModal.tsx`
-- Add `height` to the players `select(...)` in the `team-roster-agg` query and carry it through the mapped roster objects.
-- In the Roster tab table, add an `H` column header and cell placed immediately before `MPG`, populated from `p.height ?? "—"` (same source/format as the Players page).
-- Rebalance column widths for breathing room and widen the dialog just enough (`max-w-lg` → `max-w-xl`) to fit the extra column cleanly.
-
-## 5. Big-logo splash on key modal opens
-- Add a small reusable splash (e.g. `src/components/brand/LogoSplash.tsx`) that briefly fades/scales the large HoopsFantasy logo (`getHoopsFantasyLogo`) over the modal surface for ~0.8s when the modal opens, then fades out — non-blocking (pointer-events-none) and respects the active league logo.
-- Wire it into the Team of the Week modal (`src/components/TeamOfTheWeekModal.tsx`) and the Court Show modal (`src/components/court-show/CourtShowModal.tsx`) so opening either gives a short branded moment without cluttering the steady-state UI.
-
-## Technical notes
-- All colors use existing semantic tokens / logo assets; no new CSS variables.
-- Height is an existing nullable text field on `players` (used by `PlayerRow`/`PlayerModal`), so no schema or data changes are needed.
-- Logo assets come from `getHoopsFantasyLogo(league)` in `src/lib/hoopsfantasy-brand.ts`.
-- Changes are presentation-only; no business-logic or data-flow changes.
+### Technical notes
+- All changes are presentation-only — no data, hooks, routing, or business logic touched.
+- Reuse existing semantic tokens (`--nba-yellow`, `border-border`, `text-muted-foreground`) and the existing `Tabs`/`TabsList`/`TabsTrigger` primitives; no new CSS variables.
+- The shared `PageHeaderTabs` keeps the four pages visually in sync and avoids duplicating the Advanced markup.

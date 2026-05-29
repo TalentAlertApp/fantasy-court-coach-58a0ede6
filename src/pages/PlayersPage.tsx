@@ -8,6 +8,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import PlayerModal from "@/components/PlayerModal";
 import FiltersPanel from "@/components/FiltersPanel";
 import BadgeLegendButton from "@/components/transactions/BadgeLegendButton";
+import { PageHeaderCaption } from "@/components/layout/PageHeaderTabs";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -691,9 +692,9 @@ export default function PlayersPage() {
 
   return (
     <div className="h-full flex flex-col">
+      <PageHeaderCaption className="shrink-0 mb-2">Transactions · Trade Center</PageHeaderCaption>
       {/* Compact header row */}
       <div className="flex items-center gap-2 flex-wrap shrink-0 mb-3">
-        <h2 className="text-xl font-heading font-bold">Transactions</h2>
         {!isWideScreen && (
           <Sheet open={rosterSheetOpen} onOpenChange={setRosterSheetOpen}>
             <SheetTrigger asChild>
