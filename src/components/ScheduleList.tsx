@@ -594,7 +594,7 @@ function UpcomingGamePreview({ awayTeam, homeTeam, onGameClick, onTeamClick }: {
                           <button onClick={() => onGameClick(g)}>
                             <Badge
                               variant={g.won ? "default" : "destructive"}
-                              className="text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80"
+                              className={`text-[8px] px-1.5 py-0 rounded-xl h-4 min-w-[18px] justify-center font-heading font-bold cursor-pointer hover:opacity-80 ${g.won ? "bg-green-500 hover:bg-green-500/90 text-white border-transparent" : ""}`}
                             >
                               {g.won ? "W" : "L"}
                             </Badge>
