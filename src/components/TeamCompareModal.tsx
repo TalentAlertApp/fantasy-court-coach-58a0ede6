@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { getLeagueLogo } from "@/lib/competitions";
 import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
