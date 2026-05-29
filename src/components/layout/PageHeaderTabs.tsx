@@ -41,6 +41,7 @@ export function UnderlineTabsBarManual({
   tabs,
   value,
   onChange,
+  left,
   right,
   centered = true,
   className,
@@ -48,10 +49,55 @@ export function UnderlineTabsBarManual({
   tabs: UnderlineTab[];
   value: string;
   onChange: (value: string) => void;
+  left?: ReactNode;
   right?: ReactNode;
   centered?: boolean;
   className?: string;
 }) {
+  // When side slots are present, render them as absolutely-positioned
+  // clusters so the tab group stays optically centered regardless of the
+  // differing widths of the left/right content.
+  if (left || right) {
+    return (
+      <div
+        className={cn(
+          "relative flex items-center border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg",
+          className,
+        )}
+      >
+        {left && (
+          <div className="absolute left-0 inset-y-0 flex items-center gap-2 pl-3 pr-1">
+            {left}
+          </div>
+        )}
+        <div
+          className="grid w-full max-w-3xl mx-auto"
+          style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+        >
+          {tabs.map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => onChange(t.value)}
+              className={cn(
+                underlineTabTriggerClass,
+                value === t.value
+                  ? "text-foreground border-[hsl(var(--nba-yellow))]"
+                  : "hover:text-foreground",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {right && (
+          <div className="absolute right-0 inset-y-0 flex items-center gap-2 pl-1 pr-1">
+            {right}
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div
       className={cn(
@@ -60,7 +106,7 @@ export function UnderlineTabsBarManual({
       )}
     >
       <div
-        className={cn("grid w-full", centered && !right ? "max-w-3xl mx-auto" : "max-w-xl")}
+        className={cn("grid w-full", centered ? "max-w-3xl mx-auto" : "max-w-xl")}
         style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
       >
         {tabs.map((t) => (
@@ -79,7 +125,6 @@ export function UnderlineTabsBarManual({
           </button>
         ))}
       </div>
-      {right && <div className="ml-auto shrink-0 flex items-center gap-2 pl-3 pr-1">{right}</div>}
     </div>
   );
 }
