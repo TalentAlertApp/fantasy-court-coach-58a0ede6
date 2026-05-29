@@ -30,6 +30,60 @@ export interface UnderlineTab {
   label: ReactNode;
 }
 
+/** Shared trigger styling so manual (non-Radix) bars match exactly. */
+export const underlineTabTriggerClass =
+  "rounded-none bg-transparent shadow-none px-2 py-2.5 font-heading text-[11px] uppercase tracking-wider text-muted-foreground border-b-2 border-transparent transition-colors inline-flex items-center justify-center gap-1.5";
+
+/**
+ * Manual (state-driven) variant for pages that don't use Radix Tabs.
+ */
+export function UnderlineTabsBarManual({
+  tabs,
+  value,
+  onChange,
+  right,
+  centered = true,
+  className,
+}: {
+  tabs: UnderlineTab[];
+  value: string;
+  onChange: (value: string) => void;
+  right?: ReactNode;
+  centered?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg",
+        className,
+      )}
+    >
+      <div
+        className={cn("grid w-full", centered && !right ? "max-w-3xl mx-auto" : "max-w-xl")}
+        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+      >
+        {tabs.map((t) => (
+          <button
+            key={t.value}
+            type="button"
+            onClick={() => onChange(t.value)}
+            className={cn(
+              underlineTabTriggerClass,
+              value === t.value
+                ? "text-foreground border-[hsl(var(--nba-yellow))]"
+                : "hover:text-foreground",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {right && <div className="ml-auto shrink-0 flex items-center gap-2 pl-3 pr-1">{right}</div>}
+    </div>
+  );
+}
+
 export function UnderlineTabsBar({
   tabs,
   right,
