@@ -45,6 +45,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const [openTri, setOpenTri] = useState<string | null>(null);
   const [openGame, setOpenGame] = useState<GameDetailGame | null>(null);
+  const [openGameRecap, setOpenGameRecap] = useState(false);
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>(readSpeed);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -150,9 +151,10 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
     });
   };
 
-  const handleGameClick = (g: RecapGame | MatchupGame) => {
+  const handleGameClick = (g: RecapGame | MatchupGame, opts?: { openRecap?: boolean }) => {
     const full = games.find((x: any) => x.game_id === g.game_id);
     if (full) {
+      setOpenGameRecap(!!opts?.openRecap);
       setOpenGame({
         game_id: full.game_id,
         home_team: full.home_team,
@@ -305,7 +307,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
 
       <PlayerModal playerId={openPlayerId} open={openPlayerId !== null} onOpenChange={(o) => !o && setOpenPlayerId(null)} />
       <TeamModal tricode={openTri} open={openTri !== null} onOpenChange={(o) => !o && setOpenTri(null)} />
-      <GameDetailModal game={openGame} open={openGame !== null} onOpenChange={(o) => !o && setOpenGame(null)} />
+      <GameDetailModal game={openGame} open={openGame !== null} initialRecapOpen={openGameRecap} onOpenChange={(o) => { if (!o) { setOpenGame(null); setOpenGameRecap(false); } }} />
     </>
   );
 }

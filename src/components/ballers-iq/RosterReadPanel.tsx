@@ -346,11 +346,11 @@ export default function RosterReadPanel({
        <GlassPanel className="p-4">
          <SectionLabel icon={Trophy}>Quick Reads</SectionLabel>
          <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2">
-            <QuickRead icon={Crown}        label="Captain Watch"      value={quickReads.captainWatch?.core?.name ?? "—"} tint="from-amber-400/15 to-amber-500/5 border-amber-400/30 text-amber-100"  onClick={quickReads.captainWatch && onOpenPlayer ? () => onOpenPlayer(quickReads.captainWatch) : undefined} />
-            <QuickRead icon={TrendingUp}   label="Market Opportunity" value={quickReads.valuePick?.core?.name ?? "—"}    tint="from-violet-400/15 to-violet-500/5 border-violet-400/30 text-violet-100" onClick={quickReads.valuePick && onOpenPlayer ? () => onOpenPlayer(quickReads.valuePick) : undefined} />
-            <QuickRead icon={Heart}        label="Health Exposure"    value={quickReads.riskPlayer?.core?.name ?? (snapshot.riskStarters > 0 ? `${snapshot.riskStarters} starter${snapshot.riskStarters > 1 ? "s" : ""}` : "Clear")} tint="from-rose-400/15 to-rose-500/5 border-rose-400/30 text-rose-100" onClick={quickReads.riskPlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.riskPlayer) : undefined} />
-            <QuickRead icon={CalendarDays} label="Schedule Boost"     value={quickReads.scheduleBoost?.core?.name ?? `${snapshot.activeToday} active today`} tint="from-sky-400/15 to-sky-500/5 border-sky-400/30 text-sky-100" onClick={quickReads.scheduleBoost && onOpenPlayer ? () => onOpenPlayer(quickReads.scheduleBoost) : undefined} />
-            <QuickRead icon={ShieldAlert}  label="Risk Flags"         value={quickReads.noGamePlayer?.core?.name ?? (snapshot.noGameThisWeek > 0 ? `${snapshot.noGameThisWeek} no-game` : "Clean")} tint="from-emerald-400/15 to-emerald-500/5 border-emerald-400/30 text-emerald-100" onClick={quickReads.noGamePlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.noGamePlayer) : undefined} />
+            <QuickRead icon={Crown}        label="Captain Watch"      value={quickReads.captainWatch?.core?.name ?? "—"} player={quickReads.captainWatch} tint="from-amber-400/15 to-amber-500/5 border-amber-400/30 text-amber-100"  onClick={quickReads.captainWatch && onOpenPlayer ? () => onOpenPlayer(quickReads.captainWatch) : undefined} />
+            <QuickRead icon={TrendingUp}   label="Market Opportunity" value={quickReads.valuePick?.core?.name ?? "—"}    player={quickReads.valuePick} tint="from-violet-400/15 to-violet-500/5 border-violet-400/30 text-violet-100" onClick={quickReads.valuePick && onOpenPlayer ? () => onOpenPlayer(quickReads.valuePick) : undefined} />
+            <QuickRead icon={Heart}        label="Health Exposure"    value={quickReads.riskPlayer?.core?.name ?? (snapshot.riskStarters > 0 ? `${snapshot.riskStarters} starter${snapshot.riskStarters > 1 ? "s" : ""}` : "Clear")} player={quickReads.riskPlayer} tint="from-rose-400/15 to-rose-500/5 border-rose-400/30 text-rose-100" onClick={quickReads.riskPlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.riskPlayer) : undefined} />
+            <QuickRead icon={CalendarDays} label="Schedule Boost"     value={quickReads.scheduleBoost?.core?.name ?? `${snapshot.activeToday} active today`} player={quickReads.scheduleBoost} tint="from-sky-400/15 to-sky-500/5 border-sky-400/30 text-sky-100" onClick={quickReads.scheduleBoost && onOpenPlayer ? () => onOpenPlayer(quickReads.scheduleBoost) : undefined} />
+            <QuickRead icon={ShieldAlert}  label="Risk Flags"         value={quickReads.noGamePlayer?.core?.name ?? (snapshot.noGameThisWeek > 0 ? `${snapshot.noGameThisWeek} no-game` : "Clean")} player={quickReads.noGamePlayer} tint="from-emerald-400/15 to-emerald-500/5 border-emerald-400/30 text-emerald-100" onClick={quickReads.noGamePlayer && onOpenPlayer ? () => onOpenPlayer(quickReads.noGamePlayer) : undefined} />
          </div>
        </GlassPanel>
      </div>
@@ -382,17 +382,35 @@ function Stat({ label, value, tone }: { label: string; value: string; tone: "def
    );
  }
 
-function QuickRead({ icon: Icon, label, value, tint, onClick }: { icon: any; label: string; value: string; tint: string; onClick?: () => void }) {
+function QuickRead({ icon: Icon, label, value, tint, onClick, player }: { icon: any; label: string; value: string; tint: string; onClick?: () => void; player?: any }) {
+   const logo = player?.core?.team ? getTeamLogo(player.core.team) : null;
    const inner = (
      <>
-       <div className="flex items-center gap-1.5 text-[9px] font-heading uppercase tracking-[0.18em] opacity-90">
+       {logo && (
+         <img
+           src={logo}
+           alt=""
+           aria-hidden
+           className="pointer-events-none absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.14] group-hover:opacity-30 group-hover:scale-125 transition-all"
+         />
+       )}
+       <div className="relative flex items-center gap-1.5 text-[9px] font-heading uppercase tracking-[0.18em] opacity-90">
          <Icon className="h-3 w-3" /> {label}
        </div>
-       <div className="mt-1.5 font-heading font-bold text-sm truncate">{value}</div>
+       <div className="relative mt-1.5 flex items-center gap-2 min-w-0">
+         {player && (
+           player.core?.photo ? (
+             <img src={player.core.photo} alt="" className="w-7 h-7 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
+           ) : (
+             <div className="w-7 h-7 rounded-full bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 shrink-0">{value.slice(0, 1)}</div>
+           )
+         )}
+         <div className="font-heading font-bold text-sm truncate">{value}</div>
+       </div>
      </>
    );
    const cls = cn(
-     "relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3 text-left w-full transition-all",
+     "group relative overflow-hidden rounded-xl border bg-gradient-to-b px-3 py-3 text-left w-full transition-all",
      onClick && "hover:brightness-125 hover:-translate-y-0.5 hover:shadow-[0_0_24px_-6px_rgba(252,211,77,0.4)] cursor-pointer",
      tint,
    );

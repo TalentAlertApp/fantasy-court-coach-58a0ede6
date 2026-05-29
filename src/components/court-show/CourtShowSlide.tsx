@@ -219,7 +219,7 @@ interface Props {
   slide: CourtShowSlideItem;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
-  onGameClick: (game: RecapGame | MatchupGame) => void;
+  onGameClick: (game: RecapGame | MatchupGame, opts?: { openRecap?: boolean }) => void;
   onOutroAction?: () => void;
   onVideoPlayingChange?: (playing: boolean) => void;
   /** Per-page duration for paginated slides (e.g. Played Games Recap). */
@@ -470,11 +470,12 @@ function OutstandingSlide({
   payload: OutstandingGamePayload;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
-  onGameClick: (g: RecapGame) => void;
+  onGameClick: (g: RecapGame, opts?: { openRecap?: boolean }) => void;
   onVideoPlayingChange?: (playing: boolean) => void;
 }) {
   const g = payload.game;
   const awayWon = g.winner === g.away_team;
+  const [recapPlaying, setRecapPlaying] = useState(false);
   const ytSrc = useMemo(
     () =>
       payload.youtube_recap_id
@@ -526,9 +527,9 @@ function OutstandingSlide({
         undefined;
       if (typeof state !== "number") return;
       // 1 = playing, 3 = buffering → treat as playing
-      if (state === 1 || state === 3) onVideoPlayingChange(true);
+      if (state === 1 || state === 3) { onVideoPlayingChange(true); setRecapPlaying(true); }
       // 0 ended, 2 paused, 5 cued, -1 unstarted → not playing
-      else if (state === 0 || state === 2 || state === 5 || state === -1) onVideoPlayingChange(false);
+      else if (state === 0 || state === 2 || state === 5 || state === -1) { onVideoPlayingChange(false); setRecapPlaying(false); }
     };
     window.addEventListener("message", onMsg);
     return () => {
@@ -632,7 +633,7 @@ function OutstandingSlide({
           {payload.game_recap_url && (
             <button
               type="button"
-              onClick={() => onGameClick(payload.game)}
+              onClick={() => onGameClick(payload.game, { openRecap: recapPlaying })}
               className="text-[10px] text-white/55 hover:text-amber-300 inline-flex items-center gap-1"
             >
               Open <Maximize2 className="h-2.5 w-2.5" />
