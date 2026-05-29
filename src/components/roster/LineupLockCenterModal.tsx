@@ -596,9 +596,9 @@ function LineupLockCenterInner({
 
           {/* Bottom status bar */}
           {hasRoster && (
-            <div className="relative z-10 shrink-0 border-t border-amber-400/15 bg-black/40 px-5 py-2.5 flex items-center gap-x-5 gap-y-1 flex-wrap text-[11px] font-heading uppercase tracking-[0.14em]">
-              <span className={cn("inline-flex items-center gap-1.5", validSplit && rosterFull ? "text-emerald-300" : "text-amber-300")}>
-                {validSplit && rosterFull ? <ShieldCheck className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+            <div className="relative z-10 shrink-0 border-t border-amber-400/15 bg-black/40 px-6 py-4 flex items-center gap-x-6 gap-y-1.5 flex-wrap text-sm font-heading uppercase tracking-[0.14em]">
+              <span className={cn("inline-flex items-center gap-2", validSplit && rosterFull ? "text-emerald-300" : "text-amber-300")}>
+                {validSplit && rosterFull ? <ShieldCheck className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                 {validSplit && rosterFull ? "Rule Compliant" : "Rule Issue"}
               </span>
               <span className="text-white/40">·</span>
@@ -607,14 +607,19 @@ function LineupLockCenterInner({
               <span className="text-white/80">{freeTransfers} Transfer{freeTransfers === 1 ? "" : "s"} Left</span>
               <span className="text-white/40">·</span>
               <span className="text-white/80">Salary <span className="text-amber-200">{totalSalary.toFixed(1)}</span>/{salaryCap}M</span>
-              <span className="ml-auto inline-flex items-center gap-1.5 text-emerald-300/80">
-                <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" /></span>
+              <span className="ml-auto inline-flex items-center gap-2 text-emerald-300/80">
+                <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
                 Live
               </span>
             </div>
           )}
         </div>
       </DialogContent>
+      <TeamModal
+        tricode={teamModalTri ?? ""}
+        open={!!teamModalTri}
+        onOpenChange={(o) => { if (!o) setTeamModalTri(null); }}
+      />
     </Dialog>
   );
 }
