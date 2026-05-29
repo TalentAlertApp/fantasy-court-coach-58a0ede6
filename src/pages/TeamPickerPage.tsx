@@ -173,10 +173,16 @@ export default function TeamPickerPage() {
             onClick={handleCreateNew}
             className="group relative text-left p-4 rounded-xl border border-dashed border-foreground/15 bg-transparent hover:border-accent hover:bg-accent/5 transition-all h-28 flex flex-col justify-between overflow-hidden"
           >
+            <img
+              src={getHoopsFantasyLogo()}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute -top-4 -right-4 h-20 w-20 object-contain opacity-[0.12] select-none group-hover:opacity-25 group-hover:scale-110 transition-all duration-500"
+            />
             <div className="h-8 w-8 rounded-lg flex items-center justify-center bg-foreground/5 text-foreground/60 group-hover:bg-accent group-hover:text-accent-foreground transition-colors">
               <Plus className="h-4 w-4" />
             </div>
-            <div>
+            <div className="relative">
               <h3 className="font-heading uppercase tracking-[0.12em] text-sm text-foreground/80">
                 New Team
               </h3>
