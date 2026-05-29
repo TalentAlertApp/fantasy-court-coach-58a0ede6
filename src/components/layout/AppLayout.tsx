@@ -207,7 +207,6 @@ export default function AppLayout() {
           </>
         ) : (
           <>
-            <div className="sidebar-divider" />
             <div className="py-2 flex justify-center">
               <NavTooltip collapsed={collapsed} label="Search player">
                 <button

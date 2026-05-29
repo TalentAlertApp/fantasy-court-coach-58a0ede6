@@ -1,11 +1,9 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Loader2, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTeam } from "@/contexts/TeamContext";
-import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 const storageKey = (userId: string) => `commissioner_unlocked:${userId}`;
 
@@ -16,15 +14,10 @@ function readUnlocked(userId: string | undefined): boolean {
 
 export default function CommissionerAccessGate({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { selectedTeam } = useTeam();
   const [unlocked, setUnlocked] = useState<boolean>(() => readUnlocked(user?.id));
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const logoSrc = useMemo(() => {
-    return getHoopsFantasyLogo(selectedTeam?.league_code);
-  }, [selectedTeam?.league_code]);
 
   if (unlocked) return <>{children}</>;
 
@@ -53,15 +46,6 @@ export default function CommissionerAccessGate({ children }: { children: ReactNo
 
   return (
     <div className="relative h-full min-h-[60vh] flex items-center justify-center">
-      {/* Top-right HoopsFantasy watermark with hover surge */}
-      <img
-        src={logoSrc}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="pointer-events-auto select-none absolute top-4 right-4 h-32 w-32 object-contain opacity-25 transition-all duration-300 ease-out hover:opacity-60 hover:scale-110"
-      />
-
       <form
         onSubmit={submit}
         className="w-full max-w-sm rounded-xl border bg-card/60 backdrop-blur p-6 space-y-4 shadow-lg"
