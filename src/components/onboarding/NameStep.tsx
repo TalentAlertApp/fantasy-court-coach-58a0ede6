@@ -4,10 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight, Loader2, Shuffle } from "lucide-react";
 import LeaguePickerCards from "@/components/LeaguePickerCards";
 import type { CompetitionCode } from "@/lib/competitions";
-import nbaLogo from "@/assets/nba-logo.svg";
-import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.png";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
+import BrandMark from "@/components/onboarding/BrandMark";
 
 const SUGGESTIONS = [
   "Court Kings", "Splash Lab", "Triple Threat", "Glass Cleaners",
@@ -36,17 +33,8 @@ export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: 
 
   return (
     <div className="relative flex flex-col min-h-screen px-6 py-6 items-center justify-center">
-      {/* Brand bundle — matches Draft Your Squad / Welcome Back screens */}
-      <div className="absolute top-4 left-8 z-10 flex items-center gap-3">
-        <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
-        <span className="h-6 w-px bg-foreground/20" aria-hidden="true" />
-        <img src={wnbaLogo} alt="WNBA" className="h-9 w-auto object-contain" />
-        <span className="h-6 w-px bg-foreground/20" aria-hidden="true" />
-        <img src={euroleagueLogo} alt="EuroLeague" className="h-9 w-auto object-contain" />
-        <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
-          {HOOPSFANTASY_NAME}
-        </span>
-      </div>
+      {/* Brand bundle — shared mark, identical across onboarding surfaces */}
+      <BrandMark className="absolute top-4 left-8 z-10" />
 
       <StepIndicator step={2} />
 
