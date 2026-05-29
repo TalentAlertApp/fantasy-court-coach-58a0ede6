@@ -43,9 +43,9 @@ function deadlineLabel(t?: string | null): string {
 
 function StatusPill({ status }: { status: string }) {
   const tone =
-    status === "active" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
-    status === "draft"  ? "bg-amber-500/15 text-amber-300 border-amber-500/30" :
-                          "bg-muted/40 text-muted-foreground border-border";
+    status === "active" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40" :
+    status === "draft"  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40" :
+                          "bg-muted/60 text-foreground/70 border-border";
   const label = status === "draft" ? "open" : status;
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] ${tone}`}>
