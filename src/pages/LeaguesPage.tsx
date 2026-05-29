@@ -546,7 +546,6 @@ export default function LeaguesPage() {
         }
       />
       </div>
-      </div>
 
         <TabsContent value="mine" className="mt-4 space-y-4">
       {/* Filter bar — mirrors Discover (lives in tab content for consistent separator) */}
