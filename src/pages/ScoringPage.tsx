@@ -14,7 +14,6 @@ import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { isMainLeague } from "@/hooks/useFantasyLeagues";
-import { useLeague } from "@/contexts/LeagueContext";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
