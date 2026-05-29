@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard, Volume2, VolumeX, Maximize2, Minimize2, Gauge } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, X, Volume2, VolumeX, Maximize2, Minimize2, Gauge } from "lucide-react";
 import { useCourtShowData } from "./useCourtShowData";
 import CourtShowSlide from "./CourtShowSlide";
 import { useCourtShowAudio } from "./useCourtShowAudio";
