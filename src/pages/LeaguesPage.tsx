@@ -323,6 +323,7 @@ export default function LeaguesPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "cards">("list");
+  const [tab, setTab] = useState<"mine" | "discover">("mine");
   // "Mine" tab filters — mirrors the Discover panel layout
   const [mineSport, setMineSport] = useState<"all" | "nba" | "wnba" | "euroleague">("all");
   const [mineSearchInput, setMineSearchInput] = useState("");
