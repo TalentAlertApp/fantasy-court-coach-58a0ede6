@@ -56,7 +56,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user, signOut } = useAuth();
-  const { isWnba, league } = useLeague();
+  const { league } = useLeague();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
