@@ -5,9 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
-import nbaLogoSrc from "@/assets/nba-logo.svg";
-import wnbaLogoSrc from "@/assets/wnba-logo.png";
-import euroleagueLogoSrc from "@/assets/euroleague-logo.png";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 const storageKey = (userId: string) => `commissioner_unlocked:${userId}`;
 
@@ -25,10 +23,7 @@ export default function CommissionerAccessGate({ children }: { children: ReactNo
   const [error, setError] = useState<string | null>(null);
 
   const logoSrc = useMemo(() => {
-    const sport = (selectedTeam?.league_code ?? "nba") as "nba" | "wnba" | "euroleague";
-    if (sport === "wnba") return wnbaLogoSrc;
-    if (sport === "euroleague") return euroleagueLogoSrc;
-    return nbaLogoSrc;
+    return getHoopsFantasyLogo(selectedTeam?.league_code);
   }, [selectedTeam?.league_code]);
 
   if (unlocked) return <>{children}</>;
@@ -57,8 +52,8 @@ export default function CommissionerAccessGate({ children }: { children: ReactNo
   };
 
   return (
-    <div className="relative min-h-[70vh] flex items-center justify-center">
-      {/* Top-right league watermark with hover surge */}
+    <div className="relative min-h-screen flex items-center justify-center">
+      {/* Top-right HoopsFantasy watermark with hover surge */}
       <img
         src={logoSrc}
         alt=""
