@@ -12,6 +12,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { getCourtFormation } from "@/lib/court-layout";
 import { useLeague } from "@/contexts/LeagueContext";
 import { getLeagueLogo } from "@/lib/competitions";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 function formatShortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -140,7 +141,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
         <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wider">
-              <Trophy className="h-5 w-5 text-accent" />
+              <img src={getHoopsFantasyLogo(league)} alt="HoopsFantasy" className="h-5 w-5 object-contain" />
               Team of the Week — GW {gw}
             </DialogTitle>
           </DialogHeader>

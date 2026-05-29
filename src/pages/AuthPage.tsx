@@ -12,6 +12,7 @@ import { Loader2, Mail, Lock } from "lucide-react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.png";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -121,7 +122,7 @@ export default function AuthPage() {
             </div>
           </div>
           <h1 className="text-2xl font-heading font-bold uppercase tracking-[0.2em] text-foreground">
-            Fantasy
+            {HOOPSFANTASY_NAME}
           </h1>
           <p className="text-sm text-muted-foreground">Sign in to manage your team</p>
         </div>

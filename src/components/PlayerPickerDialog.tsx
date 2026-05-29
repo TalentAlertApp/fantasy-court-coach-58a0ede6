@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import courtBg from "@/assets/court-bg.png";
 import crowdCheerSfx from "@/assets/audio/crowd-cheer.mp3";
+import type { CompetitionCode } from "@/lib/competitions";
+import { getLeagueLogo } from "@/lib/competitions";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
@@ -47,6 +49,7 @@ interface PlayerPickerDialogProps {
   onConfirm?: () => void;
   /** When set, renders an "Open in Trade Center" CTA in the picker header. */
   onOpenTradeCenter?: () => void;
+  leagueCode?: CompetitionCode;
 }
 
 const SFX_KEY = "nba_picker_sfx";
@@ -56,6 +59,7 @@ export default function PlayerPickerDialog({
   bankRemaining, swapPlayerSalary, swapPlayerPosition,
   showCourtPreview = false, picks = [], onRemovePick,
   canConfirm = false, onConfirm, onOpenTradeCenter,
+  leagueCode,
 }: PlayerPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [fcBcFilter, setFcBcFilter] = useState<"ALL" | "FC" | "BC">("ALL");
@@ -373,6 +377,7 @@ export default function PlayerPickerDialog({
             onToggleMute={() => setMuted((m) => !m)}
             canConfirm={canConfirm}
             onConfirm={onConfirm}
+            leagueCode={leagueCode}
           />
         )}
       </DialogContent>
@@ -418,6 +423,7 @@ function CourtPreviewPanel({
   onToggleMute,
   canConfirm,
   onConfirm,
+  leagueCode,
 }: {
   picks: PlayerListItem[];
   bankRemaining: number;
@@ -428,6 +434,7 @@ function CourtPreviewPanel({
   onToggleMute: () => void;
   canConfirm: boolean;
   onConfirm?: () => void;
+  leagueCode?: CompetitionCode;
 }) {
   const fcs = picks.filter((p) => p.core.fc_bc === "FC").slice(0, 5);
   const bcs = picks.filter((p) => p.core.fc_bc === "BC").slice(0, 5);
@@ -513,6 +520,14 @@ function CourtPreviewPanel({
               Your Squad
             </span>
           </div>
+          {leagueCode && (
+            <img
+              src={getLeagueLogo(leagueCode)}
+              alt=""
+              aria-hidden
+              className="absolute top-4 right-4 z-10 h-24 w-24 md:h-28 md:w-28 object-contain opacity-[0.22] transition-all duration-500 hover:scale-125 hover:opacity-40 drop-shadow-[0_4px_18px_rgba(0,0,0,0.45)]"
+            />
+          )}
 
           {/* Cinematic dimmer when a player is mid-intro */}
           <AnimatePresence>
