@@ -336,7 +336,7 @@ function LineupLockCenterInner({
           </div>
 
           {/* Body */}
-          <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+          <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4" style={{ zoom: 0.93 }}>
             {!hasRoster ? (
               <EmptyState
                 icon={<Users className="h-8 w-8 text-amber-300/60" />}
@@ -396,7 +396,13 @@ function LineupLockCenterInner({
                         <div className="flex items-center gap-3">
                           <PlayerAvatar p={captain} logoFor={logoFor} />
                           <div className="min-w-0 flex-1">
-                            <div className="font-heading font-bold text-sm truncate text-white">{captain.core.name}</div>
+                            <button
+                              type="button"
+                              onClick={() => setPlayerModalId(captain.core.id)}
+                              className="block w-full text-left font-heading font-bold text-sm truncate text-white transition-colors hover:text-amber-200"
+                            >
+                              {captain.core.name}
+                            </button>
                             <CaptainContext p={captain} g={dayGameOf(captain)} />
                           </div>
                           <div className="text-right shrink-0">
@@ -424,7 +430,13 @@ function LineupLockCenterInner({
                           <div className="flex items-center gap-2.5">
                             <PlayerAvatar p={bestCaptain} logoFor={logoFor} size="sm" />
                             <div className="min-w-0 flex-1">
-                              <div className="font-heading font-bold text-xs truncate text-white">{bestCaptain.core.name}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPlayerModalId(bestCaptain.core.id)}
+                                className="block w-full text-left font-heading font-bold text-xs truncate text-white transition-colors hover:text-amber-200"
+                              >
+                                {bestCaptain.core.name}
+                              </button>
                               <div className="text-[10px] text-white/50">{projFpOf(bestCaptain).toFixed(1)} FP · +{captainGain.toFixed(1)} gain</div>
                             </div>
                             <button
@@ -563,6 +575,7 @@ function LineupLockCenterInner({
                               sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
                               p={transferIdeas.bestSwap.in_}
                               logoFor={logoFor}
+                              onTitleClick={() => setPlayerModalId(transferIdeas.bestSwap!.in_.core.id)}
                             />
                           )}
                           {transferIdeas.bestAdd && (
@@ -573,6 +586,7 @@ function LineupLockCenterInner({
                               sub={`Projected ${projFpOf(transferIdeas.bestAdd).toFixed(1)} FP · ${num(transferIdeas.bestAdd.core.salary).toFixed(1)}M`}
                               p={transferIdeas.bestAdd}
                               logoFor={logoFor}
+                              onTitleClick={() => setPlayerModalId(transferIdeas.bestAdd!.core.id)}
                             />
                           )}
                           {transferIdeas.watchlist && (
@@ -583,6 +597,7 @@ function LineupLockCenterInner({
                               sub={getHealthLabel(normalizePlayerHealth(transferIdeas.watchlist))}
                               p={transferIdeas.watchlist}
                               logoFor={logoFor}
+                              onTitleClick={() => setPlayerModalId(transferIdeas.watchlist!.core.id)}
                             />
                           )}
                           <button
@@ -759,9 +774,9 @@ function ImpactRow({ label, value, tone, emphasize }: {
   );
 }
 
-function TransferIdea({ tag, title, sub, tone, p, logoFor }: {
+function TransferIdea({ tag, title, sub, tone, p, logoFor, onTitleClick }: {
   tag: string; title: string; sub: string; tone: "good" | "neutral" | "bad";
-  p?: any; logoFor?: (t: string) => string | undefined;
+  p?: any; logoFor?: (t: string) => string | undefined; onTitleClick?: () => void;
 }) {
   const tagCls = tone === "good" ? "text-emerald-300 bg-emerald-400/10" : tone === "bad" ? "text-red-300 bg-red-500/10" : "text-amber-300 bg-amber-400/10";
   return (
@@ -769,7 +784,17 @@ function TransferIdea({ tag, title, sub, tone, p, logoFor }: {
       {p && logoFor && <div className="shrink-0"><PlayerAvatar p={p} logoFor={logoFor} size="sm" /></div>}
       <div className="min-w-0 flex-1">
         <span className={cn("inline-block text-[8px] font-heading font-bold uppercase tracking-[0.18em] px-1.5 py-0.5 rounded mb-0.5", tagCls)}>{tag}</span>
-        <div className="font-heading font-bold text-[11px] text-white truncate">{title}</div>
+        {onTitleClick ? (
+          <button
+            type="button"
+            onClick={onTitleClick}
+            className="block w-full text-left font-heading font-bold text-[11px] text-white truncate transition-colors hover:text-amber-200"
+          >
+            {title}
+          </button>
+        ) : (
+          <div className="font-heading font-bold text-[11px] text-white truncate">{title}</div>
+        )}
         <div className="text-[10px] text-white/50 truncate">{sub}</div>
       </div>
     </div>
