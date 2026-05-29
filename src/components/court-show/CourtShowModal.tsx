@@ -13,6 +13,7 @@ import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailMod
 import type { MatchupGame, RecapGame } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HOOPSFANTASY_NAME, getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
+import LogoSplash from "@/components/brand/LogoSplash";
 
 interface Props {
   open: boolean;
@@ -187,6 +188,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
           >
+            <LogoSplash open={open} league={league} />
             {/* Top bar */}
             <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-2 text-white">
