@@ -428,10 +428,10 @@ export default function LeaguesPage() {
   const myLeagueIds = useMemo(() => new Set(fantasyLeagues.map((l) => l.id)), [fantasyLeagues]);
 
   return (
-    <div className="px-6 pb-5 max-w-[1400px] mx-auto">
+    <div className="pb-5 max-w-[1400px] mx-auto">
       <Tabs value={tab} onValueChange={(v) => setTab(v as "mine" | "discover")} className="w-full">
       {/* Sticky top region: header + tabs toggle + filters stay pinned while scrolling */}
-      <div className="sticky top-0 z-30 -mx-6 px-6 pt-5 pb-3 bg-background/95 backdrop-blur-md border-b border-border/50 space-y-4">
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-0 pb-3 bg-background/95 backdrop-blur-md border-b border-border/50 space-y-4">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
         <Swords
