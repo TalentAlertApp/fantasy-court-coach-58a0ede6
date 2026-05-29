@@ -1,41 +1,45 @@
-# Plan — 4 UI consistency fixes
+## 1. Sidebar divider above Player Search — simple premium hairline
 
-## 1. Undo the modal "Logo Splash"
-Restore Team of the Week and Court Show modals to how they were before the splash was added.
-- `src/components/TeamOfTheWeekModal.tsx`: remove the `LogoSplash` import and the `<LogoSplash open={open} league={league} />` line.
-- `src/components/court-show/CourtShowModal.tsx`: remove the `LogoSplash` import and its usage.
-- Delete `src/components/brand/LogoSplash.tsx` (no longer referenced).
+In `src/components/layout/AppLayout.tsx` (line ~204) the divider is a gradient bar that reads too thick/fancy. Replace it with a dead-simple, ultra-faint static hairline — no gradient, no hover surge, no color change:
 
-## 2. Sidebar divider above Player Search
-Currently `mx-4 my-1 h-px` with a `0.45`-opacity gradient — it reads too strong and is narrower than the search box (which sits in a `px-3` container).
-- In `src/components/layout/AppLayout.tsx` (the expanded branch, line ~204): change `mx-4` → `mx-3` so its width matches the Player Search box exactly, and drop the gradient opacity from `0.45` → `0.22` so it appears as a far fainter, thinner hairline.
-
-## 3. /schedule — HoopsFantasy logo watermark at far left
-The user-team league logo already sits as a watermark at the top-right of the week-strip header (`-top-6 -right-6 h-40 w-40 opacity-[0.08] rotate-6` with hover surge). Mirror it on the left with the HF logo.
-- In `src/pages/SchedulePage.tsx`, inside the same `group` header (next to the existing league-logo `<img>`), add a second `<img src={getHoopsFantasyLogo(league)}>` using identical sizing/opacity/effects but mirrored: `-top-6 -left-6 ... -rotate-6 group-hover:opacity-[0.22] group-hover:scale-110 group-hover:rotate-0`.
-- Import `getHoopsFantasyLogo` from `@/lib/hoopsfantasy-brand`.
-
-## 4. Header consistency across /scoring, /transactions, /teams, /leagues
-Adopt the clean `/advanced` pattern: a small centered caption line over a full-width, underline-style tab bar (bottom border on the row, active tab marked by a yellow underline). Each page keeps its own tabs and content — only the header chrome changes.
-
-Reference (`/advanced`):
 ```text
-            ADVANCED · WNBA INSIGHTS          (centered, tiny, wide tracking)
- ──────────────────────────────────────────
-  PLAY SEARCH   FANTASY POINTS   ADV STATS   [TRENDING]   (underline tabs)
+<div className="mx-3 my-1 h-px bg-sidebar-border/40" />
 ```
 
-Create a small shared presentational component `src/components/layout/PageHeaderTabs.tsx` that renders:
-- the centered caption (`text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground`), and
-- a full-width `TabsList` styled exactly like Advanced (transparent list, bottom border row, `data-[state=active]` yellow underline).
+(plain 1px line, fixed opacity, matches the Player Search box width via `mx-3`). No hover state is attached so nothing animates.
 
-Then apply per page:
-- **/teams** (`TeamsPage.tsx`): replace the inline `h1 + pill tabs` row with the caption (e.g. "WNBA · TEAMS") + the underline tab bar for Teams / Standings / Stats. Keep the sort button and (Standings) division filter aligned to the right of the bar; keep all tab content unchanged.
-- **/scoring** (`ScoringPage.tsx`): keep the existing premium gradient title bar but swap the boxed pill `TabsList` for the underline tab bar (League / Your Team / Tx Pulse). Keep the Fantasy-league selector and the per-tab team selector. Content unchanged.
-- **/leagues** (`LeaguesPage.tsx`): convert the Mine / Discover pill tabs to the underline tab bar and add the centered caption ("LEAGUES · MINE & DISCOVER"). Keep the sticky header, the Join/Create buttons, and both tabs' content.
-- **/transactions** (`PlayersPage.tsx`): this page has no tabs (single trade workbench). Apply only the caption line ("TRANSACTIONS · TRADE CENTER") for visual consistency and keep the existing toolbar (Roster / Schedule / Ballers.IQ / chips). No tab bar is added since there are no tabs.
+## 2. /scoring header
+
+In `src/pages/ScoringPage.tsx`:
+
+- **(a) Remove the upper header** — delete the entire premium gradient title bar block (lines ~135–160: the `Activity` icon + "SCORING / League standings · Team performance").
+- **(b) Center the tab toggle.** The current row is `FantasyLeagueSelector` + `UnderlineTabsBar(flex-1)` + team selector at right. Replace the flex row with a **3-column grid** (`grid grid-cols-[1fr_auto_1fr] items-center`) so the LEAGUE / YOUR TEAM / TX PULSE bar sits in the dead-center column and gets equal space on both sides:
+  - left cell: `MAIN LEAGUE` selector (justify-start)
+  - center cell: the underline tab group (justify-center)
+  - right cell: the `TEAM` selector when on "Your Team" (justify-end); empty otherwise so the center stays put.
+
+This keeps all three tabs and their content unchanged.
+
+## 3. /leagues header
+
+In `src/pages/LeaguesPage.tsx`:
+
+- **(a) Remove the upper header** — delete the big gradient card block (lines ~440–510: Swords icon, "MY LEAGUES / Fantasy competitions", and the two large buttons in their current form). Keep the `PageHeaderCaption` ("Leagues · Mine & Discover").
+- **(b) Single centered control row.** Rebuild the tab row as a **3-column grid** (`grid grid-cols-[1fr_auto_1fr] items-center`):
+  - **left cell:** `JOIN WITH CODE` and `CREATE LEAGUE` restyled as **compact cards** matching the height of the Grid/List view buttons (`h-7`, small `text-[9px]` heading, tighter padding). The Create-League HF logo watermark + hover surge is preserved at a smaller scale.
+  - **center cell:** the MY LEAGUES / DISCOVER underline tab group, justify-center.
+  - **right cell:** the existing Grid/List view toggle, justify-end.
+
+The tabs are thus fully centered with balanced space to the Join/Create cards (left) and the Grid/List buttons (right). Both tab contents stay unchanged. The Join dialog stays wired to the compact "Join with code" card.
+
+## 4. /teams and /advanced caption — league/team logo watermark instead of the name
+
+Replace the league-name text in the caption with the league logo image (the same `getLeagueLogo(league)` asset already used on these pages), rendered inline as a small watermark a touch larger than the caption text, with a subtle hover surge:
+
+- **`src/pages/TeamsPage.tsx`** (caption ~line 150): change `{league} · Teams Hub` so the leading "WNBA/NBA/EuroLeague" word becomes `<img src={leagueLogo} className="inline-block h-4 w-auto opacity-70 transition-transform duration-300 hover:scale-125 align-[-2px]" />` followed by `· Teams Hub`.
+- **`src/pages/AdvancedPage.tsx`** (caption ~line 899): change `Advanced · {competition.label} Insights` to `Advanced · <logo img> Insights`, importing/using the same `getLeagueLogo(league)` (Advanced already has `useLeague`). Logo height ~`h-4` (slightly above the `text-[10px]` caption), `opacity-70`, hover `scale-125`.
 
 ### Technical notes
-- All changes are presentation-only — no data, hooks, routing, or business logic touched.
-- Reuse existing semantic tokens (`--nba-yellow`, `border-border`, `text-muted-foreground`) and the existing `Tabs`/`TabsList`/`TabsTrigger` primitives; no new CSS variables.
-- The shared `PageHeaderTabs` keeps the four pages visually in sync and avoids duplicating the Advanced markup.
+- All changes are presentation-only — no data/hooks/business-logic touched.
+- Centering uses a `grid-cols-[1fr_auto_1fr]` wrapper so the middle tab group is optically centered regardless of the differing widths of the side clusters (the requested "same space left and right").
+- Reuse existing tokens (`--sidebar-border`, `--nba-yellow`, `getLeagueLogo`, `getHoopsFantasyLogo`) and the existing `UnderlineTabsBar` / `UnderlineTabsBarManual` primitives; the compact Join/Create cards reuse the existing `Button` with smaller size classes.

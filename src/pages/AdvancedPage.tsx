@@ -31,7 +31,7 @@ import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ShareSearchDialog from "@/components/advanced/ShareSearchDialog";
-import { getCompetition } from "@/lib/competitions";
+import { getCompetition, getLeagueLogo } from "@/lib/competitions";
 import { Link } from "react-router-dom";
 import { Users, BarChart3 } from "lucide-react";
 
@@ -896,8 +896,14 @@ export default function AdvancedPage() {
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 space-y-4">
       <div className="flex flex-col items-center gap-1">
-        <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground">
-          Advanced · {competition.label} Insights
+        <span className="text-[10px] font-heading uppercase tracking-[0.4em] text-muted-foreground inline-flex items-center gap-1.5">
+          Advanced ·
+          <img
+            src={getLeagueLogo(league)}
+            alt={competition.label}
+            className="inline-block h-4 w-auto opacity-80 transition-transform duration-300 hover:scale-125"
+          />
+          Insights
         </span>
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as AdvancedTab)} className="space-y-4">

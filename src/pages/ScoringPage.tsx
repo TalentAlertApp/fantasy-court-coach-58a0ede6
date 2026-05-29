@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
-import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Activity, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
+import { Trophy, ChevronLeft, ChevronRight, ExternalLink, RefreshCw, Crown, Flame, Medal, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Shield, Repeat, TrendingUp, TrendingDown, X, UserPlus, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -14,7 +14,6 @@ import { useTeam } from "@/contexts/TeamContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFantasyLeague } from "@/contexts/FantasyLeagueContext";
 import { isMainLeague } from "@/hooks/useFantasyLeagues";
-import { useLeague } from "@/contexts/LeagueContext";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -52,9 +51,7 @@ export default function ScoringPage() {
   const { user } = useAuth();
   const { teams: userTeams, teamsInSelectedLeague, selectedTeamId, setSelectedTeamId, isReady: teamReady } = useTeam();
   const { fantasyLeagues, selectedLeague, selectedLeagueId, setSelectedLeagueId } = useFantasyLeague();
-  const { league: activeLeagueCode } = useLeague();
   const selectedTeam = userTeams.find((t: any) => t.id === selectedTeamId) ?? null;
-  const headerLogo = getLeagueLogo(activeLeagueCode);
 
   const [tab, setTab] = useState<TabValue>(() => {
     if (typeof window === "undefined") return "league";
@@ -132,37 +129,10 @@ export default function ScoringPage() {
 
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto flex flex-col h-full min-h-0">
-      {/* Header — premium NBA bar with court-line gradient */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
-        <img
-          src={headerLogo}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 h-28 w-auto opacity-[0.10] rotate-12 select-none blur-[0.5px]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-30"
-          style={{
-            background:
-              "radial-gradient(circle at 0% 50%, hsl(var(--nba-yellow) / 0.18), transparent 40%), radial-gradient(circle at 100% 50%, hsl(var(--primary) / 0.18), transparent 40%)",
-          }}
-        />
-        <div className="relative flex items-center gap-3">
-          <Activity aria-hidden className="h-7 w-7 text-[hsl(var(--nba-yellow))] shrink-0" />
-          <div>
-            <h1 className="text-2xl font-heading font-black uppercase tracking-wider leading-none">Scoring</h1>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground font-heading mt-1">
-              League standings · Team performance
-            </p>
-          </div>
-        </div>
-      </div>
-
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex-1 min-h-0 flex flex-col">
-        {/* Tab bar + (when on Your Team) inline team selector at far right */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="shrink-0">
+        {/* 3-col grid: league selector (left) · centered tab toggle · team selector (right) */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="shrink-0 justify-self-start">
             <FantasyLeagueSelector
               leagues={fantasyLeagues}
               selectedLeague={selectedLeague}
@@ -178,44 +148,44 @@ export default function ScoringPage() {
             />
           </div>
           <UnderlineTabsBar
-            className="flex-1 min-w-[280px]"
+            className="justify-self-center min-w-[360px]"
             tabs={[
               { value: "league", label: (<><Crown className="h-3.5 w-3.5" /> League</>) },
               { value: "team", label: (<><Shield className="h-3.5 w-3.5" /> Your Team</>) },
               { value: "pulse", label: (<><Repeat className="h-3.5 w-3.5" /> Tx Pulse</>) },
             ]}
-            right={
-              tab === "team" && myTeams.length > 0 ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-heading tracking-[0.2em] text-muted-foreground">Team</span>
-                  <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
-                    <SelectTrigger className="w-56 h-9 rounded-xl bg-card border-border font-heading text-xs uppercase tracking-wider">
-                      <SelectValue placeholder="Pick a team…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {myTeams.map((t: any) => {
-                        const code = t.league_code === "wnba" ? "wnba" : "nba";
-                        const lgLogo = getLeagueLogo(code);
-                        return (
-                          <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
-                            <span className="relative flex items-center pr-7 min-w-[180px]">
-                              <span className="truncate">{t.name}</span>
-                              <img
-                                src={lgLogo}
-                                alt=""
-                                aria-hidden
-                                className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-7 w-7 object-contain opacity-25 rotate-12 select-none"
-                              />
-                            </span>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : undefined
-            }
           />
+          <div className="shrink-0 justify-self-end">
+            {tab === "team" && myTeams.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-heading tracking-[0.2em] text-muted-foreground">Team</span>
+                <Select value={selectedTeamId ?? ""} onValueChange={(v) => setSelectedTeamId(v)}>
+                  <SelectTrigger className="w-56 h-9 rounded-xl bg-card border-border font-heading text-xs uppercase tracking-wider">
+                    <SelectValue placeholder="Pick a team…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {myTeams.map((t: any) => {
+                      const code = t.league_code === "wnba" ? "wnba" : "nba";
+                      const lgLogo = getLeagueLogo(code);
+                      return (
+                        <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
+                          <span className="relative flex items-center pr-7 min-w-[180px]">
+                            <span className="truncate">{t.name}</span>
+                            <img
+                              src={lgLogo}
+                              alt=""
+                              aria-hidden
+                              className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-7 w-7 object-contain opacity-25 rotate-12 select-none"
+                            />
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {/* ════════════════════════ LEAGUE TAB ════════════════════════ */}

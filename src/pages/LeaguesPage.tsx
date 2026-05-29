@@ -436,116 +436,102 @@ export default function LeaguesPage() {
       <Tabs value={tab} onValueChange={(v) => setTab(v as "mine" | "discover")} className="w-full">
       {/* Sticky top region: header + tabs toggle + filters stay pinned while scrolling */}
       <div className="sticky top-0 z-30 -mx-6 px-6 pt-0 pb-3 bg-background/95 backdrop-blur-md border-b border-border/50 space-y-4">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
-        <Swords
-          aria-hidden
-          className="pointer-events-none absolute -right-4 top-1/2 -translate-y-1/2 h-24 w-24 opacity-[0.08] rotate-12 select-none text-accent"
-        />
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Swords aria-hidden className="h-7 w-7 text-accent shrink-0" />
-            <div>
-            <h1 className="text-2xl font-heading font-bold uppercase tracking-wider">My Leagues</h1>
-            <p className="text-xs text-muted-foreground uppercase tracking-[0.18em] font-heading mt-1">
-              Fantasy competitions
-            </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="h-11 px-6 font-heading uppercase tracking-wider text-[11px]">
-                  <KeyRound className="h-4 w-4 mr-1.5" /> Join with code
+      <PageHeaderCaption>Leagues · Mine &amp; Discover</PageHeaderCaption>
+      {/* 3-col grid: Join/Create compact cards (left) · centered tab toggle · view toggle (right) */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        {/* left: compact Join / Create cards (match Grid/List button height) */}
+        <div className="flex items-center gap-2 justify-self-start">
+          <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="h-7 px-3 font-heading uppercase tracking-wider text-[9px]">
+                <KeyRound className="h-3.5 w-3.5 mr-1" /> Join with code
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-heading uppercase tracking-wider">Join a League</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                <Input
+                  placeholder="INVITE CODE"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleJoinSubmit(); }}
+                  className="font-mono uppercase tracking-[0.3em]"
+                  maxLength={8}
+                  autoFocus
+                />
+                {joinError ? (
+                  <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive flex items-start gap-2">
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>{joinError}</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Enter the 8-character invite code shared by the commissioner.
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="secondary" onClick={() => setJoinOpen(false)} disabled={joining}>Cancel</Button>
+                <Button onClick={handleJoinSubmit} disabled={joining || joinCode.trim().length === 0}>
+                  {joining ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                  Join
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="font-heading uppercase tracking-wider">Join a League</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="INVITE CODE"
-                    value={joinCode}
-                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleJoinSubmit(); }}
-                    className="font-mono uppercase tracking-[0.3em]"
-                    maxLength={8}
-                    autoFocus
-                  />
-                  {joinError ? (
-                    <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive flex items-start gap-2">
-                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                      <span>{joinError}</span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Enter the 8-character invite code shared by the commissioner.
-                    </p>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button variant="secondary" onClick={() => setJoinOpen(false)} disabled={joining}>Cancel</Button>
-                  <Button onClick={handleJoinSubmit} disabled={joining || joinCode.trim().length === 0}>
-                    {joining ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                    Join
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button
-              onClick={() => navigate("/leagues/create")}
-              className="group relative h-11 pl-6 pr-12 overflow-hidden font-heading uppercase tracking-wider text-[11px]"
-            >
-              <Plus className="h-4 w-4 mr-1.5" /> Create League
-              <img
-                src={getHoopsFantasyLogo(activeLeague)}
-                alt=""
-                aria-hidden
-                className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-9 w-9 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60 select-none"
-              />
-            </Button>
-          </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button
+            onClick={() => navigate("/leagues/create")}
+            className="group relative h-7 pl-3 pr-9 overflow-hidden font-heading uppercase tracking-wider text-[9px]"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" /> Create League
+            <img
+              src={getHoopsFantasyLogo(activeLeague)}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute -right-0.5 top-1/2 -translate-y-1/2 h-6 w-6 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60 select-none"
+            />
+          </Button>
+        </div>
+        {/* center: tab toggle */}
+        <UnderlineTabsBar
+          className="justify-self-center min-w-[280px]"
+          tabs={[
+            {
+              value: "mine",
+              label: (
+                <>
+                  <Swords className="h-3.5 w-3.5" /> My Leagues
+                  <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
+                </>
+              ),
+            },
+            { value: "discover", label: (<><Globe className="h-3.5 w-3.5" /> Discover</>) },
+          ]}
+        />
+        {/* right: view toggle */}
+        <div className="justify-self-end inline-flex items-center rounded-md border border-border bg-card/60 p-0.5">
+          <Button
+            size="sm"
+            variant={view === "list" ? "default" : "ghost"}
+            onClick={() => setView("list")}
+            className="h-7 px-2 font-heading uppercase tracking-wider text-[9px]"
+            aria-label="List view"
+          >
+            <ListIcon className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            size="sm"
+            variant={view === "cards" ? "default" : "ghost"}
+            onClick={() => setView("cards")}
+            className="h-7 px-2 font-heading uppercase tracking-wider text-[9px]"
+            aria-label="Card view"
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </div>
-
-      <PageHeaderCaption>Leagues · Mine &amp; Discover</PageHeaderCaption>
-      <UnderlineTabsBar
-        tabs={[
-          {
-            value: "mine",
-            label: (
-              <>
-                <Swords className="h-3.5 w-3.5" /> My Leagues
-                <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-accent/20 text-accent px-1 text-[9px] font-mono">{mineCount}</span>
-              </>
-            ),
-          },
-          { value: "discover", label: (<><Globe className="h-3.5 w-3.5" /> Discover</>) },
-        ]}
-        right={
-          <div className="inline-flex items-center rounded-md border border-border bg-card/60 p-0.5">
-            <Button
-              size="sm"
-              variant={view === "list" ? "default" : "ghost"}
-              onClick={() => setView("list")}
-              className="h-7 px-2 font-heading uppercase tracking-wider text-[9px]"
-              aria-label="List view"
-            >
-              <ListIcon className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "cards" ? "default" : "ghost"}
-              onClick={() => setView("cards")}
-              className="h-7 px-2 font-heading uppercase tracking-wider text-[9px]"
-              aria-label="Card view"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        }
-      />
       </div>
 
         <TabsContent value="mine" className="mt-4 space-y-4">
