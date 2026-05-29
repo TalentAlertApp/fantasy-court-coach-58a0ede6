@@ -4,7 +4,6 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeaderColumn, LeaderRow } from "./LeaderTable";
 import RotatingLeaderCard, { LeaderSubject } from "./RotatingLeaderCard";
-import TrendTable from "./TrendTable";
 import { usePlayingTimeTrends } from "@/hooks/usePlayingTimeTrends";
 
 type FcBcFilter = "ALL" | "FC" | "BC";
@@ -16,7 +15,7 @@ interface Props {
 
 export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
   const { data, isLoading } = usePlayersQuery({ limit: 1000 });
-  const { data: ptData, isLoading: ptLoading } = usePlayingTimeTrends();
+  const { data: ptData } = usePlayingTimeTrends();
   const [fcBc, setFcBc] = useState<FcBcFilter>("ALL");
   const [minMp5, setMinMp5] = useState<number>(15);
 
