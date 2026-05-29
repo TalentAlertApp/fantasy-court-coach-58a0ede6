@@ -66,14 +66,16 @@ interface GameDetailModalProps {
   game: GameDetailGame | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** When true, the recap video auto-opens (and plays) for played games with an embed. */
+  initialRecapOpen?: boolean;
 }
 
-export default function GameDetailModal({ game, open, onOpenChange }: GameDetailModalProps) {
+export default function GameDetailModal({ game, open, onOpenChange, initialRecapOpen }: GameDetailModalProps) {
   if (!game) return null;
-  return <GameDetailModalInner game={game} open={open} onOpenChange={onOpenChange} />;
+  return <GameDetailModalInner game={game} open={open} onOpenChange={onOpenChange} initialRecapOpen={initialRecapOpen} />;
 }
 
-function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGame; open: boolean; onOpenChange: (o: boolean) => void }) {
+function GameDetailModalInner({ game, open, onOpenChange, initialRecapOpen }: { game: GameDetailGame; open: boolean; onOpenChange: (o: boolean) => void; initialRecapOpen?: boolean }) {
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const logoFor = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
@@ -90,7 +92,13 @@ function GameDetailModalInner({ game, open, onOpenChange }: { game: GameDetailGa
         : "NBA.com";
   const tipoffLabel = game.tipoff_utc ? formatTipoffLabel(game.tipoff_utc) : null;
   const hasGwDay = game.gw != null && game.day != null;
-  const [recapOpen, setRecapOpen] = useState(false);
+  const canAutoRecap = played && !!toYouTubeEmbed(game.game_recap_url ?? null, game.youtube_recap_id ?? null);
+  const [recapOpen, setRecapOpen] = useState(() => !!initialRecapOpen && canAutoRecap);
+  // Re-apply auto-open when a new game is loaded into the modal.
+  useEffect(() => {
+    setRecapOpen(!!initialRecapOpen && canAutoRecap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game.game_id, open]);
   const [panelsOpen, setPanelsOpen] = useState(false);
   const [biqOn, setBiqOn] = useState(false);
   // BIQ acts as side-panel expansion in both recap-open and recap-closed modes.
