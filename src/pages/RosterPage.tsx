@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
 import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, RefreshCw, Heart, CalendarDays, X, Wand2, Sparkles, Star, Brain } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -46,6 +47,7 @@ import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
+import LineupLockCenterModal from "@/components/roster/LineupLockCenterModal";
 import { playSfx } from "@/hooks/useSfx";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
@@ -110,6 +112,7 @@ export default function RosterPage() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [lineupLockOpen, setLineupLockOpen] = useState(false);
   const [gameDetail, setGameDetail] = useState<GameDetailGame | null>(null);
 
   const openGameFromSlot = useCallback((g: UpcomingGame) => {
@@ -668,6 +671,22 @@ export default function RosterPage() {
               <TooltipTrigger asChild>
                 <button
                   type="button"
+                  onClick={() => setLineupLockOpen(true)}
+                  aria-label="Open Lineup Lock Center"
+                  data-active={lineupLockOpen ? "true" : undefined}
+                  className="header-icon-btn is-lineup-lock inline-flex items-center gap-1.5 px-2.5 w-auto rounded-lg border border-amber-400/40 bg-gradient-to-br from-amber-400/25 to-amber-600/10 text-amber-200 shadow-[0_0_18px_-6px_hsl(var(--primary)/0.6)] transition-all hover:brightness-110 hover:scale-[1.03]"
+                >
+                  <LockKeyhole className="header-icon h-4 w-4" />
+                  <span className="font-heading text-[11px] font-bold uppercase tracking-wider">Lineup Lock</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Open Lineup Lock Center</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
                   onClick={() => setWishlistOpen(true)}
                   aria-label="Wishlist"
                   className="header-icon-btn is-wishlist"
@@ -1030,6 +1049,33 @@ export default function RosterPage() {
             swapPlayerPosition={swapPlayerId && totalPlayers >= 10 ? swapPlayerPosition : null}
           />
           <WishlistModal open={wishlistOpen} onOpenChange={setWishlistOpen} onPlayerClick={setSelectedPlayerId} />
+          <LineupLockCenterModal
+            open={lineupLockOpen}
+            onOpenChange={setLineupLockOpen}
+            teamName={teamName}
+            gw={currentGameday.gw}
+            day={currentGameday.day}
+            deadlineFormatted={deadlineFormatted}
+            countdown={countdown}
+            rosterLocked={deadlineStatus?.locked}
+            starters={starters}
+            bench={bench}
+            captainId={captainId}
+            upcomingByTeam={upcomingByTeam}
+            allPlayers={allPlayers}
+            rosterIds={rosterIds}
+            bankRemaining={roster?.bank_remaining ?? 0}
+            freeTransfers={roster?.free_transfers_remaining ?? 0}
+            salaryCap={roster?.constraints?.salary_cap ?? 100}
+            totalSalary={totalSalary}
+            fcStarters={fcStarters}
+            bcStarters={bcStarters}
+            onApplyCaptain={(id) => handleSetCaptain(id)}
+            onOptimize={() => { setLineupLockOpen(false); handleOptimize(); }}
+            onOpenCoach={() => { setLineupLockOpen(false); setAiCoachOpen(true); }}
+            onOpenAdvisor={biqAdvisor ? () => { setLineupLockOpen(false); setAdvisorOpen(true); } : undefined}
+            onOpenSchedule={() => { setLineupLockOpen(false); setScheduleOpen(true); }}
+          />
           <GameDetailModal
             game={gameDetail}
             open={gameDetail !== null}
