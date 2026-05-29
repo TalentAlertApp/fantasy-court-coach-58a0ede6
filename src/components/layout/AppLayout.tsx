@@ -165,7 +165,7 @@ export default function AppLayout() {
         <div className="sidebar-divider" />
 
         {/* Nav */}
-        <nav className={`flex-1 flex flex-col gap-1 overflow-y-auto px-[6px] mx-0 my-[14px] py-[17px] ${collapsed ? "items-center" : ""}`}>
+        <nav className={`flex-1 flex flex-col gap-1 overflow-y-auto overflow-x-hidden px-[6px] mx-0 my-[14px] py-[17px] ${collapsed ? "items-center" : ""}`}>
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <div key={to} className="contents">
               <NavTooltip collapsed={collapsed} label={label}>
