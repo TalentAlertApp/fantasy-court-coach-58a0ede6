@@ -693,7 +693,17 @@ export default function PlayersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <PageHeaderCaption className="shrink-0 mb-2">Transactions · Trade Center</PageHeaderCaption>
+      <PageHeaderCaption className="shrink-0 mb-2">
+        <span className="inline-flex items-center gap-1.5">
+          Transactions
+          <img
+            src={getLeagueLogo(league)}
+            alt={getCompetition(league).label}
+            className="inline-block h-4 w-auto opacity-80 transition-transform duration-300 hover:scale-125"
+          />
+          Trade Center
+        </span>
+      </PageHeaderCaption>
       {/* Compact header row */}
       <div className="flex items-center gap-2 flex-wrap shrink-0 mb-3">
         {!isWideScreen && (
