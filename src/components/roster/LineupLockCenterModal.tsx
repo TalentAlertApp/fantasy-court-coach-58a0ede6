@@ -688,11 +688,20 @@ function CaptainContext({ p, g }: { p: any; g: UpcomingGame | null }) {
 function RosterRow({ p, slot, status, g, logoFor }: {
   p: any; slot: string; status: AvailStatus; g: UpcomingGame | null; logoFor: (t: string) => string | undefined;
 }) {
+  const teamLogo = logoFor(p.core.team);
   return (
-    <div className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-amber-400/5">
-      <span className="w-6 shrink-0 text-[9px] font-mono text-white/35 text-center">{slot}</span>
-      <PlayerAvatar p={p} logoFor={logoFor} size="sm" />
-      <div className="min-w-0 flex-1">
+    <div className="group relative overflow-hidden flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-amber-400/5">
+      {teamLogo && (
+        <img
+          src={teamLogo}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-12 h-12 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
+        />
+      )}
+      <span className="relative z-[1] w-6 shrink-0 text-[9px] font-mono text-white/35 text-center">{slot}</span>
+      <div className="relative z-[1] shrink-0"><PlayerAvatar p={p} logoFor={logoFor} size="sm" /></div>
+      <div className="relative z-[1] min-w-0 flex-1">
         <div className="font-heading font-bold text-[11px] text-white truncate flex items-center gap-1">
           {p.core.name}
           <span className={cn(
@@ -704,7 +713,7 @@ function RosterRow({ p, slot, status, g, logoFor }: {
           {p.core.team}{g ? (g.isHome ? ` vs ${g.opponent}` : ` @ ${g.opponent}`) : " · —"}
         </div>
       </div>
-      <span className={cn("shrink-0 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-heading font-bold uppercase tracking-wider", STATUS_TONE[status])}>
+      <span className={cn("relative z-[1] shrink-0 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-heading font-bold uppercase tracking-wider", STATUS_TONE[status])}>
         {status === "CAPTAIN" && <Crown className="h-2.5 w-2.5" />}
         {status}
       </span>
