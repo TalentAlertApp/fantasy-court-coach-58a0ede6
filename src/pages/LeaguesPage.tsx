@@ -251,6 +251,7 @@ function CopyCodeButton({ code, compact }: { code: string; compact?: boolean }) 
 export default function LeaguesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { league: activeLeague } = useLeague();
   const { fantasyLeagues, setSelectedLeagueId, isLoading } = useFantasyLeague();
   const { teams: userTeams, selectedTeamId } = useTeam();
   const qc = useQueryClient();
