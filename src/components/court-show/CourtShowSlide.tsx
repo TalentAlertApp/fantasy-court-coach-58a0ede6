@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
 import type { CompetitionCode } from "@/lib/competitions";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import RotatingBallersIQBadge from "./RotatingBallersIQBadge";
 import TopPerformerBlock from "./TopPerformerBlock";
+import { buildYouTubeEmbedUrl } from "@/lib/youtube-embed";
 
 const LABEL_STYLES: Record<string, string> = {
   "STOCK ALERT": "bg-sky-400/15 text-sky-300 border-sky-400/40",
