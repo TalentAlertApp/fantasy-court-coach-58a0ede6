@@ -261,17 +261,6 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
         <RotatingLeaderCard subjects={subjects} initialIndex={0} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
         <RotatingLeaderCard subjects={subjects} initialIndex={1} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
       </div>
-
-      {ptLoading ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {[1, 2].map((i) => <Skeleton key={i} className="h-96 rounded-lg" />)}
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          <TrendTable rows={ptIncreased} type="increase" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
-          <TrendTable rows={ptDecreased} type="decrease" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
-        </div>
-      )}
     </div>
   );
 }
