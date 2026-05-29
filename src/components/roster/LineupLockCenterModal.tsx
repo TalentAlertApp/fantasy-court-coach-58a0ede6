@@ -626,14 +626,15 @@ function LineupLockCenterInner({
 
 /* ------------------------------ subcomponents ----------------------------- */
 
-function Panel({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+function Panel({ title, icon, children, watermark }: { title: string; icon: ReactNode; children: ReactNode; watermark?: ReactNode }) {
   return (
-    <section className="rounded-xl border border-amber-400/15 bg-black/30 backdrop-blur-sm p-3">
-      <div className="flex items-center gap-1.5 mb-2.5">
+    <section className="group relative overflow-hidden rounded-xl border border-amber-400/15 bg-black/30 backdrop-blur-sm p-3">
+      {watermark}
+      <div className="relative z-[1] flex items-center gap-1.5 mb-2.5">
         {icon}
         <h3 className="font-heading font-bold text-[11px] uppercase tracking-[0.2em] text-amber-200/90">{title}</h3>
       </div>
-      {children}
+      <div className="relative z-[1]">{children}</div>
     </section>
   );
 }
