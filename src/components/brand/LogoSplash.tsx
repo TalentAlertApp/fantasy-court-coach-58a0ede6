@@ -17,17 +17,19 @@ interface Props {
  * Purely decorative — never intercepts pointer events.
  */
 export default function LogoSplash({ open, league, holdMs = 850 }: Props) {
-  const [phase, setPhase] = useState<"hidden" | "in" | "out">("hidden");
+  const [phase, setPhase] = useState<"hidden" | "enter" | "in" | "out">("hidden");
 
   useEffect(() => {
     if (!open) {
       setPhase("hidden");
       return;
     }
-    setPhase("in");
+    setPhase("enter");
+    const raf = requestAnimationFrame(() => setPhase("in"));
     const t1 = window.setTimeout(() => setPhase("out"), holdMs);
     const t2 = window.setTimeout(() => setPhase("hidden"), holdMs + 450);
     return () => {
+      cancelAnimationFrame(raf);
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
@@ -52,12 +54,11 @@ export default function LogoSplash({ open, league, holdMs = 850 }: Props) {
           "relative h-40 w-40 md:h-52 md:w-52 object-contain select-none transition-all ease-out",
           phase === "in"
             ? "opacity-100 scale-100 duration-[500ms]"
-            : "opacity-0 scale-110 duration-[450ms]",
+            : phase === "out"
+              ? "opacity-0 scale-110 duration-[450ms]"
+              : "opacity-0 scale-90 duration-[500ms]",
         )}
-        style={{
-          filter: "drop-shadow(0 12px 50px hsl(var(--accent) / 0.35))",
-          ...(phase === "in" ? { animationDelay: "0ms" } : {}),
-        }}
+        style={{ filter: "drop-shadow(0 12px 50px hsl(var(--accent) / 0.35))" }}
       />
     </div>
   );
