@@ -79,7 +79,7 @@ function scheduleClasses(label: string): string {
   }
 }
 
-export default function ExplainReport({ result, player }: { result: any; player: any }) {
+export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam }: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void }) {
   const teamTricode = player?.core?.team;
   const teamLogo = teamTricode ? getTeamLogo(teamTricode) : null;
   const teamFullName = teamTricode ? getTeamFullName(teamTricode) : "";
@@ -109,18 +109,37 @@ export default function ExplainReport({ result, player }: { result: any; player:
           <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5 items-center">
             {/* LEFT — player */}
             <div className="md:col-span-4 flex items-center gap-3">
-              {player.core?.photo ? (
-                <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
-              ) : (
-                <div className="w-14 h-14 rounded-xl bg-white/[0.08] inline-flex items-center justify-center text-base font-bold text-white/85">
-                  {player.core?.name?.slice(0, 2)?.toUpperCase()}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => player?.core?.id && onOpenPlayer?.(player.core.id)}
+                className="shrink-0 transition-transform hover:scale-105"
+                aria-label={`Open ${player.core?.name} profile`}
+              >
+                {player.core?.photo ? (
+                  <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-white/[0.08] inline-flex items-center justify-center text-base font-bold text-white/85">
+                    {player.core?.name?.slice(0, 2)?.toUpperCase()}
+                  </div>
+                )}
+              </button>
               <div className="min-w-0">
-                <p className="font-heading font-black uppercase truncate text-base md:text-lg text-white tracking-[0.06em] drop-shadow-[0_0_18px_rgba(252,211,77,0.25)] leading-tight">{player.core?.name}</p>
+                <button
+                  type="button"
+                  onClick={() => player?.core?.id && onOpenPlayer?.(player.core.id)}
+                  className="font-heading font-black uppercase truncate text-base md:text-lg text-white tracking-[0.06em] drop-shadow-[0_0_18px_rgba(252,211,77,0.25)] leading-tight hover:text-amber-200 transition-colors text-left max-w-full block"
+                >
+                  {player.core?.name}
+                </button>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
-                  <span className="text-[10.5px] text-white/65 truncate">{teamFullName} · {teamTricode}</span>
+                  <button
+                    type="button"
+                    onClick={() => teamTricode && onOpenTeam?.(teamTricode)}
+                    className="text-[10.5px] text-white/65 truncate hover:text-amber-200 transition-colors"
+                  >
+                    {teamFullName} · {teamTricode}
+                  </button>
                   <Badge variant={player.core?.fc_bc === "FC" ? "destructive" : "default"} className="rounded-md text-[8px] px-1 py-0 h-4">
                     {player.core?.fc_bc}
                   </Badge>
