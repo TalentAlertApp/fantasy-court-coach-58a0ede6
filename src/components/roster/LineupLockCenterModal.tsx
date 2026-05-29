@@ -245,6 +245,19 @@ function LineupLockCenterInner({
   const actionsCount =
     (captain ? 0 : 1) + (starterOut ? 1 : 0) + (validSplit ? 0 : 1) + (noGameStarters.length > 0 ? 1 : 0);
 
+  /* ----------------------------- deadline urgency ---------------------------- */
+  const locked = countdown === "LOCKED" || !!rosterLocked;
+  const hoursLeft = deadlineUtc ? (new Date(deadlineUtc).getTime() - Date.now()) / 3_600_000 : null;
+  const urgency: "locked" | "critical" | "warning" | "normal" =
+    locked ? "locked"
+    : hoursLeft != null && hoursLeft < 2 ? "critical"
+    : hoursLeft != null && hoursLeft < 6 ? "warning"
+    : "normal";
+
+  // Suggested player whose team badge brands the Transfer Windows card.
+  const transferBadgePlayer =
+    transferIdeas.bestSwap?.in_ ?? transferIdeas.bestAdd ?? transferIdeas.watchlist ?? null;
+
   /* --------------------------------- render -------------------------------- */
 
   return (
