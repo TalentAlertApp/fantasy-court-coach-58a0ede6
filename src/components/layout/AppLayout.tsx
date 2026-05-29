@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 function NavTooltip({
   collapsed,
@@ -125,7 +126,7 @@ export default function AppLayout() {
               >
                 <span className="text-sm font-heading font-bold uppercase tracking-[0.22em] truncate"
                       style={{ color: "hsl(var(--sidebar-foreground))" }}>
-                  Fantasy
+                  {HOOPSFANTASY_NAME}
                 </span>
                 <span className="text-[8px] font-heading font-semibold uppercase tracking-[0.35em] mt-1"
                       style={{ color: "hsl(var(--accent) / 0.85)" }}>
