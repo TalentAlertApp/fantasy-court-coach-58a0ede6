@@ -201,7 +201,7 @@ export default function AppLayout() {
         {/* Player Search */}
         {!collapsed ? (
           <>
-            <div className="mx-4 my-1 h-px bg-[linear-gradient(90deg,transparent,hsl(var(--sidebar-border)/0.45),transparent)]" />
+            <div className="mx-3 my-1 h-px bg-[linear-gradient(90deg,transparent,hsl(var(--sidebar-border)/0.22),transparent)]" />
             <div className="px-3 py-2">
               <SidebarPlayerSearch onSelect={(id) => setQuickPlayerId(id)} />
             </div>
