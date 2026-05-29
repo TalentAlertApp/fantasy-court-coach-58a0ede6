@@ -219,7 +219,7 @@ interface Props {
   slide: CourtShowSlideItem;
   onPlayerClick: (id: number) => void;
   onTeamClick: (tri: string) => void;
-  onGameClick: (game: RecapGame | MatchupGame) => void;
+  onGameClick: (game: RecapGame | MatchupGame, opts?: { openRecap?: boolean }) => void;
   onOutroAction?: () => void;
   onVideoPlayingChange?: (playing: boolean) => void;
   /** Per-page duration for paginated slides (e.g. Played Games Recap). */
