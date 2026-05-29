@@ -475,9 +475,13 @@ function OutstandingSlide({
 }) {
   const g = payload.game;
   const awayWon = g.winner === g.away_team;
-  const ytSrc = payload.youtube_recap_id
-    ? `https://www.youtube.com/embed/${payload.youtube_recap_id}?rel=0&modestbranding=1&enablejsapi=1`
-    : null;
+  const ytSrc = useMemo(
+    () =>
+      payload.youtube_recap_id
+        ? buildYouTubeEmbedUrl(payload.youtube_recap_id, { modestBranding: true, enableJsApi: true })
+        : null,
+    [payload.youtube_recap_id],
+  );
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   // Listen to YouTube IFrame API postMessage events to pause/resume the
@@ -642,8 +646,9 @@ function OutstandingSlide({
               src={ytSrc}
               title="Game recap"
               className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
               allowFullScreen
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-white/40 text-xs">
