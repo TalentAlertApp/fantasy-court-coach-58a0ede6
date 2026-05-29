@@ -53,15 +53,6 @@ export default function CommissionerAccessGate({ children }: { children: ReactNo
 
   return (
     <div className="relative h-full min-h-[60vh] flex items-center justify-center">
-      {/* Top-right HoopsFantasy watermark with hover surge */}
-      <img
-        src={logoSrc}
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="pointer-events-auto select-none absolute top-4 right-4 h-32 w-32 object-contain opacity-25 transition-all duration-300 ease-out hover:opacity-60 hover:scale-110"
-      />
-
       <form
         onSubmit={submit}
         className="w-full max-w-sm rounded-xl border bg-card/60 backdrop-blur p-6 space-y-4 shadow-lg"
