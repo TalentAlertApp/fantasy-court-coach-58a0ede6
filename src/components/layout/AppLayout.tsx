@@ -1,12 +1,15 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { getLeagueLogo } from "@/lib/competitions";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart, Film } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import SidebarPlayerSearch from "@/components/SidebarPlayerSearch";
 import PlayerModal from "@/components/PlayerModal";
 import SidebarNextLock from "@/components/layout/SidebarNextLock";
+import GameRecapsModal from "@/components/schedule/GameRecapsModal";
+import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -58,6 +61,14 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [gameRecapsOpen, setGameRecapsOpen] = useState(false);
+
+  // Safe default opening context for the global Game Recaps launcher.
+  const { deadlines } = useLeagueDeadlines();
+  const { data: lastPlayed } = useLastPlayedDay();
+  const recapFallback = getCurrentGamedayFrom(deadlines) ?? deadlines[0];
+  const recapInitialGw = lastPlayed?.gw ?? recapFallback?.gw ?? 1;
+  const recapInitialDay = lastPlayed?.day ?? recapFallback?.day ?? 1;
   const [dark, setDark] = useState(() =>
     localStorage.getItem("nba_theme") === "dark" ||
     (!localStorage.getItem("nba_theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
@@ -156,18 +167,34 @@ export default function AppLayout() {
         {/* Nav */}
         <nav className={`flex-1 ${collapsed ? "py-4 items-center" : "py-3"} flex flex-col gap-1 overflow-y-auto`}>
           {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavTooltip key={to} collapsed={collapsed} label={label}>
-              <NavLink
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `nav-item${isActive ? " active" : ""}`
-                }
-              >
-                <Icon className="nav-item-icon" />
-                {!collapsed && <span className="truncate relative z-10">{label}</span>}
-              </NavLink>
-            </NavTooltip>
+            <div key={to} className="contents">
+              <NavTooltip collapsed={collapsed} label={label}>
+                <NavLink
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    `nav-item${isActive ? " active" : ""}`
+                  }
+                >
+                  <Icon className="nav-item-icon" />
+                  {!collapsed && <span className="truncate relative z-10">{label}</span>}
+                </NavLink>
+              </NavTooltip>
+              {/* Game Recaps — global modal launcher, sits between Schedule and Advanced */}
+              {to === "/schedule" && (
+                <NavTooltip collapsed={collapsed} label="Game Recaps">
+                  <button
+                    type="button"
+                    onClick={() => setGameRecapsOpen(true)}
+                    className={`nav-item w-full text-left${gameRecapsOpen ? " active" : ""}`}
+                    aria-label="Game Recaps"
+                  >
+                    <Film className="nav-item-icon" />
+                    {!collapsed && <span className="truncate relative z-10">Game Recaps</span>}
+                  </button>
+                </NavTooltip>
+              )}
+            </div>
           ))}
         </nav>
 
@@ -307,6 +334,12 @@ export default function AppLayout() {
         onOpenChange={(o) => { if (!o) setQuickPlayerId(null); }}
       />
       <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <GameRecapsModal
+        open={gameRecapsOpen}
+        onOpenChange={setGameRecapsOpen}
+        initialGw={recapInitialGw}
+        initialDay={recapInitialDay}
+      />
     </div>
     </TooltipProvider>
   );
