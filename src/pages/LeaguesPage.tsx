@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
 import { useNavigate } from "react-router-dom";
+import { useLeague } from "@/contexts/LeagueContext";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import { Swords, Plus, KeyRound, Crown, LayoutDashboard, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
