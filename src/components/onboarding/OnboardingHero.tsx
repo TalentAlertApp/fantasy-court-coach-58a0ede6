@@ -4,6 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.png";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 import PlayerMarquee from "./PlayerMarquee";
 
 interface Props {
@@ -28,7 +29,7 @@ export default function OnboardingHero({ onStart, onSignOut, onSkip, email }: Pr
           <span className="h-6 w-px bg-foreground/20" aria-hidden="true" />
           <img src={euroleagueLogo} alt="EuroLeague" className="h-9 w-auto object-contain" />
           <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
-            Fantasy
+              {HOOPSFANTASY_NAME}
           </span>
         </div>
         {alias && (
