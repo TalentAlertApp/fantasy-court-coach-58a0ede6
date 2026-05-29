@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import BallersIQBrand from "./BallersIQBrand";
 import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat, ChevronUp, ChevronDown } from "lucide-react";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
+import { getTeamLogo } from "@/lib/nba-teams";
 
 interface MarketPlayer {
   id: number;
@@ -16,6 +17,7 @@ interface MarketPlayer {
   delta_fp?: number | null;
   delta_mpg?: number | null;
   injury?: string | null;
+  photo?: string | null;
 }
 
 interface Props {
