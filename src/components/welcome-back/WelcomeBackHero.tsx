@@ -16,6 +16,7 @@ import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
 import { getLastAdvancedTab, ADVANCED_TAB_LABEL } from "@/lib/advanced-tab-store";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { getTeamLogo } from "@/lib/nba-teams";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 interface Props {
   onEnter: () => void;
@@ -123,7 +124,7 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
             <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
             <img src={euroleagueLogo} alt="EuroLeague" className="h-9 w-auto object-contain" />
             <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
-              Fantasy
+              {HOOPSFANTASY_NAME}
             </span>
           </div>
           <div className="flex items-center gap-2">
