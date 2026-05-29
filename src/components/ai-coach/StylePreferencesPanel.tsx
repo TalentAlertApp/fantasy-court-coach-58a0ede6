@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
-  Loader2, Sparkles, Wand2,
+  Loader2, UserRound, Wand2,
   DollarSign, GraduationCap, Ruler, Flame, Heart,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -65,7 +65,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 p-4 md:p-6 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-4 md:space-y-5">
+    <div className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 px-4 pt-3 pb-5 md:px-6 md:pt-4 md:pb-7 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-5 md:space-y-6">
       {/* HoopsFantasy watermark — top right, surges on hover */}
       <img
         src={getHoopsFantasyLogo(league)}
@@ -76,7 +76,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
       />
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
+          <UserRound className="h-5 w-5 text-accent" />
           <p className="font-heading uppercase tracking-[0.22em] text-sm font-bold">
             Tell the coach your style
           </p>
