@@ -396,7 +396,13 @@ function LineupLockCenterInner({
                         <div className="flex items-center gap-3">
                           <PlayerAvatar p={captain} logoFor={logoFor} />
                           <div className="min-w-0 flex-1">
-                            <div className="font-heading font-bold text-sm truncate text-white">{captain.core.name}</div>
+                            <button
+                              type="button"
+                              onClick={() => setPlayerModalId(captain.core.id)}
+                              className="block w-full text-left font-heading font-bold text-sm truncate text-white transition-colors hover:text-amber-200"
+                            >
+                              {captain.core.name}
+                            </button>
                             <CaptainContext p={captain} g={dayGameOf(captain)} />
                           </div>
                           <div className="text-right shrink-0">
@@ -424,7 +430,13 @@ function LineupLockCenterInner({
                           <div className="flex items-center gap-2.5">
                             <PlayerAvatar p={bestCaptain} logoFor={logoFor} size="sm" />
                             <div className="min-w-0 flex-1">
-                              <div className="font-heading font-bold text-xs truncate text-white">{bestCaptain.core.name}</div>
+                              <button
+                                type="button"
+                                onClick={() => setPlayerModalId(bestCaptain.core.id)}
+                                className="block w-full text-left font-heading font-bold text-xs truncate text-white transition-colors hover:text-amber-200"
+                              >
+                                {bestCaptain.core.name}
+                              </button>
                               <div className="text-[10px] text-white/50">{projFpOf(bestCaptain).toFixed(1)} FP · +{captainGain.toFixed(1)} gain</div>
                             </div>
                             <button
