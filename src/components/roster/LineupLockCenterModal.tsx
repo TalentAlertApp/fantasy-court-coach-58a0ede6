@@ -575,6 +575,7 @@ function LineupLockCenterInner({
                               sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
                               p={transferIdeas.bestSwap.in_}
                               logoFor={logoFor}
+                              onTitleClick={() => setPlayerModalId(transferIdeas.bestSwap!.in_.core.id)}
                             />
                           )}
                           {transferIdeas.bestAdd && (
@@ -585,6 +586,7 @@ function LineupLockCenterInner({
                               sub={`Projected ${projFpOf(transferIdeas.bestAdd).toFixed(1)} FP · ${num(transferIdeas.bestAdd.core.salary).toFixed(1)}M`}
                               p={transferIdeas.bestAdd}
                               logoFor={logoFor}
+                              onTitleClick={() => setPlayerModalId(transferIdeas.bestAdd!.core.id)}
                             />
                           )}
                           {transferIdeas.watchlist && (
@@ -595,6 +597,7 @@ function LineupLockCenterInner({
                               sub={getHealthLabel(normalizePlayerHealth(transferIdeas.watchlist))}
                               p={transferIdeas.watchlist}
                               logoFor={logoFor}
+                              onTitleClick={() => setPlayerModalId(transferIdeas.watchlist!.core.id)}
                             />
                           )}
                           <button
