@@ -714,10 +714,13 @@ function RosterRow({ p, slot, status, g, logoFor }: {
           {p.core.team}{g ? (g.isHome ? ` vs ${g.opponent}` : ` @ ${g.opponent}`) : " · —"}
         </div>
       </div>
-      <span className={cn("relative z-[1] shrink-0 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-heading font-bold uppercase tracking-wider", STATUS_TONE[status])}>
-        {status === "CAPTAIN" && <Crown className="h-2.5 w-2.5" />}
-        {status}
-      </span>
+      <div className="relative z-[1] shrink-0 w-20 flex justify-center">
+        <span className={cn("inline-flex items-center justify-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-heading font-bold uppercase tracking-wider", STATUS_TONE[status])}>
+          {status === "CAPTAIN" && <Crown className="h-2.5 w-2.5" />}
+          {status}
+        </span>
+      </div>
+      <span className="relative z-[1] flex-1 shrink-0" aria-hidden />
     </div>
   );
 }
