@@ -336,7 +336,7 @@ function LineupLockCenterInner({
           </div>
 
           {/* Body */}
-          <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+          <div className="relative z-10 flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4" style={{ zoom: 0.93 }}>
             {!hasRoster ? (
               <EmptyState
                 icon={<Users className="h-8 w-8 text-amber-300/60" />}
