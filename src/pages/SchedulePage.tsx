@@ -25,6 +25,7 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import { useLeague } from "@/contexts/LeagueContext";
 import { getLeagueLogo } from "@/lib/competitions";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 const MIN_WEEK = 1;
 
