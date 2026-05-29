@@ -1,7 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "./BallersIQBrand";
-import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat } from "lucide-react";
+import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat, ChevronUp, ChevronDown } from "lucide-react";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
 
 interface MarketPlayer {
@@ -39,6 +39,7 @@ function topByMetric<T>(arr: T[], score: (x: T) => number, n = 3): T[] {
 export default function BallersIQMarketWatch({
   market, rosterPlayers, bankRemaining, todayTeams = [], className, onPickPlayer,
 }: Props) {
+  const [expanded, setExpanded] = useState(false);
   const data = useMemo(() => {
     const affordable = market.filter((p) => num(p.salary) <= bankRemaining + 0.01);
 
@@ -96,11 +97,40 @@ export default function BallersIQMarketWatch({
 
   if (!market.length && !rosterPlayers.length) return null;
 
+  const lanesGrid = (
+    <div className="relative grid grid-cols-2 gap-2">
+      <Lane label="Value Adds" icon={<Sparkles className="h-3 w-3 text-emerald-400" />} tone="emerald"
+        rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
+        onPick={onPickPlayer} />
+      <Lane label="Drop Risks" icon={<AlertTriangle className="h-3 w-3 text-red-400" />} tone="red"
+        rows={data.dropRisks.map((p) => {
+          const h = normalizePlayerHealth(p);
+          const meta = (isHealthUnavailable(h) || isHealthRisky(h))
+            ? getHealthLabel(h)
+            : `Δ${num(p.delta_fp).toFixed(1)} FP`;
+          return { id: p.id, name: p.name, meta };
+        })}
+        onPick={onPickPlayer} />
+      <Lane label="Buy Low" icon={<TrendingDown className="h-3 w-3 text-sky-400" />} tone="sky"
+        rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
+        onPick={onPickPlayer} />
+      <Lane label="Sell High" icon={<TrendingUp className="h-3 w-3 text-amber-400" />} tone="amber"
+        rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
+        onPick={onPickPlayer} />
+      <Lane label="Schedule Streams" icon={<CalendarDays className="h-3 w-3 text-violet-400" />} tone="violet"
+        rows={data.streams.map((p) => ({ id: p.id, name: p.name, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
+        onPick={onPickPlayer} />
+      <Lane label="Salary Traps" icon={<DollarSign className="h-3 w-3 text-zinc-400" />} tone="zinc"
+        rows={data.traps.map((p) => ({ id: p.id, name: p.name, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
+        onPick={onPickPlayer} />
+    </div>
+  );
+
   return (
+    <div className={cn("relative", className)}>
     <section className={cn(
       "relative rounded-xl border border-amber-400/40 p-3 overflow-hidden",
       "bg-amber-400/15 dark:bg-gradient-to-br dark:from-amber-400/[0.05] dark:via-card dark:to-card",
-      className,
     )}>
       <BallersIQBrand
         variant="emblem"
@@ -115,6 +145,16 @@ export default function BallersIQMarketWatch({
           Market Watch
         </span>
         <span className="ml-auto text-[10px] font-mono text-muted-foreground">Bank ${bankRemaining.toFixed(1)}M</span>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse market watch" : "Expand market watch"}
+          className="inline-flex items-center gap-1 rounded-md border border-amber-400/30 bg-black/20 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-amber-200 transition-colors hover:bg-amber-400/10"
+        >
+          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
+          {expanded ? "Less" : "Expand"}
+        </button>
       </header>
 
       {data.bestSwap && (
@@ -133,33 +173,28 @@ export default function BallersIQMarketWatch({
         </div>
       )}
 
-      <div className="relative grid grid-cols-2 gap-2">
-        <Lane label="Value Adds" icon={<Sparkles className="h-3 w-3 text-emerald-400" />} tone="emerald"
-          rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
-          onPick={onPickPlayer} />
-        <Lane label="Drop Risks" icon={<AlertTriangle className="h-3 w-3 text-red-400" />} tone="red"
-          rows={data.dropRisks.map((p) => {
-            const h = normalizePlayerHealth(p);
-            const meta = (isHealthUnavailable(h) || isHealthRisky(h))
-              ? getHealthLabel(h)
-              : `Δ${num(p.delta_fp).toFixed(1)} FP`;
-            return { id: p.id, name: p.name, meta };
-          })}
-          onPick={onPickPlayer} />
-        <Lane label="Buy Low" icon={<TrendingDown className="h-3 w-3 text-sky-400" />} tone="sky"
-          rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
-          onPick={onPickPlayer} />
-        <Lane label="Sell High" icon={<TrendingUp className="h-3 w-3 text-amber-400" />} tone="amber"
-          rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
-          onPick={onPickPlayer} />
-        <Lane label="Schedule Streams" icon={<CalendarDays className="h-3 w-3 text-violet-400" />} tone="violet"
-          rows={data.streams.map((p) => ({ id: p.id, name: p.name, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
-          onPick={onPickPlayer} />
-        <Lane label="Salary Traps" icon={<DollarSign className="h-3 w-3 text-zinc-400" />} tone="zinc"
-          rows={data.traps.map((p) => ({ id: p.id, name: p.name, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
-          onPick={onPickPlayer} />
-      </div>
     </section>
+
+      {/* Lanes grid: hidden by default, expands UPWARD as an overlay to avoid scrolling */}
+      {expanded && (
+        <div className="absolute inset-x-0 bottom-full mb-2 z-30 rounded-xl border border-amber-400/40 bg-card p-3 shadow-2xl shadow-black/60">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[9px] font-heading font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Market Signals
+            </span>
+            <button
+              type="button"
+              onClick={() => setExpanded(false)}
+              aria-label="Collapse market watch"
+              className="ml-auto inline-flex items-center gap-1 rounded-md border border-amber-400/30 bg-black/20 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-amber-200 transition-colors hover:bg-amber-400/10"
+            >
+              <ChevronDown className="h-3 w-3" /> Less
+            </button>
+          </div>
+          {lanesGrid}
+        </div>
+      )}
+    </div>
   );
 }
 

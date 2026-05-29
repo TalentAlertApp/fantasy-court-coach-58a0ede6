@@ -572,10 +572,28 @@ function LineupLockCenterInner({
                               tag="Best swap"
                               tone="good"
                               title={`${transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]} → ${transferIdeas.bestSwap.in_.core.name}`}
+                              titleNode={
+                                <span className="block font-heading font-bold text-[11px] text-white truncate">
+                                  <button
+                                    type="button"
+                                    onClick={() => setPlayerModalId(transferIdeas.bestSwap!.out.core.id)}
+                                    className="transition-colors hover:text-amber-200"
+                                  >
+                                    {transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]}
+                                  </button>
+                                  <span className="text-white/50"> → </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPlayerModalId(transferIdeas.bestSwap!.in_.core.id)}
+                                    className="transition-colors hover:text-amber-200"
+                                  >
+                                    {transferIdeas.bestSwap.in_.core.name}
+                                  </button>
+                                </span>
+                              }
                               sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
                               p={transferIdeas.bestSwap.in_}
                               logoFor={logoFor}
-                              onTitleClick={() => setPlayerModalId(transferIdeas.bestSwap!.in_.core.id)}
                             />
                           )}
                           {transferIdeas.bestAdd && (
@@ -774,9 +792,10 @@ function ImpactRow({ label, value, tone, emphasize }: {
   );
 }
 
-function TransferIdea({ tag, title, sub, tone, p, logoFor, onTitleClick }: {
+function TransferIdea({ tag, title, sub, tone, p, logoFor, onTitleClick, titleNode }: {
   tag: string; title: string; sub: string; tone: "good" | "neutral" | "bad";
   p?: any; logoFor?: (t: string) => string | undefined; onTitleClick?: () => void;
+  titleNode?: ReactNode;
 }) {
   const tagCls = tone === "good" ? "text-emerald-300 bg-emerald-400/10" : tone === "bad" ? "text-red-300 bg-red-500/10" : "text-amber-300 bg-amber-400/10";
   return (
@@ -784,7 +803,9 @@ function TransferIdea({ tag, title, sub, tone, p, logoFor, onTitleClick }: {
       {p && logoFor && <div className="shrink-0"><PlayerAvatar p={p} logoFor={logoFor} size="sm" /></div>}
       <div className="min-w-0 flex-1">
         <span className={cn("inline-block text-[8px] font-heading font-bold uppercase tracking-[0.18em] px-1.5 py-0.5 rounded mb-0.5", tagCls)}>{tag}</span>
-        {onTitleClick ? (
+        {titleNode ? (
+          titleNode
+        ) : onTitleClick ? (
           <button
             type="button"
             onClick={onTitleClick}
