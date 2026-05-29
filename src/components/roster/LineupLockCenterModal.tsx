@@ -561,6 +561,8 @@ function LineupLockCenterInner({
                               tone="good"
                               title={`${transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]} → ${transferIdeas.bestSwap.in_.core.name}`}
                               sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
+                              p={transferIdeas.bestSwap.in_}
+                              logoFor={logoFor}
                             />
                           )}
                           {transferIdeas.bestAdd && (
@@ -569,6 +571,8 @@ function LineupLockCenterInner({
                               tone="neutral"
                               title={transferIdeas.bestAdd.core.name}
                               sub={`Projected ${projFpOf(transferIdeas.bestAdd).toFixed(1)} FP · ${num(transferIdeas.bestAdd.core.salary).toFixed(1)}M`}
+                              p={transferIdeas.bestAdd}
+                              logoFor={logoFor}
                             />
                           )}
                           {transferIdeas.watchlist && (
@@ -577,6 +581,8 @@ function LineupLockCenterInner({
                               tone="bad"
                               title={transferIdeas.watchlist.core.name}
                               sub={getHealthLabel(normalizePlayerHealth(transferIdeas.watchlist))}
+                              p={transferIdeas.watchlist}
+                              logoFor={logoFor}
                             />
                           )}
                           <button
