@@ -13,6 +13,8 @@ import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
+import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
+import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import TeamCompareModal from "@/components/TeamCompareModal";
 import PlayerModal from "@/components/PlayerModal";
@@ -37,6 +39,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const team = tricode ? (leagueTeams.find((t) => t.tricode === tricode) ?? null) : null;
   const euroleagueMeta = league === "euroleague" ? getEuroLeagueTeamRecord(tricode ?? undefined) : undefined;
   const getOppLogo = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const { data: difficultyMap } = useTeamDifficultyMap();
   const watermarkLogo = getLeagueLogo(league);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
@@ -272,7 +275,12 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                             className="flex items-center gap-2 px-3 py-2 border-b border-border/40 text-sm"
                           >
                             <button onClick={openDetail} className="hover:opacity-80 transition-opacity">
-                              <Badge variant={won ? "default" : "destructive"} className="rounded-lg text-[9px] w-5 justify-center cursor-pointer">{won ? "W" : "L"}</Badge>
+                              <Badge
+                                variant={won ? "default" : "destructive"}
+                                className={`rounded-lg text-[9px] w-5 justify-center cursor-pointer ${won ? "bg-green-500 hover:bg-green-500/90 text-white border-transparent" : ""}`}
+                              >
+                                {won ? "W" : "L"}
+                              </Badge>
                             </button>
                             <span className="font-heading text-xs uppercase inline-flex items-center gap-1">
                               {isHome ? "vs" : "@"} {opp}
@@ -347,6 +355,8 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       const isHome = g.home_team === tricode;
                       const opp = isHome ? g.away_team : g.home_team;
                       const oppLogo = getOppLogo(opp);
+                      const diff = difficultyMap?.[opp];
+                      const diffColor = difficultyRingColor(diff?.label);
                       const tipoff = g.tipoff_utc ? new Date(g.tipoff_utc).toLocaleDateString("en-GB", { month: "short", day: "numeric" }) : "TBD";
                       const openDetail = () => setSelectedGame({
                         game_id: g.game_id,
@@ -374,6 +384,15 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         >
                           {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
                           <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
+                          {diff?.label && (
+                            <span
+                              className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider"
+                              style={{ color: diffColor, borderColor: diffColor }}
+                              title={`Matchup difficulty: ${diff.label}`}
+                            >
+                              {diff.label}
+                            </span>
+                          )}
                           <span className="ml-auto text-xs text-muted-foreground">{tipoff}</span>
                           <span className="text-[10px] text-muted-foreground font-mono">GW{g.gw}.{g.day}</span>
                         </button>

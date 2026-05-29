@@ -437,6 +437,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                             const oppLogo = getTeamLogo(oppTeam);
                             const myScore = isAway ? h.away_pts : h.home_pts;
                             const oppScore = isAway ? h.home_pts : h.away_pts;
+                            const won = myScore > oppScore;
                             return (
                               <TableRow
                                 key={i}
@@ -467,7 +468,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                   <div className="flex items-center gap-1">
                                     {oppLogo && <img src={oppLogo} alt="" className="w-3.5 h-3.5" />}
                                     <span>{isAway ? "@" : "vs."}{oppTeam}</span>
-                                    <span className="text-muted-foreground ml-1">{myScore}-{oppScore}</span>
+                                    <span className={`ml-1 font-bold ${won ? "text-green-500" : "text-red-500"}`}>{myScore}-{oppScore}</span>
                                   </div>
                                 </TableCell>
                                 <TableCell className="px-1.5 py-1 text-xs font-bold font-mono text-right">{h.fp.toFixed(1)}</TableCell>

@@ -4,7 +4,6 @@ import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LeaderColumn, LeaderRow } from "./LeaderTable";
 import RotatingLeaderCard, { LeaderSubject } from "./RotatingLeaderCard";
-import TrendTable from "./TrendTable";
 import { usePlayingTimeTrends } from "@/hooks/usePlayingTimeTrends";
 
 type FcBcFilter = "ALL" | "FC" | "BC";
@@ -16,7 +15,7 @@ interface Props {
 
 export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
   const { data, isLoading } = usePlayersQuery({ limit: 1000 });
-  const { data: ptData, isLoading: ptLoading } = usePlayingTimeTrends();
+  const { data: ptData } = usePlayingTimeTrends();
   const [fcBc, setFcBc] = useState<FcBcFilter>("ALL");
   const [minMp5, setMinMp5] = useState<number>(15);
 
@@ -261,17 +260,6 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
         <RotatingLeaderCard subjects={subjects} initialIndex={0} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
         <RotatingLeaderCard subjects={subjects} initialIndex={1} onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
       </div>
-
-      {ptLoading ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {[1, 2].map((i) => <Skeleton key={i} className="h-96 rounded-lg" />)}
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          <TrendTable rows={ptIncreased} type="increase" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
-          <TrendTable rows={ptDecreased} type="decrease" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
-        </div>
-      )}
     </div>
   );
 }
