@@ -1291,15 +1291,15 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
             </div>
             {/* Sponsor sting — premium 3D rotating Ballers.IQ badge */}
             <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.97, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              initial={{ opacity: 0, y: 12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: 1.1, duration: 1.1, ease: [0.22, 0.61, 0.36, 1] }}
               className="mt-6 flex flex-col items-center gap-3"
             >
               <span className="text-[9px] md:text-[10px] font-heading font-bold uppercase tracking-[0.42em] text-white/45">
                 Powered by
               </span>
-              <RotatingBallersIQBadge width={460} />
+              <RotatingBallersIQBadge width={460} spinDelayMs={900} />
             </motion.div>
           </div>
         )}

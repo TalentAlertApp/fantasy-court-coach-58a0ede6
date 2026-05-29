@@ -33,6 +33,20 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
   const [exiting, setExiting] = useState(false);
   const EXIT_MS = 1100;
 
+  // Warm the court background + league badge artwork so the first frame doesn't decode-stall.
+  useEffect(() => {
+    const srcs = [
+      courtBg,
+      isWnba
+        ? "/brand/ballers-iq-card-front-wnba.png"
+        : "/brand/ballers-iq-card-front-nba.png",
+    ];
+    srcs.forEach((s) => {
+      const img = new Image();
+      img.src = s;
+    });
+  }, [isWnba]);
+
   const finish = () => {
     if (doneRef.current) return;
     doneRef.current = true;
@@ -228,16 +242,16 @@ export default function BallersIQEntryIntro({ onDone }: { onDone: () => void }) 
       {/* The rotating Ballers.IQ card — premium reveal + gentle float */}
       <motion.div
         className="relative z-10"
-        initial={{ opacity: 0, scale: 0.78, y: 24, filter: "blur(8px)" }}
-        animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+        initial={{ opacity: 0, scale: 0.78, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: reduced ? 0 : 0.55, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        exit={{ opacity: 0, scale: 1.06, filter: "blur(6px)", transition: { duration: 0.7, ease: [0.65, 0, 0.35, 1] } }}
+        exit={{ opacity: 0, scale: 1.06, transition: { duration: 0.7, ease: [0.65, 0, 0.35, 1] } }}
       >
         <motion.div
           animate={reduced ? undefined : { y: [0, -6, 0], scale: [1, 1.015, 1] }}
           transition={reduced ? undefined : { duration: 4.5, ease: "easeInOut", repeat: Infinity, repeatType: "mirror" }}
         >
-          <RotatingBallersIQBadge width={576} />
+          <RotatingBallersIQBadge width={576} spinDelayMs={reduced ? 0 : 800} />
         </motion.div>
       </motion.div>
 
