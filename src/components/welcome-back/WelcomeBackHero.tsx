@@ -15,6 +15,7 @@ import { getCurrentGameday, formatDeadline } from "@/lib/deadlines";
 import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
 import { getLastAdvancedTab, ADVANCED_TAB_LABEL } from "@/lib/advanced-tab-store";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
+import { getTeamLogo } from "@/lib/nba-teams";
 
 interface Props {
   onEnter: () => void;
@@ -52,6 +53,9 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
   const { data: playersData } = usePlayersQuery({ limit: 250 });
 
   const teamName = teams.find((t) => t.id === selectedTeamId)?.name ?? "Your Team";
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+  const leagueCode = (selectedTeam?.league_code ?? "nba") as "nba" | "wnba" | "euroleague";
+  const leagueLogo = leagueCode === "wnba" ? wnbaLogo : leagueCode === "euroleague" ? euroleagueLogo : nbaLogo;
   const lastSignOut = useMemo(() => getLastSignOut(user?.id), [user?.id]);
   const lastVisitLabel = lastSignOut ? formatTimeAgo(lastSignOut) : null;
 
@@ -200,7 +204,7 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
             className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-5xl"
           >
             {/* Roster pulse */}
-            <div className="bg-card/40 border border-border rounded-2xl p-5 backdrop-blur-md hover:border-accent/40 transition-colors text-left">
+            <div className="group relative overflow-hidden bg-card/40 border border-border rounded-2xl p-5 backdrop-blur-md hover:border-accent/40 transition-colors text-left">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-foreground/60 font-heading mb-3">
                 <Trophy className="h-3.5 w-3.5 text-accent" />
                 Roster Pulse
@@ -227,34 +231,59 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
               ) : (
                 <p className="text-xs text-muted-foreground">Set a roster to see your top scorer.</p>
               )}
+              {topScorer?.core?.team && (
+                <img
+                  src={getTeamLogo(topScorer.core.team)}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-3 -top-3 w-20 h-20 object-contain opacity-[0.14] group-hover:opacity-30 group-hover:scale-125 transition-all"
+                />
+              )}
             </div>
 
             {/* Captain check */}
-            <div className="bg-card/40 border border-border rounded-2xl p-5 backdrop-blur-md hover:border-accent/40 transition-colors text-left">
+            <div className="group relative overflow-hidden bg-card/40 border border-border rounded-2xl p-5 backdrop-blur-md hover:border-accent/40 transition-colors text-left">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-foreground/60 font-heading mb-3">
                 <Star className="h-3.5 w-3.5 text-accent" />
                 Captain Check
               </div>
               {captain ? (
-                <div>
-                  <p className="font-heading uppercase text-sm truncate">{captain.core?.name}</p>
-                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-1">
-                    FP last 5 ·{" "}
-                    <span className="text-accent font-bold tabular-nums">
-                      {(captain.last5?.fp5 ?? 0).toFixed(1)}
-                    </span>
-                    <span className="ml-2 text-[hsl(var(--nba-yellow))]">2× active</span>
-                  </p>
+                <div className="flex items-center gap-3">
+                  {captain.core?.photo && (
+                    <img
+                      src={captain.core.photo}
+                      alt={captain.core.name}
+                      className="h-14 w-14 rounded-full object-cover object-top border border-border"
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-heading uppercase text-sm truncate">{captain.core?.name}</p>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                      FP last 5 ·{" "}
+                      <span className="text-accent font-bold tabular-nums">
+                        {(captain.last5?.fp5 ?? 0).toFixed(1)}
+                      </span>
+                      <span className="ml-2 text-[hsl(var(--nba-yellow))]">2× active</span>
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground leading-snug">
                   No captain locked yet — set one before deadline to double their FP.
                 </p>
               )}
+              {captain?.core?.team && (
+                <img
+                  src={getTeamLogo(captain.core.team)}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-3 -top-3 w-20 h-20 object-contain opacity-[0.14] group-hover:opacity-30 group-hover:scale-125 transition-all"
+                />
+              )}
             </div>
 
             {/* Next deadline */}
-            <div className="bg-card/40 border border-[hsl(var(--nba-yellow))]/40 rounded-2xl p-5 backdrop-blur-md hover:border-[hsl(var(--nba-yellow))] transition-colors text-left">
+            <div className="group relative overflow-hidden bg-card/40 border border-[hsl(var(--nba-yellow))]/40 rounded-2xl p-5 backdrop-blur-md hover:border-[hsl(var(--nba-yellow))] transition-colors text-left">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-[hsl(var(--nba-yellow))] font-heading mb-3">
                 <Clock className="h-3.5 w-3.5" />
                 Next Deadline
@@ -268,6 +297,14 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
               <p className="mt-2 text-base font-mono font-bold text-[hsl(var(--nba-yellow))] tabular-nums">
                 {countdown ?? "—"}
               </p>
+              {leagueLogo && (
+                <img
+                  src={leagueLogo}
+                  alt=""
+                  aria-hidden
+                  className="pointer-events-none absolute -right-3 -top-3 w-20 h-20 object-contain opacity-[0.14] group-hover:opacity-30 group-hover:scale-125 transition-all"
+                />
+              )}
             </div>
           </motion.div>
 
