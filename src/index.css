@@ -162,6 +162,9 @@
     overflow-x: hidden;
     height: 100dvh;
   }
+  /* Defensive: the sidebar nav must never expose a horizontal scrollbar
+     (nav-item hover translate/margin can otherwise overflow by a pixel). */
+  .sidebar nav { overflow-x: hidden; }
   .sidebar::after {
     content: "";
     position: absolute;
