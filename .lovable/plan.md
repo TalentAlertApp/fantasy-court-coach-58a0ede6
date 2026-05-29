@@ -1,66 +1,53 @@
 ## Goal
 
-Two independent fixes:
-1. Make the "3 league logos + HOOPSFANTASY" bundle render **identically** (order, size, spacing, position) on every onboarding page.
-2. Remove the accidental horizontal scrollbar that appears in the left sidebar directly above the "Search player…" input — without touching dividers or sidebar design.
+Three focused, presentation-only fixes across the sidebar and onboarding flow.
 
 ---
 
-## Part 1 — Consistent brand bundle
+### 1. Sidebar — premium separator between nav and Player Search
 
-### What's inconsistent today
+In `src/components/layout/AppLayout.tsx`, the COMMISSIONER nav item (last item) currently sits directly above the Player Search box with no separator. Add a soft, muted, premium divider between them.
 
-The bundle is hand-coded separately in three files and they differ:
+- Reuse the existing `.sidebar-divider` token but give it a more premium feel for this specific spot by wrapping it with vertical breathing room (e.g. a small `my`/`py` gap) so it reads as an intentional section break rather than a hard line.
+- Place it directly before the Player Search block (`{!collapsed ? ... : ...}`), so it shows in both expanded and collapsed states.
+- Keep all other dividers, spacing, hover/surge effects untouched.
 
-| File | Logo order | Dividers | Logo size | Brand text |
-|------|-----------|----------|-----------|------------|
-| `OnboardingHero.tsx` | NBA, WNBA, EuroLeague | yes (`w-px` lines) | `h-9` | `text-xs` / opacity 70 |
-| `WelcomeBackHero.tsx` | WNBA, NBA, EuroLeague | none | `h-9` | `text-xs` / opacity 70 |
-| `TeamPickerPage.tsx` | WNBA, NBA, EuroLeague | none | `h-8` | `text-[10px]` / opacity 60 |
+Implementation detail: insert a divider element (`<div className="sidebar-divider" />`) right after the `</nav>` close and before the Player Search conditional. To make it feel premium and "soft", wrap it in a thin padded container (e.g. `px-3` and a touch of vertical margin) rather than a flush line.
 
-Placement also differs: the two hero files put it inside a `<header class="px-8 py-4">`; `TeamPickerPage` uses `absolute top-6 left-6`.
+---
 
-### Fix
+### 2. NAME YOUR FRANCHISE — use the shared BrandMark
 
-Create one shared presentational component, e.g. `src/components/onboarding/BrandMark.tsx`, that renders the canonical bundle:
+`src/components/onboarding/NameStep.tsx` still renders an **inline** brand bundle (lines 40–49) that differs from the other onboarding pages:
+- Wrong logo order (NBA → WNBA → EuroLeague instead of WNBA → NBA → EuroLeague).
+- Extra `h-6 w-px` vertical separators between logos (the "separators in excess" the user sees).
+- First logo missing `object-contain`.
 
-```text
-[WNBA] [NBA] [EuroLeague]  HOOPSFANTASY
+Fix:
+- Replace that inline block with `<BrandMark className="absolute top-4 left-8 z-10" />` (same usage as `TeamPickerPage`).
+- Add the `BrandMark` import.
+- Remove the now-unused imports: `nbaLogo`, `wnbaLogo`, `euroleagueLogo`, and `HOOPSFANTASY_NAME`.
+
+This makes all four onboarding surfaces share one identical brand bundle.
+
+---
+
+### 3. DRAFT (Step 3 of 3) — match the CHOOSE YOUR LEAGUE watermark
+
+`ChooseLeagueStep.tsx` renders the league watermark as:
 ```
+absolute top-0 right-0 h-[28rem] w-[28rem] object-contain opacity-[0.06]
+blur-[1px] rotate-6 -translate-y-12 translate-x-12 select-none z-0
+```
+`DraftPicker.tsx` (lines 188–206) uses a different watermark: smaller (`h-64 w-64`), brighter (`opacity-[0.18]`), with a radial glow circle and a hover scale/opacity effect.
 
-- Order: WNBA, NBA, EuroLeague, then the `HOOPSFANTASY_NAME` text.
-- Logos: `h-9 w-auto object-contain` (one size for all three).
-- No divider lines.
-- Brand text: `text-xs font-heading uppercase tracking-[0.3em] text-foreground/70`.
-- Wrapper: `flex items-center gap-3`.
-
-Then use `<BrandMark />` in all three files, replacing the inline markup:
-- `OnboardingHero.tsx` — drop the NBA/divider/WNBA/divider/EuroLeague block and dividers.
-- `WelcomeBackHero.tsx` — replace its inline bundle.
-- `TeamPickerPage.tsx` — replace its inline bundle.
-
-To make **position** identical too, align the placement. Keep each page's existing top-left anchor but use the same offset: the two heroes already sit in a `px-8 py-4` header (≈32px/16px); set `TeamPickerPage`'s wrapper to match that same inset so the bundle lands in the exact same spot visually across pages. (Single source for the inner content guarantees size/spacing; matching the inset guarantees position.)
+Fix:
+- Replace the DraftPicker watermark block with the exact same single `<img>` markup/classes used in `ChooseLeagueStep` (same size, opacity, blur, rotation, translate, position).
+- Drop the radial-glow `<div>` and the hover `group` scaling so the size/effect/position match exactly.
+- Keep using `watermarkSrc` (already `getLeagueLogo(leagueCode)`) as the source.
 
 ---
 
-## Part 2 — Remove stray horizontal scrollbar above Player Search
-
-The sidebar nav uses `overflow-y-auto` with no horizontal control. Combined with `.nav-item` `margin-right: 8px` + hover `translateX(2px)`, content can exceed width and trigger the global 4px webkit horizontal scrollbar (which also turns accent on hover), appearing right above the Player Search box.
-
-### Fix
-
-1. In `src/components/layout/AppLayout.tsx`, change the nav class from `overflow-y-auto` to `overflow-y-auto overflow-x-hidden`.
-2. In `src/index.css`, add a defensive rule: `.sidebar nav { overflow-x: hidden; }`.
-
-Constraints respected:
-- No `.sidebar-divider` elements removed.
-- Player Search component untouched.
-- Vertical scrolling preserved.
-- Verify both expanded and collapsed sidebar states.
-
----
-
-## Verification
-
-- Compare the three onboarding pages side by side: bundle order, logo size, gaps, and top-left position match exactly.
-- Confirm no horizontal bar/accent line appears above Player Search, including on hover, in both expanded and collapsed sidebar; vertical scroll still works.
+### Technical notes
+- All changes are in `AppLayout.tsx`, `NameStep.tsx`, and `DraftPicker.tsx`. No CSS token changes are strictly required; the existing `.sidebar-divider` token is reused for fix 1.
+- No logic, data, or routing changes — purely presentational.

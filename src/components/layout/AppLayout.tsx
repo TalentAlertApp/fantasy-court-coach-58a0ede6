@@ -198,6 +198,11 @@ export default function AppLayout() {
           ))}
         </nav>
 
+        {/* Soft premium separator between nav and Player Search */}
+        <div className="px-3 py-1.5">
+          <div className="sidebar-divider opacity-60" />
+        </div>
+
         {/* Player Search */}
         {!collapsed ? (
           <>

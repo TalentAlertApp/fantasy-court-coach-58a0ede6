@@ -186,23 +186,12 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
       {(drafting || success) && <DraftingOverlay success={success} />}
 
       {leagueCode && (
-        <div
+        <img
+          src={watermarkSrc}
+          alt={watermarkLabel}
           aria-hidden
-          className="absolute top-4 right-6 z-0 animate-in fade-in zoom-in-95 duration-700 group"
-        >
-          <div className="relative">
-            <div
-              className="absolute inset-0 rounded-full blur-3xl opacity-60"
-              style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, transparent 70%)" }}
-            />
-            <img
-              src={watermarkSrc}
-              alt={watermarkLabel}
-              className="relative h-64 w-64 md:h-72 md:w-72 object-contain opacity-[0.18] transition-all duration-500 group-hover:scale-125 group-hover:opacity-35"
-              style={{ filter: "drop-shadow(0 8px 40px rgba(0,0,0,0.32))" }}
-            />
-          </div>
-        </div>
+          className="pointer-events-none absolute top-0 right-0 h-[28rem] w-[28rem] object-contain opacity-[0.06] blur-[1px] rotate-6 -translate-y-12 translate-x-12 select-none z-0"
+        />
       )}
 
       <StepIndicator step={3} />
