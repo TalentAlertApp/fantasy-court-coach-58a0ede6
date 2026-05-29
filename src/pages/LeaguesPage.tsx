@@ -536,7 +536,7 @@ export default function LeaguesPage() {
 
         <TabsContent value="mine" className="mt-4 space-y-4">
       {/* Filter bar — mirrors Discover (lives in tab content for consistent separator) */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-3 py-2">
         <div className="flex items-center gap-3 pl-1 pr-2">
           {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
             const active = mineSport === s;
@@ -764,7 +764,7 @@ function DiscoverPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-3 py-2">
         <div className="flex items-center gap-3 pl-1 pr-2">
           {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
             const active = sport === s;

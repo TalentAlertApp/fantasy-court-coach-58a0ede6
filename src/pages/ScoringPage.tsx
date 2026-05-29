@@ -33,7 +33,7 @@ import { HealthStatusIcon } from "@/components/health";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import AICoachModal from "@/components/AICoachModal";
 import LeagueLogoBadge from "@/components/LeagueLogoBadge";
-import { UnderlineTabsBar } from "@/components/layout/PageHeaderTabs";
+import { UnderlineTabsBar, PageHeaderCaption } from "@/components/layout/PageHeaderTabs";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import { supabase } from "@/integrations/supabase/client";
@@ -129,6 +129,7 @@ export default function ScoringPage() {
 
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto flex flex-col h-full min-h-0">
+      <PageHeaderCaption className="mb-2">Scoring · League &amp; Team</PageHeaderCaption>
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabValue)} className="flex-1 min-h-0 flex flex-col">
         {/* 3-col grid: league selector (left) · centered tab toggle · team selector (right) */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">

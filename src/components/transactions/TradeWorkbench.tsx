@@ -155,7 +155,7 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
   const gwCapHit = gwUsed >= gwCap;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+    <div className="border-b border-border bg-card/30 backdrop-blur-sm rounded-t-lg px-4 py-3 space-y-3">
       {/* ADD mode banner */}
       {addMode && typeof rosterSize === "number" && (
         <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-1.5 text-[11px] text-emerald-700 dark:text-emerald-400 font-heading uppercase tracking-wider flex items-center gap-2">

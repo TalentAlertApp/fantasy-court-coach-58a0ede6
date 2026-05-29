@@ -144,6 +144,12 @@ export default function TeamsPage() {
     { value: "stats", label: "Stats" },
   ];
 
+  const statsPlayerCount = (statsPlayers as any)?.items?.length ?? 0;
+  const contextWord =
+    tab === "stats"
+      ? `${statsPlayerCount} Players`
+      : `${teams.length} Teams`;
+
   return (
     <div className="flex flex-col h-full min-h-0 space-y-4">
       <div className="shrink-0 space-y-2">
@@ -159,6 +165,11 @@ export default function TeamsPage() {
           tabs={TABS.map((t) => ({ value: t.value, label: t.label }))}
           value={tab}
           onChange={(v) => setTab(v as Tab)}
+          left={
+            <span className="text-[10px] font-heading uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+              {contextWord}
+            </span>
+          }
           right={
             <>
               {tab === "standings" && !isEuroleague && (
