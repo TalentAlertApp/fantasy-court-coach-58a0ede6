@@ -216,6 +216,8 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
     { id: "cold", title: "Cold Snap", subtitle: "Bounce-back watch", icon: <Snowflake className="h-4 w-4 text-blue-400" />, columns: coldCols, rows: coldRows, tone: "blue" },
     { id: "movers-up", title: "Salary Risers", subtitle: "Biggest 7d ↑", icon: <TrendingUp className="h-4 w-4 text-emerald-500" />, columns: moversCols, rows: moversRisersRows, tone: "green" },
     { id: "movers-down", title: "Salary Drops", subtitle: "Biggest 7d ↓", icon: <TrendingDown className="h-4 w-4 text-destructive" />, columns: moversCols, rows: moversFallersRows, tone: "red" },
+    { id: "pt-up", title: "Increased Playing Time", subtitle: "MP ↑ last 7", icon: <TrendingUp className="h-4 w-4 text-emerald-500" />, columns: ptCols, rows: ptUpRows, tone: "green" },
+    { id: "pt-down", title: "Decreased Playing Time", subtitle: "MP ↓ last 7", icon: <TrendingDown className="h-4 w-4 text-destructive" />, columns: ptCols, rows: ptDownRows, tone: "red" },
   ];
 
   return (
@@ -266,8 +268,8 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          <TrendTable rows={ptData?.increased ?? []} type="increase" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
-          <TrendTable rows={ptData?.decreased ?? []} type="decrease" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+          <TrendTable rows={ptIncreased} type="increase" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+          <TrendTable rows={ptDecreased} type="decrease" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
         </div>
       )}
     </div>
