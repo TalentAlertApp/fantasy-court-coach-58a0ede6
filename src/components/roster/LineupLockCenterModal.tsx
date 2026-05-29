@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -14,6 +14,7 @@ import { useLeague } from "@/contexts/LeagueContext";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getTeamLogo } from "@/lib/nba-teams";
+import TeamModal from "@/components/TeamModal";
 import {
   normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel,
 } from "@/lib/health";
@@ -29,6 +30,8 @@ export interface LineupLockCenterModalProps {
   day: number;
   deadlineFormatted?: string | null;
   countdown?: string | null;
+  /** Raw deadline (ISO) used to derive urgency color thresholds. */
+  deadlineUtc?: string | null;
   rosterLocked?: boolean;
   starters: PlayerListItem[];
   bench: PlayerListItem[];
