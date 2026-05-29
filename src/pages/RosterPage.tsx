@@ -1057,6 +1057,7 @@ export default function RosterPage() {
             day={currentGameday.day}
             deadlineFormatted={deadlineFormatted}
             countdown={countdown}
+            deadlineUtc={currentGameday.deadline_utc}
             rosterLocked={deadlineStatus?.locked}
             starters={starters}
             bench={bench}
