@@ -69,7 +69,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
     queryFn: async () => {
       let pq = supabase
         .from("players")
-        .select("id, name, photo, fc_bc, salary, nationality, jersey")
+        .select("id, name, photo, fc_bc, salary, nationality, jersey, height")
         .eq("team", tricode!);
       if (leagueId) pq = pq.eq("league_id", leagueId);
       const { data: teamPlayers, error: pErr } = await pq;
