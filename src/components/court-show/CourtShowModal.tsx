@@ -12,6 +12,7 @@ import TeamModal from "@/components/TeamModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import type { MatchupGame, RecapGame } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 interface Props {
   open: boolean;
@@ -190,7 +191,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
             <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-2 text-white">
                 <Clapperboard className="h-4 w-4 text-amber-400" />
-                <span className="font-heading font-black text-xs uppercase tracking-wider">Daily Court Show</span>
+                <span className="font-heading font-black text-xs uppercase tracking-wider">{HOOPSFANTASY_NAME} Court Show</span>
                 <span className="text-white/40 text-xs">·</span>
                 <span className="text-xs text-white/70">GW {gw}.{day}</span>
               </div>

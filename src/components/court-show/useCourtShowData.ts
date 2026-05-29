@@ -203,7 +203,7 @@ export function useCourtShowData(gw: number, day: number) {
     // ── Intro ──────────────────────────────────────────────────────────
     slides.push({
       kind: "intro",
-      title: "Fantasy Court Daily",
+      title: "HoopsFantasy Court Daily",
       payload: {
         kind: "intro",
         data: {
