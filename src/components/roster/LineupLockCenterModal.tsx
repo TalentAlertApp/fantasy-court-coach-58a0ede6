@@ -3,8 +3,8 @@ import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   LockKeyhole, ShieldCheck, ShieldAlert, AlertTriangle, Crown, CalendarX,
-  Users, ArrowLeftRight, Zap, Clock, Bandage, CheckCircle2, Sparkles,
-  TrendingUp, Brain, CalendarDays, ChevronRight,
+  Users, ArrowLeftRight, Clock, Bandage, CheckCircle2, Sparkles,
+  TrendingUp, CalendarDays, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PlayerListItemSchema } from "@/lib/contracts";
