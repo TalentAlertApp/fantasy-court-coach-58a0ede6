@@ -121,7 +121,7 @@ export default function AuthPage() {
             </div>
           </div>
           <h1 className="relative text-3xl font-heading font-black uppercase tracking-[0.28em] leading-none">
-            <span className="bg-gradient-to-b from-white via-white to-white/70 bg-clip-text text-transparent drop-shadow-[0_2px_12px_hsl(var(--accent)/0.25)]">
+            <span className="bg-gradient-to-b from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent drop-shadow-[0_2px_12px_hsl(var(--accent)/0.25)]">
               Hoops
             </span>
             <span className="bg-gradient-to-b from-accent via-accent to-amber-500 bg-clip-text text-transparent drop-shadow-[0_2px_14px_hsl(var(--accent)/0.45)]">
