@@ -151,53 +151,46 @@ export default function TeamsPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0 space-y-4">
-      <div className="flex items-center gap-4 shrink-0">
-        <h1 className="text-xl font-heading font-bold uppercase tracking-wider">{headerTitle}</h1>
-        <div className="inline-flex bg-muted rounded-xl p-0.5 gap-0.5">
-          {TABS.map((t) => (
-            <button
-              key={t.value}
-              onClick={() => setTab(t.value)}
-              className={cn(
-                "px-3 py-1 text-xs font-heading uppercase rounded-xl transition-colors",
-                tab === t.value
-                  ? "bg-background text-foreground shadow-sm font-bold"
-                  : "text-muted-foreground hover:text-foreground"
+      <div className="shrink-0 space-y-2">
+        <PageHeaderCaption>
+          {(isEuroleague ? "EuroLeague" : league === "wnba" ? "WNBA" : "NBA")} · Teams Hub
+        </PageHeaderCaption>
+        <UnderlineTabsBarManual
+          tabs={TABS.map((t) => ({ value: t.value, label: t.label }))}
+          value={tab}
+          onChange={(v) => setTab(v as Tab)}
+          right={
+            <>
+              {tab === "standings" && !isEuroleague && (
+                <StandingsFilters view={standingsView} onChange={setStandingsView} />
               )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        {tab === "standings" && !isEuroleague && (
-          <div className="ml-2">
-            <StandingsFilters view={standingsView} onChange={setStandingsView} />
-          </div>
-        )}
-        {tab === "teams" && (() => {
-          const nextMode = sortMode === "winpct" ? "alpha" : "winpct";
-          const nextLabel = nextMode === "winpct" ? "Win %" : "A–Z";
-          const currentLabel = sortMode === "winpct" ? "Win %" : "A–Z";
-          return (
-            <button
-              type="button"
-              onClick={() => setSortMode(nextMode)}
-              aria-label={`Sort by ${nextLabel}`}
-              title={`Sorted by ${currentLabel} · click for ${nextLabel}`}
-              className="ml-auto group relative inline-flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110"
-            >
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300"
-              />
-              <span
-                aria-hidden
-                className="absolute inset-0 rounded-full ring-0 group-hover:ring-1 group-hover:ring-primary/30 transition-all duration-300"
-              />
-              <ArrowUpDown className="relative h-4 w-4 drop-shadow-[0_0_6px_hsl(var(--primary)/0.35)]" strokeWidth={2.25} />
-            </button>
-          );
-        })()}
+              {tab === "teams" && (() => {
+                const nextMode = sortMode === "winpct" ? "alpha" : "winpct";
+                const nextLabel = nextMode === "winpct" ? "Win %" : "A–Z";
+                const currentLabel = sortMode === "winpct" ? "Win %" : "A–Z";
+                return (
+                  <button
+                    type="button"
+                    onClick={() => setSortMode(nextMode)}
+                    aria-label={`Sort by ${nextLabel}`}
+                    title={`Sorted by ${currentLabel} · click for ${nextLabel}`}
+                    className="group relative inline-flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:text-primary transition-all duration-300 hover:scale-110"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 rounded-full bg-primary/0 group-hover:bg-primary/10 transition-colors duration-300"
+                    />
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 rounded-full ring-0 group-hover:ring-1 group-hover:ring-primary/30 transition-all duration-300"
+                    />
+                    <ArrowUpDown className="relative h-4 w-4 drop-shadow-[0_0_6px_hsl(var(--primary)/0.35)]" strokeWidth={2.25} />
+                  </button>
+                );
+              })()}
+            </>
+          }
+        />
       </div>
 
       {tab === "teams" && (
