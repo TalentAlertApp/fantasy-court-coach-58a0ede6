@@ -78,6 +78,28 @@ function scheduleClasses(label: string): string {
     default:               return "bg-muted text-muted-foreground border border-border";
   }
 }
+const RISK_FLAG_LABELS: Record<string, string> = {
+  no_game: "No game scheduled",
+  salary_inefficient: "Salary inefficient",
+  injury_risk: "Injury risk",
+  minutes_risk: "Minutes uncertain",
+  cold_streak: "Cold streak",
+  back_to_back: "Back-to-back",
+  low_usage: "Low usage",
+  blowout_risk: "Blowout risk",
+  inconsistent: "Inconsistent output",
+  foul_trouble: "Foul trouble prone",
+  load_management: "Load management",
+};
+function humanizeFlag(flag: string): string {
+  const key = (flag || "").toLowerCase().trim();
+  if (RISK_FLAG_LABELS[key]) return RISK_FLAG_LABELS[key];
+  return key
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam }: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void }) {
   const teamTricode = player?.core?.team;
@@ -219,8 +241,8 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
               {riskFlags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {riskFlags.slice(0, 4).map((f, i) => (
-                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-background/40 border border-current/30 font-mono lowercase">
-                      {f}
+                    <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-md bg-background/40 border border-current/30 font-heading font-semibold uppercase tracking-wide">
+                      {humanizeFlag(f)}
                     </span>
                   ))}
                 </div>
