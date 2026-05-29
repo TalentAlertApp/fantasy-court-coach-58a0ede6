@@ -1,12 +1,15 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { getLeagueLogo } from "@/lib/competitions";
-import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart } from "lucide-react";
+import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart, Film } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
 import FeedbackModal from "@/components/FeedbackModal";
 import SidebarPlayerSearch from "@/components/SidebarPlayerSearch";
 import PlayerModal from "@/components/PlayerModal";
 import SidebarNextLock from "@/components/layout/SidebarNextLock";
+import GameRecapsModal from "@/components/schedule/GameRecapsModal";
+import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
+import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { useState, useEffect } from "react";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
