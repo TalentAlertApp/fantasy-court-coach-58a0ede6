@@ -39,6 +39,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   const team = tricode ? (leagueTeams.find((t) => t.tricode === tricode) ?? null) : null;
   const euroleagueMeta = league === "euroleague" ? getEuroLeagueTeamRecord(tricode ?? undefined) : undefined;
   const getOppLogo = (tri: string) => leagueTeams.find((t) => t.tricode === tri)?.logo;
+  const { data: difficultyMap } = useTeamDifficultyMap();
   const watermarkLogo = getLeagueLogo(league);
   const [selectedPlayerId, setSelectedPlayerId] = useState<number | null>(null);
   const [rosterSort, setRosterSort] = useState<RosterSort>("fpg");
