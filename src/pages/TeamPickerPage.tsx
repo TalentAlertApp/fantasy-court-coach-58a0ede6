@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { getLeagueLogo } from "@/lib/competitions";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import { useEffect, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
