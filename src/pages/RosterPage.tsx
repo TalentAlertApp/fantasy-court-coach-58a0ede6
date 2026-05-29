@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { optimizeLineup, type OptimizerPlayer, type OptimizerResult } from "@/lib/optimizer";
 import { LayoutGrid, List, Zap, Clock, RotateCcw, Plus, RefreshCw, Heart, CalendarDays, X, Wand2, Sparkles, Star, Brain } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -46,6 +47,7 @@ import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
 import { getBallersIQInsights } from "@/lib/ballers-iq";
 import LineupAdvisorPanel from "@/components/ballers-iq/LineupAdvisorPanel";
+import LineupLockCenterModal from "@/components/roster/LineupLockCenterModal";
 import { playSfx } from "@/hooks/useSfx";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
