@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
+import PlayerModal from "@/components/PlayerModal";
+import TeamModal from "@/components/TeamModal";
 
 function getTeamFullName(tricode: string): string {
   const t = NBA_TEAMS.find((t) => t.tricode === tricode);
