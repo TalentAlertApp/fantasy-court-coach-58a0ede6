@@ -1524,6 +1524,7 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
       <GameDetailModal
         game={modalGame}
         open={modalGame !== null}
+        initialRecapOpen
         onOpenChange={(o) => !o && setModalGame(null)}
       />
     </div>
