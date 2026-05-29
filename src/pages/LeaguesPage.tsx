@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
 import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_EUROLEAGUE_ID, isMainLeague } from "@/hooks/useFantasyLeagues";
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import globeEarth from "@/assets/globe-earth.svg";
@@ -43,9 +44,9 @@ function deadlineLabel(t?: string | null): string {
 
 function StatusPill({ status }: { status: string }) {
   const tone =
-    status === "active" ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" :
-    status === "draft"  ? "bg-amber-500/15 text-amber-300 border-amber-500/30" :
-                          "bg-muted/40 text-muted-foreground border-border";
+    status === "active" ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40" :
+    status === "draft"  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40" :
+                          "bg-muted/60 text-foreground/70 border-border";
   const label = status === "draft" ? "open" : status;
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] ${tone}`}>
@@ -67,7 +68,9 @@ function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeam
   const logo = getLeagueLogo(league.sport);
   const chips = league.chipRules;
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
+    <div className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_40px_-12px_hsl(var(--accent)/0.35)]"
+      title={`${league.name} — ${league.sport.toUpperCase()} · ${league.memberCount} teams · ${league.status === "draft" ? "open" : league.status}`}>
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
       <img
         src={courtBg}
         alt=""
@@ -82,20 +85,20 @@ function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeam
         src={logo}
         alt=""
         aria-hidden
-        className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]"
+        className="pointer-events-none absolute -right-6 -top-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]"
       />
       {isMine && !isMain && (
-        <span className="absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-accent">
+        <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-accent">
           <Crown className="h-3 w-3" /> Commissioner
         </span>
       )}
       {isMain && (
-        <span className="absolute top-3 right-3 inline-flex items-center rounded-full border border-border bg-muted/30 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="absolute top-3 left-3 z-10 inline-flex items-center rounded-full border border-border bg-muted/60 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-foreground/70">
           Main · System
         </span>
       )}
 
-      <div className="relative z-10 space-y-3">
+      <div className="relative z-10 space-y-3 pt-6">
         <div>
           <h3 className="text-lg font-heading font-bold uppercase tracking-wider">{league.name}</h3>
           {league.description && (
@@ -108,39 +111,39 @@ function LeagueCard({ league, isMine, isMain, onOpen, onSettings, attachableTeam
             <Users className="h-3 w-3" /> {league.memberCount} teams · {league.myTeamCount} mine
           </Badge>
           <StatusPill status={league.status} />
-          <span className="inline-flex items-center rounded-full border border-border bg-background/40 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground">
-            {league.sport}
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background/40 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-foreground/70">
+            <LeagueLogoBadge league={league.sport} size="xs" /> {league.sport}
           </span>
         </div>
 
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Scoring</div>
-          <div className="text-xs font-mono text-foreground/90 truncate">{formulaString(league.scoringRules)}</div>
+          <div className="text-[10px] uppercase tracking-wider text-foreground/70 font-heading">Scoring</div>
+          <div className="text-[11px] font-mono text-foreground/90 truncate">{formulaString(league.scoringRules)}</div>
         </div>
 
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Deadline</div>
-          <span className="inline-flex items-center rounded-md border border-border bg-background/40 px-2 py-0.5 text-[10px]">
+          <div className="text-[10px] uppercase tracking-wider text-foreground/70 font-heading">Deadline</div>
+          <span className="inline-flex items-center rounded-md border border-border bg-background/40 px-2 py-0.5 text-[11px]">
             {deadlineLabel(league.deadlineRules?.deadline_type)}
           </span>
         </div>
 
         {chips && (
           <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Chips</div>
+            <div className="text-[10px] uppercase tracking-wider text-foreground/70 font-heading">Chips</div>
             <div className="flex flex-wrap gap-1">
               {chips.captain_enabled && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 px-2 py-0.5 text-[10px]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 text-[10px]">
                   👑 Captain {chips.captain_multiplier}×
                 </span>
               )}
               {chips.wildcard_enabled && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 px-2 py-0.5 text-[10px]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 border border-violet-500/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 text-[10px]">
                   🃏 Wildcard ×{chips.wildcard_count}
                 </span>
               )}
               {chips.all_star_enabled && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 text-[10px]">
+                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/40 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 text-[10px]">
                   ⭐ All-Star {chips.all_star_multiplier}×
                 </span>
               )}
@@ -625,7 +628,7 @@ export default function LeaguesPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+            <div className="rounded-2xl border border-border/70 bg-card overflow-hidden divide-y divide-border">
               {filteredMine.map((l) => (
                 <LeagueListRow
                   key={l.id}
@@ -858,7 +861,7 @@ function DiscoverPanel({
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border border-border bg-card overflow-hidden divide-y divide-border">
+            <div className="rounded-2xl border border-border/70 bg-card overflow-hidden divide-y divide-border">
               {accumulated.map((l) => (
                 <PublicLeagueListRow
                   key={l.id}
@@ -901,7 +904,9 @@ function PublicLeagueCard({
 }) {
   const logo = getLeagueLogo(league.sport);
   return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-accent/40 transition-colors">
+    <div className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-[0_12px_40px_-12px_hsl(var(--accent)/0.35)]"
+      title={`${league.name} — ${league.sport.toUpperCase()} · ${league.team_count} teams · ${league.status === "draft" ? "open" : league.status}`}>
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
       <img
         src={courtBg}
         alt=""
@@ -909,7 +914,7 @@ function PublicLeagueCard({
         className="pointer-events-none absolute inset-0 w-full h-full object-cover opacity-[0.10] select-none"
       />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-card/95 via-card/85 to-card/95" />
-      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -bottom-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]" />
+      <img src={logo} alt="" aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-32 w-auto opacity-[0.12] rotate-12 select-none blur-[0.5px]" />
       <div className="relative z-10 space-y-3">
         <div>
           <h3 className="text-lg font-heading font-bold uppercase tracking-wider">{league.name}</h3>
@@ -922,34 +927,34 @@ function PublicLeagueCard({
             <Users className="h-3 w-3" /> {league.team_count} teams
           </Badge>
           <StatusPill status={league.status} />
-          <span className="inline-flex items-center rounded-full border border-border bg-background/40 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-muted-foreground">
-            {league.sport}
+          <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background/40 px-2 py-0.5 text-[9px] font-heading uppercase tracking-[0.18em] text-foreground/70">
+            <LeagueLogoBadge league={league.sport} size="xs" /> {league.sport}
           </span>
         </div>
         <div className="space-y-1.5">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Scoring</div>
-          <div className="text-xs font-mono text-foreground/90 truncate">{league.scoring_formula_short}</div>
+          <div className="text-[10px] uppercase tracking-wider text-foreground/70 font-heading">Scoring</div>
+          <div className="text-[11px] font-mono text-foreground/90 truncate">{league.scoring_formula_short}</div>
         </div>
         {league.deadline_type && (
           <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Deadline</div>
-            <span className="inline-flex items-center rounded-md border border-border bg-background/40 px-2 py-0.5 text-[10px]">
+            <div className="text-[10px] uppercase tracking-wider text-foreground/70 font-heading">Deadline</div>
+            <span className="inline-flex items-center rounded-md border border-border bg-background/40 px-2 py-0.5 text-[11px]">
               {league.deadline_type.replace(/_/g, " ")}
             </span>
           </div>
         )}
         {league.chips_enabled.length > 0 && (
           <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-heading">Chips</div>
+            <div className="text-[10px] uppercase tracking-wider text-foreground/70 font-heading">Chips</div>
             <div className="flex flex-wrap gap-1">
               {league.chips_enabled.includes("captain") && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 px-2 py-0.5 text-[10px]">👑 Captain</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 text-[10px]">👑 Captain</span>
               )}
               {league.chips_enabled.includes("wildcard") && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 px-2 py-0.5 text-[10px]">🃏 Wildcard</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 border border-violet-500/40 text-violet-700 dark:text-violet-300 px-2 py-0.5 text-[10px]">🃏 Wildcard</span>
               )}
               {league.chips_enabled.includes("all_star") && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 px-2 py-0.5 text-[10px]">⭐ All-Star</span>
+                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/40 text-cyan-700 dark:text-cyan-300 px-2 py-0.5 text-[10px]">⭐ All-Star</span>
               )}
             </div>
           </div>
@@ -982,7 +987,11 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
 }) {
   const logo = getLeagueLogo(league.sport);
   return (
-    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+    <div
+      className="group relative overflow-hidden flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/10"
+      title={`${league.name} — ${league.sport.toUpperCase()} · ${league.memberCount} teams · ${league.myTeamCount} mine · ${league.status === "draft" ? "open" : league.status}`}
+    >
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-0.5 bg-accent opacity-0 transition-opacity group-hover:opacity-100" />
       <img
         src={courtBg}
         alt=""
@@ -1008,7 +1017,7 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
               <span className="text-[8.5px] font-heading uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-full px-1.5">Main</span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+          <div className="flex items-center gap-2 text-[11px] text-foreground/70 font-heading uppercase tracking-wider mt-0.5">
             <span>{league.sport}</span>
             <span>·</span>
             <span>{league.memberCount} teams</span>
@@ -1018,7 +1027,7 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
           </div>
         </div>
       </div>
-      <div className="relative z-10 flex items-center gap-2 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
         <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
           <LayoutDashboard className="h-3.5 w-3.5" />
         </button>
@@ -1078,7 +1087,11 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
 }) {
   const logo = getLeagueLogo(league.sport);
   return (
-    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+    <div
+      className="group relative overflow-hidden flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/10"
+      title={`${league.name} — ${league.sport.toUpperCase()} · ${league.team_count} teams · ${league.status === "draft" ? "open" : league.status}`}
+    >
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-0.5 bg-accent opacity-0 transition-opacity group-hover:opacity-100" />
       <img
         src={courtBg}
         alt=""
@@ -1096,7 +1109,7 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
         <img src={logo} alt="" className="h-6 w-6 object-contain shrink-0" />
         <div className="min-w-0 flex-1">
           <h3 className="text-sm font-heading font-bold uppercase tracking-wider truncate">{league.name}</h3>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+          <div className="flex items-center gap-2 text-[11px] text-foreground/70 font-heading uppercase tracking-wider mt-0.5">
             <span>{league.sport}</span>
             <span>·</span>
             <span>{league.team_count} teams</span>
@@ -1104,7 +1117,7 @@ function PublicLeagueListRow({ league, isMember, joining, onJoin, onOpen }: {
           </div>
         </div>
       </div>
-      <div className="relative z-10 flex items-center gap-2 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
         {isMember ? (
           <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
             <LayoutDashboard className="h-3.5 w-3.5" />
