@@ -167,9 +167,15 @@ export default function BallersIQMarketWatch({
             <span className="ml-auto text-[10px] font-mono text-emerald-300">+{data.bestSwap.fpDelta.toFixed(1)} FP5</span>
           </div>
           <div className="text-[11px] flex items-center gap-1.5 flex-wrap">
-            <button onClick={() => onPickPlayer?.(data.bestSwap!.out.id)} className="text-destructive font-medium hover:underline">↓ {data.bestSwap.out.name}</button>
+            <PlayerChip
+              name={data.bestSwap.out.name} photo={data.bestSwap.out.photo} team={data.bestSwap.out.team}
+              prefix="↓" nameClass="text-destructive" onClick={() => onPickPlayer?.(data.bestSwap!.out.id)}
+            />
             <span className="text-muted-foreground">→</span>
-            <button onClick={() => onPickPlayer?.(data.bestSwap!.in.id)} className="text-emerald-400 font-medium hover:underline">↑ {data.bestSwap.in.name}</button>
+            <PlayerChip
+              name={data.bestSwap.in.name} photo={data.bestSwap.in.photo} team={data.bestSwap.in.team}
+              prefix="↑" nameClass="text-emerald-400" onClick={() => onPickPlayer?.(data.bestSwap!.in.id)}
+            />
             <span className="text-muted-foreground text-[10px]">${num(data.bestSwap.in.salary).toFixed(1)}M</span>
           </div>
         </div>
