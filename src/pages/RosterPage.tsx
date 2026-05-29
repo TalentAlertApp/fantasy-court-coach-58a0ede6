@@ -13,6 +13,7 @@ import { PlayerListItemSchema } from "@/lib/contracts";
 import { getCurrentGameday, getGamedaysRemaining, formatDeadline } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { useLeague } from "@/contexts/LeagueContext";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import RosterCourtView from "@/components/RosterCourtView";
 import RosterListView from "@/components/RosterListView";
 import RosterSidebar from "@/components/RosterSidebar";
@@ -878,9 +879,16 @@ export default function RosterPage() {
       </div>
 
       {isBootstrapping ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-5 gap-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
-          <Skeleton className="h-64" />
+        <div className="relative space-y-4">
+          <img
+            src={getHoopsFantasyLogo(league)}
+            alt=""
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 object-contain opacity-[0.05] blur-[1px] select-none"
+            draggable={false}
+          />
+          <div className="relative grid grid-cols-5 gap-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16" />)}</div>
+          <Skeleton className="relative h-64" />
         </div>
       ) : isRosterErrored ? (
         <div className="flex-1 flex items-center justify-center p-6">

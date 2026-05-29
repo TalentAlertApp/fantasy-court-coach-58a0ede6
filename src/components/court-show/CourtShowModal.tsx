@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Pause, Play, X, Clapperboard, Volume2, VolumeX, Maximize2, Minimize2, Gauge } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, X, Volume2, VolumeX, Maximize2, Minimize2, Gauge } from "lucide-react";
 import { useCourtShowData } from "./useCourtShowData";
 import CourtShowSlide from "./CourtShowSlide";
 import { useCourtShowAudio } from "./useCourtShowAudio";
@@ -12,7 +12,7 @@ import TeamModal from "@/components/TeamModal";
 import GameDetailModal, { type GameDetailGame } from "@/components/GameDetailModal";
 import type { MatchupGame, RecapGame } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
+import { HOOPSFANTASY_NAME, getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 interface Props {
   open: boolean;
@@ -190,7 +190,13 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
             {/* Top bar */}
             <div className="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-2.5 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-2 text-white">
-                <Clapperboard className="h-4 w-4 text-amber-400" />
+                <img
+                  src={getHoopsFantasyLogo(league)}
+                  alt=""
+                  aria-hidden
+                  className="h-5 w-5 object-contain select-none"
+                  draggable={false}
+                />
                 <span className="font-heading font-black text-xs uppercase tracking-wider">{HOOPSFANTASY_NAME} Court Show</span>
                 <span className="text-white/40 text-xs">·</span>
                 <span className="text-xs text-white/70">GW {gw}.{day}</span>

@@ -1,5 +1,4 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { getLeagueLogo } from "@/lib/competitions";
 import { ClipboardList, ArrowLeftRight, Calendar, Shield, Shirt, Gauge, Sun, Moon, ChevronLeft, ChevronRight, Activity, LogOut, Swords, Search, MessageSquareHeart, Film } from "lucide-react";
 import TeamSwitcher from "@/components/TeamSwitcher";
 import HowToPlayModal from "@/components/HowToPlayModal";
@@ -18,7 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
+import { HOOPSFANTASY_NAME, getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 
 function NavTooltip({
   collapsed,
@@ -57,7 +56,7 @@ const navItems = [
 
 export default function AppLayout() {
   const { user, signOut } = useAuth();
-  const { isWnba, league } = useLeague();
+  const { league } = useLeague();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
@@ -157,9 +156,11 @@ export default function AppLayout() {
           )}
           {collapsed && (
             <img
-              src={getLeagueLogo(league)}
-              alt={isWnba ? "WNBA" : "NBA"}
-              className="h-8 w-auto flex-shrink-0 relative z-10"
+              src={getHoopsFantasyLogo(league)}
+              alt={HOOPSFANTASY_NAME}
+              title={HOOPSFANTASY_NAME}
+              className="h-9 w-9 object-contain flex-shrink-0 relative z-10 select-none"
+              draggable={false}
             />
           )}
         </div>

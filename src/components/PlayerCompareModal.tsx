@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getLeagueLogo } from "@/lib/competitions";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
@@ -32,7 +32,7 @@ export default function PlayerCompareModal({ open, onOpenChange, playerA }: Play
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const { league } = useLeague();
-  const watermarkLogo = getLeagueLogo(league);
+  const watermarkLogo = getHoopsFantasyLogo(league);
 
   const { data: searchResults } = useQuery({
     queryKey: ["compare-search", search],
