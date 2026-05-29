@@ -721,17 +721,6 @@ function RosterRow({ p, slot, status, g, logoFor }: {
   );
 }
 
-function GameLogos({ g, logoFor }: { g: UpcomingGame; logoFor: (t: string) => string | undefined }) {
-  const a = logoFor(g.awayTeam ?? "");
-  const h = logoFor(g.homeTeam ?? "");
-  return (
-    <div className="flex items-center -space-x-1 shrink-0">
-      {a ? <img src={a} alt="" className="h-5 w-5 object-contain" /> : <span className="h-5 w-5" />}
-      {h ? <img src={h} alt="" className="h-5 w-5 object-contain" /> : <span className="h-5 w-5" />}
-    </div>
-  );
-}
-
 function ImpactRow({ label, value, tone, emphasize }: {
   label: string; value: string; tone: "neutral" | "good" | "bad"; emphasize?: boolean;
 }) {
