@@ -1258,7 +1258,7 @@ export default function CourtShowSlide({ slide, onPlayerClick, onTeamClick, onGa
       )}
 
       {/* header */}
-      <div className="relative z-[1] px-8 pt-6 pb-3 shrink-0">
+      <div className="relative z-[1] px-8 pt-14 pb-3 shrink-0">
         <h2 className="font-heading font-black text-2xl md:text-3xl text-white leading-tight">{slide.title}</h2>
         {slide.subtitle && <p className="text-xs md:text-sm text-white/60 mt-1">{slide.subtitle}</p>}
       </div>
