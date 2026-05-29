@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { FantasyLeague, ScoringRule } from "@/hooks/useFantasyLeagues";
 import { MAIN_LEAGUE_ID, MAIN_LEAGUE_NBA_ID, MAIN_LEAGUE_WNBA_ID, MAIN_LEAGUE_EUROLEAGUE_ID, isMainLeague } from "@/hooks/useFantasyLeagues";
 import { usePublicLeagues, type PublicLeague } from "@/hooks/usePublicLeagues";
+import LeagueLogoBadge from "@/components/LeagueLogoBadge";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 import globeEarth from "@/assets/globe-earth.svg";
