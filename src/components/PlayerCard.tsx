@@ -145,7 +145,19 @@ export default function PlayerCard({
           isOut ? "ring-1 ring-red-500/40" : isRisky ? "ring-1 ring-amber-400/30" : ""
         }`}
       >
-        {isCaptain && <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>}
+        {isCaptain && (
+          onSetCaptain ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+              className="absolute top-0 right-1 text-xs z-10 leading-none hover:opacity-70 transition-opacity"
+              title="Captain — click to remove"
+            >
+              ⭐
+            </button>
+          ) : (
+            <span className="absolute top-0 right-1 text-xs z-10" title="Captain">⭐</span>
+          )
+        )}
         {onSetCaptain && !isCaptain && (
           <button
             onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
@@ -251,9 +263,19 @@ export default function PlayerCard({
       {/* Top-center action cluster — Captain (left) + Swap (right) for consistent UX */}
       <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5">
         {isCaptain ? (
-          <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-[hsl(var(--nba-yellow))] text-black shadow-lg text-base leading-none" title="Captain">
-            ⭐
-          </span>
+          onSetCaptain ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
+              className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-[hsl(var(--nba-yellow))] text-black shadow-lg text-base leading-none hover:opacity-80 transition-opacity"
+              title="Captain — click to remove"
+            >
+              ⭐
+            </button>
+          ) : (
+            <span className="inline-flex items-center justify-center h-7 w-7 rounded-full bg-[hsl(var(--nba-yellow))] text-black shadow-lg text-base leading-none" title="Captain">
+              ⭐
+            </span>
+          )
         ) : onSetCaptain ? (
           <button
             onClick={(e) => { e.stopPropagation(); onSetCaptain(); }}
