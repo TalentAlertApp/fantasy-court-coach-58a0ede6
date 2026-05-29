@@ -539,9 +539,10 @@ export default function LeaguesPage() {
             </Button>
           </div>
       </div>
+      </div>
 
-      {/* Filter bar — mirrors Discover (sticky, Mine tab only) */}
-      {tab === "mine" && (
+        <TabsContent value="mine" className="mt-4 space-y-4">
+      {/* Filter bar — mirrors Discover (lives in tab content for consistent separator) */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
         <div className="flex items-center gap-3 pl-1 pr-2">
           {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
@@ -608,10 +609,6 @@ export default function LeaguesPage() {
           </SelectContent>
         </Select>
       </div>
-      )}
-      </div>
-
-        <TabsContent value="mine" className="mt-4">
       <div className="flex items-center justify-end -mt-1 mb-2">
         <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-muted-foreground">
           {filteredMineCount} {filteredMineCount === 1 ? "league" : "leagues"}
