@@ -112,6 +112,7 @@ export default function RosterPage() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [lineupLockOpen, setLineupLockOpen] = useState(false);
   const [gameDetail, setGameDetail] = useState<GameDetailGame | null>(null);
 
   const openGameFromSlot = useCallback((g: UpcomingGame) => {
