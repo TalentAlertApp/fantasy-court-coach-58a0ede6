@@ -567,6 +567,7 @@ export default function MarketWatchStudio({
         rosterPlayers={pools.rosterPlayers}
         bankRemaining={pools.bank}
         todayTeams={pools.todayTeams}
+        className="sticky bottom-0 z-20"
         onPickPlayer={(id) => {
           const p = getPlayer(id);
           if (p) onOpenPlayer?.(p);
