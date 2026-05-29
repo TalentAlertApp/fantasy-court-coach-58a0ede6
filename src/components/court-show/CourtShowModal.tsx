@@ -307,7 +307,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
 
       <PlayerModal playerId={openPlayerId} open={openPlayerId !== null} onOpenChange={(o) => !o && setOpenPlayerId(null)} />
       <TeamModal tricode={openTri} open={openTri !== null} onOpenChange={(o) => !o && setOpenTri(null)} />
-      <GameDetailModal game={openGame} open={openGame !== null} onOpenChange={(o) => !o && setOpenGame(null)} />
+      <GameDetailModal game={openGame} open={openGame !== null} initialRecapOpen={openGameRecap} onOpenChange={(o) => { if (!o) { setOpenGame(null); setOpenGameRecap(false); } }} />
     </>
   );
 }
