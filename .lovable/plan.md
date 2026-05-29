@@ -1,54 +1,28 @@
 ## Goal
+Make the **Game Recaps** modal video play as smoothly as the other 3 contexts (ScheduleList, CourtShowSlide, GameDetailModal), with no visible UI change.
 
-Eliminate the Game dropdown in the Game Recaps modal. Instead, render all available games for the selected GW + Day directly inside the court placeholder (the empty state area). Clicking a row loads that recap into the existing video + box scores + form rail layout (which stays unchanged).
+## Root cause (verified by cross-context comparison)
+The recap iframe in `GameRecapsModal.tsx` is a descendant of an element with `backdrop-blur-md` (the modal root, line 206). An actively-playing iframe inside a `backdrop-filter` subtree triggers a known Chromium compositing bug → continuous repaint = the "permanent glitch."
 
-## Changes — `src/components/schedule/GameRecapsModal.tsx`
+None of the 3 working contexts have a `backdrop-filter` ancestor over their iframe:
+- ScheduleList: in-page, no blur ancestor
+- CourtShowSlide: inside `CourtShowModal` whose content is `bg-black` (no blur)
+- GameDetailModal: blur only on tiny pill badges, never over the iframe
 
-### 1. Top selector bar (single row, re-centered)
+The embed URL is identical to GameDetailModal (default `autoplay` options), so the URL is not the problem.
 
-New grid: `[auto_1fr_auto]` where:
+## Fix
+1. **Remove `backdrop-blur-md` from the modal root** in `src/components/schedule/GameRecapsModal.tsx` (line 206 inner wrapper). The element behind it is the opaque Radix `DialogContent` (`bg-background`) plus the modal's own radial gradient and venue image, so the frosted blur is not actually visible — removing it is a zero-impact visual change but eliminates the backdrop-filter ancestor over the iframe.
+2. **Keep the GPU-isolated video wrapper** already added (`transform-gpu isolate z-10` + `backface-visibility:hidden`) so the iframe sits on its own composited layer, matching the robust `GameDetailModal` pattern. (Belt-and-suspenders; harmless.)
 
-- **Left**: `GAMEDAY · <Date>` label (unchanged styling, stays where the design uses left slot).
-- **Center (justify-self-center)**: a single inline cluster containing, in order:
-  1. `<` prev gameday chevron
-  2. GW select
-  3. Day select
-  4. Calendar icon popover (unchanged behavior)
-  5. `>` next gameday chevron
-  6. The green `N RECAPS` pill — moved here, inline immediately after the calendar
-- **Right (justify-self-end)**: BallersIQ button only.
+## What stays exactly the same
+- Autoplay behavior (unchanged embed URL/options).
+- Layout, grid, side panels, fallback "Recap not yet available" UI.
+- All other `backdrop-blur-sm` usages on sibling pills/panels (not ancestors of the iframe) remain untouched.
 
-Remove the entire `Game` label chip and the `GameRowPopover` from the top bar.
+## Verification
+- Confirm the chain from modal root → iframe contains no remaining `backdrop-filter` after the change.
+- Build check (auto), then visually confirm in the preview that the recap plays with a natural flow and the modal still looks identical.
 
-### 2. Court placeholder becomes a game picker
-
-When `selectedGame` is null:
-
-- Keep the existing `EmptyState` court visual (court background, amber glow, title).
-- Inside it, render the list of `playedGames` (and "no recaps" message when empty) using the **exact same row layout** that the dropdown currently uses — same `GAME_ROW_GRID`, same `TeamWatermark` watermark logos with surge-on-hover, same winner bolding, same `@` alignment.
-- Each row is a clickable button. Clicking sets `selectedGameId` → existing flow loads video + box scores.
-- Cap visible rows to fit the court area, scroll inside if more.
-- Title copy changes to "Pick a game to tip off" with a short subtitle: "N recaps available for <Date>".
-
-When `selectedGame` is set:
-
-- The whole 3-column layout (away box / video / home box) renders exactly as today — unchanged.
-- The selected game's matchup (score + teams + @, same row layout) is rendered as a small centered header **above** the 3-column grid, right under the top bar, so the user always sees what they picked. A "Change game" affordance reopens the picker (sets `selectedGameId` to null).
-
-### 3. Component extraction
-
-Extract the row markup currently inside `GameRowPopover` into a small `GameRow` component used by both the inline list and the selected-game header. Keep `GAME_ROW_GRID` and `TeamWatermark` exactly as they are.
-
-Delete `GameRowPopover` and its `gameOpen` / `setGameOpen` state.
-
-## Out of scope (unchanged)
-
-- Video iframe, both `GameBoxScoreTable` panels, `GameTeamsFormRail`, `GameActionLinks`, `GameDetailModal`, BallersIQ side panel logic, calendar disabled-date logic, deadlines/week-games hooks.
-- The Advanced › Play Search › By Game selector.
-
-## Technical notes
-
-- Reuse `GAME_ROW_GRID` and `TeamWatermark` verbatim so the inline list, the selected header, and the previous dropdown rows stay visually identical.
-- The inline list lives inside the existing `EmptyState` container; swap its description paragraph for the scrollable rows. Keep court background + amber glow.
-- The selected-game mini header uses the same row but with `aria-current` styling (subtle amber tint) and a small "change" ghost button on the right that clears `selectedGameId`.
-- No changes to data fetching or props.
+## Technical detail
+Only one file changes: `src/components/schedule/GameRecapsModal.tsx`. The single substantive edit is dropping `backdrop-blur-md` from the inner root `div`; the GPU-isolation classes on the video wrapper are already in place from the prior pass.

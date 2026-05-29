@@ -202,8 +202,11 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
           <DialogTitle>Game Recaps</DialogTitle>
         </DialogHeader>
 
-        {/* Modal background: amber radial fallback */}
-        <div className="relative flex h-full flex-col overflow-hidden text-foreground bg-[radial-gradient(ellipse_at_top,hsl(30_55%_24%/0.65),hsl(25_42%_15%)_72%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%),rgba(0,0,0,0.7)] backdrop-blur-md">
+        {/* Modal background: amber radial fallback.
+            NOTE: no `backdrop-filter` here — an actively playing iframe inside a
+            backdrop-filter subtree triggers continuous repaint glitches in Chromium.
+            The background behind this layer is opaque, so the blur was not visible. */}
+        <div className="relative flex h-full flex-col overflow-hidden text-foreground bg-[radial-gradient(ellipse_at_top,hsl(30_55%_24%/0.65),hsl(25_42%_15%)_72%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(252,211,77,0.10),transparent_60%),rgba(0,0,0,0.7)]">
           {/* Full-modal venue background (below header), fades in on select */}
           {venue?.image && (
             <>
