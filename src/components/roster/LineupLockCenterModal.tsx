@@ -744,21 +744,6 @@ function TransferIdea({ tag, title, sub, tone }: { tag: string; title: string; s
   );
 }
 
-function QuickAction({ icon, label, onClick }: { icon: ReactNode; label: string; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      disabled={!onClick}
-      onClick={onClick}
-      className="w-full inline-flex items-center gap-2 rounded-lg border border-amber-400/20 bg-black/30 px-3 py-2 text-[11px] font-heading font-bold uppercase tracking-wider text-white/80 transition-all hover:bg-amber-400/10 hover:text-amber-200 hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
-    >
-      <span className="text-amber-300">{icon}</span>
-      {label}
-      <ChevronRight className="h-3 w-3 ml-auto opacity-50" />
-    </button>
-  );
-}
-
 function EmptyState({ icon, text }: { icon: ReactNode; text: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
