@@ -56,8 +56,20 @@ export function useLeagueTeams(): { league: CompetitionCode; teams: LeagueTeam[]
   }, [euroleagueRows]);
 
   const euroleagueTeams = useMemo<LeagueTeam[]>(() => {
+    // Resolve each club's synced metadata directly from the fetched rows.
+    // Reading from the module-level registry here would race the useEffect
+    // that populates it (effects run after render commits), leaving every
+    // logo stuck on the static EuroLeague crest fallback.
+    const byCode = new Map<string, EuroLeagueTeamRecord>();
+    const byName = new Map<string, EuroLeagueTeamRecord>();
+    for (const r of euroleagueRows ?? []) {
+      if (r.team_code) byCode.set(r.team_code.toUpperCase(), r);
+      if (r.name) byName.set(r.name.toLowerCase(), r);
+      if (r.short_name) byName.set(r.short_name.toLowerCase(), r);
+    }
     return EUROLEAGUE_TEAMS.map((t) => {
-      const synced = getEuroLeagueTeamRecord(t.tricode) ?? getEuroLeagueTeamRecord(t.name);
+      const synced =
+        byCode.get(t.tricode.toUpperCase()) ?? byName.get(t.name.toLowerCase());
       return {
         id: t.id,
         name: synced?.name ?? t.name,
