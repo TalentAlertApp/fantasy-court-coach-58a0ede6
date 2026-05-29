@@ -12,6 +12,7 @@ import wnbaLogo from "@/assets/wnba-logo.png";
 import euroleagueLogo from "@/assets/euroleague-logo.png";
 import TeamLeagueChips from "@/components/TeamLeagueChips";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 export default function TeamPickerPage() {
   const navigate = useNavigate();
@@ -92,7 +93,7 @@ export default function TeamPickerPage() {
         <img src={nbaLogo} alt="NBA" className="h-8 w-auto" />
         <img src={euroleagueLogo} alt="EuroLeague" className="h-8 w-auto object-contain" />
         <span className="text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
-          Fantasy
+          {HOOPSFANTASY_NAME}
         </span>
       </div>
 
