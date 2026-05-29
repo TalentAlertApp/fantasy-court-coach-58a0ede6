@@ -753,13 +753,19 @@ function ImpactRow({ label, value, tone, emphasize }: {
   );
 }
 
-function TransferIdea({ tag, title, sub, tone }: { tag: string; title: string; sub: string; tone: "good" | "neutral" | "bad" }) {
+function TransferIdea({ tag, title, sub, tone, p, logoFor }: {
+  tag: string; title: string; sub: string; tone: "good" | "neutral" | "bad";
+  p?: any; logoFor?: (t: string) => string | undefined;
+}) {
   const tagCls = tone === "good" ? "text-emerald-300 bg-emerald-400/10" : tone === "bad" ? "text-red-300 bg-red-500/10" : "text-amber-300 bg-amber-400/10";
   return (
-    <div className="rounded-lg border border-amber-400/15 bg-black/25 p-2">
-      <span className={cn("inline-block text-[8px] font-heading font-bold uppercase tracking-[0.18em] px-1.5 py-0.5 rounded mb-1", tagCls)}>{tag}</span>
-      <div className="font-heading font-bold text-[11px] text-white truncate">{title}</div>
-      <div className="text-[10px] text-white/50">{sub}</div>
+    <div className="rounded-lg border border-amber-400/15 bg-black/25 p-2 flex items-center gap-2">
+      {p && logoFor && <div className="shrink-0"><PlayerAvatar p={p} logoFor={logoFor} size="sm" /></div>}
+      <div className="min-w-0 flex-1">
+        <span className={cn("inline-block text-[8px] font-heading font-bold uppercase tracking-[0.18em] px-1.5 py-0.5 rounded mb-0.5", tagCls)}>{tag}</span>
+        <div className="font-heading font-bold text-[11px] text-white truncate">{title}</div>
+        <div className="text-[10px] text-white/50 truncate">{sub}</div>
+      </div>
     </div>
   );
 }
