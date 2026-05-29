@@ -151,9 +151,10 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
     });
   };
 
-  const handleGameClick = (g: RecapGame | MatchupGame) => {
+  const handleGameClick = (g: RecapGame | MatchupGame, opts?: { openRecap?: boolean }) => {
     const full = games.find((x: any) => x.game_id === g.game_id);
     if (full) {
+      setOpenGameRecap(!!opts?.openRecap);
       setOpenGame({
         game_id: full.game_id,
         home_team: full.home_team,
