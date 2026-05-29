@@ -387,7 +387,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           {diff?.label && (
                             <span
                               className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider"
-                              style={{ color: diffColor, borderColor: diffColor, backgroundColor: `${diffColor.replace(")", " / 0.12)").replace("hsl(", "hsl(")}` }}
+                              style={{ color: diffColor, borderColor: diffColor }}
                               title={`Matchup difficulty: ${diff.label}`}
                             >
                               {diff.label}
