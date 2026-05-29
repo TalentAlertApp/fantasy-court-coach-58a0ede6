@@ -13,6 +13,7 @@ import { getCourtFormation } from "@/lib/court-layout";
 import { useLeague } from "@/contexts/LeagueContext";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
+import LogoSplash from "@/components/brand/LogoSplash";
 
 function formatShortName(fullName: string): string {
   const parts = fullName.trim().split(/\s+/);
@@ -139,6 +140,7 @@ export default function TeamOfTheWeekModal({ open, onOpenChange, gw }: TeamOfThe
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl">
+          <LogoSplash open={open} league={league} />
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wider">
               <img src={getHoopsFantasyLogo(league)} alt="HoopsFantasy" className="h-5 w-5 object-contain" />

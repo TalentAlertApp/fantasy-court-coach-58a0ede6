@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getLeagueLogo } from "@/lib/competitions";
 import { useNavigate } from "react-router-dom";
+import { useLeague } from "@/contexts/LeagueContext";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import { Swords, Plus, KeyRound, Crown, LayoutDashboard, Settings as SettingsIcon, UserPlus, Users, Loader2, AlertCircle, CheckCircle2, Search, Globe, LayoutGrid, List as ListIcon, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -249,6 +251,7 @@ function CopyCodeButton({ code, compact }: { code: string; compact?: boolean }) 
 export default function LeaguesPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { league: activeLeague } = useLeague();
   const { fantasyLeagues, setSelectedLeagueId, isLoading } = useFantasyLeague();
   const { teams: userTeams, selectedTeamId } = useTeam();
   const qc = useQueryClient();
@@ -428,10 +431,10 @@ export default function LeaguesPage() {
   const myLeagueIds = useMemo(() => new Set(fantasyLeagues.map((l) => l.id)), [fantasyLeagues]);
 
   return (
-    <div className="px-6 pb-5 max-w-[1400px] mx-auto">
+    <div className="pb-5 max-w-[1400px] mx-auto">
       <Tabs value={tab} onValueChange={(v) => setTab(v as "mine" | "discover")} className="w-full">
       {/* Sticky top region: header + tabs toggle + filters stay pinned while scrolling */}
-      <div className="sticky top-0 z-30 -mx-6 px-6 pt-5 pb-3 bg-background/95 backdrop-blur-md border-b border-border/50 space-y-4">
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-0 pb-3 bg-background/95 backdrop-blur-md border-b border-border/50 space-y-4">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
         <Swords
@@ -451,8 +454,8 @@ export default function LeaguesPage() {
           <div className="flex items-center gap-2">
             <Dialog open={joinOpen} onOpenChange={(v) => { setJoinOpen(v); if (!v) { setJoinError(null); setJoinCode(""); } }}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="font-heading uppercase tracking-wider text-[10px]">
-                  <KeyRound className="h-3.5 w-3.5 mr-1" /> Join with code
+                <Button variant="outline" className="h-11 px-6 font-heading uppercase tracking-wider text-[11px]">
+                  <KeyRound className="h-4 w-4 mr-1.5" /> Join with code
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -489,8 +492,17 @@ export default function LeaguesPage() {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-            <Button size="sm" onClick={() => navigate("/leagues/create")} className="font-heading uppercase tracking-wider text-[10px]">
-              <Plus className="h-3.5 w-3.5 mr-1" /> Create League
+            <Button
+              onClick={() => navigate("/leagues/create")}
+              className="group relative h-11 pl-6 pr-12 overflow-hidden font-heading uppercase tracking-wider text-[11px]"
+            >
+              <Plus className="h-4 w-4 mr-1.5" /> Create League
+              <img
+                src={getHoopsFantasyLogo(activeLeague)}
+                alt=""
+                aria-hidden
+                className="pointer-events-none absolute -right-1 top-1/2 -translate-y-1/2 h-9 w-9 object-contain opacity-30 transition-all duration-300 group-hover:scale-125 group-hover:opacity-60 select-none"
+              />
             </Button>
           </div>
         </div>
@@ -527,9 +539,10 @@ export default function LeaguesPage() {
             </Button>
           </div>
       </div>
+      </div>
 
-      {/* Filter bar — mirrors Discover (sticky, Mine tab only) */}
-      {tab === "mine" && (
+        <TabsContent value="mine" className="mt-4 space-y-4">
+      {/* Filter bar — mirrors Discover (lives in tab content for consistent separator) */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
         <div className="flex items-center gap-3 pl-1 pr-2">
           {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
@@ -596,10 +609,6 @@ export default function LeaguesPage() {
           </SelectContent>
         </Select>
       </div>
-      )}
-      </div>
-
-        <TabsContent value="mine" className="mt-4">
       <div className="flex items-center justify-end -mt-1 mb-2">
         <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-muted-foreground">
           {filteredMineCount} {filteredMineCount === 1 ? "league" : "leagues"}

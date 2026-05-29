@@ -1,43 +1,39 @@
-# Premium redesign of the /leagues page
+# Polish pass: onboarding, /leagues, sidebar, team modal, logo splash
 
-The /leagues page (`src/pages/LeaguesPage.tsx`) currently lags behind the rest of the app: in light theme several labels are near-invisible (bright pastel text on white), the meta rows are tiny and faint, there are no hover affordances, and the grid card watermark sits in the lower-right. This plan brings it up to the app's premium sports-editorial standard without changing any data/business logic.
+## 1. Onboarding — align the brand bundle position
+The "Name Your Franchise" screen positions the NBA / WNBA / EuroLeague + HOOPSFANTASY bundle differently from the "Draft Your Squad" screen.
 
-## Root problems identified
+- In `src/components/onboarding/NameStep.tsx`, change the bundle wrapper from `absolute top-6 left-6` to `absolute top-4 left-8` so it sits at the exact same offset as the `px-8 py-4` header used in `OnboardingHero.tsx` (Draft Your Squad). Logo sizes, separators and spacing already match.
 
-1. **Light-theme unreadable labels** — `StatusPill`, chip pills, and "mine/teams" counters use dark-mode-only colors like `text-emerald-300`, `text-amber-300`, `text-violet-300`, `text-cyan-300`. These are pale on a white card and fail in light mode.
-2. **Faint micro-typography** — meta rows are `text-[9px]/[10px]` `text-muted-foreground`, hard to scan.
-3. **No hover feedback / no info on hover** — rows and cards only do a subtle background tint; nothing tells the user what an item is or what actions exist.
-4. **Watermark placement** — grid card league logo is anchored bottom-right; user wants it top-right (same look, new corner).
-5. **Flat, low-premium feel** — borders/shadows are minimal, no accent depth.
+## 2. /leagues — premium header, bigger action buttons, consistent separator, scoring-aligned position
+File: `src/pages/LeaguesPage.tsx`
 
-## Changes (all in `src/pages/LeaguesPage.tsx`)
+**a) Bigger Join / Create buttons + HF watermark**
+- Enlarge both header buttons ("Join with code", "Create League") — taller and wider (e.g. `h-11`, more horizontal padding, slightly larger label/icon). They still fit inside the current header block, so the header's overall height is unchanged.
+- Add the HoopsFantasy logo (`getHoopsFantasyLogo`) as a watermark pinned to the far-right inside the "Create League" button, with a hover "surge" (scale-up + opacity increase) matching the app's existing watermark surge pattern. Make the button `relative overflow-hidden group` so the watermark clips and animates on hover.
 
-### 1. Theme-safe status & chip colors
-- Rewrite `StatusPill` to use dual-theme classes so it reads in BOTH modes, e.g. active → `text-emerald-700 dark:text-emerald-300` with matching bg/border; draft/open → amber-700/300; default → muted. Keep the same pill shape and uppercase tracking.
-- Rewrite chip pills (Captain/Wildcard/All-Star) the same way: `text-amber-700 dark:text-amber-300`, `text-violet-700 dark:text-violet-300`, `text-cyan-700 dark:text-cyan-300`, each with a readable bg/border in light mode. Applies to both `LeagueCard` and `PublicLeagueCard`.
+**b) Consistent thin separator under the tabs**
+- Today the sticky header's bottom border sits directly under the tab toggles on Discover, but under the filter bar on My Leagues (because the Mine filter bar lives inside the sticky region). Move the My Leagues filter bar out of the sticky region into the `TabsContent value="mine"` block (mirroring how Discover renders its own filter bar). Result: on both tabs the thin separator renders identically right beneath the toggle row.
 
-### 2. Stronger, more legible meta typography
-- Bump meta rows from `text-[9px]/[10px]` to `text-[11px]` and the faint label captions to `text-foreground/70` (from muted) so "SCORING / DEADLINE / CHIPS" labels and the sport/teams/mine counters are clearly readable.
-- Render the league sport as a small `LeagueLogoBadge` + label instead of a bare faint text chip, for consistency with the rest of the app.
+**c) Match the /scoring header vertical position**
+- Remove the redundant horizontal padding and extra top offset so the header starts at the same point as `/scoring`. Change the page container from `px-6 pb-5 ...` to `pb-5 ...` (the `.page-scroll` wrapper already supplies `px-6`/`py-5`), and reduce the sticky region's top padding (`pt-5` → `pt-0`) so the header — and everything below it — moves up to align with the Scoring page header.
 
-### 3. Hover affordances + info on hover
-- **List rows** (`LeagueListRow`, `PublicLeagueListRow`): add a clear hover state (`hover:bg-accent/10`, subtle left accent bar on hover, row lift via shadow), make the whole row keyboard/clickable to open, and reveal the action icons with full opacity on hover (dim slightly at rest). Add `title=`/`aria-label` tooltips describing each row (e.g. "Open <name> — <sport>, <n> teams, <status>") and each action.
-- **Grid cards** (`LeagueCard`, `PublicLeagueCard`): add `hover:-translate-y-0.5`, accent ring + soft shadow on hover (`hover:shadow-[0_12px_40px_-12px_hsl(var(--accent)/0.35)]`), and surface a one-line summary tooltip on the card.
+## 3. Left sidebar — restyle the divider above Player Search
+File: `src/components/layout/AppLayout.tsx`
+- Keep the separator above the Player Search box but make it more subtle/refined than the structural `sidebar-divider`s: render an inset, lower-opacity hairline (horizontal margin + reduced opacity) so it reads as a lighter, more premium separation. Only this one divider is changed; the global `.sidebar-divider` style stays intact.
 
-### 4. Move grid watermark to top-right
-- In `LeagueCard` and `PublicLeagueCard`, move the watermark `<img>` from `-right-6 -bottom-6` to `-right-6 -top-6` (keep size `h-32`, opacity `0.12`, rotation, blur exactly as-is) so the logo sits in the top-right corner with the same look. The Commissioner / Main badge currently lives top-right — reposition that badge to the top-left so it no longer collides with the relocated logo.
+## 4. Team modal — add Height ("H") column to the Roster tab
+File: `src/components/TeamModal.tsx`
+- Add `height` to the players `select(...)` in the `team-roster-agg` query and carry it through the mapped roster objects.
+- In the Roster tab table, add an `H` column header and cell placed immediately before `MPG`, populated from `p.height ?? "—"` (same source/format as the Players page).
+- Rebalance column widths for breathing room and widen the dialog just enough (`max-w-lg` → `max-w-xl`) to fit the extra column cleanly.
 
-### 5. Premium polish (theme tokens only)
-- Cards: upgrade base to `rounded-2xl`, `border-border/70`, a subtle top-edge accent gradient line, and the hover elevation above.
-- List container: keep the divided list but add row padding `py-3`, a refined hover, and a faint zebra via `bg-card`/`bg-card/60` is avoided in favor of clean dividers.
-- Header & filter bar: tighten contrast of the "Active first" select and search affordances so they read in light mode (use `text-foreground` not muted on values).
-- All colors via existing semantic tokens / dual-theme utility classes — no new CSS variables required.
-
-## Out of scope
-- No changes to data fetching, join/attach logic, routing, or the Discover edge function.
-- No new color tokens in `index.css` (dual-theme Tailwind classes are sufficient).
+## 5. Big-logo splash on key modal opens
+- Add a small reusable splash (e.g. `src/components/brand/LogoSplash.tsx`) that briefly fades/scales the large HoopsFantasy logo (`getHoopsFantasyLogo`) over the modal surface for ~0.8s when the modal opens, then fades out — non-blocking (pointer-events-none) and respects the active league logo.
+- Wire it into the Team of the Week modal (`src/components/TeamOfTheWeekModal.tsx`) and the Court Show modal (`src/components/court-show/CourtShowModal.tsx`) so opening either gives a short branded moment without cluttering the steady-state UI.
 
 ## Technical notes
-- Single file edited: `src/pages/LeaguesPage.tsx`.
-- Reuse `LeagueLogoBadge` (already imported elsewhere) for the sport badge.
-- Verify in both light and dark themes that StatusPill, chips, and meta text are legible after the change.
+- All colors use existing semantic tokens / logo assets; no new CSS variables.
+- Height is an existing nullable text field on `players` (used by `PlayerRow`/`PlayerModal`), so no schema or data changes are needed.
+- Logo assets come from `getHoopsFantasyLogo(league)` in `src/lib/hoopsfantasy-brand.ts`.
+- Changes are presentation-only; no business-logic or data-flow changes.

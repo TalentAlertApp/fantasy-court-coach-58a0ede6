@@ -69,7 +69,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
     queryFn: async () => {
       let pq = supabase
         .from("players")
-        .select("id, name, photo, fc_bc, salary, nationality, jersey")
+        .select("id, name, photo, fc_bc, salary, nationality, jersey, height")
         .eq("team", tricode!);
       if (leagueId) pq = pq.eq("league_id", leagueId);
       const { data: teamPlayers, error: pErr } = await pq;
@@ -135,7 +135,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogContent className="max-w-xl rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
           <img
             src={watermarkLogo}
             alt=""
@@ -411,6 +411,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                   <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border sticky top-0 bg-card z-10">
                     <span className="w-6 text-left text-[10px] uppercase tracking-wider text-muted-foreground">#</span>
                     <span className="flex-1 text-[10px] uppercase tracking-wider text-muted-foreground">Player</span>
+                    <span className="w-12 text-right text-[10px] uppercase tracking-wider text-muted-foreground" title="Height">H</span>
                     <span className="w-12 text-right" title="Minutes Per Game">{sortHeader("MPG", "mpg")}</span>
                     <span className="w-12 text-right" title="Points Per Game">{sortHeader("PPG", "ppg")}</span>
                     <span className="w-12 text-right" title="Fantasy Points Per Game">{sortHeader("FP", "fpg")}</span>
@@ -435,6 +436,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           <span className="truncate">{p.name}</span>
                           {(p as any).nationality && <NationalityFlag country={(p as any).nationality} size="xs" />}
                         </span>
+                        <span className="w-12 text-right text-[11px] font-mono text-muted-foreground">{(p as any).height ?? "—"}</span>
                         <span className="w-12 text-right text-xs font-mono text-muted-foreground">{p.mpg.toFixed(1)}</span>
                         <span className="w-12 text-right text-xs font-mono">{p.ppg.toFixed(1)}</span>
                         <span className="w-12 text-right text-xs font-mono font-bold">{p.fpg.toFixed(1)}</span>

@@ -37,7 +37,7 @@ export default function NameStep({ onBack, onSubmit, submitting, lockedSport }: 
   return (
     <div className="relative flex flex-col min-h-screen px-6 py-6 items-center justify-center">
       {/* Brand bundle — matches Draft Your Squad / Welcome Back screens */}
-      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
+      <div className="absolute top-4 left-8 z-10 flex items-center gap-3">
         <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
         <span className="h-6 w-px bg-foreground/20" aria-hidden="true" />
         <img src={wnbaLogo} alt="WNBA" className="h-9 w-auto object-contain" />
