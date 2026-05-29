@@ -582,16 +582,16 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                                   Gameweek {g.gw} - Day {g.day}
                                 </TableCell>
                                 <TableCell className="px-1.5 py-1.5 text-xs whitespace-nowrap">
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1 w-full">
                                     {oppLogo && <img src={oppLogo} alt="" className="w-3.5 h-3.5" />}
                                     <span>{isAway ? "@" : "vs."}{oppTeam}</span>
                                     {diff?.label && (
                                       <span
-                                        className="ml-1 inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider"
+                                        className="ml-auto inline-flex items-center justify-center rounded-full border text-[9px] font-heading font-bold w-5 h-5 shrink-0"
                                         style={{ color: diffColor, borderColor: diffColor }}
                                         title={`Matchup difficulty: ${diff.label}`}
                                       >
-                                        {diff.label}
+                                        {diff.label.charAt(0).toUpperCase()}
                                       </span>
                                     )}
                                   </div>
