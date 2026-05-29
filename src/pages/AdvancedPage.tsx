@@ -31,7 +31,7 @@ import SectionHeader from "@/components/advanced/SectionHeader";
 import { getLastAdvancedTab, setLastAdvancedTab, AdvancedTab } from "@/lib/advanced-tab-store";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import ShareSearchDialog from "@/components/advanced/ShareSearchDialog";
-import { getCompetition } from "@/lib/competitions";
+import { getCompetition, getLeagueLogo } from "@/lib/competitions";
 import { Link } from "react-router-dom";
 import { Users, BarChart3 } from "lucide-react";
 
