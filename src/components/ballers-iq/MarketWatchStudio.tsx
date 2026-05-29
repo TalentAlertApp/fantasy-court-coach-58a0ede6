@@ -501,19 +501,43 @@ export default function MarketWatchStudio({
                 </div>
                 <div className="grid grid-cols-[1fr_auto_1fr_auto] items-center gap-2 flex-1">
                   <button onClick={() => { const p = getPlayer(bs.out.id); if (p) onOpenPlayer?.(p); }}
-                    className="rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-2 text-left hover:bg-rose-500/[0.10] transition-colors h-full">
-                    <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-rose-200/85">Sell / Drop</div>
-                    <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.out.name}</div>
-                    <div className="text-[9.5px] text-white/55 truncate">{bs.out.team} · ${num(bs.out.salary).toFixed(1)}M · {num(bs.out.fp_pg5).toFixed(1)} FP5</div>
+                    className="group relative overflow-hidden rounded-xl border border-rose-500/30 bg-rose-500/[0.06] p-2 text-left hover:bg-rose-500/[0.10] transition-colors h-full">
+                    {bs.out.team && getTeamLogo(bs.out.team) && (
+                      <img src={getTeamLogo(bs.out.team)!} alt="" className="pointer-events-none absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.16] group-hover:opacity-40 group-hover:scale-125 transition-all" />
+                    )}
+                    <div className="relative flex items-center gap-2">
+                      {bs.out.photo ? (
+                        <img src={bs.out.photo} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_15%] ring-1 ring-rose-300/50 shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 shrink-0">{(bs.out.name ?? "?").slice(0, 1)}</div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-rose-200/85">Sell / Drop</div>
+                        <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.out.name}</div>
+                        <div className="text-[9.5px] text-white/55 truncate">{bs.out.team} · ${num(bs.out.salary).toFixed(1)}M · {num(bs.out.fp_pg5).toFixed(1)} FP5</div>
+                      </div>
+                    </div>
                   </button>
                   <div className="flex items-center justify-center w-8 h-8 rounded-full border border-emerald-400/50 bg-emerald-500/10 text-emerald-300">
                     <ArrowLeftRight className="h-4 w-4" />
                   </div>
                   <button onClick={() => { const p = getPlayer(bs.in.id); if (p) onOpenPlayer?.(p); }}
-                    className="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full">
-                    <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-emerald-200/85">Buy / Add</div>
-                    <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.in.name}</div>
-                    <div className="text-[9.5px] text-white/55 truncate">{bs.in.team} · ${num(bs.in.salary).toFixed(1)}M · {num(bs.in.fp_pg5).toFixed(1)} FP5</div>
+                    className="group relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full">
+                    {bs.in.team && getTeamLogo(bs.in.team) && (
+                      <img src={getTeamLogo(bs.in.team)!} alt="" className="pointer-events-none absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.16] group-hover:opacity-40 group-hover:scale-125 transition-all" />
+                    )}
+                    <div className="relative flex items-center gap-2">
+                      {bs.in.photo ? (
+                        <img src={bs.in.photo} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_15%] ring-1 ring-emerald-300/50 shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 shrink-0">{(bs.in.name ?? "?").slice(0, 1)}</div>
+                      )}
+                      <div className="min-w-0">
+                        <div className="text-[8.5px] font-heading uppercase tracking-[0.2em] text-emerald-200/85">Buy / Add</div>
+                        <div className="text-[12px] font-heading font-bold uppercase text-white truncate">{bs.in.name}</div>
+                        <div className="text-[9.5px] text-white/55 truncate">{bs.in.team} · ${num(bs.in.salary).toFixed(1)}M · {num(bs.in.fp_pg5).toFixed(1)} FP5</div>
+                      </div>
+                    </div>
                   </button>
                   <div className="grid grid-rows-2 gap-1.5 h-full">
                     <Stat label="FP5 Δ" value={`+${bs.fpDelta.toFixed(1)}`} tone="good" />
