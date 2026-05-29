@@ -987,7 +987,11 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
 }) {
   const logo = getLeagueLogo(league.sport);
   return (
-    <div className="relative overflow-hidden flex items-center gap-3 px-4 py-2.5 hover:bg-accent/5 transition-colors">
+    <div
+      className="group relative overflow-hidden flex items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/10"
+      title={`${league.name} — ${league.sport.toUpperCase()} · ${league.memberCount} teams · ${league.myTeamCount} mine · ${league.status === "draft" ? "open" : league.status}`}
+    >
+      <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-0.5 bg-accent opacity-0 transition-opacity group-hover:opacity-100" />
       <img
         src={courtBg}
         alt=""
@@ -1013,7 +1017,7 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
               <span className="text-[8.5px] font-heading uppercase tracking-[0.18em] text-muted-foreground border border-border rounded-full px-1.5">Main</span>
             )}
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-heading uppercase tracking-wider mt-0.5">
+          <div className="flex items-center gap-2 text-[11px] text-foreground/70 font-heading uppercase tracking-wider mt-0.5">
             <span>{league.sport}</span>
             <span>·</span>
             <span>{league.memberCount} teams</span>
@@ -1023,7 +1027,7 @@ function LeagueListRow({ league, isMine, isMain, onOpen, onSettings, attachableT
           </div>
         </div>
       </div>
-      <div className="relative z-10 flex items-center gap-2 shrink-0">
+      <div className="relative z-10 flex items-center gap-2 shrink-0 opacity-70 transition-opacity group-hover:opacity-100">
         <button type="button" onClick={onOpen} className="inline-flex h-6 w-6 items-center justify-center text-accent hover:text-accent/80 transition-colors" aria-label="Open league" title="Open league">
           <LayoutDashboard className="h-3.5 w-3.5" />
         </button>
