@@ -221,7 +221,7 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
         </button>
       )}
 
-      <div className="absolute top-7 left-1/2 -translate-x-1/2 text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
+      <div className="absolute top-7 left-20 text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
         {HOOPSFANTASY_NAME}
       </div>
 
