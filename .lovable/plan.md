@@ -1,53 +1,32 @@
-## Goal
+# Fix: EuroLeague team badges all show the generic league crest
 
-Three focused, presentation-only fixes across the sidebar and onboarding flow.
+## What's wrong
+On `/teams` (every tab) for `league = EuroLeague`, every team badge renders the same generic EuroLeague crest instead of each club's real logo.
 
----
+The database is fine — `sport_teams` has a correct per-club `logo_url` for all 20 EuroLeague teams (verified). The bug is a **render-timing issue in `src/hooks/useLeagueTeams.ts`**:
 
-### 1. Sidebar — premium separator between nav and Player Search
-
-In `src/components/layout/AppLayout.tsx`, the COMMISSIONER nav item (last item) currently sits directly above the Player Search box with no separator. Add a soft, muted, premium divider between them.
-
-- Reuse the existing `.sidebar-divider` token but give it a more premium feel for this specific spot by wrapping it with vertical breathing room (e.g. a small `my`/`py` gap) so it reads as an intentional section break rather than a hard line.
-- Place it directly before the Player Search block (`{!collapsed ? ... : ...}`), so it shows in both expanded and collapsed states.
-- Keep all other dividers, spacing, hover/surge effects untouched.
-
-Implementation detail: insert a divider element (`<div className="sidebar-divider" />`) right after the `</nav>` close and before the Player Search conditional. To make it feel premium and "soft", wrap it in a thin padded container (e.g. `px-3` and a touch of vertical margin) rather than a flush line.
-
----
-
-### 2. NAME YOUR FRANCHISE — use the shared BrandMark
-
-`src/components/onboarding/NameStep.tsx` still renders an **inline** brand bundle (lines 40–49) that differs from the other onboarding pages:
-- Wrong logo order (NBA → WNBA → EuroLeague instead of WNBA → NBA → EuroLeague).
-- Extra `h-6 w-px` vertical separators between logos (the "separators in excess" the user sees).
-- First logo missing `object-contain`.
-
-Fix:
-- Replace that inline block with `<BrandMark className="absolute top-4 left-8 z-10" />` (same usage as `TeamPickerPage`).
-- Add the `BrandMark` import.
-- Remove the now-unused imports: `nbaLogo`, `wnbaLogo`, `euroleagueLogo`, and `HOOPSFANTASY_NAME`.
-
-This makes all four onboarding surfaces share one identical brand bundle.
-
----
-
-### 3. DRAFT (Step 3 of 3) — match the CHOOSE YOUR LEAGUE watermark
-
-`ChooseLeagueStep.tsx` renders the league watermark as:
+```text
+1. Query returns rows  ──►  euroleagueTeams useMemo recomputes
+2. useMemo calls getEuroLeagueTeamRecord() which reads a MODULE-LEVEL map
+3. That map is only filled inside a useEffect (runs AFTER render commits)
+4. So on the render where data arrives, the map is still empty
+   ──► logo falls back to t.logo = euroleagueLogo (generic crest)
+5. The useEffect then fills the map, but euroleagueRows never changes again
+   ──► the memo never recomputes ──► logos stay stuck on the crest forever
 ```
-absolute top-0 right-0 h-[28rem] w-[28rem] object-contain opacity-[0.06]
-blur-[1px] rotate-6 -translate-y-12 translate-x-12 select-none z-0
-```
-`DraftPicker.tsx` (lines 188–206) uses a different watermark: smaller (`h-64 w-64`), brighter (`opacity-[0.18]`), with a radial glow circle and a hover scale/opacity effect.
 
-Fix:
-- Replace the DraftPicker watermark block with the exact same single `<img>` markup/classes used in `ChooseLeagueStep` (same size, opacity, blur, rotation, translate, position).
-- Drop the radial-glow `<div>` and the hover `group` scaling so the size/effect/position match exactly.
-- Keep using `watermarkSrc` (already `getLeagueLogo(leagueCode)`) as the source.
+Because all three tabs (Teams cards, Standings, Stats) read their logos from the same `leagueTeams` array produced by this hook, all of them break together.
 
----
+## The fix
+Resolve each EuroLeague club's logo (and name/venue) **directly from the fetched `euroleagueRows`** inside the memo, instead of from the side-effect-populated module registry. This removes the ordering dependency entirely.
 
-### Technical notes
-- All changes are in `AppLayout.tsx`, `NameStep.tsx`, and `DraftPicker.tsx`. No CSS token changes are strictly required; the existing `.sidebar-divider` token is reused for fix 1.
-- No logic, data, or routing changes — purely presentational.
+### `src/hooks/useLeagueTeams.ts`
+- In the `euroleagueTeams` memo, build a local lookup from `euroleagueRows` (keyed by uppercased `team_code` and lowercased `name`) and use it to fill `logo`, `name`, `venueName`, `venueImage`.
+- Keep `synced?.logo_url || t.logo` semantics but source `synced` from the local lookup, not `getEuroLeagueTeamRecord`.
+- Keep the existing `registerEuroLeagueTeams(euroleagueRows)` `useEffect` untouched — it still feeds the synchronous `getTeamLogo()` consumers (e.g. the Standings BallersIQ side panel). Those re-render after the registry is populated, so they resolve correctly.
+
+No other files need changes; the static `EUROLEAGUE_TEAMS` crest stays only as the instant pre-load placeholder.
+
+## Verification
+- Open `/teams` with EuroLeague selected and confirm each club shows its own logo across the **Teams**, **Standings**, and **Stats** (Fantasy / Efficiency / Depth / Schedule) tabs.
+- Confirm NBA and WNBA team logos are unaffected.
