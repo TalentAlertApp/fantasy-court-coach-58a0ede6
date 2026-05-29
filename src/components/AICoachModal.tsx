@@ -33,6 +33,7 @@ import InjuryReportModal from "@/components/InjuryReportModal";
 import { getCurrentGameday } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { useLeague } from "@/contexts/LeagueContext";
+import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 import { useQueryClient } from "@tanstack/react-query";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
@@ -333,7 +334,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
 
         {/* Broadcast header */}
         <DialogHeader className="shrink-0 relative z-[1] px-5 md:pl-8 md:pr-48 pt-2 pb-2">
-          <DialogTitle className="sr-only">Ballers.IQ — Fantasy Broadcast Intelligence</DialogTitle>
+          <DialogTitle className="sr-only">Ballers.IQ — HoopsFantasy Broadcast Intelligence</DialogTitle>
           <div className="flex items-center gap-4 md:gap-6">
             {/* LEFT — brand */}
             <div className="flex items-center gap-3 min-w-0">
@@ -345,7 +346,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
               />
               <div className="hidden md:block h-8 w-px bg-gradient-to-b from-transparent via-amber-400/40 to-transparent" />
               <span className="hidden md:block text-[10.5px] font-heading font-bold uppercase tracking-[0.32em] text-amber-100/85 whitespace-nowrap drop-shadow-[0_0_8px_rgba(252,211,77,0.25)]">
-                Fantasy Broadcast Intelligence
+                {HOOPSFANTASY_NAME} Broadcast Intelligence
               </span>
             </div>
 
