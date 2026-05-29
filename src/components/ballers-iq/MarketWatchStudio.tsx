@@ -133,7 +133,7 @@ export default function MarketWatchStudio({
       id: p.core.id, name: p.core.name, team: p.core.team, fc_bc: p.core.fc_bc,
       salary: p.core.salary, fp_pg5: p.last5?.fp5, fp_pg_t: p.season?.fp,
       value5: p.last5?.value5, delta_fp: p.last5?.delta_fp, delta_mpg: p.last5?.delta_mpg,
-      injury: p.core?.injury,
+      injury: p.core?.injury, photo: p.core?.photo,
     });
     const market = allPlayers.filter((p: any) => !rosterIds.has(p.core.id)).map(toMP);
     const rosterPlayers = allPlayers.filter((p: any) => rosterIds.has(p.core.id)).map(toMP);
