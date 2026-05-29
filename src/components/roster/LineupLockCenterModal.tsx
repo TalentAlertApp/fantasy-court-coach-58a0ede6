@@ -481,11 +481,11 @@ function LineupLockCenterInner({
                     <Panel title="Roster Availability" icon={<Users className="h-3.5 w-3.5 text-amber-300" />}>
                       <div className="space-y-1">
                         {starters.map((p, i) => (
-                          <RosterRow key={p.core.id} p={p} slot={`S${i + 1}`} status={statusOf(p, true)} g={dayGameOf(p)} logoFor={logoFor} />
+                          <RosterRow key={p.core.id} p={p} slot={`S${i + 1}`} status={statusOf(p, true)} g={dayGameOf(p)} logoFor={logoFor} onClick={() => setPlayerModalId(p.core.id)} />
                         ))}
                         {bench.length > 0 && <div className="h-px bg-amber-400/10 my-1.5" />}
                         {bench.map((p, i) => (
-                          <RosterRow key={p.core.id} p={p} slot={`B${i + 1}`} status={statusOf(p, false)} g={dayGameOf(p)} logoFor={logoFor} />
+                          <RosterRow key={p.core.id} p={p} slot={`B${i + 1}`} status={statusOf(p, false)} g={dayGameOf(p)} logoFor={logoFor} onClick={() => setPlayerModalId(p.core.id)} />
                         ))}
                       </div>
                     </Panel>
