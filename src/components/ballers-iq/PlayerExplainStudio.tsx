@@ -137,6 +137,8 @@ export default function PlayerExplainStudio(props: Props) {
         {/* The existing ExplainReport is rendered by the parent through props.explainResult,
             but we need to render it here. The parent passes us the data — render it. */}
         <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} />
+        <PlayerModal playerId={modalPlayerId} open={modalPlayerId !== null} onOpenChange={(o) => !o && setModalPlayerId(null)} />
+        <TeamModal tricode={modalTeamTri} open={modalTeamTri !== null} onOpenChange={(o) => !o && setModalTeamTri(null)} />
       </div>
     );
   }
