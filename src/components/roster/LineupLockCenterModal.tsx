@@ -81,13 +81,14 @@ export default function LineupLockCenterModal(props: LineupLockCenterModalProps)
 }
 
 function LineupLockCenterInner({
-  open, onOpenChange, teamName, gw, day, deadlineFormatted, countdown, rosterLocked,
+  open, onOpenChange, teamName, gw, day, deadlineFormatted, countdown, deadlineUtc, rosterLocked,
   starters, bench, captainId, upcomingByTeam, allPlayers, rosterIds,
   bankRemaining, freeTransfers, salaryCap, totalSalary, fcStarters, bcStarters,
   onApplyCaptain, onOptimize, onOpenCoach, onOpenAdvisor, onOpenSchedule,
 }: LineupLockCenterModalProps) {
   const { league } = useLeague();
   const { data: diffMap } = useTeamDifficultyMap();
+  const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
 
   const roster = useMemo(() => [...starters, ...bench], [starters, bench]);
   const hasRoster = roster.length > 0;
