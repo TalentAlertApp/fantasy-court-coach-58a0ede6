@@ -167,18 +167,34 @@ export default function AppLayout() {
         {/* Nav */}
         <nav className={`flex-1 ${collapsed ? "py-4 items-center" : "py-3"} flex flex-col gap-1 overflow-y-auto`}>
           {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavTooltip key={to} collapsed={collapsed} label={label}>
-              <NavLink
-                to={to}
-                end={end}
-                className={({ isActive }) =>
-                  `nav-item${isActive ? " active" : ""}`
-                }
-              >
-                <Icon className="nav-item-icon" />
-                {!collapsed && <span className="truncate relative z-10">{label}</span>}
-              </NavLink>
-            </NavTooltip>
+            <div key={to} className="contents">
+              <NavTooltip collapsed={collapsed} label={label}>
+                <NavLink
+                  to={to}
+                  end={end}
+                  className={({ isActive }) =>
+                    `nav-item${isActive ? " active" : ""}`
+                  }
+                >
+                  <Icon className="nav-item-icon" />
+                  {!collapsed && <span className="truncate relative z-10">{label}</span>}
+                </NavLink>
+              </NavTooltip>
+              {/* Game Recaps — global modal launcher, sits between Schedule and Advanced */}
+              {to === "/schedule" && (
+                <NavTooltip collapsed={collapsed} label="Game Recaps">
+                  <button
+                    type="button"
+                    onClick={() => setGameRecapsOpen(true)}
+                    className={`nav-item w-full text-left${gameRecapsOpen ? " active" : ""}`}
+                    aria-label="Game Recaps"
+                  >
+                    <Film className="nav-item-icon" />
+                    {!collapsed && <span className="truncate relative z-10">Game Recaps</span>}
+                  </button>
+                </NavTooltip>
+              )}
+            </div>
           ))}
         </nav>
 
