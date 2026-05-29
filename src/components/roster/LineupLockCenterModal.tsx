@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -87,6 +88,7 @@ function LineupLockCenterInner({
   onApplyCaptain, onOptimize, onOpenCoach, onOpenAdvisor, onOpenSchedule,
 }: LineupLockCenterModalProps) {
   const { league } = useLeague();
+  const navigate = useNavigate();
   const { data: diffMap } = useTeamDifficultyMap();
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
 
