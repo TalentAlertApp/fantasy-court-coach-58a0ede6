@@ -7,12 +7,9 @@ import { useTeam } from "@/contexts/TeamContext";
 import { Plus, LogOut, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { markTeamPickedThisSession } from "@/lib/welcome-back-store";
 import { setCreatingNewTeam } from "@/lib/onboarding-store";
-import nbaLogo from "@/assets/nba-logo.svg";
-import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.png";
 import TeamLeagueChips from "@/components/TeamLeagueChips";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
+import BrandMark from "@/components/onboarding/BrandMark";
 
 export default function TeamPickerPage() {
   const navigate = useNavigate();
@@ -88,14 +85,7 @@ export default function TeamPickerPage() {
         aria-hidden
       />
 
-      <div className="absolute top-6 left-6 z-10 flex items-center gap-3">
-        <img src={wnbaLogo} alt="WNBA" className="h-8 w-auto object-contain" />
-        <img src={nbaLogo} alt="NBA" className="h-8 w-auto" />
-        <img src={euroleagueLogo} alt="EuroLeague" className="h-8 w-auto object-contain" />
-        <span className="text-[10px] font-heading uppercase tracking-[0.3em] text-foreground/60">
-          {HOOPSFANTASY_NAME}
-        </span>
-      </div>
+      <BrandMark className="absolute top-4 left-8 z-10" />
 
       <div className="absolute top-6 right-6 z-10 flex items-center gap-2">
         <button
