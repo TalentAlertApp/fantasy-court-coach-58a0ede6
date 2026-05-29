@@ -97,7 +97,19 @@ export default function PlayerRow({ player, onClick, onSwap, actionButton, dragg
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors whitespace-nowrap">{core.name}</p>
+            <p className="text-sm font-heading font-semibold uppercase leading-tight tracking-wide group-hover:text-primary transition-colors whitespace-nowrap inline-flex items-center gap-1.5">
+              <span>{core.name}</span>
+              {isCaptain && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onSetCaptain?.(); }}
+                  className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-[hsl(var(--nba-yellow))] text-black shadow leading-none shrink-0 hover:opacity-80 transition-opacity"
+                  title="Captain — click to remove"
+                >
+                  <Star className="h-2.5 w-2.5 fill-current" />
+                </button>
+              )}
+            </p>
             <div className="text-[10px] text-muted-foreground inline-flex items-center gap-1.5 flex-nowrap whitespace-nowrap mt-0.5">
               {teamLogo && <img src={teamLogo} alt={core.team} className="w-4 h-4" />}
               <span>{core.team}</span>
