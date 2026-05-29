@@ -633,7 +633,7 @@ function OutstandingSlide({
           {payload.game_recap_url && (
             <button
               type="button"
-              onClick={() => onGameClick(payload.game)}
+              onClick={() => onGameClick(payload.game, { openRecap: recapPlaying })}
               className="text-[10px] text-white/55 hover:text-amber-300 inline-flex items-center gap-1"
             >
               Open <Maximize2 className="h-2.5 w-2.5" />
