@@ -426,9 +426,9 @@ export default function CaptainCallStudio({
                 <button
                   key={p.core.id}
                   onClick={() => onOpenPlayer?.(p)}
-                  className="relative overflow-hidden rounded-lg border border-white/10 bg-black/35 px-2 py-2 text-left transition-all hover:-translate-y-0.5 hover:brightness-125 hover:border-amber-300/40"
+                  className="group relative overflow-hidden rounded-lg border border-white/10 bg-black/35 px-2 py-2 text-left transition-all hover:-translate-y-0.5 hover:brightness-125 hover:border-amber-300/40"
                 >
-                  {logo && <img src={logo} alt="" className="absolute -right-2 -bottom-2 w-12 h-12 object-contain opacity-[0.12] pointer-events-none" />}
+                  {logo && <img src={logo} alt="" className="absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.14] group-hover:opacity-30 group-hover:scale-125 transition-all pointer-events-none" />}
                   <div className="relative flex items-center gap-1.5">
                     {p.core.photo ? (
                       <img src={p.core.photo} alt="" className="w-8 h-8 rounded-full object-cover object-[center_15%] ring-1 ring-white/15" />
