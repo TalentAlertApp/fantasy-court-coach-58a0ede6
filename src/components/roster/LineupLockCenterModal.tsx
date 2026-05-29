@@ -623,6 +623,11 @@ function LineupLockCenterInner({
         open={!!teamModalTri}
         onOpenChange={(o) => { if (!o) setTeamModalTri(null); }}
       />
+      <PlayerModal
+        playerId={playerModalId}
+        open={!!playerModalId}
+        onOpenChange={(o) => { if (!o) setPlayerModalId(null); }}
+      />
     </Dialog>
   );
 }
