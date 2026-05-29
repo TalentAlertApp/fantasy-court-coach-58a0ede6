@@ -321,6 +321,7 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
           open={manualOpen}
           onOpenChange={setManualOpen}
           allPlayers={allPlayers}
+          leagueCode={leagueCode}
           rosterIds={rosterIds}
           rosterTeams={rosterTeams}
           onSelect={handlePick}
