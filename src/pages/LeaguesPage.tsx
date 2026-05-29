@@ -323,6 +323,7 @@ export default function LeaguesPage() {
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "cards">("list");
+  const [tab, setTab] = useState<"mine" | "discover">("mine");
   // "Mine" tab filters — mirrors the Discover panel layout
   const [mineSport, setMineSport] = useState<"all" | "nba" | "wnba" | "euroleague">("all");
   const [mineSearchInput, setMineSearchInput] = useState("");
@@ -424,7 +425,10 @@ export default function LeaguesPage() {
   const myLeagueIds = useMemo(() => new Set(fantasyLeagues.map((l) => l.id)), [fantasyLeagues]);
 
   return (
-    <div className="px-6 py-5 space-y-5 max-w-[1400px] mx-auto">
+    <div className="px-6 pb-5 max-w-[1400px] mx-auto">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "mine" | "discover")} className="w-full">
+      {/* Sticky top region: header + tabs toggle + filters stay pinned while scrolling */}
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-5 pb-3 bg-background/95 backdrop-blur-md border-b border-border/50 space-y-4">
       {/* Header */}
       <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-r from-card via-card/80 to-card px-5 py-4">
         <Swords
@@ -489,8 +493,7 @@ export default function LeaguesPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="mine" className="w-full">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
           <TabsList>
             <TabsTrigger value="mine" className="font-heading uppercase tracking-wider text-[10px]">
               <Swords className="h-3.5 w-3.5 mr-1" /> My Leagues
@@ -520,11 +523,11 @@ export default function LeaguesPage() {
               <LayoutGrid className="h-3.5 w-3.5" />
             </Button>
           </div>
-        </div>
+      </div>
 
-        <TabsContent value="mine" className="mt-4">
-      {/* Filter bar — mirrors Discover */}
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3 mb-3">
+      {/* Filter bar — mirrors Discover (sticky, Mine tab only) */}
+      {tab === "mine" && (
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/60 p-3">
         <div className="flex items-center gap-3 pl-1 pr-2">
           {(["all", "nba", "wnba", "euroleague"] as const).map((s) => {
             const active = mineSport === s;
@@ -590,6 +593,10 @@ export default function LeaguesPage() {
           </SelectContent>
         </Select>
       </div>
+      )}
+      </div>
+
+        <TabsContent value="mine" className="mt-4">
       <div className="flex items-center justify-end -mt-1 mb-2">
         <span className="text-[10px] uppercase tracking-[0.18em] font-heading text-muted-foreground">
           {filteredMineCount} {filteredMineCount === 1 ? "league" : "leagues"}

@@ -1,10 +1,13 @@
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import type { TrendRow } from "@/hooks/usePlayingTimeTrends";
+import { Badge } from "@/components/ui/badge";
 import SectionHeader from "./SectionHeader";
 
+export type TrendTableRow = TrendRow & { fc_bc?: "FC" | "BC" | null };
+
 interface Props {
-  rows: TrendRow[];
+  rows: TrendTableRow[];
   type: "increase" | "decrease";
   onPlayerClick: (id: number) => void;
   onTeamClick: (tricode: string) => void;
@@ -40,6 +43,14 @@ export default function TrendTable({ rows, type, onPlayerClick, onTeamClick }: P
                   <img src={r.photo} alt="" className="w-6 h-6 rounded-full object-cover bg-muted shrink-0" />
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-muted shrink-0" />
+                )}
+                {r.fc_bc && (
+                  <Badge
+                    variant={r.fc_bc === "FC" ? "destructive" : "default"}
+                    className="text-[8px] px-1 py-0 rounded font-heading shrink-0 min-w-[20px] justify-center"
+                  >
+                    {r.fc_bc}
+                  </Badge>
                 )}
                 <span
                   className="truncate font-medium hover:text-primary hover:underline"

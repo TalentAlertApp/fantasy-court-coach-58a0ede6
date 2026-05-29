@@ -1,4 +1,4 @@
-import { Table2, BarChart3, Mic, ExternalLink } from "lucide-react";
+import { Table2, BarChart3, Mic } from "lucide-react";
 import { getLeagueLogo } from "@/lib/competitions";
 import type { CompetitionCode } from "@/lib/competitions";
 
@@ -27,7 +27,6 @@ export default function GameActionLinks({
 }: GameActionLinksProps) {
   const leagueName =
     league === "wnba" ? "WNBA" : league === "euroleague" ? "EuroLeague" : "NBA";
-  const useLeagueLogo = league === "wnba" || league === "euroleague";
 
   return (
     <div
@@ -77,16 +76,12 @@ export default function GameActionLinks({
           data-testid="game-link-league"
           className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-px rounded-xl border"
         >
-          {useLeagueLogo ? (
-            <img
-              src={getLeagueLogo(league)}
-              alt=""
-              aria-hidden
-              className="h-3.5 w-3.5 object-contain"
-            />
-          ) : (
-            <ExternalLink className="h-3.5 w-3.5" />
-          )}
+          <img
+            src={getLeagueLogo(league)}
+            alt=""
+            aria-hidden
+            className="h-3.5 w-3.5 object-contain"
+          />
           {leagueName}
         </a>
       )}

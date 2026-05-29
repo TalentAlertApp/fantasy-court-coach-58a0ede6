@@ -22,6 +22,14 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
 
   const items = useMemo(() => ((data as any)?.items ?? []) as any[], [data]);
 
+  // Map player id → FC/BC so the playing-time trend rows (which come from a
+  // separate query) can show the same FC/BC badge and respect the FC/BC filter.
+  const fcBcById = useMemo(() => {
+    const m = new Map<number, "FC" | "BC">();
+    for (const p of items) m.set(p.core.id, p.core.fc_bc);
+    return m;
+  }, [items]);
+
   const filtered = useMemo(() => {
     return items.filter((p) => {
       if (fcBc !== "ALL" && p.core.fc_bc !== fcBc) return false;
@@ -116,6 +124,52 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
       .sort((a: any, b: any) => a._sort - b._sort);
   }, [filtered]);
 
+  // Enrich playing-time trends with FC/BC and apply the FC/BC filter.
+  const ptIncreased = useMemo(() => {
+    return (ptData?.increased ?? [])
+      .map((r) => ({ ...r, fc_bc: fcBcById.get(r.id) ?? null }))
+      .filter((r) => fcBc === "ALL" || r.fc_bc === fcBc);
+  }, [ptData, fcBc, fcBcById]);
+
+  const ptDecreased = useMemo(() => {
+    return (ptData?.decreased ?? [])
+      .map((r) => ({ ...r, fc_bc: fcBcById.get(r.id) ?? null }))
+      .filter((r) => fcBc === "ALL" || r.fc_bc === fcBc);
+  }, [ptData, fcBc, fcBcById]);
+
+  const ptCols: LeaderColumn[] = [
+    { key: "gp", label: "GP", align: "right" },
+    { key: "sea", label: "SEA", align: "right" },
+    { key: "7d", label: "7D", align: "right", tone: "accent" },
+    { key: "d", label: "Δ MP", align: "right", tone: "delta" },
+  ];
+
+  const ptUpRows: LeaderRow[] = useMemo(
+    () =>
+      ptIncreased.map((r) => ({
+        id: r.id,
+        name: r.name,
+        team: r.team,
+        photo: r.photo,
+        fc_bc: r.fc_bc ?? "BC",
+        values: [r.gp7d, r.seasonAvg, r.avg7d, r.delta],
+      })),
+    [ptIncreased],
+  );
+
+  const ptDownRows: LeaderRow[] = useMemo(
+    () =>
+      ptDecreased.map((r) => ({
+        id: r.id,
+        name: r.name,
+        team: r.team,
+        photo: r.photo,
+        fc_bc: r.fc_bc ?? "BC",
+        values: [r.gp7d, r.seasonAvg, r.avg7d, r.delta],
+      })),
+    [ptDecreased],
+  );
+
   const hotCols: LeaderColumn[] = [
     { key: "fp5", label: "FP5", align: "right", tone: "accent" },
     { key: "fp", label: "FP", align: "right" },
@@ -162,6 +216,8 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
     { id: "cold", title: "Cold Snap", subtitle: "Bounce-back watch", icon: <Snowflake className="h-4 w-4 text-blue-400" />, columns: coldCols, rows: coldRows, tone: "blue" },
     { id: "movers-up", title: "Salary Risers", subtitle: "Biggest 7d ↑", icon: <TrendingUp className="h-4 w-4 text-emerald-500" />, columns: moversCols, rows: moversRisersRows, tone: "green" },
     { id: "movers-down", title: "Salary Drops", subtitle: "Biggest 7d ↓", icon: <TrendingDown className="h-4 w-4 text-destructive" />, columns: moversCols, rows: moversFallersRows, tone: "red" },
+    { id: "pt-up", title: "Increased Playing Time", subtitle: "MP ↑ last 7", icon: <TrendingUp className="h-4 w-4 text-emerald-500" />, columns: ptCols, rows: ptUpRows, tone: "green" },
+    { id: "pt-down", title: "Decreased Playing Time", subtitle: "MP ↓ last 7", icon: <TrendingDown className="h-4 w-4 text-destructive" />, columns: ptCols, rows: ptDownRows, tone: "red" },
   ];
 
   return (
@@ -212,8 +268,8 @@ export default function TrendingTab({ onPlayerClick, onTeamClick }: Props) {
         </div>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          <TrendTable rows={ptData?.increased ?? []} type="increase" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
-          <TrendTable rows={ptData?.decreased ?? []} type="decrease" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+          <TrendTable rows={ptIncreased} type="increase" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
+          <TrendTable rows={ptDecreased} type="decrease" onPlayerClick={onPlayerClick} onTeamClick={onTeamClick} />
         </div>
       )}
     </div>
