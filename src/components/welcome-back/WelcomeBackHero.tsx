@@ -3,10 +3,8 @@ import { motion } from "framer-motion";
 import { ChevronRight, LogOut, Sparkles, Star, Clock, Trophy, ArrowRightCircle, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import nbaLogo from "@/assets/nba-logo.svg";
-import wnbaLogo from "@/assets/wnba-logo.png";
-import euroleagueLogo from "@/assets/euroleague-logo.png";
 import PlayerMarquee from "@/components/onboarding/PlayerMarquee";
+import BrandMark from "@/components/onboarding/BrandMark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeam } from "@/contexts/TeamContext";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
@@ -16,7 +14,6 @@ import { getLastSignOut, formatTimeAgo } from "@/lib/welcome-back-store";
 import { getLastAdvancedTab, ADVANCED_TAB_LABEL } from "@/lib/advanced-tab-store";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { HOOPSFANTASY_NAME } from "@/lib/hoopsfantasy-brand";
 
 interface Props {
   onEnter: () => void;
@@ -119,14 +116,7 @@ export default function WelcomeBackHero({ onEnter, onContinue }: Props) {
 
         {/* Top bar — mirrors OnboardingHero */}
         <header className="relative z-10 flex items-center justify-between px-8 py-4 shrink-0">
-          <div className="flex items-center gap-3">
-            <img src={wnbaLogo} alt="WNBA" className="h-9 w-auto object-contain" />
-            <img src={nbaLogo} alt="NBA" className="h-9 w-auto" />
-            <img src={euroleagueLogo} alt="EuroLeague" className="h-9 w-auto object-contain" />
-            <span className="text-xs font-heading uppercase tracking-[0.3em] text-foreground/70">
-              {HOOPSFANTASY_NAME}
-            </span>
-          </div>
+          <BrandMark />
           <div className="flex items-center gap-2">
             <button
               type="button"
