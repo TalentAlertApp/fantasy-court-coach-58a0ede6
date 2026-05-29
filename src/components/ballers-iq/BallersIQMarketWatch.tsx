@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import BallersIQBrand from "./BallersIQBrand";
 import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat, ChevronUp, ChevronDown } from "lucide-react";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
+import { getTeamLogo } from "@/lib/nba-teams";
 
 interface MarketPlayer {
   id: number;
@@ -16,6 +17,7 @@ interface MarketPlayer {
   delta_fp?: number | null;
   delta_mpg?: number | null;
   injury?: string | null;
+  photo?: string | null;
 }
 
 interface Props {
@@ -100,7 +102,7 @@ export default function BallersIQMarketWatch({
   const lanesGrid = (
     <div className="relative grid grid-cols-2 gap-2">
       <Lane label="Value Adds" icon={<Sparkles className="h-3 w-3 text-emerald-400" />} tone="emerald"
-        rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
+        rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
         onPick={onPickPlayer} />
       <Lane label="Drop Risks" icon={<AlertTriangle className="h-3 w-3 text-red-400" />} tone="red"
         rows={data.dropRisks.map((p) => {
@@ -108,20 +110,20 @@ export default function BallersIQMarketWatch({
           const meta = (isHealthUnavailable(h) || isHealthRisky(h))
             ? getHealthLabel(h)
             : `Δ${num(p.delta_fp).toFixed(1)} FP`;
-          return { id: p.id, name: p.name, meta };
+          return { id: p.id, name: p.name, photo: p.photo, team: p.team, meta };
         })}
         onPick={onPickPlayer} />
       <Lane label="Buy Low" icon={<TrendingDown className="h-3 w-3 text-sky-400" />} tone="sky"
-        rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
+        rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
         onPick={onPickPlayer} />
       <Lane label="Sell High" icon={<TrendingUp className="h-3 w-3 text-amber-400" />} tone="amber"
-        rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
+        rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
         onPick={onPickPlayer} />
       <Lane label="Schedule Streams" icon={<CalendarDays className="h-3 w-3 text-violet-400" />} tone="violet"
-        rows={data.streams.map((p) => ({ id: p.id, name: p.name, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
+        rows={data.streams.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
         onPick={onPickPlayer} />
       <Lane label="Salary Traps" icon={<DollarSign className="h-3 w-3 text-zinc-400" />} tone="zinc"
-        rows={data.traps.map((p) => ({ id: p.id, name: p.name, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
+        rows={data.traps.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
         onPick={onPickPlayer} />
     </div>
   );
@@ -165,9 +167,15 @@ export default function BallersIQMarketWatch({
             <span className="ml-auto text-[10px] font-mono text-emerald-300">+{data.bestSwap.fpDelta.toFixed(1)} FP5</span>
           </div>
           <div className="text-[11px] flex items-center gap-1.5 flex-wrap">
-            <button onClick={() => onPickPlayer?.(data.bestSwap!.out.id)} className="text-destructive font-medium hover:underline">↓ {data.bestSwap.out.name}</button>
+            <PlayerChip
+              name={data.bestSwap.out.name} photo={data.bestSwap.out.photo} team={data.bestSwap.out.team}
+              prefix="↓" nameClass="text-destructive" onClick={() => onPickPlayer?.(data.bestSwap!.out.id)}
+            />
             <span className="text-muted-foreground">→</span>
-            <button onClick={() => onPickPlayer?.(data.bestSwap!.in.id)} className="text-emerald-400 font-medium hover:underline">↑ {data.bestSwap.in.name}</button>
+            <PlayerChip
+              name={data.bestSwap.in.name} photo={data.bestSwap.in.photo} team={data.bestSwap.in.team}
+              prefix="↑" nameClass="text-emerald-400" onClick={() => onPickPlayer?.(data.bestSwap!.in.id)}
+            />
             <span className="text-muted-foreground text-[10px]">${num(data.bestSwap.in.salary).toFixed(1)}M</span>
           </div>
         </div>
@@ -207,11 +215,31 @@ const TONE: Record<string, string> = {
   zinc: "border-zinc-500/20",
 };
 
+function PlayerChip({
+  name, photo, team, prefix, nameClass, onClick,
+}: {
+  name: string; photo?: string | null; team?: string | null;
+  prefix?: string; nameClass?: string; onClick?: () => void;
+}) {
+  const logo = team ? getTeamLogo(team) : null;
+  return (
+    <span className="group/pc inline-flex items-center gap-1">
+      {photo ? (
+        <img src={photo} alt="" className="w-5 h-5 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
+      ) : (
+        <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[8px] font-bold shrink-0">{name.slice(0, 1)}</span>
+      )}
+      <button onClick={onClick} className={cn("font-medium hover:underline", nameClass)}>{prefix ? `${prefix} ` : ""}{name}</button>
+      {logo && <img src={logo} alt="" className="w-4 h-4 object-contain shrink-0 transition-transform group-hover/pc:scale-150" />}
+    </span>
+  );
+}
+
 function Lane({
   label, icon, rows, tone, onPick,
 }: {
   label: string; icon: React.ReactNode; tone: keyof typeof TONE;
-  rows: { id: number; name: string; meta: string }[]; onPick?: (id: number) => void;
+  rows: { id: number; name: string; meta: string; photo?: string | null; team?: string | null }[]; onPick?: (id: number) => void;
 }) {
   return (
     <div className={cn("rounded-lg border bg-amber-400/10 dark:bg-card/50 p-2", TONE[tone])}>
@@ -227,9 +255,17 @@ function Lane({
             <li key={r.id}>
               <button
                 onClick={() => onPick?.(r.id)}
-                className="w-full text-left text-[10.5px] flex items-center gap-1.5 hover:bg-muted/40 rounded px-1 py-0.5 transition-colors"
+                className="group/row w-full text-left text-[10.5px] flex items-center gap-1.5 hover:bg-muted/40 rounded px-1 py-0.5 transition-colors"
               >
+                {r.photo ? (
+                  <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
+                ) : (
+                  <span className="w-5 h-5 rounded-full bg-white/10 inline-flex items-center justify-center text-[8px] font-bold shrink-0">{r.name.slice(0, 1)}</span>
+                )}
                 <span className="font-medium truncate">{r.name}</span>
+                {r.team && getTeamLogo(r.team) && (
+                  <img src={getTeamLogo(r.team)!} alt="" className="w-4 h-4 object-contain shrink-0 transition-transform group-hover/row:scale-150" />
+                )}
                 <span className="ml-auto font-mono text-[9.5px] text-muted-foreground truncate">{r.meta}</span>
               </button>
             </li>

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
+import PlayerModal from "@/components/PlayerModal";
+import TeamModal from "@/components/TeamModal";
 
 function getTeamFullName(tricode: string): string {
   const t = NBA_TEAMS.find((t) => t.tricode === tricode);
@@ -84,6 +86,9 @@ export default function PlayerExplainStudio(props: Props) {
     onClearResult, onGoToTab,
   } = props;
 
+  const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
+  const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
+
   /* -------- roster suggestions -------- */
   const rosterIds = useMemo(() => new Set<number>([
     ...(rosterData?.roster?.starters ?? []),
@@ -131,7 +136,9 @@ export default function PlayerExplainStudio(props: Props) {
         </div>
         {/* The existing ExplainReport is rendered by the parent through props.explainResult,
             but we need to render it here. The parent passes us the data — render it. */}
-        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} />
+        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} />
+        <PlayerModal playerId={modalPlayerId} open={modalPlayerId !== null} onOpenChange={(o) => !o && setModalPlayerId(null)} />
+        <TeamModal tricode={modalTeamTri} open={modalTeamTri !== null} onOpenChange={(o) => !o && setModalTeamTri(null)} />
       </div>
     );
   }
@@ -447,6 +454,6 @@ export default function PlayerExplainStudio(props: Props) {
 }
 
 import ExplainReport from "@/components/ballers-iq/ExplainReport";
-function ExplainReportSlot(p: { result: any; player: any }) {
-  return <ExplainReport result={p.result} player={p.player} />;
+function ExplainReportSlot(p: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void }) {
+  return <ExplainReport result={p.result} player={p.player} onOpenPlayer={p.onOpenPlayer} onOpenTeam={p.onOpenTeam} />;
 }
