@@ -355,6 +355,8 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                       const isHome = g.home_team === tricode;
                       const opp = isHome ? g.away_team : g.home_team;
                       const oppLogo = getOppLogo(opp);
+                      const diff = difficultyMap?.[opp];
+                      const diffColor = difficultyRingColor(diff?.label);
                       const tipoff = g.tipoff_utc ? new Date(g.tipoff_utc).toLocaleDateString("en-GB", { month: "short", day: "numeric" }) : "TBD";
                       const openDetail = () => setSelectedGame({
                         game_id: g.game_id,
@@ -382,6 +384,15 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                         >
                           {oppLogo && <img src={oppLogo} alt="" className="w-4 h-4" />}
                           <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
+                          {diff?.label && (
+                            <span
+                              className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider"
+                              style={{ color: diffColor, borderColor: diffColor, backgroundColor: `${diffColor.replace(")", " / 0.12)").replace("hsl(", "hsl(")}` }}
+                              title={`Matchup difficulty: ${diff.label}`}
+                            >
+                              {diff.label}
+                            </span>
+                          )}
                           <span className="ml-auto text-xs text-muted-foreground">{tipoff}</span>
                           <span className="text-[10px] text-muted-foreground font-mono">GW{g.gw}.{g.day}</span>
                         </button>
