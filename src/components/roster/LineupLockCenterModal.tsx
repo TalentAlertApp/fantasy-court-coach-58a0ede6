@@ -376,7 +376,18 @@ function LineupLockCenterInner({
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   {/* LEFT */}
                   <div className="space-y-4">
-                    <Panel title="Captain Check" icon={<Crown className="h-3.5 w-3.5 text-amber-300" />}>
+                    <Panel
+                      title="Captain Check"
+                      icon={<Crown className="h-3.5 w-3.5 text-amber-300" />}
+                      watermark={captain && logoFor(captain.core.team) ? (
+                        <img
+                          src={logoFor(captain.core.team)}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute -top-4 -right-4 h-24 w-24 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
+                        />
+                      ) : undefined}
+                    >
                       {captain ? (
                         <div className="flex items-center gap-3">
                           <PlayerAvatar p={captain} logoFor={logoFor} />
@@ -443,55 +454,19 @@ function LineupLockCenterInner({
                         Captain scores 2× FP. Figures use last-5 FP (or season FP when no recent sample).
                       </p>
                     </Panel>
-                  </div>
 
-                  {/* CENTER */}
-                  <div className="space-y-4">
-                    <Panel title="Roster Availability" icon={<Users className="h-3.5 w-3.5 text-amber-300" />}>
-                      <div className="space-y-1">
-                        {starters.map((p, i) => (
-                          <RosterRow key={p.core.id} p={p} slot={`S${i + 1}`} status={statusOf(p, true)} g={dayGameOf(p)} logoFor={logoFor} />
-                        ))}
-                        {bench.length > 0 && <div className="h-px bg-amber-400/10 my-1.5" />}
-                        {bench.map((p, i) => (
-                          <RosterRow key={p.core.id} p={p} slot={`B${i + 1}`} status={statusOf(p, false)} g={dayGameOf(p)} logoFor={logoFor} />
-                        ))}
-                      </div>
-                    </Panel>
-
-                    <Panel title="Schedule Exposure" icon={<CalendarDays className="h-3.5 w-3.5 text-amber-300" />}>
-                      {exposure.length === 0 ? (
-                        <p className="text-[11px] text-white/50">Schedule context unavailable for this gameday.</p>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {exposure.map((e) => (
-                            <div key={e.game.gameId} className="flex items-center gap-2 rounded-lg border border-amber-400/15 bg-black/25 px-2.5 py-1.5">
-                              <GameLogos g={e.game} logoFor={logoFor} />
-                              <div className="min-w-0 flex-1">
-                                <div className="font-heading font-bold text-[11px] text-white truncate">
-                                  {e.game.isHome ? `${e.game.homeTeam} vs ${e.game.awayTeam}` : `${e.game.awayTeam} @ ${e.game.homeTeam}`}
-                                </div>
-                                <div className="text-[9px] text-white/45">{e.players.length} player{e.players.length > 1 ? "s" : ""}</div>
-                              </div>
-                              <div className="text-right shrink-0">
-                                <div className="font-mono font-bold text-amber-200 text-xs tabular-nums">{e.fp.toFixed(1)}</div>
-                                <div className="text-[8px] uppercase tracking-wider text-white/40">FP exp.</div>
-                              </div>
-                            </div>
-                          ))}
-                          {roster.filter((p) => !dayGameOf(p)).length > 0 && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 px-1 pt-1">
-                              <CalendarX className="h-3 w-3" /> {roster.filter((p) => !dayGameOf(p)).length} no-game slot(s)
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Panel>
-                  </div>
-
-                  {/* RIGHT */}
-                  <div className="space-y-4">
-                    <Panel title="Transfer Windows" icon={<ArrowLeftRight className="h-3.5 w-3.5 text-amber-300" />}>
+                    <Panel
+                      title="Transfer Windows"
+                      icon={<ArrowLeftRight className="h-3.5 w-3.5 text-amber-300" />}
+                      watermark={transferBadgePlayer && logoFor(transferBadgePlayer.core.team) ? (
+                        <img
+                          src={logoFor(transferBadgePlayer.core.team)}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute -top-4 -right-4 h-24 w-24 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
+                        />
+                      ) : undefined}
+                    >
                       {(transferIdeas.bestAdd || transferIdeas.bestSwap || transferIdeas.watchlist) ? (
                         <div className="space-y-2">
                           {transferIdeas.bestSwap && (
@@ -531,14 +506,71 @@ function LineupLockCenterInner({
                         <p className="text-[11px] text-white/50">No urgent transfer moves detected.</p>
                       )}
                     </Panel>
+                  </div>
 
-                    <Panel title="Quick Actions" icon={<Zap className="h-3.5 w-3.5 text-amber-300" />}>
-                      <div className="grid grid-cols-1 gap-2">
-                        <QuickAction icon={<Crown className="h-3.5 w-3.5" />} label="Open Captain Call" onClick={onOpenCoach} />
-                        <QuickAction icon={<Bandage className="h-3.5 w-3.5" />} label="Open Health Desk" onClick={onOpenAdvisor} />
-                        <QuickAction icon={<Brain className="h-3.5 w-3.5" />} label="Open Market Watch" onClick={onOpenAdvisor} />
-                        <QuickAction icon={<Zap className="h-3.5 w-3.5" />} label="Optimize Lineup" onClick={onOptimize} />
+                  {/* CENTER */}
+                  <div className="space-y-4">
+                    <Panel title="Roster Availability" icon={<Users className="h-3.5 w-3.5 text-amber-300" />}>
+                      <div className="space-y-1">
+                        {starters.map((p, i) => (
+                          <RosterRow key={p.core.id} p={p} slot={`S${i + 1}`} status={statusOf(p, true)} g={dayGameOf(p)} logoFor={logoFor} />
+                        ))}
+                        {bench.length > 0 && <div className="h-px bg-amber-400/10 my-1.5" />}
+                        {bench.map((p, i) => (
+                          <RosterRow key={p.core.id} p={p} slot={`B${i + 1}`} status={statusOf(p, false)} g={dayGameOf(p)} logoFor={logoFor} />
+                        ))}
                       </div>
+                    </Panel>
+                  </div>
+
+                  {/* RIGHT */}
+                  <div className="space-y-4">
+                    <Panel title="Schedule Exposure" icon={<CalendarDays className="h-3.5 w-3.5 text-amber-300" />}>
+                      {exposure.length === 0 ? (
+                        <p className="text-[11px] text-white/50">Schedule context unavailable for this gameday.</p>
+                      ) : (
+                        <div className="space-y-1.5">
+                          {exposure.map((e) => (
+                            <div key={e.game.gameId} className="flex items-center gap-2 rounded-lg border border-amber-400/15 bg-black/25 px-2.5 py-1.5">
+                              <div className="min-w-0 flex-1 flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => e.game.awayTeam && setTeamModalTri(e.game.awayTeam)}
+                                  className="group/away relative shrink-0 transition-transform duration-200 hover:scale-125 hover:z-10"
+                                  title={`${e.game.awayTeam} team page`}
+                                >
+                                  {logoFor(e.game.awayTeam ?? "") ? (
+                                    <img src={logoFor(e.game.awayTeam ?? "")} alt="" className="h-7 w-7 object-contain opacity-80 group-hover/away:opacity-100" />
+                                  ) : <span className="h-7 w-7 inline-block" />}
+                                </button>
+                                <span className="font-heading font-bold text-[11px] text-white">{e.game.awayTeam}</span>
+                                <span className="text-white/40 text-[10px]">@</span>
+                                <span className="font-heading font-bold text-[11px] text-white">{e.game.homeTeam}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => e.game.homeTeam && setTeamModalTri(e.game.homeTeam)}
+                                  className="group/home relative shrink-0 transition-transform duration-200 hover:scale-125 hover:z-10"
+                                  title={`${e.game.homeTeam} team page`}
+                                >
+                                  {logoFor(e.game.homeTeam ?? "") ? (
+                                    <img src={logoFor(e.game.homeTeam ?? "")} alt="" className="h-7 w-7 object-contain opacity-80 group-hover/home:opacity-100" />
+                                  ) : <span className="h-7 w-7 inline-block" />}
+                                </button>
+                                <span className="ml-1 text-[9px] text-white/45 whitespace-nowrap">{e.players.length}p</span>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="font-mono font-bold text-amber-200 text-xs tabular-nums">{e.fp.toFixed(1)}</div>
+                                <div className="text-[8px] uppercase tracking-wider text-white/40">FP exp.</div>
+                              </div>
+                            </div>
+                          ))}
+                          {roster.filter((p) => !dayGameOf(p)).length > 0 && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 px-1 pt-1">
+                              <CalendarX className="h-3 w-3" /> {roster.filter((p) => !dayGameOf(p)).length} no-game slot(s)
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </Panel>
 
                     <Panel title="Lock Notes" icon={<Sparkles className="h-3.5 w-3.5 text-amber-300" />}>
