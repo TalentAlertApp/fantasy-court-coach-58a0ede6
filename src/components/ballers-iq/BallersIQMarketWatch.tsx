@@ -102,7 +102,7 @@ export default function BallersIQMarketWatch({
   const lanesGrid = (
     <div className="relative grid grid-cols-2 gap-2">
       <Lane label="Value Adds" icon={<Sparkles className="h-3 w-3 text-emerald-400" />} tone="emerald"
-        rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
+        rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
         onPick={onPickPlayer} />
       <Lane label="Drop Risks" icon={<AlertTriangle className="h-3 w-3 text-red-400" />} tone="red"
         rows={data.dropRisks.map((p) => {
@@ -110,20 +110,20 @@ export default function BallersIQMarketWatch({
           const meta = (isHealthUnavailable(h) || isHealthRisky(h))
             ? getHealthLabel(h)
             : `Δ${num(p.delta_fp).toFixed(1)} FP`;
-          return { id: p.id, name: p.name, meta };
+          return { id: p.id, name: p.name, photo: p.photo, team: p.team, meta };
         })}
         onPick={onPickPlayer} />
       <Lane label="Buy Low" icon={<TrendingDown className="h-3 w-3 text-sky-400" />} tone="sky"
-        rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
+        rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
         onPick={onPickPlayer} />
       <Lane label="Sell High" icon={<TrendingUp className="h-3 w-3 text-amber-400" />} tone="amber"
-        rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
+        rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
         onPick={onPickPlayer} />
       <Lane label="Schedule Streams" icon={<CalendarDays className="h-3 w-3 text-violet-400" />} tone="violet"
-        rows={data.streams.map((p) => ({ id: p.id, name: p.name, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
+        rows={data.streams.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
         onPick={onPickPlayer} />
       <Lane label="Salary Traps" icon={<DollarSign className="h-3 w-3 text-zinc-400" />} tone="zinc"
-        rows={data.traps.map((p) => ({ id: p.id, name: p.name, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
+        rows={data.traps.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
         onPick={onPickPlayer} />
     </div>
   );
