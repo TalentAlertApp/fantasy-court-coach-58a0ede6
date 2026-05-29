@@ -16,6 +16,7 @@ import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getTeamLogo } from "@/lib/nba-teams";
 import TeamModal from "@/components/TeamModal";
+import PlayerModal from "@/components/PlayerModal";
 import {
   normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel,
 } from "@/lib/health";
