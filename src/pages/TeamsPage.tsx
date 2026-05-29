@@ -56,11 +56,6 @@ export default function TeamsPage() {
   }, [league]);
   const { data: leagueId } = useLeagueId();
   const leagueLogo = getLeagueLogo(league);
-  const headerTitle = isEuroleague
-    ? (tab === "standings" ? "EuroLeague Standings" : tab === "stats" ? "EuroLeague Team Stats" : "EuroLeague Teams")
-    : league === "wnba"
-      ? (tab === "standings" ? "WNBA Standings" : tab === "stats" ? "WNBA Team Stats" : "WNBA Teams")
-      : (tab === "standings" ? "NBA Standings" : tab === "stats" ? "NBA Team Stats" : "NBA Teams");
 
   const { data: scheduleData, isLoading: schedLoading } = useQuery({
     queryKey: ["teams-schedule-stats", leagueId],
