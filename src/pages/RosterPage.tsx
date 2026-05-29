@@ -671,6 +671,22 @@ export default function RosterPage() {
               <TooltipTrigger asChild>
                 <button
                   type="button"
+                  onClick={() => setLineupLockOpen(true)}
+                  aria-label="Open Lineup Lock Center"
+                  data-active={lineupLockOpen ? "true" : undefined}
+                  className="header-icon-btn is-lineup-lock inline-flex items-center gap-1.5 px-2.5 w-auto rounded-lg border border-amber-400/40 bg-gradient-to-br from-amber-400/25 to-amber-600/10 text-amber-200 shadow-[0_0_18px_-6px_hsl(var(--primary)/0.6)] transition-all hover:brightness-110 hover:scale-[1.03]"
+                >
+                  <LockKeyhole className="header-icon h-4 w-4" />
+                  <span className="font-heading text-[11px] font-bold uppercase tracking-wider">Lineup Lock</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Open Lineup Lock Center</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
                   onClick={() => setWishlistOpen(true)}
                   aria-label="Wishlist"
                   className="header-icon-btn is-wishlist"
