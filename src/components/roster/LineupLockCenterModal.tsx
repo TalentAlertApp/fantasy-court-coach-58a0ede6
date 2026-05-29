@@ -18,7 +18,6 @@ import {
   normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel,
 } from "@/lib/health";
 import { calculateCaptainEdge } from "@/lib/ballers-iq/playerIntelligence";
-import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
 
 type PlayerListItem = z.infer<typeof PlayerListItemSchema>;
 
