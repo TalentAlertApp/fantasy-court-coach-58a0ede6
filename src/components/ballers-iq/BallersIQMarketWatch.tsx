@@ -127,10 +127,10 @@ export default function BallersIQMarketWatch({
   );
 
   return (
+    <div className={cn("relative", className)}>
     <section className={cn(
       "relative rounded-xl border border-amber-400/40 p-3 overflow-hidden",
       "bg-amber-400/15 dark:bg-gradient-to-br dark:from-amber-400/[0.05] dark:via-card dark:to-card",
-      className,
     )}>
       <BallersIQBrand
         variant="emblem"
@@ -173,9 +173,11 @@ export default function BallersIQMarketWatch({
         </div>
       )}
 
+    </section>
+
       {/* Lanes grid: hidden by default, expands UPWARD as an overlay to avoid scrolling */}
       {expanded && (
-        <div className="absolute inset-x-3 bottom-full mb-2 z-30 rounded-xl border border-amber-400/40 bg-card p-3 shadow-2xl shadow-black/60">
+        <div className="absolute inset-x-0 bottom-full mb-2 z-30 rounded-xl border border-amber-400/40 bg-card p-3 shadow-2xl shadow-black/60">
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[9px] font-heading font-bold uppercase tracking-[0.18em] text-muted-foreground">
               Market Signals
@@ -192,7 +194,7 @@ export default function BallersIQMarketWatch({
           {lanesGrid}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
