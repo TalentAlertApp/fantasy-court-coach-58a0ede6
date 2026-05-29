@@ -36,6 +36,7 @@ import { commitTransaction } from "@/lib/api";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { getEligibility, type EligibilityCtx } from "@/lib/trade-eligibility";
 import { useLeague } from "@/contexts/LeagueContext";
+import { getCompetition, getLeagueLogo } from "@/lib/competitions";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel, getHealthTooltipText } from "@/lib/health";
 import type { HealthFilter } from "@/components/FiltersPanel";
 import { HealthStatusIcon } from "@/components/health";
