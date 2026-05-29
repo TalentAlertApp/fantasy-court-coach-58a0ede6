@@ -386,11 +386,11 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
                           <span className="font-heading text-xs uppercase">{isHome ? "vs" : "@"} {opp}</span>
                           {diff?.label && (
                             <span
-                              className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[9px] font-heading uppercase tracking-wider"
+                              className="inline-flex items-center justify-center rounded-full border text-[9px] font-heading font-bold w-5 h-5 shrink-0"
                               style={{ color: diffColor, borderColor: diffColor }}
                               title={`Matchup difficulty: ${diff.label}`}
                             >
-                              {diff.label}
+                              {diff.label.charAt(0).toUpperCase()}
                             </span>
                           )}
                           <span className="ml-auto text-xs text-muted-foreground">{tipoff}</span>

@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -87,6 +88,7 @@ function LineupLockCenterInner({
   onApplyCaptain, onOptimize, onOpenCoach, onOpenAdvisor, onOpenSchedule,
 }: LineupLockCenterModalProps) {
   const { league } = useLeague();
+  const navigate = useNavigate();
   const { data: diffMap } = useTeamDifficultyMap();
   const [teamModalTri, setTeamModalTri] = useState<string | null>(null);
 
@@ -455,56 +457,20 @@ function LineupLockCenterInner({
                       </p>
                     </Panel>
 
-                    <Panel
-                      title="Transfer Windows"
-                      icon={<ArrowLeftRight className="h-3.5 w-3.5 text-amber-300" />}
-                      watermark={transferBadgePlayer && logoFor(transferBadgePlayer.core.team) ? (
-                        <img
-                          src={logoFor(transferBadgePlayer.core.team)}
-                          alt=""
-                          aria-hidden
-                          className="pointer-events-none absolute -top-4 -right-4 h-24 w-24 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
-                        />
-                      ) : undefined}
-                    >
-                      {(transferIdeas.bestAdd || transferIdeas.bestSwap || transferIdeas.watchlist) ? (
-                        <div className="space-y-2">
-                          {transferIdeas.bestSwap && (
-                            <TransferIdea
-                              tag="Best swap"
-                              tone="good"
-                              title={`${transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]} → ${transferIdeas.bestSwap.in_.core.name}`}
-                              sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
-                            />
-                          )}
-                          {transferIdeas.bestAdd && (
-                            <TransferIdea
-                              tag="Best add"
-                              tone="neutral"
-                              title={transferIdeas.bestAdd.core.name}
-                              sub={`Projected ${projFpOf(transferIdeas.bestAdd).toFixed(1)} FP · ${num(transferIdeas.bestAdd.core.salary).toFixed(1)}M`}
-                            />
-                          )}
-                          {transferIdeas.watchlist && (
-                            <TransferIdea
-                              tag="Injury cover"
-                              tone="bad"
-                              title={transferIdeas.watchlist.core.name}
-                              sub={getHealthLabel(normalizePlayerHealth(transferIdeas.watchlist))}
-                            />
-                          )}
-                          <button
-                            type="button"
-                            disabled={!onOpenCoach}
-                            onClick={onOpenCoach}
-                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/25 bg-black/30 px-3 py-1.5 text-[10px] font-heading font-bold uppercase tracking-wider text-white/80 transition-all hover:bg-amber-400/10 hover:text-amber-200 disabled:opacity-40"
-                          >
-                            Open trade tools <ChevronRight className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-[11px] text-white/50">No urgent transfer moves detected.</p>
-                      )}
+                    <Panel title="Lock Notes" icon={<Sparkles className="h-3.5 w-3.5 text-amber-300" />}>
+                      <ul className="space-y-1">
+                        {lockNotes.map((n, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-[11px] leading-snug">
+                            <span className={cn(
+                              "mt-0.5 shrink-0",
+                              n.tone === "good" ? "text-emerald-400" : n.tone === "warn" ? "text-amber-400" : "text-red-400",
+                            )}>
+                              {n.tone === "good" ? <CheckCircle2 className="h-3 w-3" /> : n.tone === "warn" ? <AlertTriangle className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
+                            </span>
+                            <span className="text-white/75">{n.text}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </Panel>
                   </div>
 
@@ -573,20 +539,55 @@ function LineupLockCenterInner({
                       )}
                     </Panel>
 
-                    <Panel title="Lock Notes" icon={<Sparkles className="h-3.5 w-3.5 text-amber-300" />}>
-                      <ul className="space-y-1">
-                        {lockNotes.map((n, i) => (
-                          <li key={i} className="flex items-start gap-1.5 text-[11px] leading-snug">
-                            <span className={cn(
-                              "mt-0.5 shrink-0",
-                              n.tone === "good" ? "text-emerald-400" : n.tone === "warn" ? "text-amber-400" : "text-red-400",
-                            )}>
-                              {n.tone === "good" ? <CheckCircle2 className="h-3 w-3" /> : n.tone === "warn" ? <AlertTriangle className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
-                            </span>
-                            <span className="text-white/75">{n.text}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <Panel
+                      title="Transfer Windows"
+                      icon={<ArrowLeftRight className="h-3.5 w-3.5 text-amber-300" />}
+                      watermark={transferBadgePlayer && logoFor(transferBadgePlayer.core.team) ? (
+                        <img
+                          src={logoFor(transferBadgePlayer.core.team)}
+                          alt=""
+                          aria-hidden
+                          className="pointer-events-none absolute -top-4 -right-4 h-24 w-24 object-contain opacity-20 transition-transform duration-200 group-hover:scale-125 group-hover:opacity-35 z-0"
+                        />
+                      ) : undefined}
+                    >
+                      {(transferIdeas.bestAdd || transferIdeas.bestSwap || transferIdeas.watchlist) ? (
+                        <div className="space-y-2">
+                          {transferIdeas.bestSwap && (
+                            <TransferIdea
+                              tag="Best swap"
+                              tone="good"
+                              title={`${transferIdeas.bestSwap.out.core.name.split(" ").slice(-1)[0]} → ${transferIdeas.bestSwap.in_.core.name}`}
+                              sub={`Projected +${transferIdeas.bestSwap.gain.toFixed(1)} FP`}
+                            />
+                          )}
+                          {transferIdeas.bestAdd && (
+                            <TransferIdea
+                              tag="Best add"
+                              tone="neutral"
+                              title={transferIdeas.bestAdd.core.name}
+                              sub={`Projected ${projFpOf(transferIdeas.bestAdd).toFixed(1)} FP · ${num(transferIdeas.bestAdd.core.salary).toFixed(1)}M`}
+                            />
+                          )}
+                          {transferIdeas.watchlist && (
+                            <TransferIdea
+                              tag="Injury cover"
+                              tone="bad"
+                              title={transferIdeas.watchlist.core.name}
+                              sub={getHealthLabel(normalizePlayerHealth(transferIdeas.watchlist))}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => { onOpenChange(false); navigate("/transactions"); }}
+                            className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-amber-400/25 bg-black/30 px-3 py-1.5 text-[10px] font-heading font-bold uppercase tracking-wider text-white/80 transition-all hover:bg-amber-400/10 hover:text-amber-200"
+                          >
+                            Open trade tools <ChevronRight className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-[11px] text-white/50">No urgent transfer moves detected.</p>
+                      )}
                     </Panel>
                   </div>
                 </div>
@@ -713,10 +714,13 @@ function RosterRow({ p, slot, status, g, logoFor }: {
           {p.core.team}{g ? (g.isHome ? ` vs ${g.opponent}` : ` @ ${g.opponent}`) : " · —"}
         </div>
       </div>
-      <span className={cn("relative z-[1] shrink-0 inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-heading font-bold uppercase tracking-wider", STATUS_TONE[status])}>
-        {status === "CAPTAIN" && <Crown className="h-2.5 w-2.5" />}
-        {status}
-      </span>
+      <div className="relative z-[1] shrink-0 w-20 flex justify-center">
+        <span className={cn("inline-flex items-center justify-center gap-1 rounded-md border px-1.5 py-0.5 text-[8px] font-heading font-bold uppercase tracking-wider", STATUS_TONE[status])}>
+          {status === "CAPTAIN" && <Crown className="h-2.5 w-2.5" />}
+          {status}
+        </span>
+      </div>
+      <span className="relative z-[1] flex-1 shrink-0" aria-hidden />
     </div>
   );
 }
