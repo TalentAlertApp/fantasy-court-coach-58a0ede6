@@ -61,6 +61,14 @@ export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [quickPlayerId, setQuickPlayerId] = useState<number | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [gameRecapsOpen, setGameRecapsOpen] = useState(false);
+
+  // Safe default opening context for the global Game Recaps launcher.
+  const { deadlines } = useLeagueDeadlines();
+  const { data: lastPlayed } = useLastPlayedDay();
+  const recapFallback = getCurrentGamedayFrom(deadlines) ?? deadlines[0];
+  const recapInitialGw = lastPlayed?.gw ?? recapFallback?.gw ?? 1;
+  const recapInitialDay = lastPlayed?.day ?? recapFallback?.day ?? 1;
   const [dark, setDark] = useState(() =>
     localStorage.getItem("nba_theme") === "dark" ||
     (!localStorage.getItem("nba_theme") && window.matchMedia("(prefers-color-scheme: dark)").matches)
