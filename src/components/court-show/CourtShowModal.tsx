@@ -45,6 +45,7 @@ export default function CourtShowModal({ open, onOpenChange, gw, day }: Props) {
   const [openPlayerId, setOpenPlayerId] = useState<number | null>(null);
   const [openTri, setOpenTri] = useState<string | null>(null);
   const [openGame, setOpenGame] = useState<GameDetailGame | null>(null);
+  const [openGameRecap, setOpenGameRecap] = useState(false);
   const [speed, setSpeed] = useState<keyof typeof SPEEDS>(readSpeed);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
