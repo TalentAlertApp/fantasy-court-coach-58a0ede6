@@ -189,10 +189,10 @@ export default function TradeReport(props: TradeReportProps) {
     <TooltipProvider delayDuration={150}>
     <div className="rounded-xl border-2 border-accent/40 bg-gradient-to-br from-background via-background to-accent/[0.03] shadow-[0_20px_60px_-15px_hsl(var(--accent)/0.35)] ring-1 ring-accent/10">
       {/* Header */}
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-gradient-to-r from-card/60 via-card/40 to-accent/[0.06] rounded-t-xl">
+      <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-border bg-gradient-to-r from-card/60 via-card/40 to-accent/[0.06] rounded-t-xl">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-accent" />
-          <h3 className="font-heading uppercase text-sm tracking-[0.2em] font-bold">Trade Report</h3>
+          <Handshake className="h-4 w-4 text-accent" />
+          <h3 className="font-heading uppercase text-xs tracking-[0.2em] font-bold">Trade Report</h3>
           <Badge variant="outline" className="font-mono text-[10px]">GW{gw} · Day {day}</Badge>
         </div>
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose} aria-label="Close report">
