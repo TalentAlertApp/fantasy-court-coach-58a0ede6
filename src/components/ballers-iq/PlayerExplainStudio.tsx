@@ -470,6 +470,6 @@ export default function PlayerExplainStudio(props: Props) {
 }
 
 import ExplainReport from "@/components/ballers-iq/ExplainReport";
-function ExplainReportSlot(p: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void }) {
-  return <ExplainReport result={p.result} player={p.player} onOpenPlayer={p.onOpenPlayer} onOpenTeam={p.onOpenTeam} />;
+function ExplainReportSlot(p: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void; onBringIn?: () => void }) {
+  return <ExplainReport result={p.result} player={p.player} onOpenPlayer={p.onOpenPlayer} onOpenTeam={p.onOpenTeam} onBringIn={p.onBringIn} />;
 }
