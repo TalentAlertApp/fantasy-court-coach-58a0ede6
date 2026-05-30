@@ -81,7 +81,7 @@ function MetricRow({ label, before, after, format = (n: number) => n.toFixed(1),
   const isBad = invert ? delta > 0 : delta < 0;
   const cls = Math.abs(delta) < 0.01 ? "text-muted-foreground" : isGood ? "text-emerald-500" : isBad ? "text-destructive" : "text-muted-foreground";
   return (
-    <div className="grid grid-cols-4 items-center gap-2 px-3 py-2 border-b border-border/40 last:border-0 text-xs font-mono">
+    <div className="grid grid-cols-4 items-center gap-2 px-3 py-1 border-b border-border/40 last:border-0 text-xs font-mono">
       <span className="font-heading uppercase text-[10px] text-muted-foreground tracking-wider inline-flex items-center gap-1">
         {label}
         {hint && (
