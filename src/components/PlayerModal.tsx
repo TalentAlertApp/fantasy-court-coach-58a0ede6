@@ -116,6 +116,16 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [shareCardOpen, setShareCardOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
+  const [bringInOpen, setBringInOpen] = useState(false);
+  const { data: rosterData } = useRosterQuery();
+  const isOnRoster = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    const ids: number[] = [
+      ...(Array.isArray(r?.starters) ? r.starters : []),
+      ...(Array.isArray(r?.bench) ? r.bench : []),
+    ];
+    return playerId != null && ids.includes(playerId);
+  }, [rosterData, playerId]);
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
