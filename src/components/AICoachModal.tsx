@@ -488,6 +488,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
                 onSimulate={handleSimulate}
                 onCommit={handleCommit}
                 onGoToTab={setActiveTab}
+                onClose={() => onOpenChange(false)}
                 onOpenPlayer={(p) => {
                   if (!p) return;
                   setSelectedExplainPlayer(p);
