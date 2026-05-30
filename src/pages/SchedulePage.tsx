@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useScheduleQuery } from "@/hooks/useScheduleQuery";
 import TeamOfTheWeekModal from "@/components/TeamOfTheWeekModal";
 import { useScheduleWeekCounts } from "@/hooks/useScheduleWeekCounts";
+import { useScheduleWeekLive } from "@/hooks/useScheduleWeekLive";
 import { useLastPlayedDay } from "@/hooks/useLastPlayedDay";
 import ScheduleList from "@/components/ScheduleList";
 import { TopPlayersPanel, useTopPlayersData } from "@/components/TopPlayersStrip";
@@ -87,6 +88,7 @@ export default function SchedulePage() {
   const navigate = useNavigate();
   const { data, isLoading, isError, isSuccess, refetch } = useScheduleQuery({ gw, day });
   const { data: weekCounts } = useScheduleWeekCounts(gw);
+  const { data: liveDays } = useScheduleWeekLive(gw);
   const { data: lastPlayed } = useLastPlayedDay();
   const { hasData: hasPotdData } = useTopPlayersData(gw, day);
   const { data: rosterData } = useRosterQuery();
