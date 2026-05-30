@@ -178,6 +178,16 @@ export default function BallersIQMarketWatch({
               prefix="↑" nameClass="text-emerald-400" onClick={() => onPickPlayer?.(data.bestSwap!.in.id)}
             />
             <span className="text-muted-foreground text-[10px]">${num(data.bestSwap.in.salary).toFixed(1)}M</span>
+            {onBringInPlayer && (
+              <button
+                type="button"
+                title="Bring In plan"
+                onClick={(e) => { e.stopPropagation(); onBringInPlayer(data.bestSwap!.in.id); }}
+                className="ml-auto inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-emerald-200 transition-colors hover:bg-emerald-500/20"
+              >
+                <Target className="h-3 w-3" /> Bring In
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -237,10 +247,13 @@ function PlayerChip({
 }
 
 function Lane({
-  label, icon, rows, tone, onPick,
+  label, icon, rows, tone, onPick, onBringIn, canBringIn,
 }: {
   label: string; icon: React.ReactNode; tone: keyof typeof TONE;
-  rows: { id: number; name: string; meta: string; photo?: string | null; team?: string | null }[]; onPick?: (id: number) => void;
+  rows: { id: number; name: string; meta: string; photo?: string | null; team?: string | null }[];
+  onPick?: (id: number) => void;
+  onBringIn?: (id: number) => void;
+  canBringIn?: boolean;
 }) {
   return (
     <div className={cn("rounded-lg border bg-amber-400/10 dark:bg-card/50 p-2", TONE[tone])}>
@@ -253,10 +266,10 @@ function Lane({
       ) : (
         <ul className="space-y-0.5">
           {rows.map((r) => (
-            <li key={r.id}>
+            <li key={r.id} className="group/row flex items-center gap-1 rounded px-1 py-0.5 hover:bg-muted/40 transition-colors">
               <button
                 onClick={() => onPick?.(r.id)}
-                className="group/row w-full text-left text-[10.5px] flex items-center gap-1.5 hover:bg-muted/40 rounded px-1 py-0.5 transition-colors"
+                className="min-w-0 flex-1 text-left text-[10.5px] flex items-center gap-1.5"
               >
                 {r.photo ? (
                   <img src={r.photo} alt="" className="w-5 h-5 rounded-full object-cover object-[center_15%] ring-1 ring-white/15 shrink-0" />
@@ -269,6 +282,17 @@ function Lane({
                 )}
                 <span className="ml-auto font-mono text-[9.5px] text-muted-foreground truncate">{r.meta}</span>
               </button>
+              {canBringIn && onBringIn && (
+                <button
+                  type="button"
+                  title="Bring In plan"
+                  aria-label="Bring In plan"
+                  onClick={(e) => { e.stopPropagation(); onBringIn(r.id); }}
+                  className="shrink-0 inline-flex items-center justify-center h-5 w-5 rounded-md border border-emerald-400/40 bg-emerald-500/10 text-emerald-300 transition-colors hover:bg-emerald-500/20"
+                >
+                  <Target className="h-3 w-3" />
+                </button>
+              )}
             </li>
           ))}
         </ul>
