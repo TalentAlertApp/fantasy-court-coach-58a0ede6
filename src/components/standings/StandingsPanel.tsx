@@ -1,7 +1,11 @@
 import { useState } from "react";
 import StandingsFilters, { type StandingsView } from "./StandingsFilters";
 import StandingsTable from "./StandingsTable";
+import LeagueStandingsWithVenue from "./LeagueStandingsWithVenue";
 import type { StandingRow } from "@/types/standings";
+import type { LeagueTeam } from "@/hooks/useLeagueTeams";
+import type { CompetitionCode } from "@/lib/competitions";
+import type { HomeSplit } from "@/lib/standings-home-splits";
 
 interface Props {
   standings: StandingRow[];
@@ -12,11 +16,15 @@ interface Props {
   /** Division names to render (in order). When the rows have no divisions
    *  (e.g. WNBA), Division view falls back to Conference. */
   divisions?: string[];
+  /** League-view venue companion table inputs (Arena/Market/Conf/HW%/HDIFF/HE). */
+  leagueTeams?: LeagueTeam[];
+  homeSplits?: Record<string, HomeSplit>;
+  league?: CompetitionCode;
 }
 
 const NBA_DIVISIONS = ["Atlantic", "Central", "Southeast", "Northwest", "Pacific", "Southwest"];
 
-export default function StandingsPanel({ standings, onTeamClick, view: viewProp, onViewChange, divisions }: Props) {
+export default function StandingsPanel({ standings, onTeamClick, view: viewProp, onViewChange, divisions, leagueTeams, homeSplits, league }: Props) {
   const [internalView, setInternalView] = useState<StandingsView>("division");
   const view = viewProp ?? internalView;
   const setView = onViewChange ?? setInternalView;
@@ -36,7 +44,17 @@ export default function StandingsPanel({ standings, onTeamClick, view: viewProp,
       {showOwnFilters && <StandingsFilters view={view} onChange={setView} />}
 
       {view === "league" && (
-        <StandingsTable rows={standings} showCutoffs={false} onTeamClick={onTeamClick} />
+        leagueTeams && homeSplits && league ? (
+          <LeagueStandingsWithVenue
+            standings={standings}
+            leagueTeams={leagueTeams}
+            homeSplits={homeSplits}
+            league={league}
+            onTeamClick={onTeamClick}
+          />
+        ) : (
+          <StandingsTable rows={standings} showCutoffs={false} onTeamClick={onTeamClick} />
+        )
       )}
 
       {view === "conference" && (

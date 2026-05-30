@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { StandingRow } from "@/types/standings";
 import { cn } from "@/lib/utils";
 
-type SortKey = keyof Pick<StandingRow, "w" | "l" | "pct" | "gb" | "ppg" | "oppPpg" | "diff" | "gp">;
+export type SortKey = keyof Pick<StandingRow, "w" | "l" | "pct" | "gb" | "ppg" | "oppPpg" | "diff" | "gp">;
 
 interface Props {
   rows: StandingRow[];
@@ -10,6 +10,14 @@ interface Props {
   showCutoffs?: boolean;
   compact?: boolean;
   onTeamClick?: (tricode: string) => void;
+  /** Controlled sort — when provided, the table renders `rows` in the given
+   *  order and delegates header clicks to `onSort` (used to keep a sibling
+   *  table in lockstep). When omitted, the table sorts internally. */
+  sortKey?: SortKey | null;
+  sortDir?: "asc" | "desc";
+  onSort?: (key: SortKey | null) => void;
+  /** Optional fixed row height class so a sibling venue table can align. */
+  rowHeightClass?: string;
 }
 
 const ALL_COLS: { key: SortKey | null; label: string; className?: string; compactHide?: boolean }[] = [
@@ -31,12 +39,22 @@ const ALL_COLS: { key: SortKey | null; label: string; className?: string; compac
   { key: null, label: "STRK", className: "w-14 text-right", compactHide: true },
 ];
 
-export default function StandingsTable({ rows, title, showCutoffs = false, compact = false, onTeamClick }: Props) {
+export default function StandingsTable({
+  rows, title, showCutoffs = false, compact = false, onTeamClick,
+  sortKey: sortKeyProp, sortDir: sortDirProp, onSort,
+  rowHeightClass,
+}: Props) {
   const COLS = compact ? ALL_COLS.filter((c) => !c.compactHide) : ALL_COLS;
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const controlled = typeof onSort === "function";
+  const [sortKeyState, setSortKey] = useState<SortKey | null>(null);
+  const [sortDirState, setSortDir] = useState<"asc" | "desc">("desc");
+  const sortKey = controlled ? (sortKeyProp ?? null) : sortKeyState;
+  const sortDir = controlled ? (sortDirProp ?? "desc") : sortDirState;
 
-  const sorted = sortKey
+  // When controlled, `rows` arrive pre-sorted by the parent.
+  const sorted = controlled
+    ? rows
+    : sortKey
     ? [...rows].sort((a, b) => {
         const av = a[sortKey] as number;
         const bv = b[sortKey] as number;
@@ -53,6 +71,7 @@ export default function StandingsTable({ rows, title, showCutoffs = false, compa
 
   const handleSort = (key: SortKey | null) => {
     if (!key) return;
+    if (controlled) { onSort!(key); return; }
     if (sortKey === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
     else { setSortKey(key); setSortDir("desc"); }
   };
@@ -93,6 +112,7 @@ export default function StandingsTable({ rows, title, showCutoffs = false, compa
                   onClick={() => onTeamClick?.(r.tricode)}
                   className={cn(
                     "border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer",
+                  rowHeightClass,
                     i % 2 === 1 && "bg-muted/20",
                     isPlayIn && "border-t-2 border-t-amber-500",
                     isElim && "border-t-2 border-t-destructive"
