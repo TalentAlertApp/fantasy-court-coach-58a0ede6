@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
+import { useLeague } from "@/contexts/LeagueContext";
 
 function getTeamFullName(tricode: string): string {
   const t = NBA_TEAMS.find((t) => t.tricode === tricode);
