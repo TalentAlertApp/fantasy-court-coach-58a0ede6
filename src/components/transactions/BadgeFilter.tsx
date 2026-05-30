@@ -30,21 +30,25 @@ export default function BadgeFilter({ value, onChange }: Props) {
         <Label className="text-[10px] font-heading font-bold uppercase text-muted-foreground block tracking-wider">
           Market Status
         </Label>
-        {value.length > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => onChange([])}
-                aria-label="Deselect all"
-                className="inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-all hover:text-foreground hover:bg-foreground/[0.06] hover:scale-110"
-              >
-                <FilterX className="h-3.5 w-3.5" strokeWidth={2.25} />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-[10px]">Deselect all</TooltipContent>
-          </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              disabled={value.length === 0}
+              aria-label="Deselect all"
+              className={cn(
+                "inline-flex h-5 w-5 items-center justify-center rounded-md transition-all",
+                value.length > 0
+                  ? "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] hover:scale-110 cursor-pointer"
+                  : "text-muted-foreground/40 cursor-default",
+              )}
+            >
+              <FilterX className="h-3.5 w-3.5" strokeWidth={2.25} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-[10px]">Deselect all</TooltipContent>
+        </Tooltip>
       </div>
       <div className="grid grid-cols-7 gap-y-2 gap-x-1 py-0.5">
         {BADGE_LEGEND.map(({ key, icon: Icon, tone, label }) => {

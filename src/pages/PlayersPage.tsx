@@ -850,6 +850,13 @@ export default function PlayersPage() {
               reportOpen={reportOpen}
               addMode={addMode}
               rosterSize={rosterIdList.length}
+              bringInSlot={
+                <BringInSearchCard
+                  inline
+                  players={allPlayersFull.length ? allPlayersFull : allPlayers}
+                  onSelect={openBringIn}
+                />
+              }
               filtersToggle={(
                 <>
                 <BadgeLegendButton />
@@ -935,8 +942,6 @@ export default function PlayersPage() {
                   onCommit={handleCommit}
                 />
               )}
-
-              <BringInSearchCard players={allPlayersFull.length ? allPlayersFull : allPlayers} onSelect={openBringIn} />
 
               <div className="relative flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
               {/* Fixed header (separate table) */}

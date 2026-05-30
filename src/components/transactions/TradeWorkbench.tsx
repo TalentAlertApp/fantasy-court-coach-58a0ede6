@@ -42,6 +42,8 @@ interface TradeWorkbenchProps {
   /** Roster size displayed in the header pill, e.g. "9/10". */
   rosterSize?: number;
   filtersToggle?: ReactNode;
+  /** Inline "Bring In a Target" search, shown in the empty-state row. */
+  bringInSlot?: ReactNode;
 }
 
 function PlayerChip({
@@ -139,6 +141,7 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
     addMode = false,
     rosterSize,
     filtersToggle,
+    bringInSlot,
   } = props;
 
   const freed = validation.freedSalary;
@@ -191,11 +194,13 @@ export default function TradeWorkbench(props: TradeWorkbenchProps) {
             <CheckCircle2 className="h-3.5 w-3.5" />
             Valid
           </span>
-        ) : validation.reasons.length > 0 ? (
+        ) : hasChips && validation.reasons.length > 0 ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3 h-7 text-[10px]">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span className="normal-case font-sans">{validation.reasons[0]}</span>
           </span>
+        ) : !hasChips && !isDirectAdd && bringInSlot ? (
+          bringInSlot
         ) : (
           <span className="inline-flex items-center gap-1 rounded-full border border-border bg-background text-muted-foreground px-3 h-7 text-[10px] font-heading uppercase tracking-wider">
             {addMode ? "Pick a player to add" : "Pick a player to release"}
