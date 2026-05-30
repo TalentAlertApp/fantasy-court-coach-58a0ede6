@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose, Crosshair } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
