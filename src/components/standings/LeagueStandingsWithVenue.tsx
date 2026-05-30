@@ -116,8 +116,7 @@ function VenueTable({
   ];
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-xs">
+    <table className="w-full text-xs">
         <thead>
           <tr>
             {COLS.map((c, i) => (
@@ -197,6 +196,5 @@ function VenueTable({
           })}
         </tbody>
       </table>
-    </div>
   );
 }
