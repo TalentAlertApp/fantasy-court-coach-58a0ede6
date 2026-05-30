@@ -4,9 +4,11 @@ import bedUrl from "@/assets/court-show-bed.mp3";
 const STORAGE_KEY = "courtshow.audio.enabled"; // share the same toggle as Court Show
 // Grace window after the last onboarding screen unmounts before we actually
 // stop the bed. Long enough to bridge a route change (e.g. /welcome →
-// /welcome/pick-team → /leagues/create) so the next screen's hook can cancel
-// the pending stop and the music plays *continuously* across the whole flow.
-const STOP_GRACE_MS = 800;
+// /welcome/pick-team → /leagues/create), including slow auth/render gates, so
+// the next screen's hook can cancel the pending stop and the music plays
+// *continuously* across the whole flow regardless of the order the user
+// navigates between onboarding screens.
+const STOP_GRACE_MS = 2500;
 
 function readPref(): boolean {
   if (typeof window === "undefined") return true;

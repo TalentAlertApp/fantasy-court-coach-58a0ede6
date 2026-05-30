@@ -65,7 +65,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
 
   return (
     <TooltipProvider delayDuration={150}>
-    <div className="relative overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 px-4 pt-3 pb-5 md:px-6 md:pt-4 md:pb-7 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] space-y-5 md:space-y-6">
+    <div className="relative w-full flex flex-col h-full min-h-[560px] overflow-hidden rounded-2xl border border-accent/20 bg-gradient-to-b from-card to-card/60 px-4 pt-4 pb-5 md:px-7 md:pt-6 md:pb-7 shadow-[0_30px_80px_-40px_hsl(var(--accent)/0.4)] gap-5 md:gap-7">
       {/* HoopsFantasy watermark — top right, surges on hover */}
       <img
         src={getHoopsFantasyLogo(league)}
@@ -74,7 +74,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
         draggable={false}
         className="pointer-events-auto select-none absolute top-3 right-3 z-10 h-20 w-20 md:h-24 md:w-24 object-contain opacity-25 transition-all duration-300 ease-out hover:opacity-70 hover:scale-110 drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
       />
-      <div className="space-y-1">
+      <div className="space-y-1 shrink-0">
         <div className="flex items-center gap-2">
           <UserRound className="h-5 w-5 text-accent" />
           <p className="font-heading uppercase tracking-[0.22em] text-sm font-bold">
@@ -86,8 +86,8 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-5 md:gap-7">
-      <div className="space-y-4">
+      <div className="grid md:grid-cols-2 gap-5 md:gap-10 flex-1 min-h-0">
+      <div className="flex flex-col justify-between gap-5 md:gap-7">
       {/* Archetype */}
       <Section icon={<DollarSign className="h-3.5 w-3.5 text-accent" />} label="Salary archetype">
         <div className="grid sm:grid-cols-3 gap-2">
@@ -123,7 +123,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
       </Section>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex flex-col justify-between gap-5 md:gap-7">
       {/* Favourite teams — borderless badges */}
       <Section
         icon={<Heart className="h-3.5 w-3.5 text-accent" />}
@@ -176,7 +176,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
         onClick={() => onDraft(prefs)}
         disabled={busy || !players.length}
         size="lg"
-        className="w-full font-heading uppercase tracking-widest h-11 text-sm shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
+        className="w-full shrink-0 font-heading uppercase tracking-widest h-12 text-sm shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
       >
         {busy ? (
           <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Drafting…</>
