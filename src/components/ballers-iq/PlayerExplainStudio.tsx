@@ -92,6 +92,7 @@ export default function PlayerExplainStudio(props: Props) {
   const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
   const [bringInOpen, setBringInOpen] = useState(false);
   const [bringInTarget, setBringInTarget] = useState<any | null>(null);
+  const { league } = useLeague();
 
   const openBringInFor = (p: any) => {
     setBringInTarget(p);
