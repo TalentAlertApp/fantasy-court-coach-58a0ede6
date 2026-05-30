@@ -788,6 +788,7 @@ export default function PlayerModal({ playerId, open, onOpenChange, contentClass
         <BringInModal
           open={bringInOpen}
           onOpenChange={setBringInOpen}
+          onStaged={() => onOpenChange(false)}
           target={{
             id: data.player.core.id,
             name: data.player.core.name,
