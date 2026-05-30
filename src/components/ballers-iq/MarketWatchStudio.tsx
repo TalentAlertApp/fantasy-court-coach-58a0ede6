@@ -247,6 +247,7 @@ export default function MarketWatchStudio({
     const salDelta = num(addP?.core?.salary) - num(dropP?.core?.salary);
 
     return (
+      <>
       <div className="space-y-3">
         {/* HERO — best transfer move */}
         <div className="relative overflow-hidden rounded-2xl border border-amber-300/30 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
@@ -471,6 +472,7 @@ export default function MarketWatchStudio({
         </details>
       </div>
       {bringInModal}
+      </>
     );
   }
 
