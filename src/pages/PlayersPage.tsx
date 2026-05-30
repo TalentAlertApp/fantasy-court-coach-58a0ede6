@@ -105,7 +105,7 @@ export default function PlayersPage() {
     toast.success("Trade staged from Bring In — review and confirm below.");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
