@@ -550,8 +550,9 @@ export default function MarketWatchStudio({
                   <div className="flex items-center justify-center w-8 h-8 rounded-full border border-emerald-400/50 bg-emerald-500/10 text-emerald-300">
                     <ArrowLeftRight className="h-4 w-4" />
                   </div>
+                  <div className="relative h-full">
                   <button onClick={() => { const p = getPlayer(bs.in.id); if (p) onOpenPlayer?.(p); }}
-                    className="group relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full">
+                    className="group relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full w-full">
                     {bs.in.team && getTeamLogo(bs.in.team) && (
                       <img src={getTeamLogo(bs.in.team)!} alt="" className="pointer-events-none absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.16] group-hover:opacity-40 group-hover:scale-125 transition-all" />
                     )}
@@ -568,6 +569,15 @@ export default function MarketWatchStudio({
                       </div>
                     </div>
                   </button>
+                  <button
+                    type="button"
+                    title="Plan how to acquire this player"
+                    onClick={(e) => openBringIn(bs.in.id, e)}
+                    className="absolute bottom-1.5 right-1.5 z-[1] inline-flex items-center gap-1 rounded-md border border-emerald-400/50 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-emerald-100 transition-colors hover:bg-emerald-500/30"
+                  >
+                    <Target className="h-3 w-3" /> Bring In
+                  </button>
+                  </div>
                   <div className="grid grid-rows-2 gap-1.5 h-full">
                     <Stat label="FP5 Δ" value={`+${bs.fpDelta.toFixed(1)}`} tone="good" />
                     <Stat label="Salary Δ" value={`${bs.salaryDelta >= 0 ? "+" : ""}$${bs.salaryDelta.toFixed(1)}M`} tone={bs.salaryDelta <= 0 ? "good" : "default"} />
