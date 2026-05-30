@@ -479,6 +479,7 @@ export default function MarketWatchStudio({
   /* ============ PRE-SUGGESTION INTELLIGENCE STATE ============ */
   const bs = pulse.bestSwap;
   return (
+    <>
     <div className="space-y-3">
       {/* HERO — Transfer Intelligence (L) | Market Pulse + Best Swap stacked (R) */}
       <div className="grid gap-3 md:grid-cols-12 items-stretch">
@@ -610,8 +611,11 @@ export default function MarketWatchStudio({
           const p = getPlayer(id);
           if (p) onOpenPlayer?.(p);
         }}
+        onBringInPlayer={(id) => openBringIn(id)}
       />
 
     </div>
+    {bringInModal}
+    </>
   );
 }
