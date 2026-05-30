@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose, Crosshair } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -29,6 +29,7 @@ import { SchedulePreviewBody } from "@/components/SchedulePreviewPanel";
 import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
 import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
+import BringInModal, { type BringInTarget } from "@/components/acquisition/BringInModal";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useTeamChips } from "@/hooks/useTeamChips";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
@@ -104,7 +105,7 @@ export default function PlayersPage() {
     toast.success("Trade staged from Bring In — review and confirm below.");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams]);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -113,6 +114,9 @@ export default function PlayersPage() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("ALL");
   const [badgeFilter, setBadgeFilter] = useState<string[]>([]);
+  // "Bring In" planner — target-first acquisition flow (Phase 1B).
+  const [bringInTargetId, setBringInTargetId] = useState<number | null>(null);
+  const [bringInOpen, setBringInOpen] = useState(false);
 
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
@@ -650,7 +654,10 @@ export default function PlayersPage() {
       return;
     }
     if (outZone.length === 0) {
-      toast.error("Pick a player to release first (− on a roster row)");
+      // Roster full and no OUT chosen yet → open the Bring In planner so the
+      // user can start from the target and discover legal release routes.
+      openBringIn(playerId);
+      toast.message("Opening Bring In plan — choose who to release.");
       return;
     }
     if (inZone.length >= outZone.length) {
@@ -659,6 +666,27 @@ export default function PlayersPage() {
     }
     setInZone((prev) => [...prev, playerId]);
   };
+
+  /** Always open the Bring In planner for a target, independent of OUT/IN state. */
+  const openBringIn = (playerId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setBringInTargetId(playerId);
+    setBringInOpen(true);
+  };
+
+  const bringInTarget = useMemo<BringInTarget | null>(() => {
+    if (bringInTargetId == null) return null;
+    const p = playerById.get(bringInTargetId);
+    if (!p) return null;
+    return {
+      id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      fc_bc: p.core.fc_bc as "FC" | "BC",
+      salary: p.core.salary,
+      photo: p.core.photo ?? null,
+    };
+  }, [bringInTargetId, playerById]);
 
   const sortableHeader = (col: string, label: string) => {
     const isActive = sortCol === col;
@@ -912,7 +940,7 @@ export default function PlayersPage() {
               <div className="shrink-0 border-b bg-background">
                 <Table className="table-fixed">
                   <colgroup>
-                    <col style={{ width: "44px" }} />
+                    <col style={{ width: "70px" }} />
                     <col />
                     <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
@@ -935,7 +963,7 @@ export default function PlayersPage() {
               <div className="flex-1 overflow-y-auto min-h-0">
                 <Table className="table-fixed">
                   <colgroup>
-                    <col style={{ width: "44px" }} />
+                    <col style={{ width: "70px" }} />
                     <col />
                     <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
@@ -983,6 +1011,16 @@ export default function PlayersPage() {
                                   disabled={!canAdd}
                                 >
                                   <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                                  onClick={(e) => openBringIn(p.core.id, e)}
+                                  aria-label="Bring In plan"
+                                  title="Bring In plan"
+                                >
+                                  <Crosshair className="h-3.5 w-3.5" />
                                 </Button>
                                 <span
                                   className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
@@ -1101,6 +1139,7 @@ export default function PlayersPage() {
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
       <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
+      <BringInModal open={bringInOpen} onOpenChange={setBringInOpen} target={bringInTarget} />
     </div>
   );
 }
