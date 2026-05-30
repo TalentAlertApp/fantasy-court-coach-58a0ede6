@@ -783,6 +783,20 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         open={teamModalTri !== null}
         onOpenChange={(o) => !o && setTeamModalTri(null)}
       />
+      {data && (
+        <BringInModal
+          open={bringInOpen}
+          onOpenChange={setBringInOpen}
+          target={{
+            id: data.player.core.id,
+            name: data.player.core.name,
+            team: data.player.core.team,
+            fc_bc: data.player.core.fc_bc as "FC" | "BC",
+            salary: data.player.core.salary,
+            photo: data.player.core.photo ?? null,
+          }}
+        />
+      )}
     </>
   );
 }
