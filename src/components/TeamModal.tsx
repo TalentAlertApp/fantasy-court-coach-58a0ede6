@@ -14,6 +14,7 @@ import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { getEuroLeagueTeamRecord } from "@/lib/euroleague-team-registry";
 import { useTeamDifficultyMap } from "@/hooks/useTeamDifficultyMap";
+import { fetchAllRows } from "@/lib/supabase-paginate";
 import { difficultyRingColor } from "@/lib/ballers-iq/difficultyColor";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import TeamCompareModal from "@/components/TeamCompareModal";
@@ -86,12 +87,16 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
       const playerIds = (teamPlayers ?? []).map(p => p.id);
       if (playerIds.length === 0) return [];
 
-      const { data: logs, error: lErr } = await supabase
-        .from("player_game_logs")
-        .select("player_id, mp, pts, fp")
-        .in("player_id", playerIds)
-        .gt("mp", 0);
-      if (lErr) throw lErr;
+      // Paginate: a full team roster (~20 players × ~80 games) exceeds the 1000-row cap.
+      const logs = await fetchAllRows<{ player_id: number; mp: number; pts: number; fp: number }>(
+        (from, to) =>
+          supabase
+            .from("player_game_logs")
+            .select("player_id, mp, pts, fp")
+            .in("player_id", playerIds)
+            .gt("mp", 0)
+            .range(from, to),
+      );
 
       const agg = new Map<number, { gp: number; total_mp: number; total_pts: number; total_fp: number }>();
       for (const log of (logs ?? [])) {

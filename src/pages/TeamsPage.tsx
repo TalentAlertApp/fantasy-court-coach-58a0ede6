@@ -22,6 +22,7 @@ import PlayerModal from "@/components/PlayerModal";
 import { ArrowUpDown } from "lucide-react";
 import TeamStatsPanel from "@/components/teams/TeamStatsPanel";
 import { PageHeaderCaption, UnderlineTabsBarManual } from "@/components/layout/PageHeaderTabs";
+import { fetchAllRows } from "@/lib/supabase-paginate";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -60,12 +61,15 @@ export default function TeamsPage() {
     queryKey: ["teams-schedule-stats", leagueId],
     enabled: !!leagueId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("schedule_games")
-        .select("home_team, away_team, home_pts, away_pts, status")
-        .eq("league_id", leagueId!);
-      if (error) throw error;
-      return data;
+      // Paginate past the 1000-row PostgREST cap — a full NBA season has 1230 games.
+      return fetchAllRows(
+        (from, to) =>
+          supabase
+            .from("schedule_games")
+            .select("home_team, away_team, home_pts, away_pts, status")
+            .eq("league_id", leagueId!)
+            .range(from, to),
+      );
     },
     staleTime: 120_000,
   });

@@ -37,6 +37,7 @@ import {
 } from "@/lib/health";
 import { HealthStatusIcon } from "@/components/health";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube-embed";
+import { fetchAllRows } from "@/lib/supabase-paginate";
 
 /* ---------- League-aware team meta (conference) ---------- */
 // Conference grouping is only defined for NBA/WNBA. EuroLeague uses a single
@@ -362,14 +363,18 @@ function useAllTeamsForm(enabled: boolean) {
     queryKey: ["all-teams-form", leagueId],
     enabled: enabled && !!leagueId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("schedule_games")
-        .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
-        .eq("league_id", leagueId!)
-        .ilike("status", "%FINAL%")
-        .order("tipoff_utc", { ascending: true });
-      if (error) throw error;
-      if (!data) return {};
+      // Paginate past the 1000-row cap — a full NBA season has ~1215 final games.
+      const data = await fetchAllRows<any>(
+        (from, to) =>
+          supabase
+            .from("schedule_games")
+            .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc, game_boxscore_url, game_charts_url, game_playbyplay_url, game_recap_url, nba_game_url, youtube_recap_id")
+            .eq("league_id", leagueId!)
+            .ilike("status", "%FINAL%")
+            .order("tipoff_utc", { ascending: true })
+            .range(from, to),
+      );
+      if (!data.length) return {};
 
       const result: Record<string, TeamFormData> = {};
 
