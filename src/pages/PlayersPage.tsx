@@ -1139,6 +1139,7 @@ export default function PlayersPage() {
 
       <PlayerModal playerId={selectedPlayerId} open={selectedPlayerId !== null} onOpenChange={(open) => !open && setSelectedPlayerId(null)} />
       <AICoachModal open={aiCoachOpen} onOpenChange={setAiCoachOpen} />
+      <BringInModal open={bringInOpen} onOpenChange={setBringInOpen} target={bringInTarget} />
     </div>
   );
 }
