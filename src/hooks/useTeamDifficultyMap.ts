@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLeagueId } from "@/hooks/useLeagueId";
 import { buildTeamDifficultyMap } from "@/lib/ballers-iq/teamDifficulty";
 import type { BIQGame, BIQTeamDifficulty } from "@/lib/ballers-iq/types";
+import { fetchAllRows } from "@/lib/supabase-paginate";
 
 /**
  * Loads finalized schedule games and computes each team's matchup-difficulty
@@ -16,13 +17,17 @@ export function useTeamDifficultyMap() {
     staleTime: 300_000,
     placeholderData: undefined,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("schedule_games")
-        .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc")
-        .eq("league_id", leagueId!)
-        .ilike("status", "%FINAL%")
-        .order("tipoff_utc", { ascending: true });
-      if (error) throw error;
+      // Paginate past the 1000-row cap — a full NBA season has ~1215 final games.
+      const data = await fetchAllRows(
+        (from, to) =>
+          supabase
+            .from("schedule_games")
+            .select("game_id, home_team, away_team, home_pts, away_pts, status, tipoff_utc")
+            .eq("league_id", leagueId!)
+            .ilike("status", "%FINAL%")
+            .order("tipoff_utc", { ascending: true })
+            .range(from, to),
+      );
       const games: BIQGame[] = (data ?? []).map((g: any) => ({
         game_id: g.game_id,
         home_team: g.home_team,
