@@ -16,6 +16,8 @@ interface Props {
   sortKey?: SortKey | null;
   sortDir?: "asc" | "desc";
   onSort?: (key: SortKey | null) => void;
+  /** Optional fixed row height class so a sibling venue table can align. */
+  rowHeightClass?: string;
 }
 
 const ALL_COLS: { key: SortKey | null; label: string; className?: string; compactHide?: boolean }[] = [
@@ -40,6 +42,7 @@ const ALL_COLS: { key: SortKey | null; label: string; className?: string; compac
 export default function StandingsTable({
   rows, title, showCutoffs = false, compact = false, onTeamClick,
   sortKey: sortKeyProp, sortDir: sortDirProp, onSort,
+  rowHeightClass,
 }: Props) {
   const COLS = compact ? ALL_COLS.filter((c) => !c.compactHide) : ALL_COLS;
   const controlled = typeof onSort === "function";
@@ -109,6 +112,7 @@ export default function StandingsTable({
                   onClick={() => onTeamClick?.(r.tricode)}
                   className={cn(
                     "border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer",
+                  rowHeightClass,
                     i % 2 === 1 && "bg-muted/20",
                     isPlayIn && "border-t-2 border-t-amber-500",
                     isElim && "border-t-2 border-t-destructive"
