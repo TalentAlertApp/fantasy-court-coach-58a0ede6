@@ -12,6 +12,21 @@ import TeamLeagueChips from "@/components/TeamLeagueChips";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import BrandMark from "@/components/onboarding/BrandMark";
 
+// Resting-state border accent per league. The hover state (border-accent/70)
+// still overrides because Tailwind emits hover: variants after base utilities.
+function leagueBorderClass(code?: string | null): string {
+  switch ((code ?? "").toLowerCase()) {
+    case "nba":
+      return "border-[#1d428a]/45";
+    case "wnba":
+      return "border-[#f57b20]/50";
+    case "euroleague":
+      return "border-[#e2231a]/45";
+    default:
+      return "border-foreground/10";
+  }
+}
+
 export default function TeamPickerPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
