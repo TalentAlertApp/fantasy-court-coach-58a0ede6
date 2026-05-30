@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Clapperboard, Film, ChevronLeft, ChevronRight, ChevronDown, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useScheduleWeekGames, type ScheduleWeekGame } from "@/hooks/useScheduleWeekGames";
+import { supabase } from "@/integrations/supabase/client";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getVenue } from "@/lib/nba-venues";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
@@ -43,6 +45,7 @@ function isPlayedStatus(s: string | null | undefined): boolean {
 
 export default function GameRecapsModal({ open, onOpenChange, initialGw, initialDay }: Props) {
   const { league } = useLeague();
+  const { data: leagueId } = useLeagueId();
   const { deadlines } = useLeagueDeadlines();
   const { teams: leagueTeams } = useLeagueTeams();
   const logoFor = (tri: string) =>
