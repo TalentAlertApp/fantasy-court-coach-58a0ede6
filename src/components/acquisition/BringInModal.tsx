@@ -32,7 +32,10 @@ export interface BringInTarget {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  target: BringInTarget | null;
+  /** Provide a fully-resolved target… */
+  target?: BringInTarget | null;
+  /** …or just an id, and the modal resolves it from the players pool. */
+  targetPlayerId?: number | null;
 }
 
 function toPlanner(p: any): PlannerPlayer {
@@ -67,7 +70,7 @@ function PlayerChip({ p, tone }: { p: PlannerPlayer; tone: "out" | "in" | "neutr
   );
 }
 
-export default function BringInModal({ open, onOpenChange, target }: Props) {
+export default function BringInModal({ open, onOpenChange, target: targetProp = null, targetPlayerId = null }: Props) {
   const navigate = useNavigate();
   const { selectedTeamId } = useTeam();
   const { data: rosterData } = useRosterQuery();
@@ -77,6 +80,21 @@ export default function BringInModal({ open, onOpenChange, target }: Props) {
   const { data: gwTx } = useGameweekTransfers(selectedTeamId, current.gw);
 
   const pool = playersData?.items ?? [];
+
+  const target = useMemo<BringInTarget | null>(() => {
+    if (targetProp) return targetProp;
+    if (targetPlayerId == null) return null;
+    const p = pool.find((x: any) => x.core?.id === targetPlayerId);
+    if (!p) return null;
+    return {
+      id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      fc_bc: p.core.fc_bc,
+      salary: p.core.salary,
+      photo: p.core.photo ?? null,
+    };
+  }, [targetProp, targetPlayerId, pool]);
 
   const plan = useMemo(() => {
     if (!target || !pool.length) return null;
