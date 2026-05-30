@@ -940,7 +940,7 @@ export default function PlayersPage() {
               <div className="shrink-0 border-b bg-background">
                 <Table className="table-fixed">
                   <colgroup>
-                    <col style={{ width: "44px" }} />
+                    <col style={{ width: "70px" }} />
                     <col />
                     <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
