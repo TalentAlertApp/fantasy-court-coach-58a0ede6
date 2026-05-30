@@ -95,9 +95,10 @@ interface PlayerModalProps {
   playerId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  contentClassName?: string;
 }
 
-export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModalProps) {
+export default function PlayerModal({ playerId, open, onOpenChange, contentClassName }: PlayerModalProps) {
   const { league } = useLeague();
   const { data: difficultyMap } = useTeamDifficultyMap();
   const { data, isLoading } = useQuery({
