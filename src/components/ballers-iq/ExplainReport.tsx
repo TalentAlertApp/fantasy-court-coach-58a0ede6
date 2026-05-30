@@ -103,6 +103,7 @@ function humanizeFlag(flag: string): string {
 }
 
 export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam, onBringIn }: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void; onBringIn?: () => void }) {
+  const { league } = useLeague();
   const teamTricode = player?.core?.team;
   const teamLogo = teamTricode ? getTeamLogo(teamTricode) : null;
   const teamFullName = teamTricode ? getTeamFullName(teamTricode) : "";
