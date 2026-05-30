@@ -61,17 +61,7 @@ export default function LeagueStandingsWithVenue({
 
   return (
     <div className="flex gap-3 items-start">
-      {/* Venue companion — left, ~1/4 width, hidden on narrow screens */}
-      <div className="hidden lg:block w-1/4 shrink-0">
-        <VenueTable
-          rows={ordered}
-          venueByTri={venueByTri}
-          homeSplits={homeSplits}
-          league={league}
-          onTeamClick={onTeamClick}
-        />
-      </div>
-      {/* Main standings — remaining width, controlled sort */}
+      {/* Main standings — left, takes remaining width, controlled sort */}
       <div className="flex-1 min-w-0">
         <StandingsTable
           rows={ordered}
@@ -81,6 +71,16 @@ export default function LeagueStandingsWithVenue({
           sortDir={sortDir}
           onSort={handleSort}
           rowHeightClass={ROW_H}
+        />
+      </div>
+      {/* Venue companion — right, content-sized, hidden on narrow screens */}
+      <div className="hidden lg:block shrink-0">
+        <VenueTable
+          rows={ordered}
+          venueByTri={venueByTri}
+          homeSplits={homeSplits}
+          league={league}
+          onTeamClick={onTeamClick}
         />
       </div>
     </div>
@@ -100,13 +100,14 @@ function VenueTable({
   league: CompetitionCode;
   onTeamClick?: (tricode: string) => void;
 }) {
+  const showConf = league !== "euroleague";
   const COLS: { label: string; className: string; title?: string }[] = [
     { label: "Arena", className: "min-w-[120px]" },
     { label: "Market", className: "w-20" },
-    { label: "Conf", className: "w-12 text-center" },
+    ...(showConf ? [{ label: "Conf", className: "w-12 text-center" }] : []),
     { label: "HW%", className: "w-14 text-right", title: "Home win %" },
     { label: "HDIFF", className: "w-14 text-right", title: "Home point differential (per game)" },
-    { label: "HE", className: "w-14 text-right", title: "Home edge = home win% − away win%" },
+    { label: "HE", className: "w-16 px-3 text-right", title: "Home edge = home win% − away win%" },
   ];
 
   return (
@@ -144,7 +145,7 @@ function VenueTable({
                 key={r.tricode}
                 onClick={() => onTeamClick?.(r.tricode)}
                 className={cn(
-                  "border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer",
+                  "group border-b border-border/30 hover:bg-accent/30 transition-colors cursor-pointer",
                   ROW_H,
                   i % 2 === 1 && "bg-muted/20",
                 )}
@@ -158,7 +159,7 @@ function VenueTable({
                       aria-hidden="true"
                       loading="lazy"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 select-none"
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 select-none transition-transform duration-500 ease-out group-hover:scale-125 group-hover:opacity-60"
                     />
                   )}
                   <span
@@ -169,8 +170,8 @@ function VenueTable({
                     {venueName || "—"}
                   </span>
                 </td>
-                <td className="px-2 py-1.5 truncate text-muted-foreground">{market || "—"}</td>
-                <td className="px-2 py-1.5 text-center font-mono">{conf}</td>
+                <td className="px-2 py-1.5 truncate text-xs text-muted-foreground">{market || "—"}</td>
+                {showConf && <td className="px-2 py-1.5 text-center font-mono">{conf}</td>}
                 <td className="px-2 py-1.5 text-right font-mono font-bold">
                   {split ? `${(hw).toFixed(0)}%` : "—"}
                 </td>
@@ -181,7 +182,7 @@ function VenueTable({
                   {split ? `${hdiff > 0 ? "+" : ""}${hdiff.toFixed(1)}` : "—"}
                 </td>
                 <td className={cn(
-                  "px-2 py-1.5 text-right font-mono font-bold",
+                  "px-3 py-1.5 text-right font-mono font-bold",
                   split ? (he > 0 ? "text-green-500" : he < 0 ? "text-destructive" : "") : "",
                 )}>
                   {split ? `${he > 0 ? "+" : ""}${he.toFixed(0)}` : "—"}
