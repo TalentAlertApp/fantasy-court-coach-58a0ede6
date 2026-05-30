@@ -164,8 +164,7 @@ function VenueTable({
                       loading="lazy"
                       decoding="async"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 select-none transition-[transform,opacity] duration-500 ease-out [&.loaded]:opacity-40 group-hover:scale-125 group-hover:[&.loaded]:opacity-60"
-                      onLoad={(e) => { (e.currentTarget as HTMLImageElement).classList.add("loaded"); }}
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 select-none transition-transform duration-500 ease-out group-hover:scale-125 group-hover:opacity-60"
                     />
                   )}
                   <span
