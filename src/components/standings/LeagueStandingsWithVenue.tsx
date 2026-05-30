@@ -155,15 +155,17 @@ function VenueTable({
                 )}
               >
                 {/* Arena — decorative venue image background, readable text on top */}
-                <td className="relative p-0 overflow-hidden">
+                <td className="relative p-0 overflow-hidden bg-muted/40">
                   {venueImage && (
                     <img
                       src={venueImage}
                       alt=""
                       aria-hidden="true"
                       loading="lazy"
+                      decoding="async"
                       onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-40 select-none transition-transform duration-500 ease-out group-hover:scale-125 group-hover:opacity-60"
+                      className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-0 select-none transition-[transform,opacity] duration-500 ease-out [&.loaded]:opacity-40 group-hover:scale-125 group-hover:[&.loaded]:opacity-60"
+                      onLoad={(e) => { (e.currentTarget as HTMLImageElement).classList.add("loaded"); }}
                     />
                   )}
                   <span
