@@ -242,10 +242,10 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
 
                   {!isWait && (route.outs.length > 0 || route.ins.length > 0) && (
                     <div className="flex items-center flex-wrap gap-2 mb-2">
-                      {route.outs.map((p) => <PlayerChip key={`o${p.id}`} p={p} tone="out" />)}
+                      {route.outs.map((p) => <PlayerChip key={`o${p.id}`} p={p} tone="out" onOpenPlayer={setModalPlayerId} />)}
                       {route.outs.length > 0 && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
                       {route.ins.map((p) => (
-                        <PlayerChip key={`i${p.id}`} p={p} tone={p.id === plan.target.id ? "in" : "neutral"} />
+                        <PlayerChip key={`i${p.id}`} p={p} tone={p.id === plan.target.id ? "in" : "neutral"} onOpenPlayer={setModalPlayerId} />
                       ))}
                     </div>
                   )}
@@ -272,5 +272,20 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
         </div>
       </DialogContent>
     </Dialog>
+
+      {/* Nested modals — rendered above the Bring In overlay */}
+      <PlayerModal
+        playerId={modalPlayerId}
+        open={modalPlayerId !== null}
+        onOpenChange={(o) => !o && setModalPlayerId(null)}
+        contentClassName="z-[140]"
+      />
+      <TeamModal
+        tricode={modalTeamTri}
+        open={modalTeamTri !== null}
+        onOpenChange={(o) => !o && setModalTeamTri(null)}
+        contentClassName="z-[140]"
+      />
+    </>
   );
 }
