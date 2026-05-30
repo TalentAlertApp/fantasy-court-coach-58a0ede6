@@ -140,13 +140,14 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
   const stageRoute = (route: AcquisitionRoute) => {
     navigate(`/transactions?${routeToStageParams(route).toString()}`);
     onOpenChange(false);
+    onStaged?.();
   };
 
   const targetLogo = target ? getTeamLogo(target.team) : undefined;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="z-[120] max-w-2xl rounded-2xl p-0 overflow-hidden">
+      <DialogContent className="z-[120] max-w-2xl rounded-2xl p-0 overflow-hidden flex flex-col max-h-[88vh]">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wide text-sm">
             <Crosshair className="h-4 w-4 text-primary" />
@@ -156,27 +157,52 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
 
         {/* Target header */}
         {target && (
-          <div className="flex items-center gap-3 px-5 py-3 bg-muted/30">
+          <div className="group relative flex items-center gap-3 px-5 py-3 bg-muted/30 overflow-hidden">
+            {targetLogo && (
+              <img
+                src={targetLogo}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-6 -right-4 h-28 w-28 object-contain opacity-[0.14] rotate-12 select-none transition-all duration-300 group-hover:opacity-40 group-hover:scale-110"
+              />
+            )}
             {target.photo ? (
-              <img src={target.photo} alt="" className="h-12 w-12 rounded-full object-cover bg-muted" />
+              <img
+                src={target.photo}
+                alt=""
+                className={cn(
+                  "h-12 w-12 rounded-full bg-muted ring-1 ring-border relative z-10",
+                  league === "euroleague" ? "object-cover object-top" : "object-cover object-[center_15%]",
+                )}
+              />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center relative z-10">
                 <Target className="h-5 w-5 text-muted-foreground" />
               </div>
             )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-heading font-bold uppercase text-sm truncate">{target.name}</span>
-                {targetLogo && <img src={targetLogo} alt="" className="h-4 w-4 object-contain" />}
-              </div>
+            <div className="min-w-0 relative z-10">
+              <button
+                type="button"
+                onClick={() => setModalPlayerId(target.id)}
+                className="font-heading font-bold uppercase text-sm truncate block text-left hover:text-primary transition-colors"
+              >
+                {target.name}
+              </button>
               <div className="text-[11px] text-muted-foreground">
-                {target.team} · {target.fc_bc} · <span className="font-mono">${target.salary}M</span>
+                <button
+                  type="button"
+                  onClick={() => setModalTeamTri(target.team)}
+                  className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                >
+                  {target.team}
+                </button>
+                {" · "}{target.fc_bc} · <span className="font-mono">${target.salary}M</span>
               </div>
             </div>
           </div>
         )}
 
-        <div className="px-5 py-4 space-y-3 max-h-[55vh] overflow-y-auto">
+        <div className="px-5 py-4 space-y-3 flex-1 min-h-0 overflow-y-auto">
           {isLoading || !plan ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
