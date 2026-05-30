@@ -344,7 +344,7 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
     .slice(0, 3);
 
   const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="relative rounded-xl border border-amber-400/25 bg-card/60 px-2.5 py-1.5 overflow-hidden">
+    <div className="relative rounded-xl bg-card/40 px-2.5 py-1 overflow-hidden">
       <BallersIQBrand variant="emblem" forceTheme="light" transparent className="pointer-events-none absolute -top-3 -right-3 !h-16 !w-16 object-contain opacity-[0.14] rotate-12 select-none" />
       <header className="flex items-center gap-1.5 mb-1 relative z-[1]">
         <BallersIQBrand variant="emblem" forceTheme="light" transparent size="sm" />
@@ -355,7 +355,7 @@ function StandingsBallersIQ({ standings, onTeamClick }: { standings: any[]; onTe
   );
 
   return (
-    <section className="shrink-0 rounded-2xl border border-amber-400/30 bg-gradient-to-br from-amber-400/[0.04] via-card to-card p-2 shadow-[0_4px_24px_-12px_hsl(45_90%_55%/0.3)]">
+    <section className="shrink-0 rounded-2xl bg-gradient-to-br from-amber-400/[0.04] via-card to-card p-1.5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
         <Card title="Outstanding teams">
           {outstanding.map((t) => {
