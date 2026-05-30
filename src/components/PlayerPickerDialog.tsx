@@ -525,7 +525,7 @@ function CourtPreviewPanel({
               src={getLeagueLogo(leagueCode)}
               alt=""
               aria-hidden
-              className="absolute top-4 right-4 z-10 h-24 w-24 md:h-28 md:w-28 object-contain opacity-[0.22] transition-all duration-500 hover:scale-125 hover:opacity-40 drop-shadow-[0_4px_18px_rgba(0,0,0,0.45)]"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 h-24 w-24 md:h-28 md:w-28 object-contain opacity-[0.22] transition-all duration-500 hover:scale-125 hover:opacity-40 drop-shadow-[0_4px_18px_rgba(0,0,0,0.45)]"
             />
           )}
 
