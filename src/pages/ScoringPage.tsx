@@ -166,8 +166,7 @@ export default function ScoringPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {myTeams.map((t: any) => {
-                      const code = t.league_code === "wnba" ? "wnba" : "nba";
-                      const lgLogo = getLeagueLogo(code);
+                      const lgLogo = getLeagueLogo(t.league_code);
                       return (
                         <SelectItem key={t.id} value={t.id} className="font-heading text-xs uppercase">
                           <span className="relative flex items-center pr-7 min-w-[180px]">
