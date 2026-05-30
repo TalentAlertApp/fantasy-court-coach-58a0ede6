@@ -353,6 +353,16 @@ export default function PlayerExplainStudio(props: Props) {
                           <span className="font-mono text-[12px] font-bold text-amber-200">{Number((p as any).last5?.fp5 ?? 0).toFixed(1)}</span>
                           <span className="text-[8px] text-white/50 ml-0.5">FP5</span>
                         </div>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          title="Bring In — fit to roster"
+                          onClick={(e) => { e.stopPropagation(); setShowDropdown(false); openBringInFor(p); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setShowDropdown(false); openBringInFor(p); } }}
+                          className="relative z-10 shrink-0 ml-2 inline-flex items-center justify-center h-7 w-7 rounded-lg border border-emerald-400/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                        >
+                          <Crosshair className="h-3.5 w-3.5" />
+                        </span>
                       </button>
                     );
                   })}
