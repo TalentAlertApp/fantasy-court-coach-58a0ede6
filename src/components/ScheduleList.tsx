@@ -838,6 +838,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   });
   const playerItems: any[] = (playersData as any)?.items ?? [];
 
+  // Team W-L records (shared cache with UpcomingGamePreview) for the "(W-L)" line.
+  const { data: teamFormMap } = useAllTeamsForm(true);
+  const formatWL = (tri: string): string | null => {
+    const t = teamFormMap?.[tri];
+    if (!t) return null;
+    return `(${t.w}-${t.l})`;
+  };
+
   // ---------- Roster-aware health context for matchups ----------
   const { data: rosterData } = useRosterQuery();
   const rosterIds = useMemo(() => {
@@ -1029,6 +1037,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   />
                 )}
                 <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.away_team}</span>
+                {formatWL(g.away_team) && (
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/80 tabular-nums">{formatWL(g.away_team)}</span>
+                )}
                 {(isFinal || isLive) ? (
                   <span className={`font-mono leading-none tabular-nums ${isFinal && g.away_pts > g.home_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.away_pts}</span>
                 ) : (
@@ -1048,6 +1059,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   />
                 )}
                 <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.home_team}</span>
+                {formatWL(g.home_team) && (
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/80 tabular-nums">{formatWL(g.home_team)}</span>
+                )}
                 {(isFinal || isLive) ? (
                   <span className={`font-mono leading-none tabular-nums ${isFinal && g.home_pts > g.away_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.home_pts}</span>
                 ) : (
@@ -1361,7 +1375,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                 {/* Center: Teams + status (absolute center of the card) */}
                 <div className="absolute inset-y-0 left-1/2 z-10 grid w-[min(760px,calc(100%-2rem))] -translate-x-1/2 grid-cols-[minmax(0,1fr)_80px_minmax(0,1fr)] items-center gap-3">
                   <div className="flex min-w-0 items-center gap-2 justify-end text-right overflow-hidden">
-                    <p className="min-w-0 truncate font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
+                    <div className="flex min-w-0 flex-col items-end gap-0.5 leading-none">
+                      <p className="min-w-0 truncate font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.away_team)?.name ?? g.away_team}</p>
+                      {formatWL(g.away_team) && (
+                        <span className="font-mono text-[10px] leading-none text-muted-foreground/80 tabular-nums">{formatWL(g.away_team)}</span>
+                      )}
+                    </div>
                     {(isFinal || isLive) && (
                       <span className={`shrink-0 text-2xl font-mono leading-none tabular-nums ${
                         isFinal && g.away_pts > g.home_pts ? "font-black" : "font-normal opacity-60"
@@ -1405,7 +1424,12 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                         isFinal && g.home_pts > g.away_pts ? "font-black" : "font-normal opacity-60"
                       }`}>{g.home_pts}</span>
                     )}
-                    <p className="min-w-0 truncate font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
+                    <div className="flex min-w-0 flex-col items-start gap-0.5 leading-none">
+                      <p className="min-w-0 truncate font-heading font-bold text-sm uppercase leading-none whitespace-nowrap">{getTeamByTricode(g.home_team)?.name ?? g.home_team}</p>
+                      {formatWL(g.home_team) && (
+                        <span className="font-mono text-[10px] leading-none text-muted-foreground/80 tabular-nums">{formatWL(g.home_team)}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
