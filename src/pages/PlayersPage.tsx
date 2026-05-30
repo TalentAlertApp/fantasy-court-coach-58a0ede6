@@ -963,7 +963,7 @@ export default function PlayersPage() {
               <div className="flex-1 overflow-y-auto min-h-0">
                 <Table className="table-fixed">
                   <colgroup>
-                    <col style={{ width: "44px" }} />
+                    <col style={{ width: "70px" }} />
                     <col />
                     <col style={{ width: "136px" }} />
                     <col style={{ width: "44px" }} />
