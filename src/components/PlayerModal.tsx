@@ -302,6 +302,15 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     >
                       <BarChart3 className="h-4 w-4" />
                     </button>
+                    {!isOnRoster && data.player.core.salary > 0 && (
+                      <button
+                        onClick={() => setBringInOpen(true)}
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 ring-1 ring-inset ring-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-colors"
+                        title="Bring In — plan an acquisition"
+                      >
+                        <Crosshair className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => playerId && toggleWishlist(playerId)}
                       className={`h-8 w-8 inline-flex items-center justify-center rounded-full ring-1 ring-inset transition-colors ${
