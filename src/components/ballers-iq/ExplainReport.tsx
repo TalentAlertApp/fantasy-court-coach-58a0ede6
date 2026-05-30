@@ -125,10 +125,10 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
     <div className="space-y-3">
       {/* Player Spotlight Hero — broadcast card */}
       {player && (
-        <div className="relative overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
+        <div className="group relative overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
           {teamLogo && (
-            <img src={teamLogo} alt="" aria-hidden className="absolute -right-6 -top-4 w-32 h-32 opacity-[0.10] pointer-events-none select-none" />
+            <img src={teamLogo} alt="" aria-hidden className="absolute -right-8 -top-6 w-44 h-44 object-contain opacity-[0.16] rotate-12 pointer-events-none select-none transition-all duration-300 group-hover:opacity-50 group-hover:scale-110" />
           )}
           <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5 items-center">
             {/* LEFT — player */}
@@ -140,7 +140,10 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
                 aria-label={`Open ${player.core?.name} profile`}
               >
                 {player.core?.photo ? (
-                  <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
+                  <img src={player.core.photo} alt="" className={cn(
+                    "w-14 h-14 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]",
+                    league === "euroleague" ? "object-top" : "object-[center_15%]",
+                  )} />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-white/[0.08] inline-flex items-center justify-center text-base font-bold text-white/85">
                     {player.core?.name?.slice(0, 2)?.toUpperCase()}
@@ -156,7 +159,6 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
                   {player.core?.name}
                 </button>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
                   <button
                     type="button"
                     onClick={() => teamTricode && onOpenTeam?.(teamTricode)}
