@@ -376,23 +376,60 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
                   <div className="flex flex-col gap-3 w-full">
                     {/* Selected game mini-header — centered */}
                     <div className="flex justify-center">
-                      <div className="relative w-full max-w-[640px] rounded-lg border border-amber-300/40 bg-stone-900/85 dark:bg-background/40 px-3 py-2 text-white">
-                        <GameRow
-                          game={selectedGame}
-                          logoFor={logoFor}
-                          nameFor={nameFor}
-                          tone="dark"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSelectedGameId(null)}
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-amber-300/10"
-                          title="Pick another game"
-                          aria-label="Pick another game"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
+                      <Popover open={gamePickerOpen} onOpenChange={setGamePickerOpen}>
+                        <div className="relative w-full max-w-[640px]">
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="group w-full rounded-lg border border-amber-300/40 bg-stone-900/85 dark:bg-background/40 px-3 py-2 pr-16 text-left text-white transition-colors hover:border-amber-300/70 hover:bg-amber-300/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/60"
+                              title="Switch to another recap from this gameday"
+                              aria-label="Switch to another recap from this gameday"
+                            >
+                              <GameRow
+                                game={selectedGame}
+                                logoFor={logoFor}
+                                nameFor={nameFor}
+                                tone="dark"
+                              />
+                              <ChevronDown className="pointer-events-none absolute right-9 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-300/70 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                            </button>
+                          </PopoverTrigger>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelectedGameId(null); }}
+                            className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 h-7 w-7 inline-flex items-center justify-center rounded-md text-white/70 hover:text-white hover:bg-amber-300/10"
+                            title="Back to all games"
+                            aria-label="Back to all games"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                          <PopoverContent
+                            align="center"
+                            sideOffset={6}
+                            className="w-[var(--radix-popover-trigger-width)] max-h-[320px] overflow-y-auto p-1 bg-popover border-amber-300/30"
+                          >
+                            {gamesWithRecap.length === 0 ? (
+                              <div className="px-3 py-4 text-center text-xs text-muted-foreground">
+                                No other recaps for this gameday.
+                              </div>
+                            ) : (
+                              gamesWithRecap.map((g) => (
+                                <button
+                                  key={g.game_id}
+                                  type="button"
+                                  onClick={() => { setSelectedGameId(g.game_id); setGamePickerOpen(false); }}
+                                  className={cn(
+                                    "group w-full rounded-md px-2 py-2 text-[12px] text-left transition-colors hover:bg-amber-300/10",
+                                    g.game_id === selectedGame.game_id && "bg-amber-300/15",
+                                  )}
+                                >
+                                  <GameRow game={g} logoFor={logoFor} nameFor={nameFor} tone="popover" />
+                                </button>
+                              ))
+                            )}
+                          </PopoverContent>
+                        </div>
+                      </Popover>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,2fr)_minmax(0,0.85fr)] gap-3 w-full transition-all duration-300 ease-out">
                   {/* LEFT: away table OR BIQ recap panel */}
