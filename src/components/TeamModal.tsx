@@ -158,7 +158,7 @@ export default function TeamModal({ tricode, open, onOpenChange, contentClassNam
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-xl rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogContent className={cn("max-w-xl rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0", contentClassName)}>
           <img
             src={watermarkLogo}
             alt=""
