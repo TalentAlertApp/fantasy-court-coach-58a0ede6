@@ -380,7 +380,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           <XIcon className="h-4 w-4" />
         </DialogClose>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-5">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col relative z-[1] px-5 md:px-8 pb-3">
           {isRosterEmpty && (
             <div className="flex-1 min-h-0 overflow-y-auto flex items-stretch py-3">
               <div className="w-full max-w-[1400px] flex">
@@ -422,7 +422,7 @@ export default function AICoachModal({ open, onOpenChange }: AICoachModalProps) 
           )}
           {!isRosterEmpty && (
 
-          <div className="relative flex-1 min-h-0 mt-4 rounded-xl
+          <div className="relative flex-1 min-h-0 mt-2 rounded-xl
                           bg-black/45 backdrop-blur-xl border border-white/12
                           shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.5),0_20px_60px_-30px_rgba(0,0,0,0.9)]
                           overflow-hidden">
