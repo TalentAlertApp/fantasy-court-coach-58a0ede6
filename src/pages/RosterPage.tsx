@@ -632,7 +632,7 @@ export default function RosterPage() {
   return (
     <div className="h-full flex flex-col">
       {/* ── Sticky header (banner + toolbar) ── */}
-      <div className="sticky top-0 z-30 -mx-6 px-6 pt-1 pb-2 bg-background/95 backdrop-blur-sm shrink-0">
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-1 pb-1.5 bg-background/95 backdrop-blur-sm shrink-0">
       <div className="bg-primary mb-3 px-5 py-3 rounded-xl">
         <p className="text-destructive font-heading text-[11px] font-bold uppercase tracking-widest mb-0.5">
           {teamName}
@@ -941,19 +941,19 @@ export default function RosterPage() {
       ) : (
         <>
           {/* ── Toolbar Row ── */}
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2 shrink-0">
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2 shrink-0">
             <div className="flex items-center gap-2">
               <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as "court" | "list")}>
-                <ToggleGroupItem value="court" className="font-heading text-xs uppercase rounded-xl">
+                <ToggleGroupItem value="court" className="h-8 px-2.5 font-heading text-xs uppercase rounded-xl">
                   <LayoutGrid className="h-4 w-4 mr-1" />Court
                 </ToggleGroupItem>
-                <ToggleGroupItem value="list" className="font-heading text-xs uppercase rounded-xl">
+                <ToggleGroupItem value="list" className="h-8 px-2.5 font-heading text-xs uppercase rounded-xl">
                   <List className="h-4 w-4 mr-1" />List
                 </ToggleGroupItem>
               </ToggleGroup>
               <div className="flex items-center gap-2 ml-3">
-                <Badge variant="destructive" className="rounded-xl text-xs px-2.5 py-0.5 font-heading">FC:{fcStarters}</Badge>
-                <Badge className="rounded-xl text-xs px-2.5 py-0.5 font-heading">BC:{bcStarters}</Badge>
+                <Badge variant="destructive" className="rounded-xl text-xs px-2.5 py-0 leading-5 font-heading">FC:{fcStarters}</Badge>
+                <Badge className="rounded-xl text-xs px-2.5 py-0 leading-5 font-heading">BC:{bcStarters}</Badge>
               </div>
             </div>
             <div className="flex items-center gap-1.5">
@@ -965,7 +965,7 @@ export default function RosterPage() {
                       variant="outline"
                       size="icon"
                       aria-label="Add player"
-                      className="h-9 w-9 rounded-xl bg-muted/40 hover:bg-muted"
+                      className="h-8 w-8 rounded-xl bg-muted/40 hover:bg-muted"
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
