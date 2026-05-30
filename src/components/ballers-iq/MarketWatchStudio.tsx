@@ -1,13 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeftRight, Loader2, Sparkles, TrendingUp, TrendingDown, AlertTriangle,
   DollarSign, CalendarDays, Repeat, Activity, Radar, Mic, Flame,
-  CheckCircle2, ShieldAlert, Zap, BarChart3,
+  CheckCircle2, ShieldAlert, Zap, BarChart3, Target,
 } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import BallersIQMarketWatch from "./BallersIQMarketWatch";
+import BringInModal from "@/components/acquisition/BringInModal";
 
 type Props = {
   rosterData: any;
@@ -123,6 +124,18 @@ export default function MarketWatchStudio({
   transfersLoading, transfersResult, simResults, simulatingIdx, committingIdx,
   onSuggest, onSimulate, onCommit, onOpenPlayer, onGoToTab,
 }: Props) {
+  /* ----- Bring In planner (stages only, never commits) ----- */
+  const [bringInPlayerId, setBringInPlayerId] = useState<number | null>(null);
+  const [bringInOpen, setBringInOpen] = useState(false);
+  const openBringIn = (id: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setBringInPlayerId(id);
+    setBringInOpen(true);
+  };
+  const bringInModal = (
+    <BringInModal open={bringInOpen} onOpenChange={setBringInOpen} targetPlayerId={bringInPlayerId} />
+  );
+
   /* ----- derive market / roster pools (mirrors AICoachModal) ----- */
   const pools = useMemo(() => {
     const rosterIds = new Set<number>([
