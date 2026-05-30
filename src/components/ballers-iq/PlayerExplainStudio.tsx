@@ -176,8 +176,16 @@ export default function PlayerExplainStudio(props: Props) {
     const teamLogo = selectedExplainPlayer ? getTeamLogo(selectedExplainPlayer.core?.team) : null;
     return (
       <div className="space-y-3">
-        <GlassPanel className="p-5">
-          <div className="flex items-center gap-4">
+        <GlassPanel className="group relative overflow-hidden p-5">
+          {teamLogo && (
+            <img
+              src={teamLogo}
+              alt=""
+              aria-hidden
+              className="pointer-events-none absolute -right-8 -top-6 w-44 h-44 object-contain opacity-[0.16] rotate-12 select-none transition-all duration-300 group-hover:opacity-50 group-hover:scale-110"
+            />
+          )}
+          <div className="relative flex items-center gap-4">
             <div className="relative w-20 h-20 shrink-0">
               <div className="absolute inset-0 rounded-full border border-amber-400/40 animate-ping" />
               <div className="absolute inset-2 rounded-full border border-amber-400/30 animate-pulse" />
@@ -186,7 +194,10 @@ export default function PlayerExplainStudio(props: Props) {
                   <img
                     src={selectedExplainPlayer.core.photo}
                     alt=""
-                    className="w-16 h-16 rounded-full object-cover ring-2 ring-amber-300/60 opacity-90"
+                    className={cn(
+                      "w-16 h-16 rounded-full object-cover ring-2 ring-amber-300/60 opacity-90",
+                      league === "euroleague" ? "object-top" : "object-[center_15%]",
+                    )}
                   />
                 ) : (
                   <Radar className="h-10 w-10 text-amber-300 drop-shadow-[0_0_18px_rgba(252,211,77,0.6)]" />
@@ -200,7 +211,6 @@ export default function PlayerExplainStudio(props: Props) {
                 {selectedExplainPlayer?.core?.name ?? "Player"}
               </div>
               <div className="flex items-center gap-2 mt-1 text-[11px] text-white/60">
-                {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4 object-contain" />}
                 <span>{selectedExplainPlayer?.core?.team ? getTeamFullName(selectedExplainPlayer.core.team) : ""}</span>
                 <span className="text-white/30">·</span>
                 <span className="inline-flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> AI Analysis</span>
