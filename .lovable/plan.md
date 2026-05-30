@@ -1,85 +1,70 @@
-## Overview
-Four focused UI changes across MY ROSTER, Transactions, and the Teams → Standings tab. No backend or standings-math changes; the new venue table derives its numbers from schedule data already loaded on the page.
+## Goal
+
+Polish the Ballers.IQ Market Watch + Player Explain experience and the shared Bring In modal, and make "Bring In" reachable directly from a Player Explain search so the user can preview how any player fits the current roster.
 
 ---
 
-## 1. MY ROSTER (`/`) — shrink the COURT/LIST toolbar strip
-**File:** `src/pages/RosterPage.tsx` (toolbar row ~lines 943–977)
+## 1. Market Watch — Best Swap photos (`MarketWatchStudio.tsx`)
 
-- Reduce the strip's vertical footprint so the COURT view fits without vertical scroll:
-  - `mb-3` → `mb-2` on the toolbar row.
-  - Make the COURT/LIST toggle items shorter (compact height, `py-1`, smaller icon gap) and the FC/FC badges slightly smaller (`py-0` / tighter line-height).
-  - Trim the sticky header block's bottom padding (`pb-2` → `pb-1.5`) so the court area gains height.
-- Goal: the court view becomes a "still" screen (no up/down scroll) at the current viewport. No logic changes — purely spacing/size tokens.
+In the BEST SWAP AVAILABLE card, remove the ring/border around both player photos:
+- Drop player photo (line ~540): remove `ring-1 ring-rose-300/50`.
+- Add player photo (line ~562): remove `ring-1 ring-emerald-300/50`.
 
----
-
-## 2. Transactions (`/transactions`)
-### 2a. Trade Report title icon
-**File:** `src/components/transactions/TradeReport.tsx`
-- Replace the AI-styled `Sparkles` icon next to "TRADE REPORT" with a context-appropriate trade icon: `Handshake` (people/deal) from lucide-react. Update the import accordingly.
-
-### 2b. Reduce Trade Report card height
-**File:** `src/components/transactions/TradeReport.tsx`
-- (i) **Roster Impact rows:** in `MetricRow`, reduce row padding `py-2` → `py-1` (tighter spacing between rows). Also tighten the sticky column-header row padding.
-- (ii) **Footer buttons** ("← Back to picking", "Commit Trade"): shrink to `h-8` with smaller text, and give a premium look — keep "Back to picking" as a subtle outline/ghost, and style "Commit Trade" with the accent gradient + glow/sheen treatment already used by the workbench TRADE button (accent bg, soft shadow, hover scale).
-- (iii) **Header:** reduce height (`py-3` → `py-2`) and shrink the title font (`text-sm` → `text-xs`), keeping the GW·Day badge and close button.
-
-### 2c. Pin the page header + action buttons
-**File:** `src/pages/PlayersPage.tsx` (header region ~lines 694–775)
-- Wrap the `PageHeaderCaption` ("Transactions · Trade Center") together with the compact button row (Schedule, Ballers.IQ, All-Star, Wildcard) in a single sticky container, mirroring the RosterPage pattern: `sticky top-0 z-30 bg-background/95 backdrop-blur-sm` with horizontal bleed (`-mx-6 px-6`) so it stays fixed while the workbench/report/table scroll beneath — matching /scoring behavior.
+Keep size/rounding/object positioning unchanged.
 
 ---
 
-## 3. Teams → Standings (`/teams`)
-### 3a. De-emphasize the 3 Ballers.IQ cards below the tables
-**File:** `src/pages/TeamsPage.tsx` (`StandingsBallersIQ`, ~lines 334–347)
-- Remove the outer borderline of the three cards (drop `border border-amber-400/25` on each inner card and the outer `section` border), reduce their padding so the block covers less area, and nudge the block down slightly. The block stays bottom-anchored (`mt-auto`) so its bottom remains just above the left sidebar's bottom edge.
+## 2. Player Explain — make "Bring In" reachable from search
 
-### 3b. New venue companion table (League view only)
-Applies to: **EuroLeague** (single League table), **WNBA → LEAGUE subtab**, **NBA → LEAGUE subtab**. Conference/Division views are unchanged.
+Today the Bring In CTA only appears inside a generated report and only when the verdict is "ADD". Add a direct path so the user can preview fit for any searched player:
 
-New table sits to the **left** of the existing standings table, occupying **~1/4** of the content width (full width minus sidebar), with the main table taking the remaining 3/4. Columns:
+- In `PlayerExplainStudio.tsx`, add a small Crosshair "Bring In" / "Fit my roster" trigger to each row of the search dropdown (next to the FP5 value) and to the report player card. Clicking it sets the target and opens the existing `BringInModal` without requiring a full AI report.
+- Reuse the existing `bringInOpen` state + `BringInModal` already wired in the report state; lift that modal so it also renders in the pre-selection/search state, driven by a `bringInTarget` (resolved from the clicked player's `core`).
+- In `ExplainReport.tsx`, always render the Bring In button on the player card (not gated to `action === "add"`), so any reported player can be planned.
 
-| Column | Source |
-|--------|--------|
-| **Arena** | Team venue name (from `useLeagueTeams` → `venueName`), rendered over the team's venue image as a decorative background |
-| **Market** | Team city |
-| **Conference** | `StandingRow.conference` (— when none, e.g. EuroLeague) |
-| **HW%** | Home win % = homeW / (homeW + homeL) |
-| **HDIFF** | Home point differential = avg (home points scored − allowed) in home games |
-| **HE** | Home Edge = Home win% − Away win% |
+---
 
-**Row-order sync (critical):** the new table must always match the existing table's row order, including live re-sorts.
-- Lift the sort state out of `StandingsTable` so both tables share one ordering:
-  - `src/components/standings/StandingsTable.tsx`: add optional controlled-sort props (`sortKey`, `sortDir`, `onSort`). When provided, render rows in the given order and delegate header clicks to `onSort` instead of using internal state (uncontrolled behavior preserved when props are absent).
-- New wrapper `src/components/standings/LeagueStandingsWithVenue.tsx`:
-  - Owns `sortKey`/`sortDir`, computes the ordered rows once (same sort + GB logic), and renders: venue table (left, `w-1/4`) + `StandingsTable` (right, `flex-1`, controlled-sort) so both consume the identical ordered array.
-  - Venue rows mirror the main table's row height for visual alignment.
-- `src/components/standings/StandingsPanel.tsx`: in the `view === "league"` branch, render `LeagueStandingsWithVenue` (new props for `leagueTeams` + per-team home splits) instead of the bare `StandingsTable`. Other branches untouched.
-- `src/pages/TeamsPage.tsx`: pass `leagueTeams` and the already-loaded `scheduleData` down to `StandingsPanel`.
+## 3. Player Explain card + Scoring Drivers (`ExplainReport.tsx`)
 
-**Home splits computation (display-only, no standings-math change):**
-- New helper `src/lib/standings-home-splits.ts`: from the schedule rows already fetched in TeamsPage (`home_team, away_team, home_pts, away_pts, status`), aggregate per-team home/away records and home points for/against. Returns a map keyed by tricode with `homeW, homeL, awayW, awayL, homePf, homePa, homeGames`. Used only to feed HW%/HDIFF/HE — the existing `useNBAStandings` calculation is left exactly as-is.
+### 3a. Player card (report hero)
+- Import `useLeague`. Apply EuroLeague photo framing like elsewhere: `league === "euroleague" ? "object-top" : "object-[center_15%]"` on the hero photo.
+- Remove the small inline team badge shown next to the team name (the little `<img>` logos), keeping the clickable team name → Team modal.
+- Promote the existing faint top-right logo into a prominent team-badge watermark: larger size, anchored top-right, with a hover surge (`group-hover:opacity-… group-hover:scale-110 transition-all`). Add `group` to the hero container.
 
-**Market (city) data:**
-- New helper `src/lib/team-markets.ts`:
-  - NBA: explicit tricode→city map (30 teams) for accuracy.
-  - WNBA: explicit tricode→city map.
-  - EuroLeague: pull `city` from the synced team record (`getEuroLeagueTeamRecord`).
-  - Fallback: derive from team name if no mapping found.
+### 3b. Scoring Drivers
+- Replace the vertical `divide-y` stacked list with a horizontally scrolling rail: a flex row (`overflow-x-auto`, snap optional) of fixed-min-width driver cards (icon + factor + impact pill + note). Keep the same data and impact styling.
 
-**Accessibility (per request):**
-- Venue image is a decorative background only: applied via CSS background (or `<img aria-hidden alt="">` behind text), never conveying meaning.
-- Arena name stays as real, selectable text layered above the image with a readable scrim/overlay for contrast.
-- If a venue image is missing, no broken-image icon appears — the cell falls back to a plain themed background with the arena text still shown.
+---
+
+## 4. Bring In modal (`BringInModal.tsx`)
+
+### 4a. Header
+- Import `useLeague`; apply EuroLeague photo framing to the target photo.
+- Remove the current small team badge next to the name; add a large team-badge **watermark** in the header's top-right with hover surge (wrap header in `group`).
+- Make the team 3-letter code a button that opens the Team modal.
+
+### 4b. Content links
+- Make the target name and the player chips (out/in) clickable to open the corresponding Player modal.
+- Render nested `PlayerModal` and `TeamModal` inside `BringInModal`, at a z-index above the modal (it already uses `z-[120]`; nested dialogs must sit above it).
+
+### 4c. Height + staging
+- Increase modal height: raise content scroll area from `max-h-[55vh]` to roughly `max-h-[70vh]` (keep `overflow-y-auto` so it stays scrollable) and allow the dialog to grow.
+- On "STAGE IN TRADE CENTER": keep the existing `navigate('/transactions?…')` staging, then close the Bring In modal **and** notify the host to close its parent overlay. Add an optional `onStaged` callback prop:
+  - `PlayerModal` passes `onStaged` that closes the player modal.
+  - `PlayerExplainStudio` and `MarketWatchStudio` pass `onStaged` that calls their existing `onClose` (closes the Ballers.IQ modal), so the staged trade is visible on `/transactions` exactly as it works from the Player modal.
 
 ---
 
 ## Technical notes
-- All colors use existing semantic tokens; venue text uses a gradient/scrim overlay for legibility in both light and dark themes.
-- The venue table is shown at `lg+` widths; on narrow screens it collapses gracefully (stacks or hides) to avoid cramping, since Standings is a desktop-first view.
-- No database, edge-function, or standings-calculation changes.
-</content>
-<summary>UI-only changes: shrink the roster COURT toolbar, slim down the Trade Report card (icon, row spacing, premium compact footer buttons, shorter header) and pin the Transactions page header, plus de-border the Standings BallersIQ cards and add a venue companion table (Arena/Market/Conference/HW%/HDIFF/HE) on League-view standings that stays sorted in lockstep with the main table.</summary>
-</invoke>
+
+- EuroLeague framing helper already established in `PlayerModal.tsx` (`object-top` vs `object-[center_15%]`); mirror it.
+- Team-badge surge-on-hover pattern mirrors existing watermark logos (absolute, negative offsets, `group-hover:scale`/`opacity`).
+- Staging already flows through `routeToStageParams` → `/transactions` query params consumed by `PlasyersPage.tsx`; no change to staging logic, only modal/overlay close behavior via the new `onStaged` prop.
+- No scoring/cap/FC-BC/max-2-team/GW-cap rule changes; modal still only stages/previews and never commits.
+
+### Files touched
+- `src/components/ballers-iq/MarketWatchStudio.tsx`
+- `src/components/ballers-iq/PlayerExplainStudio.tsx`
+- `src/components/ballers-iq/ExplainReport.tsx`
+- `src/components/acquisition/BringInModal.tsx`
+- `src/components/PlayerModal.tsx`

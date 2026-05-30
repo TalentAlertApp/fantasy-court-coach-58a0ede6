@@ -95,9 +95,10 @@ interface PlayerModalProps {
   playerId: number | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  contentClassName?: string;
 }
 
-export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModalProps) {
+export default function PlayerModal({ playerId, open, onOpenChange, contentClassName }: PlayerModalProps) {
   const { league } = useLeague();
   const { data: difficultyMap } = useTeamDifficultyMap();
   const { data, isLoading } = useQuery({
@@ -169,7 +170,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
-        <DialogContent className="max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className={`max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden${contentClassName ? ` ${contentClassName}` : ""}`}>
           {/* NBA logo watermark — visible on every tab */}
           <img
             src={watermarkLogo}
@@ -787,6 +788,7 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         <BringInModal
           open={bringInOpen}
           onOpenChange={setBringInOpen}
+          onStaged={() => onOpenChange(false)}
           target={{
             id: data.player.core.id,
             name: data.player.core.name,

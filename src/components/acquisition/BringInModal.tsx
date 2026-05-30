@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,12 @@ import { cn } from "@/lib/utils";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
+import { useLeague } from "@/contexts/LeagueContext";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { getCurrentGameday } from "@/lib/deadlines";
+import PlayerModal from "@/components/PlayerModal";
+import TeamModal from "@/components/TeamModal";
 import {
   planAcquisition,
   routeToStageParams,
@@ -36,6 +39,8 @@ interface Props {
   target?: BringInTarget | null;
   /** …or just an id, and the modal resolves it from the players pool. */
   targetPlayerId?: number | null;
+  /** Called after a route is staged in the Trade Center (used to close parent overlays). */
+  onStaged?: () => void;
 }
 
 function toPlanner(p: any): PlannerPlayer {
@@ -51,12 +56,14 @@ function toPlanner(p: any): PlannerPlayer {
   };
 }
 
-function PlayerChip({ p, tone }: { p: PlannerPlayer; tone: "out" | "in" | "neutral" }) {
+function PlayerChip({ p, tone, onOpenPlayer }: { p: PlannerPlayer; tone: "out" | "in" | "neutral"; onOpenPlayer?: (id: number) => void }) {
   const logo = getTeamLogo(p.team);
   return (
-    <span
+    <button
+      type="button"
+      onClick={() => onOpenPlayer?.(p.id)}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-heading",
+        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-heading transition-colors hover:brightness-125",
         tone === "out" && "border-destructive/40 bg-destructive/10 text-destructive",
         tone === "in" && "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
         tone === "neutral" && "border-border bg-muted/40 text-foreground",
@@ -66,13 +73,16 @@ function PlayerChip({ p, tone }: { p: PlannerPlayer; tone: "out" | "in" | "neutr
       <span className="font-bold uppercase truncate max-w-[120px]">{p.name}</span>
       <span className="opacity-70">{p.fc_bc}</span>
       <span className="font-mono opacity-80">${p.salary}M</span>
-    </span>
+    </button>
   );
 }
 
-export default function BringInModal({ open, onOpenChange, target: targetProp = null, targetPlayerId = null }: Props) {
+export default function BringInModal({ open, onOpenChange, target: targetProp = null, targetPlayerId = null, onStaged }: Props) {
   const navigate = useNavigate();
+  const { league } = useLeague();
   const { selectedTeamId } = useTeam();
+  const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
+  const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
   const { data: rosterData } = useRosterQuery();
   const { data: playersData, isLoading } = usePlayersQuery({ sort: "salary", order: "asc", limit: 2000 });
   const { deadlines } = useLeagueDeadlines();
@@ -130,13 +140,15 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
   const stageRoute = (route: AcquisitionRoute) => {
     navigate(`/transactions?${routeToStageParams(route).toString()}`);
     onOpenChange(false);
+    onStaged?.();
   };
 
   const targetLogo = target ? getTeamLogo(target.team) : undefined;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="z-[120] max-w-2xl rounded-2xl p-0 overflow-hidden">
+      <DialogContent className="z-[120] max-w-2xl rounded-2xl p-0 overflow-hidden flex flex-col max-h-[88vh]">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wide text-sm">
             <Crosshair className="h-4 w-4 text-primary" />
@@ -146,27 +158,52 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
 
         {/* Target header */}
         {target && (
-          <div className="flex items-center gap-3 px-5 py-3 bg-muted/30">
+          <div className="group relative flex items-center gap-3 px-5 py-3 bg-muted/30 overflow-hidden">
+            {targetLogo && (
+              <img
+                src={targetLogo}
+                alt=""
+                aria-hidden="true"
+                className="pointer-events-none absolute -top-6 -right-4 h-28 w-28 object-contain opacity-[0.14] rotate-12 select-none transition-all duration-300 group-hover:opacity-40 group-hover:scale-110"
+              />
+            )}
             {target.photo ? (
-              <img src={target.photo} alt="" className="h-12 w-12 rounded-full object-cover bg-muted" />
+              <img
+                src={target.photo}
+                alt=""
+                className={cn(
+                  "h-12 w-12 rounded-full bg-muted ring-1 ring-border relative z-10",
+                  league === "euroleague" ? "object-cover object-top" : "object-cover object-[center_15%]",
+                )}
+              />
             ) : (
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center relative z-10">
                 <Target className="h-5 w-5 text-muted-foreground" />
               </div>
             )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="font-heading font-bold uppercase text-sm truncate">{target.name}</span>
-                {targetLogo && <img src={targetLogo} alt="" className="h-4 w-4 object-contain" />}
-              </div>
+            <div className="min-w-0 relative z-10">
+              <button
+                type="button"
+                onClick={() => setModalPlayerId(target.id)}
+                className="font-heading font-bold uppercase text-sm truncate block text-left hover:text-primary transition-colors"
+              >
+                {target.name}
+              </button>
               <div className="text-[11px] text-muted-foreground">
-                {target.team} · {target.fc_bc} · <span className="font-mono">${target.salary}M</span>
+                <button
+                  type="button"
+                  onClick={() => setModalTeamTri(target.team)}
+                  className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                >
+                  {target.team}
+                </button>
+                {" · "}{target.fc_bc} · <span className="font-mono">${target.salary}M</span>
               </div>
             </div>
           </div>
         )}
 
-        <div className="px-5 py-4 space-y-3 max-h-[55vh] overflow-y-auto">
+        <div className="px-5 py-4 space-y-3 flex-1 min-h-0 overflow-y-auto">
           {isLoading || !plan ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
@@ -206,10 +243,10 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
 
                   {!isWait && (route.outs.length > 0 || route.ins.length > 0) && (
                     <div className="flex items-center flex-wrap gap-2 mb-2">
-                      {route.outs.map((p) => <PlayerChip key={`o${p.id}`} p={p} tone="out" />)}
+                      {route.outs.map((p) => <PlayerChip key={`o${p.id}`} p={p} tone="out" onOpenPlayer={setModalPlayerId} />)}
                       {route.outs.length > 0 && <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />}
                       {route.ins.map((p) => (
-                        <PlayerChip key={`i${p.id}`} p={p} tone={p.id === plan.target.id ? "in" : "neutral"} />
+                        <PlayerChip key={`i${p.id}`} p={p} tone={p.id === plan.target.id ? "in" : "neutral"} onOpenPlayer={setModalPlayerId} />
                       ))}
                     </div>
                   )}
@@ -236,5 +273,20 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
         </div>
       </DialogContent>
     </Dialog>
+
+      {/* Nested modals — rendered above the Bring In overlay */}
+      <PlayerModal
+        playerId={modalPlayerId}
+        open={modalPlayerId !== null}
+        onOpenChange={(o) => !o && setModalPlayerId(null)}
+        contentClassName="z-[140]"
+      />
+      <TeamModal
+        tricode={modalTeamTri}
+        open={modalTeamTri !== null}
+        onOpenChange={(o) => !o && setModalTeamTri(null)}
+        contentClassName="z-[140]"
+      />
+    </>
   );
 }

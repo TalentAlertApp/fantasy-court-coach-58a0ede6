@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { Table2, BarChart3, Mic, ExternalLink, Tv2, Swords } from "lucide-react";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useLeague } from "@/contexts/LeagueContext";
@@ -29,6 +30,7 @@ interface TeamModalProps {
   tricode: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  contentClassName?: string;
 }
 
 type RosterSort = "mpg" | "ppg" | "fpg" | "salary" | "height";
@@ -40,7 +42,7 @@ function heightToInches(h: unknown): number {
   return parseInt(m[1], 10) * 12 + (m[2] ? parseInt(m[2], 10) : 0);
 }
 
-export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProps) {
+export default function TeamModal({ tricode, open, onOpenChange, contentClassName }: TeamModalProps) {
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const { data: leagueId } = useLeagueId();
@@ -157,7 +159,7 @@ export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProp
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-xl rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogContent className={cn("max-w-xl rounded-xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0", contentClassName)}>
           <img
             src={watermarkLogo}
             alt=""

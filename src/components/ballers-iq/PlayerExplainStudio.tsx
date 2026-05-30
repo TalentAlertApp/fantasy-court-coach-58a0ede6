@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import {
   Search, History, Radar, Crown, TrendingUp, ShieldAlert, DollarSign, CalendarDays,
   Sparkles, Activity, HelpCircle, Heart, Star, Mic, BarChart3, ArrowLeftRight, Users,
-  ArrowLeft, GitCompare, Trophy, Flame, Loader2,
+  ArrowLeft, GitCompare, Trophy, Flame, Loader2, Crosshair,
 } from "lucide-react";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
@@ -84,12 +84,35 @@ export default function PlayerExplainStudio(props: Props) {
     selectedExplainPlayer, setSelectedExplainPlayer, setExplainSearch,
     recentExplained, onSelectPlayer, onRecentClick, runExplain,
     explainLoading, explainResult,
-    onClearResult, onGoToTab,
+    onClearResult, onGoToTab, onClose,
   } = props;
 
   const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
   const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
   const [bringInOpen, setBringInOpen] = useState(false);
+  const [bringInTarget, setBringInTarget] = useState<any | null>(null);
+
+  const openBringInFor = (p: any) => {
+    setBringInTarget(p);
+    setBringInOpen(true);
+  };
+
+  const bringInSource = bringInTarget ?? selectedExplainPlayer;
+  const bringInModalEl = bringInSource?.core ? (
+    <BringInModal
+      open={bringInOpen}
+      onOpenChange={(o) => { setBringInOpen(o); if (!o) setBringInTarget(null); }}
+      onStaged={onClose}
+      target={{
+        id: bringInSource.core.id,
+        name: bringInSource.core.name,
+        team: bringInSource.core.team,
+        fc_bc: bringInSource.core.fc_bc,
+        salary: bringInSource.core.salary,
+        photo: bringInSource.core.photo ?? null,
+      }}
+    />
+  ) : null;
 
   /* -------- roster suggestions -------- */
   const rosterIds = useMemo(() => new Set<number>([
@@ -138,23 +161,10 @@ export default function PlayerExplainStudio(props: Props) {
         </div>
         {/* The existing ExplainReport is rendered by the parent through props.explainResult,
             but we need to render it here. The parent passes us the data — render it. */}
-        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} onBringIn={() => setBringInOpen(true)} />
+        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} onBringIn={() => openBringInFor(selectedExplainPlayer)} />
         <PlayerModal playerId={modalPlayerId} open={modalPlayerId !== null} onOpenChange={(o) => !o && setModalPlayerId(null)} />
         <TeamModal tricode={modalTeamTri} open={modalTeamTri !== null} onOpenChange={(o) => !o && setModalTeamTri(null)} />
-        {selectedExplainPlayer?.core && (
-          <BringInModal
-            open={bringInOpen}
-            onOpenChange={setBringInOpen}
-            target={{
-              id: selectedExplainPlayer.core.id,
-              name: selectedExplainPlayer.core.name,
-              team: selectedExplainPlayer.core.team,
-              fc_bc: selectedExplainPlayer.core.fc_bc,
-              salary: selectedExplainPlayer.core.salary,
-              photo: selectedExplainPlayer.core.photo ?? null,
-            }}
-          />
-        )}
+        {bringInModalEl}
       </div>
     );
   }
@@ -225,6 +235,7 @@ export default function PlayerExplainStudio(props: Props) {
 
   /* ============ STATE: PRE-SELECTION ============ */
   return (
+    <>
     <div className="flex flex-col h-full gap-3">
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
         <div className="grid gap-3 md:grid-cols-12">
@@ -343,6 +354,16 @@ export default function PlayerExplainStudio(props: Props) {
                           <span className="font-mono text-[12px] font-bold text-amber-200">{Number((p as any).last5?.fp5 ?? 0).toFixed(1)}</span>
                           <span className="text-[8px] text-white/50 ml-0.5">FP5</span>
                         </div>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          title="Bring In — fit to roster"
+                          onClick={(e) => { e.stopPropagation(); setShowDropdown(false); openBringInFor(p); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setShowDropdown(false); openBringInFor(p); } }}
+                          className="relative z-10 shrink-0 ml-2 inline-flex items-center justify-center h-7 w-7 rounded-lg border border-emerald-400/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/25 transition-colors cursor-pointer"
+                        >
+                          <Crosshair className="h-3.5 w-3.5" />
+                        </span>
                       </button>
                     );
                   })}
@@ -466,6 +487,8 @@ export default function PlayerExplainStudio(props: Props) {
         )}
       </div>
     </div>
+    {bringInModalEl}
+    </>
   );
 }
 

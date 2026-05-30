@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
+import { useLeague } from "@/contexts/LeagueContext";
 
 function getTeamFullName(tricode: string): string {
   const t = NBA_TEAMS.find((t) => t.tricode === tricode);
@@ -102,6 +103,7 @@ function humanizeFlag(flag: string): string {
 }
 
 export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam, onBringIn }: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void; onBringIn?: () => void }) {
+  const { league } = useLeague();
   const teamTricode = player?.core?.team;
   const teamLogo = teamTricode ? getTeamLogo(teamTricode) : null;
   const teamFullName = teamTricode ? getTeamFullName(teamTricode) : "";
@@ -123,10 +125,10 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
     <div className="space-y-3">
       {/* Player Spotlight Hero — broadcast card */}
       {player && (
-        <div className="relative overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
+        <div className="group relative overflow-hidden rounded-2xl border border-amber-300/25 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/60 to-transparent" />
           {teamLogo && (
-            <img src={teamLogo} alt="" aria-hidden className="absolute -right-6 -top-4 w-32 h-32 opacity-[0.10] pointer-events-none select-none" />
+            <img src={teamLogo} alt="" aria-hidden className="absolute -right-8 -top-6 w-44 h-44 object-contain opacity-[0.16] rotate-12 pointer-events-none select-none transition-all duration-300 group-hover:opacity-50 group-hover:scale-110" />
           )}
           <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5 items-center">
             {/* LEFT — player */}
@@ -138,7 +140,10 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
                 aria-label={`Open ${player.core?.name} profile`}
               >
                 {player.core?.photo ? (
-                  <img src={player.core.photo} alt="" className="w-14 h-14 rounded-xl object-cover object-[center_15%] bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]" />
+                  <img src={player.core.photo} alt="" className={cn(
+                    "w-14 h-14 rounded-xl object-cover bg-black/40 ring-2 ring-amber-300/60 shadow-[0_0_18px_-4px_rgba(252,211,77,0.5)]",
+                    league === "euroleague" ? "object-top" : "object-[center_15%]",
+                  )} />
                 ) : (
                   <div className="w-14 h-14 rounded-xl bg-white/[0.08] inline-flex items-center justify-center text-base font-bold text-white/85">
                     {player.core?.name?.slice(0, 2)?.toUpperCase()}
@@ -154,7 +159,6 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
                   {player.core?.name}
                 </button>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  {teamLogo && <img src={teamLogo} alt="" className="w-4 h-4" />}
                   <button
                     type="button"
                     onClick={() => teamTricode && onOpenTeam?.(teamTricode)}
@@ -274,13 +278,13 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
                 <span className="text-[9px] font-heading font-bold uppercase tracking-wider opacity-80">Verdict</span>
               </div>
               <p className="text-[11px] leading-snug text-white/90 mt-1 line-clamp-3">{result.recommendation.rationale}</p>
-              {onBringIn && (result.recommendation.action ?? "").toLowerCase() === "add" && (
+              {onBringIn && (
                 <button
                   type="button"
                   onClick={onBringIn}
                   className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white px-2.5 py-1 text-[10px] font-heading font-bold uppercase tracking-wider transition-colors"
                 >
-                  <Tag className="h-3 w-3" /> Bring In
+                  <Tag className="h-3 w-3" /> Bring In — Fit to Roster
                 </button>
               )}
             </div>
@@ -307,19 +311,22 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
           <p className="text-[10px] font-heading font-bold uppercase tracking-[0.22em] text-amber-100/75 mb-2">
             Scoring Drivers
           </p>
-          <div className="rounded-lg divide-y divide-white/5 bg-black/30 border border-white/8">
+          <div className="flex gap-2 overflow-x-auto pb-1 snap-x [scrollbar-width:thin]">
             {result.why_it_scores.map((f: any, i: number) => {
               const Icon = factorIcon(f.factor);
               return (
-                <div key={i} className="px-3 py-2 space-y-0.5">
+                <div
+                  key={i}
+                  className="snap-start shrink-0 w-[180px] rounded-lg bg-black/30 border border-white/10 px-3 py-2.5 space-y-1.5"
+                >
                   <div className="flex items-center gap-2">
                     <Icon className="h-3.5 w-3.5 text-amber-300/80 shrink-0" />
-                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-white/90">{f.factor}</span>
-                    <span className={`ml-auto text-[9px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${impactClasses(f.impact)}`}>
-                      {(f.impact || "").replace("_", " ")}
-                    </span>
+                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-white/90 truncate">{f.factor}</span>
                   </div>
-                  {f.note && <p className="text-xs text-white/65 leading-snug pl-5">{f.note}</p>}
+                  <span className={`inline-flex text-[9px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${impactClasses(f.impact)}`}>
+                    {(f.impact || "").replace("_", " ")}
+                  </span>
+                  {f.note && <p className="text-xs text-white/65 leading-snug">{f.note}</p>}
                 </div>
               );
             })}
