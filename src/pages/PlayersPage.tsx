@@ -1031,6 +1031,40 @@ export default function PlayersPage() {
                             </TooltipContent>
                           </Tooltip>
                         </td>
+                        <td className="px-1 py-1">
+                          <div className="flex items-center gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                                    onClick={(e) => openBringIn(p.core.id, e)}
+                                    aria-label="Bring In plan"
+                                  >
+                                    <Crosshair className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <span
+                                    className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
+                                      isInInZone
+                                        ? "bg-emerald-500"
+                                        : elig.ok
+                                          ? "bg-emerald-500/70"
+                                          : elig.reason === "gw_cap"
+                                            ? "bg-destructive"
+                                            : "bg-amber-500"
+                                    }`}
+                                    aria-hidden="true"
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="text-xs">
+                                Bring In plan
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </td>
                         <td className="px-2 py-1.5 pr-1 text-xs">
                           <div className="flex items-center gap-1.5">
                             <Avatar className="h-7 w-7 shrink-0 rounded-full transition-transform group-hover:scale-110">
