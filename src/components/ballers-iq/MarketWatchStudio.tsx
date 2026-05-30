@@ -24,6 +24,7 @@ type Props = {
   onCommit: (idx: number, move: any) => void;
   onOpenPlayer?: (p: any) => void;
   onGoToTab: (t: string) => void;
+  onClose?: () => void;
 };
 
 function GlassPanel({ className, children }: { className?: string; children: React.ReactNode }) {
