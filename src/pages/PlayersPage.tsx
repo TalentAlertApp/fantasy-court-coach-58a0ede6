@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose, Crosshair } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -30,6 +30,7 @@ import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
 import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
 import BringInModal, { type BringInTarget } from "@/components/acquisition/BringInModal";
+import BringInSearchCard from "@/components/transactions/BringInSearchCard";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useTeamChips } from "@/hooks/useTeamChips";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
@@ -935,6 +936,8 @@ export default function PlayersPage() {
                 />
               )}
 
+              <BringInSearchCard players={allPlayersFull.length ? allPlayersFull : allPlayers} onSelect={openBringIn} />
+
               <div className="relative flex-1 min-h-0 flex flex-col border rounded-lg overflow-hidden bg-card">
               {/* Fixed header (separate table) */}
               <div className="shrink-0 border-b bg-background">
@@ -1011,16 +1014,6 @@ export default function PlayersPage() {
                                   disabled={!canAdd}
                                 >
                                   <Plus className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
-                                  onClick={(e) => openBringIn(p.core.id, e)}
-                                  aria-label="Bring In plan"
-                                  title="Bring In plan"
-                                >
-                                  <Crosshair className="h-3.5 w-3.5" />
                                 </Button>
                                 <span
                                   className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${

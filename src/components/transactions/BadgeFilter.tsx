@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { FilterX } from "lucide-react";
 import { BADGE_LEGEND, BADGE_TONE_TEXT, BADGE_TONE_GLOW } from "./badgeLegend";
 
 interface Props {
@@ -30,13 +31,19 @@ export default function BadgeFilter({ value, onChange }: Props) {
           Market Status
         </Label>
         {value.length > 0 && (
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="text-[9px] font-heading uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Clear
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                aria-label="Deselect all"
+                className="inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-all hover:text-foreground hover:bg-foreground/[0.06] hover:scale-110"
+              >
+                <FilterX className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Deselect all</TooltipContent>
+          </Tooltip>
         )}
       </div>
       <div className="grid grid-cols-7 gap-y-2 gap-x-1 py-0.5">
