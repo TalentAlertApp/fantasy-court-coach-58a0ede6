@@ -838,6 +838,14 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
   });
   const playerItems: any[] = (playersData as any)?.items ?? [];
 
+  // Team W-L records (shared cache with UpcomingGamePreview) for the "(W-L)" line.
+  const { data: teamFormMap } = useAllTeamsForm(true);
+  const formatWL = (tri: string): string | null => {
+    const t = teamFormMap?.[tri];
+    if (!t) return null;
+    return `(${t.w}-${t.l})`;
+  };
+
   // ---------- Roster-aware health context for matchups ----------
   const { data: rosterData } = useRosterQuery();
   const rosterIds = useMemo(() => {
