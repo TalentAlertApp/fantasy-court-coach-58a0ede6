@@ -1,13 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeftRight, Loader2, Sparkles, TrendingUp, TrendingDown, AlertTriangle,
   DollarSign, CalendarDays, Repeat, Activity, Radar, Mic, Flame,
-  CheckCircle2, ShieldAlert, Zap, BarChart3,
+  CheckCircle2, ShieldAlert, Zap, BarChart3, Target,
 } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import BallersIQMarketWatch from "./BallersIQMarketWatch";
+import BringInModal from "@/components/acquisition/BringInModal";
 
 type Props = {
   rosterData: any;
@@ -123,6 +124,18 @@ export default function MarketWatchStudio({
   transfersLoading, transfersResult, simResults, simulatingIdx, committingIdx,
   onSuggest, onSimulate, onCommit, onOpenPlayer, onGoToTab,
 }: Props) {
+  /* ----- Bring In planner (stages only, never commits) ----- */
+  const [bringInPlayerId, setBringInPlayerId] = useState<number | null>(null);
+  const [bringInOpen, setBringInOpen] = useState(false);
+  const openBringIn = (id: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setBringInPlayerId(id);
+    setBringInOpen(true);
+  };
+  const bringInModal = (
+    <BringInModal open={bringInOpen} onOpenChange={setBringInOpen} targetPlayerId={bringInPlayerId} />
+  );
+
   /* ----- derive market / roster pools (mirrors AICoachModal) ----- */
   const pools = useMemo(() => {
     const rosterIds = new Set<number>([
@@ -234,6 +247,7 @@ export default function MarketWatchStudio({
     const salDelta = num(addP?.core?.salary) - num(dropP?.core?.salary);
 
     return (
+      <>
       <div className="space-y-3">
         {/* HERO — best transfer move */}
         <div className="relative overflow-hidden rounded-2xl border border-amber-300/30 bg-gradient-to-br from-black/70 via-black/55 to-black/70 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,232,170,0.18),0_30px_80px_-30px_rgba(0,0,0,0.9)]">
@@ -279,6 +293,14 @@ export default function MarketWatchStudio({
                     <div className="text-[11.5px] font-heading font-bold uppercase text-white truncate">{addP?.core?.name ?? `#${top.add}`}</div>
                     <div className="text-[9.5px] text-white/55 truncate">{addP?.core?.team} · ${num(addP?.core?.salary).toFixed(1)}M</div>
                   </div>
+                  <button
+                    type="button"
+                    title="Bring In plan"
+                    onClick={(e) => openBringIn(top.add, e)}
+                    className="relative z-[1] ml-auto self-start inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                  >
+                    <Target className="h-3 w-3" /> Bring In
+                  </button>
                 </div>
               </div>
               {reasons[0] && <p className="mt-2 text-[12px] text-white/85 leading-snug line-clamp-2">{reasons[0]}</p>}
@@ -396,6 +418,9 @@ export default function MarketWatchStudio({
                         <button onClick={() => a && onOpenPlayer?.(a)} className="ml-auto text-[10px] font-heading uppercase tracking-[0.14em] text-white/55 hover:text-white">
                           Explain Add
                         </button>
+                        <button onClick={(e) => openBringIn(m.add, e)} title="Bring In plan" className="inline-flex items-center gap-1 text-[10px] font-heading uppercase tracking-[0.14em] text-emerald-300/80 hover:text-emerald-200">
+                          <Target className="h-3 w-3" /> Bring In
+                        </button>
                         <button onClick={() => d && onOpenPlayer?.(d)} className="text-[10px] font-heading uppercase tracking-[0.14em] text-white/55 hover:text-white">
                           Explain Drop
                         </button>
@@ -442,15 +467,19 @@ export default function MarketWatchStudio({
               const p = getPlayer(id);
               if (p) onOpenPlayer?.(p);
             }}
+            onBringInPlayer={(id) => openBringIn(id)}
           />
         </details>
       </div>
+      {bringInModal}
+      </>
     );
   }
 
   /* ============ PRE-SUGGESTION INTELLIGENCE STATE ============ */
   const bs = pulse.bestSwap;
   return (
+    <>
     <div className="space-y-3">
       {/* HERO — Transfer Intelligence (L) | Market Pulse + Best Swap stacked (R) */}
       <div className="grid gap-3 md:grid-cols-12 items-stretch">
@@ -522,8 +551,9 @@ export default function MarketWatchStudio({
                   <div className="flex items-center justify-center w-8 h-8 rounded-full border border-emerald-400/50 bg-emerald-500/10 text-emerald-300">
                     <ArrowLeftRight className="h-4 w-4" />
                   </div>
+                  <div className="relative h-full">
                   <button onClick={() => { const p = getPlayer(bs.in.id); if (p) onOpenPlayer?.(p); }}
-                    className="group relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full">
+                    className="group relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2 text-left hover:bg-emerald-500/[0.10] transition-colors h-full w-full">
                     {bs.in.team && getTeamLogo(bs.in.team) && (
                       <img src={getTeamLogo(bs.in.team)!} alt="" className="pointer-events-none absolute -right-3 -top-3 w-16 h-16 object-contain opacity-[0.16] group-hover:opacity-40 group-hover:scale-125 transition-all" />
                     )}
@@ -540,6 +570,15 @@ export default function MarketWatchStudio({
                       </div>
                     </div>
                   </button>
+                  <button
+                    type="button"
+                    title="Plan how to acquire this player"
+                    onClick={(e) => openBringIn(bs.in.id, e)}
+                    className="absolute bottom-1.5 right-1.5 z-[1] inline-flex items-center gap-1 rounded-md border border-emerald-400/50 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-emerald-100 transition-colors hover:bg-emerald-500/30"
+                  >
+                    <Target className="h-3 w-3" /> Bring In
+                  </button>
+                  </div>
                   <div className="grid grid-rows-2 gap-1.5 h-full">
                     <Stat label="FP5 Δ" value={`+${bs.fpDelta.toFixed(1)}`} tone="good" />
                     <Stat label="Salary Δ" value={`${bs.salaryDelta >= 0 ? "+" : ""}$${bs.salaryDelta.toFixed(1)}M`} tone={bs.salaryDelta <= 0 ? "good" : "default"} />
@@ -572,8 +611,11 @@ export default function MarketWatchStudio({
           const p = getPlayer(id);
           if (p) onOpenPlayer?.(p);
         }}
+        onBringInPlayer={(id) => openBringIn(id)}
       />
 
     </div>
+    {bringInModal}
+    </>
   );
 }
