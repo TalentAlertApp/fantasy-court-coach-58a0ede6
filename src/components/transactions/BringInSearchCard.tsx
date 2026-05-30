@@ -47,7 +47,7 @@ export default function BringInSearchCard({ players, onSelect }: Props) {
       <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2.5 shrink-0">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(var(--nba-yellow))]/15 text-[hsl(var(--nba-yellow))] ring-1 ring-[hsl(var(--nba-yellow))]/30">
-            <Crosshair className="h-4.5 w-4.5" />
+            <Crosshair className="h-4 w-4" />
           </span>
           <div className="min-w-0">
             <div className="text-[11px] font-heading font-bold uppercase tracking-wider text-foreground">
