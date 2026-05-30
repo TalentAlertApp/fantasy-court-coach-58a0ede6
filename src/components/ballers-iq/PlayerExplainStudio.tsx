@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import {
   Search, History, Radar, Crown, TrendingUp, ShieldAlert, DollarSign, CalendarDays,
   Sparkles, Activity, HelpCircle, Heart, Star, Mic, BarChart3, ArrowLeftRight, Users,
-  ArrowLeft, GitCompare, Trophy, Flame, Loader2,
+  ArrowLeft, GitCompare, Trophy, Flame, Loader2, Crosshair,
 } from "lucide-react";
 import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
