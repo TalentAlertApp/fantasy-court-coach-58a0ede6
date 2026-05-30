@@ -103,14 +103,14 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
   // Compact toolbar variant — no card chrome, sits inline in the workbench row.
   if (inline) {
     return (
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="flex flex-1 items-center gap-2 min-w-0">
         <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[hsl(var(--nba-yellow))]/15 text-[hsl(var(--nba-yellow))] ring-1 ring-[hsl(var(--nba-yellow))]/30">
           <Crosshair className="h-3.5 w-3.5" />
         </span>
         <span className="hidden md:inline text-[10px] font-heading font-bold uppercase tracking-wider text-foreground whitespace-nowrap">
           Bring In
         </span>
-        <div className="relative w-44 sm:w-60 shrink-0">
+        <div className="relative flex-1 min-w-0">
           <Popover open={open && matches.length > 0} onOpenChange={setOpen}>
             <PopoverAnchor asChild>
               <div className="relative">
