@@ -23,6 +23,7 @@ import { ArrowUpDown } from "lucide-react";
 import TeamStatsPanel from "@/components/teams/TeamStatsPanel";
 import { PageHeaderCaption, UnderlineTabsBarManual } from "@/components/layout/PageHeaderTabs";
 import { fetchAllRows } from "@/lib/supabase-paginate";
+import { computeHomeAwaySplits } from "@/lib/standings-home-splits";
 
 interface NbaTeamSummary {
   tricode: string;
@@ -93,6 +94,10 @@ export default function TeamsPage() {
   });
 
   const baseStandings = useNBAStandings(scheduleData ?? undefined, leagueTeams);
+  const homeSplits = useMemo(
+    () => computeHomeAwaySplits(scheduleData ?? undefined),
+    [scheduleData],
+  );
   // EuroLeague uses a single league table with explicit tiebreakers:
   //   W desc → L asc → DIFF desc → PF desc
   const standings = useMemo(() => {
