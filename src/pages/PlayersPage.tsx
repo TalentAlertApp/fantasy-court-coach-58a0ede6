@@ -84,6 +84,27 @@ export default function PlayersPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Stage a "Bring In" route coming from the planner (?bringIn=1&outs=…&ins=…).
+  useEffect(() => {
+    if (!searchParams.get("bringIn")) return;
+    const parseIds = (raw: string | null) =>
+      (raw ?? "")
+        .split(",")
+        .map((s) => parseInt(s, 10))
+        .filter((n) => Number.isFinite(n) && n > 0);
+    const outs = parseIds(searchParams.get("outs"));
+    const ins = parseIds(searchParams.get("ins"));
+    if (outs.length) setOutZone(outs);
+    if (ins.length) setInZone(ins);
+    const next = new URLSearchParams(searchParams);
+    next.delete("bringIn");
+    next.delete("outs");
+    next.delete("ins");
+    setSearchParams(next, { replace: true });
+    toast.success("Trade staged from Bring In — review and confirm below.");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [aiCoachOpen, setAiCoachOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
