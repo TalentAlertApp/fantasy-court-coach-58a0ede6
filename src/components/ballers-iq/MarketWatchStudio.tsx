@@ -417,6 +417,9 @@ export default function MarketWatchStudio({
                         <button onClick={() => a && onOpenPlayer?.(a)} className="ml-auto text-[10px] font-heading uppercase tracking-[0.14em] text-white/55 hover:text-white">
                           Explain Add
                         </button>
+                        <button onClick={(e) => openBringIn(m.add, e)} title="Bring In plan" className="inline-flex items-center gap-1 text-[10px] font-heading uppercase tracking-[0.14em] text-emerald-300/80 hover:text-emerald-200">
+                          <Target className="h-3 w-3" /> Bring In
+                        </button>
                         <button onClick={() => d && onOpenPlayer?.(d)} className="text-[10px] font-heading uppercase tracking-[0.14em] text-white/55 hover:text-white">
                           Explain Drop
                         </button>
