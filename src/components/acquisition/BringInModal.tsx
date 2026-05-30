@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,12 @@ import { cn } from "@/lib/utils";
 import { useRosterQuery } from "@/hooks/useRosterQuery";
 import { usePlayersQuery } from "@/hooks/usePlayersQuery";
 import { useTeam } from "@/contexts/TeamContext";
+import { useLeague } from "@/contexts/LeagueContext";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { getCurrentGameday } from "@/lib/deadlines";
+import PlayerModal from "@/components/PlayerModal";
+import TeamModal from "@/components/TeamModal";
 import {
   planAcquisition,
   routeToStageParams,
@@ -36,6 +39,8 @@ interface Props {
   target?: BringInTarget | null;
   /** …or just an id, and the modal resolves it from the players pool. */
   targetPlayerId?: number | null;
+  /** Called after a route is staged in the Trade Center (used to close parent overlays). */
+  onStaged?: () => void;
 }
 
 function toPlanner(p: any): PlannerPlayer {
@@ -51,12 +56,14 @@ function toPlanner(p: any): PlannerPlayer {
   };
 }
 
-function PlayerChip({ p, tone }: { p: PlannerPlayer; tone: "out" | "in" | "neutral" }) {
+function PlayerChip({ p, tone, onOpenPlayer }: { p: PlannerPlayer; tone: "out" | "in" | "neutral"; onOpenPlayer?: (id: number) => void }) {
   const logo = getTeamLogo(p.team);
   return (
-    <span
+    <button
+      type="button"
+      onClick={() => onOpenPlayer?.(p.id)}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-heading",
+        "inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] font-heading transition-colors hover:brightness-125",
         tone === "out" && "border-destructive/40 bg-destructive/10 text-destructive",
         tone === "in" && "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
         tone === "neutral" && "border-border bg-muted/40 text-foreground",
