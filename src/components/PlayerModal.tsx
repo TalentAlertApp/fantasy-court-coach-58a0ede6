@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlayerDetail, fetchGameBoxscore, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2, ExternalLink } from "lucide-react";
+import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2, ExternalLink, Crosshair } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +28,8 @@ import type { ShareCardContext } from "@/components/ballers-iq/share/formatBalle
 import { HealthStatusIcon, HealthDetailsModal } from "@/components/health";
 import NationalityFlag from "@/components/NationalityFlag";
 import { normalizePlayerHealth, getHealthLabel } from "@/lib/health";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
+import BringInModal from "@/components/acquisition/BringInModal";
 import { Share2 } from "lucide-react";
 import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
 
