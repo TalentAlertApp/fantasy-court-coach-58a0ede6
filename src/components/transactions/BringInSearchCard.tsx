@@ -86,63 +86,6 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
     });
   }, [league, onSelect]);
 
-  const results = (
-    <PopoverContent
-      align="start"
-      side="bottom"
-      sideOffset={6}
-      onOpenAutoFocus={(e) => e.preventDefault()}
-      className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)] max-h-[320px] overflow-y-auto z-[60]"
-    >
-      {matches.map((p) => {
-        const logo = getTeamLogo(p.core.team);
-        const fp5 = Number(p.last5?.fp5 ?? 0);
-        return (
-          <button
-            key={p.core.id}
-            type="button"
-            onClick={() => pick(p)}
-            className="group relative w-full flex items-center gap-3 pl-3.5 pr-14 py-2.5 hover:bg-accent/40 transition-colors text-left border-b border-border/60 last:border-b-0 overflow-hidden"
-          >
-            {/* Team badge — corner watermark, surge on hover */}
-            {logo && (
-              <img
-                src={logo}
-                alt=""
-                aria-hidden="true"
-                className="pointer-events-none absolute -top-2 -right-3 h-16 w-16 object-contain opacity-[0.12] rotate-12 select-none transition-all duration-300 group-hover:opacity-30 group-hover:scale-110"
-              />
-            )}
-            {p.core.photo ? (
-              <img src={p.core.photo} alt="" className="relative z-10 h-9 w-9 rounded-full object-cover object-[center_15%] bg-muted ring-1 ring-border/60 shrink-0" />
-            ) : (
-              <div className="relative z-10 h-9 w-9 rounded-full bg-muted inline-flex items-center justify-center text-[10px] font-bold shrink-0">
-                {p.core.name.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-            <div className="relative z-10 flex-1 min-w-0">
-              <div className="text-[13px] font-heading font-bold truncate">{p.core.name}</div>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                <span className="font-medium tracking-wide">{p.core.team}</span>
-                <Badge variant={p.core.fc_bc === "FC" ? "destructive" : "default"} className="text-[7px] px-1 py-0 rounded-md h-3.5">
-                  {p.core.fc_bc}
-                </Badge>
-              </div>
-            </div>
-            <div className="relative z-10 shrink-0 text-right leading-tight">
-              <div className="font-mono text-[13px] font-bold text-[hsl(var(--nba-yellow))]">{fp5.toFixed(1)}<span className="text-[8px] text-muted-foreground ml-0.5">FP5</span></div>
-              <div className="font-mono text-[11px] text-muted-foreground">${p.core.salary}M</div>
-            </div>
-            {/* Bring In icon — placed before the watermark */}
-            <span className="relative z-10 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 dark:text-amber-400 ring-1 ring-amber-500/25 transition-all group-hover:bg-amber-500/20 group-hover:scale-110">
-              <Crosshair className="h-3.5 w-3.5" />
-            </span>
-          </button>
-        );
-      })}
-    </PopoverContent>
-  );
-
   /** Shared row renderer for both live matches and recent history. */
   const renderRow = (p: any) => {
     const logo = getTeamLogo(p.core.team);
@@ -152,20 +95,21 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
         key={p.core.id}
         type="button"
         onClick={() => pick(p)}
-        className="group relative w-full flex items-center gap-3 pl-3.5 pr-14 py-2.5 hover:bg-accent/40 transition-colors text-left border-b border-border/60 last:border-b-0 overflow-hidden"
+        className="group relative w-full flex items-center gap-3 pl-3.5 pr-[4.5rem] py-2.5 hover:bg-accent/40 transition-colors text-left border-b border-border/60 last:border-b-0 overflow-hidden"
       >
+        {/* Team badge — corner watermark, surge on hover (kept clear of content) */}
         {logo && (
           <img
             src={logo}
             alt=""
             aria-hidden="true"
-            className="pointer-events-none absolute -top-2 -right-3 h-16 w-16 object-contain opacity-[0.12] rotate-12 select-none transition-all duration-300 group-hover:opacity-30 group-hover:scale-110"
+            className="pointer-events-none absolute -top-2 -right-2 h-14 w-14 object-contain opacity-[0.14] rotate-12 select-none transition-all duration-300 group-hover:opacity-30 group-hover:scale-110"
           />
         )}
         {p.core.photo ? (
-          <img src={p.core.photo} alt="" className="relative z-10 h-9 w-9 rounded-full object-cover object-[center_15%] bg-muted ring-1 ring-border/60 shrink-0" />
+          <img src={p.core.photo} alt="" className="relative z-10 h-10 w-10 rounded-full object-cover object-[center_15%] bg-muted ring-1 ring-border/60 shrink-0" />
         ) : (
-          <div className="relative z-10 h-9 w-9 rounded-full bg-muted inline-flex items-center justify-center text-[10px] font-bold shrink-0">
+          <div className="relative z-10 h-10 w-10 rounded-full bg-muted inline-flex items-center justify-center text-[10px] font-bold shrink-0">
             {p.core.name.slice(0, 2).toUpperCase()}
           </div>
         )}
@@ -182,12 +126,21 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
           <div className="font-mono text-[13px] font-bold text-[hsl(var(--nba-yellow))]">{fp5.toFixed(1)}<span className="text-[8px] text-muted-foreground ml-0.5">FP5</span></div>
           <div className="font-mono text-[11px] text-muted-foreground">${p.core.salary}M</div>
         </div>
-        <span className="relative z-10 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 dark:text-amber-400 ring-1 ring-amber-500/25 transition-all group-hover:bg-amber-500/20 group-hover:scale-110">
-          <Crosshair className="h-3.5 w-3.5" />
-        </span>
       </button>
     );
   };
+
+  const results = (
+    <PopoverContent
+      align="start"
+      side="bottom"
+      sideOffset={6}
+      onOpenAutoFocus={(e) => e.preventDefault()}
+      className="p-0 rounded-xl w-[var(--radix-popover-trigger-width)] max-h-[320px] overflow-y-auto z-[60]"
+    >
+      {matches.map((p) => renderRow(p))}
+    </PopoverContent>
+  );
 
   /** Recent-searches dropdown — sized to show up to 5 rows without scrolling. */
   const recentDropdown = (
@@ -196,9 +149,9 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
       side="bottom"
       sideOffset={6}
       onOpenAutoFocus={(e) => e.preventDefault()}
-      className="p-0 rounded-xl w-72 overflow-hidden z-[60]"
+      className="p-0 rounded-xl w-[26rem] max-w-[calc(100vw-2rem)] overflow-hidden z-[60]"
     >
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border/60 bg-muted/30">
+      <div className="flex items-center gap-1.5 px-3.5 py-2.5 border-b border-border/60 bg-muted/30">
         <History className="h-3 w-3 text-muted-foreground" />
         <span className="text-[10px] font-heading font-bold uppercase tracking-wider text-muted-foreground">
           Recently searched
