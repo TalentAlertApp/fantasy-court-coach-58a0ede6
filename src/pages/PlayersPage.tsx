@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Sparkles, RefreshCw, PanelRightOpen, PanelRightClose } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Minus, X, CalendarDays, Users, Star, RefreshCw, PanelRightOpen, PanelRightClose } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentGameday, formatDeadline, DEADLINES } from "@/lib/deadlines";
@@ -757,7 +757,7 @@ export default function PlayersPage() {
           disabled={allStarUsed}
           title={allStarUsed ? `All-Star chip already used (GW${usedChips?.find(c=>c.chip==='all_star')?.gw})` : "All-Star chip — +2 transfers this GW (one-time)"}
         >
-          <Sparkles className="h-3.5 w-3.5" />All-Star{allStarUsed ? " · Used" : ""}
+          <Star className="h-3.5 w-3.5" />All-Star{allStarUsed ? " · Used" : ""}
         </Button>
         <Button
           size="sm"
