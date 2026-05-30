@@ -279,7 +279,14 @@ export default function TeamsPage() {
                 className="pointer-events-none absolute inset-0 m-auto h-[60%] max-h-[420px] w-auto opacity-[0.05] dark:opacity-[0.06] select-none z-0"
               />
               <div className="relative z-[1] h-full overflow-auto pr-1">
-                <StandingsPanel standings={standings} onTeamClick={setSelectedTeam} view={standingsView} />
+                <StandingsPanel
+                  standings={standings}
+                  onTeamClick={setSelectedTeam}
+                  view={standingsView}
+                  leagueTeams={leagueTeams}
+                  homeSplits={homeSplits}
+                  league={league}
+                />
               </div>
             </div>
             <div className="mt-auto">
