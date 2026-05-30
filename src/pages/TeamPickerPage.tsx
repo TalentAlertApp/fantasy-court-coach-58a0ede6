@@ -12,6 +12,21 @@ import TeamLeagueChips from "@/components/TeamLeagueChips";
 import { useOnboardingAudio } from "@/hooks/useOnboardingAudio";
 import BrandMark from "@/components/onboarding/BrandMark";
 
+// Resting-state border accent per league. The hover state (border-accent/70)
+// still overrides because Tailwind emits hover: variants after base utilities.
+function leagueBorderClass(code?: string | null): string {
+  switch ((code ?? "").toLowerCase()) {
+    case "nba":
+      return "border-[#1d428a]/45";
+    case "wnba":
+      return "border-[#f57b20]/50";
+    case "euroleague":
+      return "border-[#e2231a]/45";
+    default:
+      return "border-foreground/10";
+  }
+}
+
 export default function TeamPickerPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -134,7 +149,7 @@ export default function TeamPickerPage() {
                 key={t.id}
                 type="button"
                 onClick={() => handlePick(t.id)}
-                className="group relative text-left p-4 rounded-xl border border-foreground/10 bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all min-h-[7rem] flex flex-col justify-between gap-2 overflow-hidden"
+                className={`group relative text-left p-4 rounded-xl border ${leagueBorderClass(t.league_code)} bg-gradient-to-br from-foreground/[0.04] to-transparent hover:border-accent/70 hover:from-accent/10 hover:shadow-[0_0_30px_-12px_hsl(var(--accent))] transition-all min-h-[7rem] flex flex-col justify-between gap-2 overflow-hidden`}
               >
                 <img
                   src={leagueLogo}

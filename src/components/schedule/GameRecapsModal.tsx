@@ -13,9 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Clapperboard, Film, ChevronLeft, ChevronRight, ChevronDown, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeague } from "@/contexts/LeagueContext";
+import { useLeagueId } from "@/hooks/useLeagueId";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
 import { useLeagueTeams } from "@/hooks/useLeagueTeams";
 import { useScheduleWeekGames, type ScheduleWeekGame } from "@/hooks/useScheduleWeekGames";
+import { supabase } from "@/integrations/supabase/client";
 import { getLeagueLogo } from "@/lib/competitions";
 import { getVenue } from "@/lib/nba-venues";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
@@ -43,6 +45,7 @@ function isPlayedStatus(s: string | null | undefined): boolean {
 
 export default function GameRecapsModal({ open, onOpenChange, initialGw, initialDay }: Props) {
   const { league } = useLeague();
+  const { data: leagueId } = useLeagueId();
   const { deadlines } = useLeagueDeadlines();
   const { teams: leagueTeams } = useLeagueTeams();
   const logoFor = (tri: string) =>
@@ -177,7 +180,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
     return new Date().toISOString();
   }, [selectedGame, deadlines, gw, day]);
 
-  const handleSelectPlayed = (gameId: string) => {
+  const handleSelectPlayed = async (gameId: string) => {
     const inDay = playedGames.find((g) => g.game_id === gameId);
     if (inDay) {
       setSelectedGameId(gameId);
@@ -187,7 +190,21 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
     if (inWeek) {
       setDay(inWeek.day);
       setSelectedGameId(gameId);
+      return;
     }
+    // Game lives in a different gameweek (LAST rail spans the whole season).
+    // Look up its gw/day so we can switch the modal to it and play the recap.
+    if (!leagueId) return;
+    const { data, error } = await supabase
+      .from("schedule_games")
+      .select("gw, day, status")
+      .eq("league_id", leagueId)
+      .eq("game_id", gameId)
+      .maybeSingle();
+    if (error || !data || !isPlayedStatus(data.status)) return;
+    setGw(data.gw);
+    setDay(data.day);
+    setSelectedGameId(gameId);
   };
 
   const handleSelectScheduled = (slot: TeamGameSlot) => {
