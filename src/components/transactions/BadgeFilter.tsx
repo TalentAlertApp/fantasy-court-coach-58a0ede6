@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { FilterX } from "lucide-react";
+import { FilterX, ListChecks } from "lucide-react";
 import { BADGE_LEGEND, BADGE_TONE_TEXT, BADGE_TONE_GLOW } from "./badgeLegend";
 
 interface Props {
@@ -24,6 +24,10 @@ export default function BadgeFilter({ value, onChange }: Props) {
     onChange(Array.from(next));
   };
 
+  const allKeys = BADGE_LEGEND.map((b) => b.key);
+  const allSelected = allKeys.length > 0 && allKeys.every((k) => selected.has(k));
+  const toggleAll = () => onChange(allSelected ? [] : allKeys);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -34,20 +38,21 @@ export default function BadgeFilter({ value, onChange }: Props) {
           <TooltipTrigger asChild>
             <button
               type="button"
-              onClick={() => onChange([])}
-              disabled={value.length === 0}
-              aria-label="Deselect all"
+              onClick={toggleAll}
+              aria-label={allSelected ? "Deselect all" : "Select all"}
               className={cn(
-                "inline-flex h-5 w-5 items-center justify-center rounded-md transition-all",
-                value.length > 0
-                  ? "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] hover:scale-110 cursor-pointer"
-                  : "text-muted-foreground/40 cursor-default",
+                "inline-flex h-5 w-5 items-center justify-center rounded-md transition-all cursor-pointer",
+                "text-muted-foreground hover:text-foreground hover:bg-foreground/[0.06] hover:scale-110",
               )}
             >
-              <FilterX className="h-3.5 w-3.5" strokeWidth={2.25} />
+              {allSelected ? (
+                <FilterX className="h-3.5 w-3.5" strokeWidth={2.25} />
+              ) : (
+                <ListChecks className="h-3.5 w-3.5" strokeWidth={2.25} />
+              )}
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="text-[10px]">Deselect all</TooltipContent>
+          <TooltipContent side="top" className="text-[10px]">{allSelected ? "Deselect all" : "Select all"}</TooltipContent>
         </Tooltip>
       </div>
       <div className="grid grid-cols-7 gap-y-2 gap-x-1 py-0.5">
