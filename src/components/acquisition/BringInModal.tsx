@@ -136,7 +136,7 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl p-0 overflow-hidden">
+      <DialogContent className="z-[120] max-w-2xl rounded-2xl p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
           <DialogTitle className="flex items-center gap-2 font-heading uppercase tracking-wide text-sm">
             <Crosshair className="h-4 w-4 text-primary" />
