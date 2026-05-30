@@ -37,6 +37,7 @@ import {
 } from "@/lib/health";
 import { HealthStatusIcon } from "@/components/health";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube-embed";
+import { fetchAllRows } from "@/lib/supabase-paginate";
 
 /* ---------- League-aware team meta (conference) ---------- */
 // Conference grouping is only defined for NBA/WNBA. EuroLeague uses a single
