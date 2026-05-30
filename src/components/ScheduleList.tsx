@@ -1037,6 +1037,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   />
                 )}
                 <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.away_team}</span>
+                {formatWL(g.away_team) && (
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/80 tabular-nums">{formatWL(g.away_team)}</span>
+                )}
                 {(isFinal || isLive) ? (
                   <span className={`font-mono leading-none tabular-nums ${isFinal && g.away_pts > g.home_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.away_pts}</span>
                 ) : (
@@ -1056,6 +1059,9 @@ export default function ScheduleList({ games, viewMode = "grid", gameBadges }: S
                   />
                 )}
                 <span className="font-heading font-black text-[11px] uppercase tracking-wider">{g.home_team}</span>
+                {formatWL(g.home_team) && (
+                  <span className="font-mono text-[10px] leading-none text-muted-foreground/80 tabular-nums">{formatWL(g.home_team)}</span>
+                )}
                 {(isFinal || isLive) ? (
                   <span className={`font-mono leading-none tabular-nums ${isFinal && g.home_pts > g.away_pts ? "font-black text-lg text-foreground" : "font-bold text-base opacity-70"}`}>{g.home_pts}</span>
                 ) : (
