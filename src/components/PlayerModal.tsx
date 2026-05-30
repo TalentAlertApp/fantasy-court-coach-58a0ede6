@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { fetchPlayerDetail, fetchGameBoxscore, aiExplainPlayer } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2, ExternalLink } from "lucide-react";
+import { Bot, Loader2, BarChart3, Heart, Table2, Mic, Tv2, ExternalLink, Crosshair } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +28,8 @@ import type { ShareCardContext } from "@/components/ballers-iq/share/formatBalle
 import { HealthStatusIcon, HealthDetailsModal } from "@/components/health";
 import NationalityFlag from "@/components/NationalityFlag";
 import { normalizePlayerHealth, getHealthLabel } from "@/lib/health";
+import { useRosterQuery } from "@/hooks/useRosterQuery";
+import BringInModal from "@/components/acquisition/BringInModal";
 import { Share2 } from "lucide-react";
 import { salaryDeltaColor, salaryDeltaTooltip } from "@/lib/salary-delta";
 
@@ -114,6 +116,16 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [shareCardOpen, setShareCardOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
+  const [bringInOpen, setBringInOpen] = useState(false);
+  const { data: rosterData } = useRosterQuery();
+  const isOnRoster = useMemo(() => {
+    const r: any = (rosterData as any)?.roster ?? rosterData;
+    const ids: number[] = [
+      ...(Array.isArray(r?.starters) ? r.starters : []),
+      ...(Array.isArray(r?.bench) ? r.bench : []),
+    ];
+    return playerId != null && ids.includes(playerId);
+  }, [rosterData, playerId]);
 
   const { data: boxscoreData, isLoading: boxscoreLoading } = useQuery({
     queryKey: ["game-boxscore", boxscoreGameId],
@@ -290,6 +302,15 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
                     >
                       <BarChart3 className="h-4 w-4" />
                     </button>
+                    {!isOnRoster && data.player.core.salary > 0 && (
+                      <button
+                        onClick={() => setBringInOpen(true)}
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 ring-1 ring-inset ring-emerald-500/30 text-emerald-600 dark:text-emerald-400 transition-colors"
+                        title="Bring In — plan an acquisition"
+                      >
+                        <Crosshair className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={() => playerId && toggleWishlist(playerId)}
                       className={`h-8 w-8 inline-flex items-center justify-center rounded-full ring-1 ring-inset transition-colors ${
@@ -762,6 +783,20 @@ export default function PlayerModal({ playerId, open, onOpenChange }: PlayerModa
         open={teamModalTri !== null}
         onOpenChange={(o) => !o && setTeamModalTri(null)}
       />
+      {data && (
+        <BringInModal
+          open={bringInOpen}
+          onOpenChange={setBringInOpen}
+          target={{
+            id: data.player.core.id,
+            name: data.player.core.name,
+            team: data.player.core.team,
+            fc_bc: data.player.core.fc_bc as "FC" | "BC",
+            salary: data.player.core.salary,
+            photo: data.player.core.photo ?? null,
+          }}
+        />
+      )}
     </>
   );
 }

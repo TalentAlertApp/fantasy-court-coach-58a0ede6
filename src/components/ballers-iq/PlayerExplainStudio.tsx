@@ -13,6 +13,7 @@ import { getTeamLogo, NBA_TEAMS } from "@/lib/nba-teams";
 import { cn } from "@/lib/utils";
 import PlayerModal from "@/components/PlayerModal";
 import TeamModal from "@/components/TeamModal";
+import BringInModal from "@/components/acquisition/BringInModal";
 
 function getTeamFullName(tricode: string): string {
   const t = NBA_TEAMS.find((t) => t.tricode === tricode);
@@ -88,6 +89,7 @@ export default function PlayerExplainStudio(props: Props) {
 
   const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
   const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
+  const [bringInOpen, setBringInOpen] = useState(false);
 
   /* -------- roster suggestions -------- */
   const rosterIds = useMemo(() => new Set<number>([
@@ -136,9 +138,23 @@ export default function PlayerExplainStudio(props: Props) {
         </div>
         {/* The existing ExplainReport is rendered by the parent through props.explainResult,
             but we need to render it here. The parent passes us the data — render it. */}
-        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} />
+        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} onBringIn={() => setBringInOpen(true)} />
         <PlayerModal playerId={modalPlayerId} open={modalPlayerId !== null} onOpenChange={(o) => !o && setModalPlayerId(null)} />
         <TeamModal tricode={modalTeamTri} open={modalTeamTri !== null} onOpenChange={(o) => !o && setModalTeamTri(null)} />
+        {selectedExplainPlayer?.core && (
+          <BringInModal
+            open={bringInOpen}
+            onOpenChange={setBringInOpen}
+            target={{
+              id: selectedExplainPlayer.core.id,
+              name: selectedExplainPlayer.core.name,
+              team: selectedExplainPlayer.core.team,
+              fc_bc: selectedExplainPlayer.core.fc_bc,
+              salary: selectedExplainPlayer.core.salary,
+              photo: selectedExplainPlayer.core.photo ?? null,
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -454,6 +470,6 @@ export default function PlayerExplainStudio(props: Props) {
 }
 
 import ExplainReport from "@/components/ballers-iq/ExplainReport";
-function ExplainReportSlot(p: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void }) {
-  return <ExplainReport result={p.result} player={p.player} onOpenPlayer={p.onOpenPlayer} onOpenTeam={p.onOpenTeam} />;
+function ExplainReportSlot(p: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void; onBringIn?: () => void }) {
+  return <ExplainReport result={p.result} player={p.player} onOpenPlayer={p.onOpenPlayer} onOpenTeam={p.onOpenTeam} onBringIn={p.onBringIn} />;
 }

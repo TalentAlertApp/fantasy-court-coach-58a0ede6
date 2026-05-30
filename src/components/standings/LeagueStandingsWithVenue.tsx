@@ -60,28 +60,33 @@ export default function LeagueStandingsWithVenue({
   }, [leagueTeams]);
 
   return (
-    <div className="flex gap-3 items-start">
-      {/* Main standings — left, takes remaining width, controlled sort */}
-      <div className="flex-1 min-w-0">
-        <StandingsTable
-          rows={ordered}
-          showCutoffs={false}
-          onTeamClick={onTeamClick}
-          sortKey={sortKey}
-          sortDir={sortDir}
-          onSort={handleSort}
-          rowHeightClass={ROW_H}
-        />
-      </div>
-      {/* Venue companion — right, content-sized, hidden on narrow screens */}
-      <div className="hidden lg:block shrink-0">
-        <VenueTable
-          rows={ordered}
-          venueByTri={venueByTri}
-          homeSplits={homeSplits}
-          league={league}
-          onTeamClick={onTeamClick}
-        />
+    // Single shared scroll container so both tables scroll together and their
+    // sticky `top-0` headers pin against the same boundary.
+    <div className="overflow-auto rounded-lg border max-h-[calc(100vh-280px)]">
+      <div className="flex gap-3 items-start">
+        {/* Main standings — left, takes remaining width, controlled sort */}
+        <div className="flex-1 min-w-0">
+          <StandingsTable
+            rows={ordered}
+            showCutoffs={false}
+            onTeamClick={onTeamClick}
+            sortKey={sortKey}
+            sortDir={sortDir}
+            onSort={handleSort}
+            rowHeightClass={ROW_H}
+            bare
+          />
+        </div>
+        {/* Venue companion — right, content-sized, hidden on narrow screens */}
+        <div className="hidden lg:block shrink-0">
+          <VenueTable
+            rows={ordered}
+            venueByTri={venueByTri}
+            homeSplits={homeSplits}
+            league={league}
+            onTeamClick={onTeamClick}
+          />
+        </div>
       </div>
     </div>
   );
@@ -111,8 +116,7 @@ function VenueTable({
   ];
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
-      <table className="w-full text-xs">
+    <table className="w-full text-xs">
         <thead>
           <tr>
             {COLS.map((c, i) => (
@@ -192,6 +196,5 @@ function VenueTable({
           })}
         </tbody>
       </table>
-    </div>
   );
 }

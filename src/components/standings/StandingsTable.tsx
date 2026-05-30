@@ -18,6 +18,9 @@ interface Props {
   onSort?: (key: SortKey | null) => void;
   /** Optional fixed row height class so a sibling venue table can align. */
   rowHeightClass?: string;
+  /** When true, render only the <table> (no bordered scroll wrapper) so a
+   *  parent can provide a single shared scroll container for sticky headers. */
+  bare?: boolean;
 }
 
 const ALL_COLS: { key: SortKey | null; label: string; className?: string; compactHide?: boolean; title?: string }[] = [
@@ -42,7 +45,7 @@ const ALL_COLS: { key: SortKey | null; label: string; className?: string; compac
 export default function StandingsTable({
   rows, title, showCutoffs = false, compact = false, onTeamClick,
   sortKey: sortKeyProp, sortDir: sortDirProp, onSort,
-  rowHeightClass,
+  rowHeightClass, bare = false,
 }: Props) {
   const COLS = compact ? ALL_COLS.filter((c) => !c.compactHide) : ALL_COLS;
   const controlled = typeof onSort === "function";
@@ -76,11 +79,8 @@ export default function StandingsTable({
     else { setSortKey(key); setSortDir("desc"); }
   };
 
-  return (
-    <div>
-      {title && <h3 className="text-sm font-heading font-bold uppercase mb-2 text-muted-foreground">{title}</h3>}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-xs">
+  const table = (
+    <table className="w-full text-xs">
           <thead>
             <tr>
               {COLS.map((c, i) => (
@@ -150,7 +150,18 @@ export default function StandingsTable({
             })}
           </tbody>
         </table>
-      </div>
+  );
+
+  return (
+    <div>
+      {title && <h3 className="text-sm font-heading font-bold uppercase mb-2 text-muted-foreground">{title}</h3>}
+      {bare ? (
+        table
+      ) : (
+        <div className="overflow-auto rounded-lg border max-h-[calc(100vh-280px)]">
+          {table}
+        </div>
+      )}
       {showCutoffs && rows.length >= 7 && (
         <div className="flex gap-4 mt-1.5 text-[9px] text-muted-foreground">
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-amber-500 inline-block" /> Play-In Zone</span>

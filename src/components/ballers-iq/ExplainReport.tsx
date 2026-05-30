@@ -101,7 +101,7 @@ function humanizeFlag(flag: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam }: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void }) {
+export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam, onBringIn }: { result: any; player: any; onOpenPlayer?: (id: number) => void; onOpenTeam?: (tricode: string) => void; onBringIn?: () => void }) {
   const teamTricode = player?.core?.team;
   const teamLogo = teamTricode ? getTeamLogo(teamTricode) : null;
   const teamFullName = teamTricode ? getTeamFullName(teamTricode) : "";
@@ -274,6 +274,15 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
                 <span className="text-[9px] font-heading font-bold uppercase tracking-wider opacity-80">Verdict</span>
               </div>
               <p className="text-[11px] leading-snug text-white/90 mt-1 line-clamp-3">{result.recommendation.rationale}</p>
+              {onBringIn && (result.recommendation.action ?? "").toLowerCase() === "add" && (
+                <button
+                  type="button"
+                  onClick={onBringIn}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/90 hover:bg-emerald-500 text-white px-2.5 py-1 text-[10px] font-heading font-bold uppercase tracking-wider transition-colors"
+                >
+                  <Tag className="h-3 w-3" /> Bring In
+                </button>
+              )}
             </div>
           )}
         </div>
