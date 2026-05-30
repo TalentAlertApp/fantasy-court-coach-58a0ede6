@@ -235,6 +235,7 @@ export default function PlayerExplainStudio(props: Props) {
 
   /* ============ STATE: PRE-SELECTION ============ */
   return (
+    <>
     <div className="flex flex-col h-full gap-3">
       <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3">
         <div className="grid gap-3 md:grid-cols-12">
@@ -486,6 +487,8 @@ export default function PlayerExplainStudio(props: Props) {
         )}
       </div>
     </div>
+    {bringInModalEl}
+    </>
   );
 }
 
