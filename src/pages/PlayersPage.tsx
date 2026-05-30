@@ -654,7 +654,10 @@ export default function PlayersPage() {
       return;
     }
     if (outZone.length === 0) {
-      toast.error("Pick a player to release first (− on a roster row)");
+      // Roster full and no OUT chosen yet → open the Bring In planner so the
+      // user can start from the target and discover legal release routes.
+      openBringIn(playerId);
+      toast.message("Opening Bring In plan — choose who to release.");
       return;
     }
     if (inZone.length >= outZone.length) {
@@ -663,6 +666,27 @@ export default function PlayersPage() {
     }
     setInZone((prev) => [...prev, playerId]);
   };
+
+  /** Always open the Bring In planner for a target, independent of OUT/IN state. */
+  const openBringIn = (playerId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setBringInTargetId(playerId);
+    setBringInOpen(true);
+  };
+
+  const bringInTarget = useMemo<BringInTarget | null>(() => {
+    if (bringInTargetId == null) return null;
+    const p = playerById.get(bringInTargetId);
+    if (!p) return null;
+    return {
+      id: p.core.id,
+      name: p.core.name,
+      team: p.core.team,
+      fc_bc: p.core.fc_bc as "FC" | "BC",
+      salary: p.core.salary,
+      photo: p.core.photo ?? null,
+    };
+  }, [bringInTargetId, playerById]);
 
   const sortableHeader = (col: string, label: string) => {
     const isActive = sortCol === col;
