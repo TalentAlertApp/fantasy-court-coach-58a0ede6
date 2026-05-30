@@ -16,6 +16,7 @@ import { getCurrentGameday } from "@/lib/deadlines";
 import { useLeagueDeadlines, getCurrentGamedayFrom } from "@/hooks/useLeagueDeadlines";
 import { PlayerListItemSchema } from "@/lib/contracts";
 import { playSfx } from "@/hooks/useSfx";
+import { getHoopsFantasyLogo } from "@/lib/hoopsfantasy-brand";
 import nbaLogo from "@/assets/nba-logo.svg";
 import wnbaLogo from "@/assets/wnba-logo.png";
 
@@ -183,7 +184,7 @@ export default function DraftPicker({ teamName, leagueCode, onFinish, onBack }: 
 
   return (
     <div className="relative flex flex-col h-screen px-6 py-8 items-center justify-center">
-      {(drafting || success) && <DraftingOverlay success={success} />}
+      {(drafting || success) && <DraftingOverlay success={success} leagueCode={leagueCode} />}
 
       {leagueCode && (
         <img
