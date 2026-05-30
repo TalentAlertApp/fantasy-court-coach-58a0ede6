@@ -20,23 +20,23 @@ interface Props {
   rowHeightClass?: string;
 }
 
-const ALL_COLS: { key: SortKey | null; label: string; className?: string; compactHide?: boolean }[] = [
-  { key: null, label: "#", className: "w-8 text-center" },
-  { key: null, label: "Team", className: "min-w-[100px]" },
-  { key: "gp", label: "GP", className: "w-10 text-right" },
-  { key: "w", label: "W", className: "w-10 text-right" },
-  { key: "l", label: "L", className: "w-10 text-right" },
-  { key: "pct", label: "PCT", className: "w-14 text-right" },
-  { key: "gb", label: "GB", className: "w-12 text-right" },
-  { key: null, label: "HOME", className: "w-14 text-right" },
-  { key: null, label: "AWAY", className: "w-14 text-right" },
-  { key: null, label: "CONF", className: "w-14 text-right", compactHide: true },
-  { key: null, label: "DIV", className: "w-14 text-right", compactHide: true },
-  { key: "ppg", label: "PPG", className: "w-14 text-right", compactHide: true },
-  { key: "oppPpg", label: "OPP", className: "w-14 text-right", compactHide: true },
-  { key: "diff", label: "DIFF", className: "w-14 text-right", compactHide: true },
-  { key: null, label: "L10", className: "w-14 text-right", compactHide: true },
-  { key: null, label: "STRK", className: "w-14 text-right", compactHide: true },
+const ALL_COLS: { key: SortKey | null; label: string; className?: string; compactHide?: boolean; title?: string }[] = [
+  { key: null, label: "#", className: "w-8 text-center", title: "Standings rank" },
+  { key: null, label: "Team", className: "min-w-[100px]", title: "Team" },
+  { key: "gp", label: "GP", className: "w-10 text-right", title: "Games played" },
+  { key: "w", label: "W", className: "w-10 text-right", title: "Wins" },
+  { key: "l", label: "L", className: "w-10 text-right", title: "Losses" },
+  { key: "pct", label: "PCT", className: "w-14 text-right", title: "Win percentage" },
+  { key: "gb", label: "GB", className: "w-12 text-right", title: "Games behind the leader" },
+  { key: null, label: "HOME", className: "w-14 text-right", title: "Home record (W-L)" },
+  { key: null, label: "AWAY", className: "w-14 text-right", title: "Away record (W-L)" },
+  { key: null, label: "CONF", className: "w-14 text-right", compactHide: true, title: "Conference record (W-L)" },
+  { key: null, label: "DIV", className: "w-14 text-right", compactHide: true, title: "Division record (W-L)" },
+  { key: "ppg", label: "PPG", className: "w-14 text-right", compactHide: true, title: "Points per game" },
+  { key: "oppPpg", label: "OPP", className: "w-14 text-right", compactHide: true, title: "Opponent points per game" },
+  { key: "diff", label: "DIFF", className: "w-14 text-right", compactHide: true, title: "Average point differential" },
+  { key: null, label: "L10", className: "w-14 text-right", compactHide: true, title: "Record in last 10 games (W-L)" },
+  { key: null, label: "STRK", className: "w-14 text-right", compactHide: true, title: "Current win/loss streak" },
 ];
 
 export default function StandingsTable({
@@ -87,6 +87,7 @@ export default function StandingsTable({
                 <th
                   key={i}
                   onClick={() => handleSort(c.key)}
+                  title={c.title}
                   className={cn(
                     "sticky top-0 z-20 bg-muted px-2 py-2 font-heading uppercase text-[10px] text-muted-foreground whitespace-nowrap border-b border-border",
                     c.className,
