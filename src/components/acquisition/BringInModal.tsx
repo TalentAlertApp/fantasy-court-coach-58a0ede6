@@ -146,6 +146,7 @@ export default function BringInModal({ open, onOpenChange, target: targetProp = 
   const targetLogo = target ? getTeamLogo(target.team) : undefined;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="z-[120] max-w-2xl rounded-2xl p-0 overflow-hidden flex flex-col max-h-[88vh]">
         <DialogHeader className="px-5 pt-5 pb-3 border-b">
