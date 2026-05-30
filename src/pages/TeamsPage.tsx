@@ -154,12 +154,15 @@ export default function TeamsPage() {
     <div className="flex flex-col h-full min-h-0 space-y-4">
       <div className="shrink-0 space-y-2">
         <PageHeaderCaption>
-          <img
-            src={leagueLogo}
-            alt={isEuroleague ? "EuroLeague" : league === "wnba" ? "WNBA" : "NBA"}
-            className="inline-block h-4 w-auto align-[-3px] opacity-80 transition-transform duration-300 hover:scale-125"
-          />{" "}
-          · Teams Hub
+          <span className="inline-flex items-center gap-1.5">
+            Teams
+            <img
+              src={leagueLogo}
+              alt={isEuroleague ? "EuroLeague" : league === "wnba" ? "WNBA" : "NBA"}
+              className="inline-block h-4 w-auto opacity-80 transition-transform duration-300 hover:scale-125"
+            />
+            Hub
+          </span>
         </PageHeaderCaption>
         <UnderlineTabsBarManual
           tabs={TABS.map((t) => ({ value: t.value, label: t.label }))}
