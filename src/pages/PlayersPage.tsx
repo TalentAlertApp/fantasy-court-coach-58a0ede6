@@ -693,7 +693,7 @@ export default function PlayersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="sticky top-0 z-30 -mx-6 px-6 pt-1 pb-1 bg-background/95 backdrop-blur-sm shrink-0">
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-1 pb-2 mb-3 bg-background/95 backdrop-blur-sm shrink-0">
       <PageHeaderCaption className="shrink-0 mb-2">
         <span className="inline-flex items-center gap-1.5">
           Transactions
