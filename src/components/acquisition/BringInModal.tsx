@@ -73,13 +73,16 @@ function PlayerChip({ p, tone, onOpenPlayer }: { p: PlannerPlayer; tone: "out" |
       <span className="font-bold uppercase truncate max-w-[120px]">{p.name}</span>
       <span className="opacity-70">{p.fc_bc}</span>
       <span className="font-mono opacity-80">${p.salary}M</span>
-    </span>
+    </button>
   );
 }
 
-export default function BringInModal({ open, onOpenChange, target: targetProp = null, targetPlayerId = null }: Props) {
+export default function BringInModal({ open, onOpenChange, target: targetProp = null, targetPlayerId = null, onStaged }: Props) {
   const navigate = useNavigate();
+  const { league } = useLeague();
   const { selectedTeamId } = useTeam();
+  const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
+  const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
   const { data: rosterData } = useRosterQuery();
   const { data: playersData, isLoading } = usePlayersQuery({ sort: "salary", order: "asc", limit: 2000 });
   const { deadlines } = useLeagueDeadlines();
