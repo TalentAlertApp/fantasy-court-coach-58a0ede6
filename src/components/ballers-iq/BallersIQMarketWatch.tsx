@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import BallersIQBrand from "./BallersIQBrand";
-import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat, ChevronUp, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, Sparkles, AlertTriangle, CalendarDays, DollarSign, Repeat, ChevronUp, ChevronDown, Target } from "lucide-react";
 import { normalizePlayerHealth, isHealthUnavailable, isHealthRisky, getHealthLabel } from "@/lib/health";
 import { getTeamLogo } from "@/lib/nba-teams";
 
@@ -27,6 +27,7 @@ interface Props {
   todayTeams?: string[];
   className?: string;
   onPickPlayer?: (id: number) => void;
+  onBringInPlayer?: (id: number) => void;
 }
 
 const num = (v: unknown, d = 0) => {
@@ -39,7 +40,7 @@ function topByMetric<T>(arr: T[], score: (x: T) => number, n = 3): T[] {
 }
 
 export default function BallersIQMarketWatch({
-  market, rosterPlayers, bankRemaining, todayTeams = [], className, onPickPlayer,
+  market, rosterPlayers, bankRemaining, todayTeams = [], className, onPickPlayer, onBringInPlayer,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const data = useMemo(() => {
@@ -103,7 +104,7 @@ export default function BallersIQMarketWatch({
     <div className="relative grid grid-cols-2 gap-2">
       <Lane label="Value Adds" icon={<Sparkles className="h-3 w-3 text-emerald-400" />} tone="emerald"
         rows={data.valueAdds.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `${num(p.fp_pg5).toFixed(1)} FP5 · $${num(p.salary).toFixed(1)}M` }))}
-        onPick={onPickPlayer} />
+        onPick={onPickPlayer} onBringIn={onBringInPlayer} canBringIn />
       <Lane label="Drop Risks" icon={<AlertTriangle className="h-3 w-3 text-red-400" />} tone="red"
         rows={data.dropRisks.map((p) => {
           const h = normalizePlayerHealth(p);
@@ -115,13 +116,13 @@ export default function BallersIQMarketWatch({
         onPick={onPickPlayer} />
       <Lane label="Buy Low" icon={<TrendingDown className="h-3 w-3 text-sky-400" />} tone="sky"
         rows={data.buyLow.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `Δ${num(p.delta_fp).toFixed(1)} · ${num(p.fp_pg_t).toFixed(1)} FPT` }))}
-        onPick={onPickPlayer} />
+        onPick={onPickPlayer} onBringIn={onBringInPlayer} canBringIn />
       <Lane label="Sell High" icon={<TrendingUp className="h-3 w-3 text-amber-400" />} tone="amber"
         rows={data.sellHigh.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `+${num(p.delta_fp).toFixed(1)} Δ · $${num(p.salary).toFixed(1)}M` }))}
         onPick={onPickPlayer} />
       <Lane label="Schedule Streams" icon={<CalendarDays className="h-3 w-3 text-violet-400" />} tone="violet"
         rows={data.streams.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `${p.team} tonight · ${num(p.fp_pg5).toFixed(1)} FP5` }))}
-        onPick={onPickPlayer} />
+        onPick={onPickPlayer} onBringIn={onBringInPlayer} canBringIn />
       <Lane label="Salary Traps" icon={<DollarSign className="h-3 w-3 text-zinc-400" />} tone="zinc"
         rows={data.traps.map((p) => ({ id: p.id, name: p.name, photo: p.photo, team: p.team, meta: `$${num(p.salary).toFixed(1)}M · V5 ${num(p.value5).toFixed(1)}` }))}
         onPick={onPickPlayer} />
