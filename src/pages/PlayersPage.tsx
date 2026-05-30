@@ -1012,22 +1012,16 @@ export default function PlayersPage() {
                                 >
                                   <Plus className="h-3.5 w-3.5" />
                                 </Button>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
-                                      onClick={(e) => openBringIn(p.core.id, e)}
-                                      aria-label="Bring In plan"
-                                    >
-                                      <Crosshair className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right" className="text-xs">
-                                    Bring In plan
-                                  </TooltipContent>
-                                </Tooltip>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                                  onClick={(e) => openBringIn(p.core.id, e)}
+                                  aria-label="Bring In plan"
+                                  title="Bring In plan"
+                                >
+                                  <Crosshair className="h-3.5 w-3.5" />
+                                </Button>
                                 <span
                                   className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${
                                     isInInZone
