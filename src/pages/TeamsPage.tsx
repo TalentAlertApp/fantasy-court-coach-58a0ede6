@@ -22,6 +22,7 @@ import PlayerModal from "@/components/PlayerModal";
 import { ArrowUpDown } from "lucide-react";
 import TeamStatsPanel from "@/components/teams/TeamStatsPanel";
 import { PageHeaderCaption, UnderlineTabsBarManual } from "@/components/layout/PageHeaderTabs";
+import { fetchAllRows } from "@/lib/supabase-paginate";
 
 interface NbaTeamSummary {
   tricode: string;
