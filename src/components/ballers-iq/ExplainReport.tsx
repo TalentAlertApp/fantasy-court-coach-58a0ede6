@@ -134,7 +134,7 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
           )}
           <div className="relative grid md:grid-cols-12 gap-3 p-3 md:px-4 md:py-2.5 items-center">
             {/* LEFT — player */}
-            <div className="md:col-span-4 flex items-center gap-3">
+            <div className="md:col-span-3 flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => player?.core?.id && onOpenPlayer?.(player.core.id)}
@@ -189,8 +189,8 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
               </div>
             </div>
 
-            {/* RIGHT — 4 uniform stat cards: FP5 · FP Season · BIQ · Verdict */}
-            <div className="md:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-2">
+            {/* RIGHT — 5 uniform stat cards: FP5 · FP Season · Salary+Value · BIQ · Verdict */}
+            <div className="md:col-span-9 grid grid-cols-2 md:grid-cols-5 gap-2">
               <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-200/70">FP5</div>
                 <div className="font-mono font-black text-lg text-amber-200 tabular-nums leading-tight mt-0.5">{fp5.toFixed(1)}</div>
@@ -198,6 +198,15 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
               <div className="rounded-lg border border-white/10 bg-black/45 px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-white/60">FP Season</div>
                 <div className="font-mono font-black text-lg text-white/95 tabular-nums leading-tight mt-0.5">{seasonFp.toFixed(1)}</div>
+              </div>
+              <div className="rounded-lg border border-emerald-300/20 bg-emerald-400/[0.05] px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
+                <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-emerald-200/70 leading-tight">Salary</div>
+                <div className="font-mono font-black text-lg text-emerald-200 tabular-nums leading-tight mt-0.5">${salary}M</div>
+                {value5 > 0 && (
+                  <div className="text-[8px] font-heading uppercase tracking-[0.16em] text-white/45 mt-0.5">
+                    Val <span className="font-mono text-white/70">{value5.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
               <div className="rounded-lg border border-amber-300/30 bg-amber-400/[0.06] px-2.5 py-2 flex flex-col items-center justify-center min-h-[58px]">
                 <div className="text-[9px] font-heading uppercase tracking-[0.22em] text-amber-100/70 leading-tight">BIQ</div>
