@@ -84,12 +84,35 @@ export default function PlayerExplainStudio(props: Props) {
     selectedExplainPlayer, setSelectedExplainPlayer, setExplainSearch,
     recentExplained, onSelectPlayer, onRecentClick, runExplain,
     explainLoading, explainResult,
-    onClearResult, onGoToTab,
+    onClearResult, onGoToTab, onClose,
   } = props;
 
   const [modalPlayerId, setModalPlayerId] = useState<number | null>(null);
   const [modalTeamTri, setModalTeamTri] = useState<string | null>(null);
   const [bringInOpen, setBringInOpen] = useState(false);
+  const [bringInTarget, setBringInTarget] = useState<any | null>(null);
+
+  const openBringInFor = (p: any) => {
+    setBringInTarget(p);
+    setBringInOpen(true);
+  };
+
+  const bringInSource = bringInTarget ?? selectedExplainPlayer;
+  const bringInModalEl = bringInSource?.core ? (
+    <BringInModal
+      open={bringInOpen}
+      onOpenChange={(o) => { setBringInOpen(o); if (!o) setBringInTarget(null); }}
+      onStaged={onClose}
+      target={{
+        id: bringInSource.core.id,
+        name: bringInSource.core.name,
+        team: bringInSource.core.team,
+        fc_bc: bringInSource.core.fc_bc,
+        salary: bringInSource.core.salary,
+        photo: bringInSource.core.photo ?? null,
+      }}
+    />
+  ) : null;
 
   /* -------- roster suggestions -------- */
   const rosterIds = useMemo(() => new Set<number>([
