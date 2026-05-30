@@ -58,7 +58,7 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
             key={p.core.id}
             type="button"
             onClick={() => pick(p)}
-            className="group relative w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-accent/40 transition-colors text-left border-b border-border/60 last:border-b-0 overflow-hidden"
+            className="group relative w-full flex items-center gap-3 pl-3.5 pr-14 py-2.5 hover:bg-accent/40 transition-colors text-left border-b border-border/60 last:border-b-0 overflow-hidden"
           >
             {/* Team badge — corner watermark, surge on hover */}
             {logo && (
