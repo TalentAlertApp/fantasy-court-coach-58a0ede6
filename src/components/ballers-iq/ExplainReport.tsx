@@ -109,6 +109,8 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
   const teamFullName = teamTricode ? getTeamFullName(teamTricode) : "";
   const fp5 = Number(player?.last5?.fp5 ?? 0);
   const seasonFp = Number(player?.season?.fp ?? 0);
+  const salary = Number(player?.core?.salary ?? 0);
+  const value5 = Number(player?.last5?.value5 ?? 0);
   const palette = actionPalette(result?.recommendation?.action ?? "hold");
   const verdict = String(result?.verdict ?? "").toUpperCase();
   const vPalette = verdict ? verdictPalette(verdict) : null;
