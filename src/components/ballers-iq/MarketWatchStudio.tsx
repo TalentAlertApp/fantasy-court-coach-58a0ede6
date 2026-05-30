@@ -466,9 +466,11 @@ export default function MarketWatchStudio({
               const p = getPlayer(id);
               if (p) onOpenPlayer?.(p);
             }}
+            onBringInPlayer={(id) => openBringIn(id)}
           />
         </details>
       </div>
+      {bringInModal}
     );
   }
 
