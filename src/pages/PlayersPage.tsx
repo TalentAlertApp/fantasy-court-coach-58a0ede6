@@ -30,6 +30,7 @@ import TradeWorkbench from "@/components/transactions/TradeWorkbench";
 import TradeReport from "@/components/transactions/TradeReport";
 import RosterPane, { type RosterPanePlayer } from "@/components/transactions/RosterPane";
 import BringInModal, { type BringInTarget } from "@/components/acquisition/BringInModal";
+import BringInSearchCard from "@/components/transactions/BringInSearchCard";
 import { useGameweekTransfers } from "@/hooks/useGameweekTransfers";
 import { useTeamChips } from "@/hooks/useTeamChips";
 import { useTradeValidation, type ValidationPlayer } from "@/hooks/useTradeValidation";
