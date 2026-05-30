@@ -114,6 +114,9 @@ export default function PlayersPage() {
   const [filtersOpen, setFiltersOpen] = useState(true);
   const [healthFilter, setHealthFilter] = useState<HealthFilter>("ALL");
   const [badgeFilter, setBadgeFilter] = useState<string[]>([]);
+  // "Bring In" planner — target-first acquisition flow (Phase 1B).
+  const [bringInTargetId, setBringInTargetId] = useState<number | null>(null);
+  const [bringInOpen, setBringInOpen] = useState(false);
 
   const isWideScreen = useMediaQuery("(min-width: 1280px)");
 
