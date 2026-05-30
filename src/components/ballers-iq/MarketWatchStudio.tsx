@@ -122,7 +122,7 @@ function uniqFlags(arr: string[] | undefined): string[] {
 export default function MarketWatchStudio({
   rosterData, allPlayers, upcomingByTeam,
   transfersLoading, transfersResult, simResults, simulatingIdx, committingIdx,
-  onSuggest, onSimulate, onCommit, onOpenPlayer, onGoToTab,
+  onSuggest, onSimulate, onCommit, onOpenPlayer, onGoToTab, onClose,
 }: Props) {
   /* ----- Bring In planner (stages only, never commits) ----- */
   const [bringInPlayerId, setBringInPlayerId] = useState<number | null>(null);
@@ -133,7 +133,7 @@ export default function MarketWatchStudio({
     setBringInOpen(true);
   };
   const bringInModal = (
-    <BringInModal open={bringInOpen} onOpenChange={setBringInOpen} targetPlayerId={bringInPlayerId} />
+    <BringInModal open={bringInOpen} onOpenChange={setBringInOpen} targetPlayerId={bringInPlayerId} onStaged={onClose} />
   );
 
   /* ----- derive market / roster pools (mirrors AICoachModal) ----- */
