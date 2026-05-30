@@ -170,7 +170,7 @@ export default function PlayerModal({ playerId, open, onOpenChange, contentClass
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setAiResult(null); setBoxscoreGameId(null); } }}>
-        <DialogContent className="max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden">
+        <DialogContent className={`max-w-lg rounded-lg h-[85vh] flex flex-col overflow-hidden${contentClassName ? ` ${contentClassName}` : ""}`}>
           {/* NBA logo watermark — visible on every tab */}
           <img
             src={watermarkLogo}
