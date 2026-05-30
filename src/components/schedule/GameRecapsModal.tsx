@@ -180,7 +180,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
     return new Date().toISOString();
   }, [selectedGame, deadlines, gw, day]);
 
-  const handleSelectPlayed = (gameId: string) => {
+  const handleSelectPlayed = async (gameId: string) => {
     const inDay = playedGames.find((g) => g.game_id === gameId);
     if (inDay) {
       setSelectedGameId(gameId);
@@ -190,7 +190,21 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
     if (inWeek) {
       setDay(inWeek.day);
       setSelectedGameId(gameId);
+      return;
     }
+    // Game lives in a different gameweek (LAST rail spans the whole season).
+    // Look up its gw/day so we can switch the modal to it and play the recap.
+    if (!leagueId) return;
+    const { data, error } = await supabase
+      .from("schedule_games")
+      .select("gw, day, status")
+      .eq("league_id", leagueId)
+      .eq("game_id", gameId)
+      .maybeSingle();
+    if (error || !data || !isPlayedStatus(data.status)) return;
+    setGw(data.gw);
+    setDay(data.day);
+    setSelectedGameId(gameId);
   };
 
   const handleSelectScheduled = (slot: TeamGameSlot) => {
