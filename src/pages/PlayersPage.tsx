@@ -693,6 +693,7 @@ export default function PlayersPage() {
 
   return (
     <div className="h-full flex flex-col">
+      <div className="sticky top-0 z-30 -mx-6 px-6 pt-1 pb-1 bg-background/95 backdrop-blur-sm shrink-0">
       <PageHeaderCaption className="shrink-0 mb-2">
         <span className="inline-flex items-center gap-1.5">
           Transactions
@@ -705,7 +706,7 @@ export default function PlayersPage() {
         </span>
       </PageHeaderCaption>
       {/* Compact header row */}
-      <div className="flex items-center gap-2 flex-wrap shrink-0 mb-3">
+      <div className="flex items-center gap-2 flex-wrap shrink-0">
         {!isWideScreen && (
           <Sheet open={rosterSheetOpen} onOpenChange={setRosterSheetOpen}>
             <SheetTrigger asChild>
@@ -772,6 +773,7 @@ export default function PlayersPage() {
         <span className="text-xs text-muted-foreground ml-auto">
           {totalItems} available · {eligibleCount} eligible
         </span>
+      </div>
       </div>
 
       {isLoading ? (
