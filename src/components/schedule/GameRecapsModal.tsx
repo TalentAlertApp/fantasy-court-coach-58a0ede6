@@ -10,7 +10,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
-import { Clapperboard, Film, ChevronLeft, ChevronRight, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, X } from "lucide-react";
+import { Clapperboard, Film, ChevronLeft, ChevronRight, ChevronDown, Tv2, ExternalLink, Sparkles, Calendar as CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLeague } from "@/contexts/LeagueContext";
 import { useLeagueDeadlines } from "@/hooks/useLeagueDeadlines";
@@ -20,7 +20,7 @@ import { getLeagueLogo } from "@/lib/competitions";
 import { getVenue } from "@/lib/nba-venues";
 import { getTeamByTricode, getTeamLogo } from "@/lib/nba-teams";
 import { format, parse } from "date-fns";
-import { toYouTubeEmbed } from "@/lib/youtube-embed";
+import { toYouTubeEmbed, extractYouTubeId } from "@/lib/youtube-embed";
 import GameBoxScoreTable from "@/components/game/GameBoxScoreTable";
 import GameBallersIQSidePanel from "@/components/game/GameBallersIQSidePanel";
 import BallersIQBrand from "@/components/ballers-iq/BallersIQBrand";
@@ -55,6 +55,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const [biqOn, setBiqOn] = useState(false);
   const [scheduledDetail, setScheduledDetail] = useState<GameDetailGame | null>(null);
   const [calOpen, setCalOpen] = useState(false);
+  const [gamePickerOpen, setGamePickerOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -64,6 +65,7 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
       setBiqOn(false);
       setScheduledDetail(null);
       setCalOpen(false);
+      setGamePickerOpen(false);
     }
   }, [open, initialGw, initialDay]);
 
@@ -115,6 +117,12 @@ export default function GameRecapsModal({ open, onOpenChange, initialGw, initial
   const playedGames = useMemo(
     () => dayGames.filter((g) => isPlayedStatus(g.status)),
     [dayGames],
+  );
+
+  // Games from the same gameday that actually have a playable video recap.
+  const gamesWithRecap = useMemo(
+    () => playedGames.filter((g) => !!extractYouTubeId(g.game_recap_url, g.youtube_recap_id)),
+    [playedGames],
   );
 
   const selectedGame = useMemo(
