@@ -292,11 +292,22 @@ export default function TradeReport(props: TradeReportProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-gradient-to-r from-card/40 via-card/60 to-card/40 rounded-b-xl">
-        <Button variant="outline" size="sm" onClick={onClose} disabled={committing}>
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-t border-border bg-gradient-to-r from-card/40 via-card/60 to-card/40 rounded-b-xl">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 rounded-lg font-heading uppercase text-[10px] tracking-wide"
+          onClick={onClose}
+          disabled={committing}
+        >
           ← Back to picking
         </Button>
-        <Button size="sm" onClick={onCommit} disabled={committing}>
+        <Button
+          size="sm"
+          onClick={onCommit}
+          disabled={committing}
+          className="h-8 rounded-lg font-heading uppercase text-[10px] tracking-wide gap-1.5 bg-accent text-accent-foreground shadow-[0_0_20px_-2px_hsl(var(--accent)/0.6)] hover:shadow-[0_0_30px_-2px_hsl(var(--accent))] hover:scale-[1.04] active:scale-[0.98] transition-all duration-200 relative overflow-hidden after:absolute after:inset-0 after:rounded-lg after:bg-gradient-to-r after:from-transparent after:via-white/20 after:to-transparent after:translate-x-[-100%] hover:after:translate-x-[100%] after:transition-transform after:duration-700"
+        >
           {committing ? "Committing…" : "Commit Trade"}
         </Button>
       </div>
