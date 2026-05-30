@@ -311,19 +311,22 @@ export default function ExplainReport({ result, player, onOpenPlayer, onOpenTeam
           <p className="text-[10px] font-heading font-bold uppercase tracking-[0.22em] text-amber-100/75 mb-2">
             Scoring Drivers
           </p>
-          <div className="rounded-lg divide-y divide-white/5 bg-black/30 border border-white/8">
+          <div className="flex gap-2 overflow-x-auto pb-1 snap-x [scrollbar-width:thin]">
             {result.why_it_scores.map((f: any, i: number) => {
               const Icon = factorIcon(f.factor);
               return (
-                <div key={i} className="px-3 py-2 space-y-0.5">
+                <div
+                  key={i}
+                  className="snap-start shrink-0 w-[180px] rounded-lg bg-black/30 border border-white/10 px-3 py-2.5 space-y-1.5"
+                >
                   <div className="flex items-center gap-2">
                     <Icon className="h-3.5 w-3.5 text-amber-300/80 shrink-0" />
-                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-white/90">{f.factor}</span>
-                    <span className={`ml-auto text-[9px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${impactClasses(f.impact)}`}>
-                      {(f.impact || "").replace("_", " ")}
-                    </span>
+                    <span className="text-[11px] font-heading font-bold uppercase tracking-wider text-white/90 truncate">{f.factor}</span>
                   </div>
-                  {f.note && <p className="text-xs text-white/65 leading-snug pl-5">{f.note}</p>}
+                  <span className={`inline-flex text-[9px] font-heading font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${impactClasses(f.impact)}`}>
+                    {(f.impact || "").replace("_", " ")}
+                  </span>
+                  {f.note && <p className="text-xs text-white/65 leading-snug">{f.note}</p>}
                 </div>
               );
             })}
