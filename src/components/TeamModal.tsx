@@ -29,6 +29,7 @@ interface TeamModalProps {
   tricode: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  contentClassName?: string;
 }
 
 type RosterSort = "mpg" | "ppg" | "fpg" | "salary" | "height";
@@ -40,7 +41,7 @@ function heightToInches(h: unknown): number {
   return parseInt(m[1], 10) * 12 + (m[2] ? parseInt(m[2], 10) : 0);
 }
 
-export default function TeamModal({ tricode, open, onOpenChange }: TeamModalProps) {
+export default function TeamModal({ tricode, open, onOpenChange, contentClassName }: TeamModalProps) {
   const { teams: leagueTeams } = useLeagueTeams();
   const { league } = useLeague();
   const { data: leagueId } = useLeagueId();
