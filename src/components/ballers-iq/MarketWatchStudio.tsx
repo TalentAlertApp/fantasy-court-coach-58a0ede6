@@ -292,6 +292,14 @@ export default function MarketWatchStudio({
                     <div className="text-[11.5px] font-heading font-bold uppercase text-white truncate">{addP?.core?.name ?? `#${top.add}`}</div>
                     <div className="text-[9.5px] text-white/55 truncate">{addP?.core?.team} · ${num(addP?.core?.salary).toFixed(1)}M</div>
                   </div>
+                  <button
+                    type="button"
+                    title="Bring In plan"
+                    onClick={(e) => openBringIn(top.add, e)}
+                    className="relative z-[1] ml-auto self-start inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-heading font-bold uppercase tracking-wider text-emerald-200 transition-colors hover:bg-emerald-500/20"
+                  >
+                    <Target className="h-3 w-3" /> Bring In
+                  </button>
                 </div>
               </div>
               {reasons[0] && <p className="mt-2 text-[12px] text-white/85 leading-snug line-clamp-2">{reasons[0]}</p>}
