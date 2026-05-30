@@ -537,7 +537,7 @@ export default function MarketWatchStudio({
                     )}
                     <div className="relative flex items-center gap-2">
                       {bs.out.photo ? (
-                        <img src={bs.out.photo} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_15%] ring-1 ring-rose-300/50 shrink-0" />
+                        <img src={bs.out.photo} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_15%] shrink-0" />
                       ) : (
                         <div className="w-9 h-9 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 shrink-0">{(bs.out.name ?? "?").slice(0, 1)}</div>
                       )}
@@ -559,7 +559,7 @@ export default function MarketWatchStudio({
                     )}
                     <div className="relative flex items-center gap-2">
                       {bs.in.photo ? (
-                        <img src={bs.in.photo} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_15%] ring-1 ring-emerald-300/50 shrink-0" />
+                        <img src={bs.in.photo} alt="" className="w-9 h-9 rounded-lg object-cover object-[center_15%] shrink-0" />
                       ) : (
                         <div className="w-9 h-9 rounded-lg bg-white/[0.06] inline-flex items-center justify-center text-[10px] font-bold text-white/80 shrink-0">{(bs.in.name ?? "?").slice(0, 1)}</div>
                       )}
