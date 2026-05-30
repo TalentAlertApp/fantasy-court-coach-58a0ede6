@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Crosshair, Search } from "lucide-react";
 import { getTeamLogo } from "@/lib/nba-teams";
-import { cn } from "@/lib/utils";
 
 /** Strip diacritics for search matching ("donc" → "Dončić"). */
 function norm(str: string): string {
