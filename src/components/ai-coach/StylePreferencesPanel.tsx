@@ -176,7 +176,7 @@ export default function StylePreferencesPanel({ players, busy, onDraft }: Props)
         onClick={() => onDraft(prefs)}
         disabled={busy || !players.length}
         size="lg"
-        className="w-full font-heading uppercase tracking-widest h-11 text-sm shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
+        className="w-full shrink-0 font-heading uppercase tracking-widest h-12 text-sm shadow-[0_8px_30px_-8px_hsl(var(--accent)/0.6)]"
       >
         {busy ? (
           <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Drafting…</>
