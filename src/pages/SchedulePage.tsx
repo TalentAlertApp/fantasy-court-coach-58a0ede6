@@ -240,7 +240,14 @@ export default function SchedulePage() {
     const first = days[0].dateObj, last = days[days.length - 1].dateObj;
     return `${format(first, "MMM d")} – ${format(last, "MMM d")}`;
   }, [gw, getDaysForWeek]);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  // Lisbon "today" — gamedays can run past midnight Lisbon, so the calendar
+  // fallback must use Europe/Lisbon, not UTC, to avoid marking the next day.
+  const todayStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Lisbon",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   const deadline = deadlines.find((d) => d.gw === gw && d.day === day);
 
