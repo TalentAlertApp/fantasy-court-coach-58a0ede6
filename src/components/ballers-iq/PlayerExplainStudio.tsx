@@ -161,23 +161,10 @@ export default function PlayerExplainStudio(props: Props) {
         </div>
         {/* The existing ExplainReport is rendered by the parent through props.explainResult,
             but we need to render it here. The parent passes us the data — render it. */}
-        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} onBringIn={() => setBringInOpen(true)} />
+        <ExplainReportSlot result={explainResult} player={selectedExplainPlayer} onOpenPlayer={setModalPlayerId} onOpenTeam={setModalTeamTri} onBringIn={() => openBringInFor(selectedExplainPlayer)} />
         <PlayerModal playerId={modalPlayerId} open={modalPlayerId !== null} onOpenChange={(o) => !o && setModalPlayerId(null)} />
         <TeamModal tricode={modalTeamTri} open={modalTeamTri !== null} onOpenChange={(o) => !o && setModalTeamTri(null)} />
-        {selectedExplainPlayer?.core && (
-          <BringInModal
-            open={bringInOpen}
-            onOpenChange={setBringInOpen}
-            target={{
-              id: selectedExplainPlayer.core.id,
-              name: selectedExplainPlayer.core.name,
-              team: selectedExplainPlayer.core.team,
-              fc_bc: selectedExplainPlayer.core.fc_bc,
-              salary: selectedExplainPlayer.core.salary,
-              photo: selectedExplainPlayer.core.photo ?? null,
-            }}
-          />
-        )}
+        {bringInModalEl}
       </div>
     );
   }
