@@ -124,7 +124,7 @@ export default function BringInSearchCard({ players, onSelect, inline = false }:
                     if (e.key === "Escape") setOpen(false);
                   }}
                   placeholder="Search any player…"
-                  className="h-8 pl-8 pr-2 rounded-lg bg-background/70 text-xs"
+                  className="h-8 pl-8 pr-2 rounded-lg bg-[hsl(var(--nba-yellow))]/10 border-[hsl(var(--nba-yellow))]/30 text-xs focus-visible:bg-[hsl(var(--nba-yellow))]/15"
                 />
               </div>
             </PopoverAnchor>
