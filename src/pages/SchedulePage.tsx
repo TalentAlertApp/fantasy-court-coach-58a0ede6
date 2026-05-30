@@ -402,7 +402,12 @@ export default function SchedulePage() {
           <div className="flex-1 flex gap-1 overflow-x-auto scrollbar-hide px-1">
             {weekDays.map((wd) => {
               const isSelected = wd.day === day;
-              const isDayToday = wd.date === todayStr;
+              const hasAnyLive = !!liveDays && liveDays.size > 0;
+              const isLiveDay = !!liveDays && liveDays.has(wd.day);
+              // The "current gameday" dot follows live games when any exist
+              // (gamedays can run past midnight Lisbon); otherwise it falls
+              // back to the calendar-today date.
+              const isDayToday = isLiveDay || (!hasAnyLive && wd.date === todayStr);
               const dayLabel = wd.date ? format(parse(wd.date, "yyyy-MM-dd", new Date()), "EEE").toUpperCase() : "";
               const dayNum = wd.dateObj.getDate();
               const gameCount = weekCounts?.[wd.day] ?? 0;
@@ -429,7 +434,7 @@ export default function SchedulePage() {
                       <span className={`text-[10px] font-heading font-bold ${isSelected ? "text-primary-foreground/70" : ""}`}>{dayLabel}</span>
                       <span className="text-sm font-mono font-bold leading-tight">{dayNum}</span>
                       {isDayToday && (
-                        <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full ${isLiveDay ? "animate-pulse" : ""} ${isSelected ? "bg-[hsl(var(--nba-yellow))]" : "bg-destructive"}`} />
                       )}
                       {isPlayed && !isDayToday && (
                         <CircleCheckBig className={`h-2.5 w-2.5 ${isSelected ? "text-primary-foreground/70" : "text-emerald-500"}`} />
