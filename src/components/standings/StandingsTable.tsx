@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { StandingRow } from "@/types/standings";
 import { cn } from "@/lib/utils";
 
-type SortKey = keyof Pick<StandingRow, "w" | "l" | "pct" | "gb" | "ppg" | "oppPpg" | "diff" | "gp">;
+export type SortKey = keyof Pick<StandingRow, "w" | "l" | "pct" | "gb" | "ppg" | "oppPpg" | "diff" | "gp">;
 
 interface Props {
   rows: StandingRow[];
