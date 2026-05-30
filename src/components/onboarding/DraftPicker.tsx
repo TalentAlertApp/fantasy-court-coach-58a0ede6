@@ -337,9 +337,18 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
   );
 }
 
-function DraftingOverlay({ success }: { success: boolean }) {
+function DraftingOverlay({ success, leagueCode }: { success: boolean; leagueCode?: CompetitionCode }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/85 backdrop-blur-sm animate-fade-in">
+      {success && (
+        <img
+          src={getHoopsFantasyLogo(leagueCode)}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[60vmin] w-[60vmin] max-h-[640px] max-w-[640px] object-contain opacity-[0.10] drop-shadow-[0_12px_48px_rgba(0,0,0,0.5)]"
+        />
+      )}
       <div className="relative">
         <div className="absolute inset-0 rounded-full bg-accent/30 blur-3xl animate-pulse" />
         {success ? (
@@ -348,10 +357,10 @@ function DraftingOverlay({ success }: { success: boolean }) {
           <Wand2 className="relative h-20 w-20 text-accent" />
         )}
       </div>
-      <p className="mt-8 font-heading uppercase tracking-[0.4em] text-sm text-foreground/80">
+      <p className="relative mt-8 font-heading uppercase tracking-[0.4em] text-sm text-foreground/80">
         {success ? "Roster Ready · Routing to Court" : "Drafting Your Squad"}
       </p>
-      <div className="mt-6 h-1 w-48 overflow-hidden rounded-full bg-foreground/10">
+      <div className="relative mt-6 h-1 w-48 overflow-hidden rounded-full bg-foreground/10">
         <div className="h-full w-1/3 bg-accent animate-[shimmer_1.4s_ease-in-out_infinite]" />
       </div>
     </div>
